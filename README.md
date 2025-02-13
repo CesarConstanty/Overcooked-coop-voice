@@ -7,7 +7,7 @@ Developed as part of a thesis using a software base developed by the BAIR team (
 - Create dedicated virtual environment and activate it, python 3.9.2
 - Update pip : `python -m pip install --upgrade pip`
 - `cd {install_dir}`
-- `pip install -r requirements.txt`
+- `pip install -r requirement.txt`
 
 ## Run in development mode
 - `export FLASK_ENV=development`
@@ -20,11 +20,7 @@ Developed as part of a thesis using a software base developed by the BAIR team (
 
 
 ## Run an experiment
-- Access http://localhost:5000/?PROLIFIC_PID=<uid>&CONFIG=<config_id>
-Exemple : http://localhost:5000/?PROLIFIC_PID=1&CONFIG=overcooked_SOAVersionUE
-
-## Run a test
-- Access http://localhost:5000/?TEST_UID=<uid>&CONFIG=<config_id>
+- Access http://localhost:5000/<config_key>
 
 ## Development
 ### Configurations
