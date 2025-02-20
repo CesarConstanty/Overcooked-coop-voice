@@ -37,4 +37,4 @@ If your agent uses the Medium Leval Action Manager and the Motion planner, you n
 
 MIT License
 Copyright (c) ONERA
-Il était un bateau qui navigue
+Il était un bateau qui navigue sur l'eau
