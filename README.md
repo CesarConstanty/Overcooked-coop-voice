@@ -25,6 +25,7 @@ Exemple : http://localhost:5000/?PROLIFIC_PID=1&CONFIG=overcooked_SOAVersionUE
 
 ## Run a test
 - Access http://localhost:5000/?TEST_UID="id"&CONFIG="config_id"
+Exemple : http://localhost:5000/?TEST_UID=1&CONFIG=test
 
 ## Development
 ### Configurations
