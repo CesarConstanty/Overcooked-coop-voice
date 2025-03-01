@@ -39,7 +39,6 @@ import game
 ###########
 # Globals #
 ###########
-
 # Read in global config
 CONF_PATH = os.getenv('CONF_PATH', 'config.json')
 TRIALS_PATH = os.getenv('CONF_PATH', 'trials.json')
@@ -161,7 +160,7 @@ def load_user(user_id):
 #################
 
 is_test = CONFIG.get('mode')
-is_test = "pas_test"
+#is_test = "pas_test"
 print(is_test)
 
 #################################
