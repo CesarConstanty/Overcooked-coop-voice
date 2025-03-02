@@ -39,7 +39,6 @@ import game
 ###########
 # Globals #
 ###########
-
 # Read in global config
 CONF_PATH = os.getenv('CONF_PATH', 'config.json')
 TRIALS_PATH = os.getenv('CONF_PATH', 'trials.json')
@@ -51,7 +50,6 @@ LOGFILE = CONFIG['logfile']
 
 # Available layout names
 LAYOUTS = CONFIG['layouts']
-
 
 # Values that are standard across layouts
 LAYOUT_GLOBALS = CONFIG['layout_globals']
@@ -67,8 +65,6 @@ MAX_GAMES = CONFIG['MAX_GAMES']
 
 # Frames per second cap for serving to client
 MAX_FPS = CONFIG['MAX_FPS']
-
-
 
 # Default configuration for planning experiment design
 PLANNING_DESIGN_CONFIG = CONFIG['planning_design']
@@ -159,6 +155,13 @@ with app.app_context():
 def load_user(user_id):
     return User.query.get(user_id)
 
+#################
+# MODIFICATIONS #	
+#################
+
+is_test = CONFIG.get('mode')
+#is_test = "pas_test"
+print(is_test)
 
 #################################
 # Global Coordination Functions #
@@ -585,7 +588,10 @@ def tutorial():
     uid = current_user.uid
     step = 0
     psiturk = request.args.get('psiturk', False)
-    return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+    if is_test != "test" :
+        return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+    else :
+        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
 
 
 @app.route('/debug')
