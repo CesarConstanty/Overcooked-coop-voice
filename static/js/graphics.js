@@ -592,7 +592,6 @@ class OvercookedScene extends Phaser.Scene {
             }
         }
     }
-
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
             ' ': 'floor.png',
@@ -642,6 +641,47 @@ class OvercookedScene extends Phaser.Scene {
         }
     }
 
+/*
+    _drawGoalIntentions(intentions, sprites, board_height, board_width) {
+        let terrain_to_sound = {
+            'X': 'counter_sound',
+            'P': 'pot_sound',
+            'O': 'onions_sound',
+            'T': 'tomatoes_sound',
+            'D': 'dishes_sound',
+            'S': 'serve_sound'
+        };
+        if (typeof(intentions) !== 'undefined' && intentions !== null) {
+            let intentions_str = "Partner's intentions:  ";
+            if (typeof(sprites['intentions']) !== 'undefined') {
+                // Clear existing orders
+                sprites['intentions'].forEach(element => {
+                    element.destroy();
+                });
+                sprites['intentions'] = [];
+
+                // Update with new orders
+                for (let i = 0; i < intentions.length; i++) {
+                    let soundKey = terrain_to_sound[intentions[i]];
+                    this.sound.play(soundKey);
+                };
+
+                }
+            } else {
+                sprites['intentions'] = {};
+                sprites['intentions']['str'] = this.add.text(
+                    board_width + 10, 100, intentions_str,
+                    {
+                        font: "20px Arial",
+                        fill: "red",
+                        align: "left"
+                    }
+                )
+                sprites['intentions'] = []
+            }
+        }
+    }
+    */
     _drawAgentType(agent_type, sprites, board_height, board_width) {
         let type_to_img = {
             'rational': 'rational.png',

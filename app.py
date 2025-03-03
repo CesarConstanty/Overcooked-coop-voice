@@ -161,7 +161,7 @@ def load_user(user_id):
 
 is_test = CONFIG.get('mode')
 #is_test = "pas_test"
-print(is_test)
+print("ceci est un : ",is_test)
 
 #################################
 # Global Coordination Functions #
