@@ -622,8 +622,6 @@ class OvercookedScene extends Phaser.Scene {
                 // Update with new orders
                 for (let i = 0; i < intentions.length; i++) {
                     let spriteFrame = terrain_to_img[intentions[i]];
-                    var audio = new Audio ("onions.mp3");
-                    audio.play();
                     let orderSprite = this.add.sprite(
                         board_width +10 + this.tileSize * i,
                         140,
