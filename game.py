@@ -617,7 +617,7 @@ class OvercookedGame(Game):
         state_dict['score'] = self.score
         state_dict['time_left'] = max(
             self.max_time - (time() - self.start_time), 0)
-        print ("valeur de la variable state_dict['state'] : ", state_dict['state'])
+#        print ("valeur de la variable state_dict['state'] : ", state_dict['state'])
         return state_dict
 
     def to_json(self):
@@ -799,10 +799,10 @@ class PlanningGame(OvercookedGame):
             self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['intentions'] = self.get_intentions(self.planning_agent_id)
-        print ("valeur de la variable state_dict['intentions']['recipe'] : ", state_dict['intentions']['recipe'])
-        print ("valeur de la variable state_dict['intentions']['goal'] : ", state_dict['intentions']['goal'])
-        print ("valeur de la variable state_dict['intentions']['agent_name'] : ", state_dict['intentions']['agent_name'])
-        print ("valeur de la variable state_dict['intentions'] : ", state_dict['intentions'])
+#        print ("valeur de la variable state_dict['intentions']['recipe'] : ", state_dict['intentions']['recipe'])
+#        print ("valeur de la variable state_dict['intentions']['goal'] : ", state_dict['intentions']['goal'])
+#        print ("valeur de la variable state_dict['intentions']['agent_name'] : ", state_dict['intentions']['agent_name'])
+#        print ("valeur de la variable state_dict['intentions'] : ", state_dict['intentions'])
         return state_dict
 
     def get_data(self):

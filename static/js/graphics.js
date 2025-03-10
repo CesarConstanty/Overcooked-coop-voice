@@ -602,6 +602,14 @@ class OvercookedScene extends Phaser.Scene {
             'D': 'dishes.png',
             'S': 'serve.png'
         };
+        /*let terrain_to_sound = {
+            'X': 'counter.mp3',
+            'P': 'pot.mp3',
+            'O': 'onions.mp3',
+            'T': 'tomatoes.mp3',
+            'D': 'dishes.mp3',
+            'S': 'serve.mp3'
+        };*/
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
             let intentions_str = "Partner's intentions:  ";
             if (typeof(sprites['intentions']) !== 'undefined') {
@@ -614,6 +622,8 @@ class OvercookedScene extends Phaser.Scene {
                 // Update with new orders
                 for (let i = 0; i < intentions.length; i++) {
                     let spriteFrame = terrain_to_img[intentions[i]];
+                    var audio = new Audio ("onions.mp3");
+                    audio.play();
                     let orderSprite = this.add.sprite(
                         board_width +10 + this.tileSize * i,
                         140,
@@ -644,12 +654,12 @@ class OvercookedScene extends Phaser.Scene {
 /*
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_sound = {
-            'X': 'counter_sound',
-            'P': 'pot_sound',
-            'O': 'onions_sound',
-            'T': 'tomatoes_sound',
-            'D': 'dishes_sound',
-            'S': 'serve_sound'
+            'X': 'counter.mp3',
+            'P': 'pot.mp3',
+            'O': 'onions.mp3',
+            'T': 'tomatoes.mp3',
+            'D': 'dishes.mp3',
+            'S': 'serve.mp3'
         };
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
             let intentions_str = "Partner's intentions:  ";
