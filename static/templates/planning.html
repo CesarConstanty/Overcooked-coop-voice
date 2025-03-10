@@ -11,7 +11,6 @@
 
   <title>Overcooked Demo</title>
   <link rel="Favicon" href="static/favicon.ico" />
-
   <script src="static/lib/jquery-min.js" type="text/javascript"> </script>
   <script type="module" src="static/lib/js.cookie.min.js"></script>
   <script src="static/lib/d3.v3.min.js" type="text/javascript"> </script>
@@ -54,6 +53,15 @@
 </head>
 
 <body>
+    <button id="play">Play </button>
+    <script>
+       let play = document.getElementById('play');
+          function playMusic() {
+            let audio = new Audio("tomatoes.mp3");
+            audio.play();
+        }
+        play.addEventListener("click", playMusic);
+  </script>
   <div id="uid" style="display:none;">{{current_user.uid}}</div>
   <div id="step" style="display:none;">{{current_user.step}}</div>
   <div id="condition" style="display:none;">{{current_user.config["conditions"][current_user.step]}}</div>
