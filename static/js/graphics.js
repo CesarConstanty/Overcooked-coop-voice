@@ -140,6 +140,7 @@ class OvercookedScene extends Phaser.Scene {
         this.audio_loc = config.audio_loc;
         this.audio = new Audio(); // Definition audio
         this.isPlaying = false; // Definition si le son est en cours de lecture
+        this.soundQueue = []; // Queue to manage sound intentions
         this.hud_size = config.hud_size;
         this.hud_data = {
             potential : config.start_state.potential,
@@ -595,7 +596,7 @@ class OvercookedScene extends Phaser.Scene {
             }
         }
     }
-    
+/*
 // Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
     _soundIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_sound = {
@@ -607,27 +608,40 @@ class OvercookedScene extends Phaser.Scene {
             'D': 'dishes.mp3',
             'S': 'serve.mp3'
         }; 
-        let isPlaying = false; // Definition si le son est en cours de lecture
+        
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
-            let playSound = (index) => {
-                if (index >= intentions.length) return;
-                if (!this.isPlaying) {
-                    let soundKey = terrain_to_sound[intentions[index]];
-                    this.audio.src = this.audio_loc + soundKey;
-                    this.audio.play().then(() => {
-                        this.isPlaying = true;
-                        this.audio.onended = () => {
-                            this.isPlaying = false;
-                        };
-                    }).catch(error => {
-                        console.error("Audio play failed:", error);
-                    });
+            for (let i = 0; i < intentions.length; i++) {
+                let soundKey = terrain_to_sound[intentions[i]];
+                if (soundKey) {
+                    this.soundQueue.push(soundKey);
                 }
-            };
-            playSound(0);
+            }
+            this._playNextSound();
         }
     }
 
+    _playNextSound() {
+        if (this.isPlaying || this.soundQueue.length === 0) {
+            return;
+        }
+
+        let soundKey = this.soundQueue.shift();
+        this.audio.src = this.audio_loc + soundKey;
+        this.audio.play().then(() => {
+            this.isPlaying = true;
+            this.audio.onended = () => {
+                this.isPlaying = false;
+                this._playNextSound(); // Play the next sound in the queue
+            };
+        }).catch(error => {
+            if (error.name !== 'AbortError') {
+                console.error("Audio play failed:", error);
+            }
+            this.isPlaying = false;
+            this._playNextSound(); // Try to play the next sound in the queue
+        });
+    }
+*/
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
             ' ': 'floor.png',
