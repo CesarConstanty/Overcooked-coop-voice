@@ -10,6 +10,7 @@ eventlet.monkey_patch()
 
 
 # All other imports must come after patch to ensure eventlet compatibility
+import time
 import random
 import pickle
 import queue
@@ -430,9 +431,11 @@ def index():
         session["type"] = "PROLIFIC"
     else:
         uid = request.args.get('TEST_UID', default=None)
+        #uid = int(time.time())
         session["type"] = "TEST"
     if uid:
         user = User.query.filter_by(uid=uid).first()
+        #user = False
         if user:
             login_user(user)
         else:

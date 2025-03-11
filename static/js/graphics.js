@@ -25,6 +25,7 @@ var scene_config = {
     show_post_cook_time : false,
     cook_time : 20,
     assets_loc : "./static/assets/",
+    audio_loc : "./static/audio/",
     hud_size : 360,
 
 };
@@ -136,7 +137,10 @@ class OvercookedScene extends Phaser.Scene {
         this.show_post_cook_time = config.show_post_cook_time;
         this.cook_time = config.cook_time;
         this.assets_loc = config.assets_loc;
-        this.hud_size = config.hud_size
+        this.audio_loc = config.audio_loc;
+        this.audio = new Audio(); // Definition audio
+        this.isPlaying = false; // Definition si le son est en cours de lecture
+        this.hud_size = config.hud_size;
         this.hud_data = {
             potential : config.start_state.potential,
             score : config.start_state.score,
@@ -471,8 +475,6 @@ class OvercookedScene extends Phaser.Scene {
     }
 
     _drawHUD(hud_data, sprites, board_height, board_width) {
-
-        
         if (typeof(hud_data.all_orders) !== 'undefined') {
             this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width);
         }
@@ -493,6 +495,7 @@ class OvercookedScene extends Phaser.Scene {
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
             if (this.condition.asset_hud){
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
+                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }            
             //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
@@ -592,6 +595,39 @@ class OvercookedScene extends Phaser.Scene {
             }
         }
     }
+    
+// Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
+    _soundIntentions(intentions, sprites, board_height, board_width) {
+        let terrain_to_sound = {
+            ' ': '',
+            'X': 'counter.mp3',
+            'P': 'pot.mp3',
+            'O': 'onions.mp3',
+            'T': 'tomatoes.mp3',
+            'D': 'dishes.mp3',
+            'S': 'serve.mp3'
+        }; 
+        let isPlaying = false; // Definition si le son est en cours de lecture
+        if (typeof(intentions) !== 'undefined' && intentions !== null) {
+            let playSound = (index) => {
+                if (index >= intentions.length) return;
+                if (!this.isPlaying) {
+                    let soundKey = terrain_to_sound[intentions[index]];
+                    this.audio.src = this.audio_loc + soundKey;
+                    this.audio.play().then(() => {
+                        this.isPlaying = true;
+                        this.audio.onended = () => {
+                            this.isPlaying = false;
+                        };
+                    }).catch(error => {
+                        console.error("Audio play failed:", error);
+                    });
+                }
+            };
+            playSound(0);
+        }
+    }
+
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
             ' ': 'floor.png',
@@ -602,14 +638,6 @@ class OvercookedScene extends Phaser.Scene {
             'D': 'dishes.png',
             'S': 'serve.png'
         };
-        /*let terrain_to_sound = {
-            'X': 'counter.mp3',
-            'P': 'pot.mp3',
-            'O': 'onions.mp3',
-            'T': 'tomatoes.mp3',
-            'D': 'dishes.mp3',
-            'S': 'serve.mp3'
-        };*/
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
             let intentions_str = "Partner's intentions:  ";
             if (typeof(sprites['intentions']) !== 'undefined') {
@@ -649,47 +677,6 @@ class OvercookedScene extends Phaser.Scene {
         }
     }
 
-/*
-    _drawGoalIntentions(intentions, sprites, board_height, board_width) {
-        let terrain_to_sound = {
-            'X': 'counter.mp3',
-            'P': 'pot.mp3',
-            'O': 'onions.mp3',
-            'T': 'tomatoes.mp3',
-            'D': 'dishes.mp3',
-            'S': 'serve.mp3'
-        };
-        if (typeof(intentions) !== 'undefined' && intentions !== null) {
-            let intentions_str = "Partner's intentions:  ";
-            if (typeof(sprites['intentions']) !== 'undefined') {
-                // Clear existing orders
-                sprites['intentions'].forEach(element => {
-                    element.destroy();
-                });
-                sprites['intentions'] = [];
-
-                // Update with new orders
-                for (let i = 0; i < intentions.length; i++) {
-                    let soundKey = terrain_to_sound[intentions[i]];
-                    this.sound.play(soundKey);
-                };
-
-                }
-            } else {
-                sprites['intentions'] = {};
-                sprites['intentions']['str'] = this.add.text(
-                    board_width + 10, 100, intentions_str,
-                    {
-                        font: "20px Arial",
-                        fill: "red",
-                        align: "left"
-                    }
-                )
-                sprites['intentions'] = []
-            }
-        }
-    }
-    */
     _drawAgentType(agent_type, sprites, board_height, board_width) {
         let type_to_img = {
             'rational': 'rational.png',

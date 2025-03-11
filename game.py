@@ -802,7 +802,7 @@ class PlanningGame(OvercookedGame):
 #        print ("valeur de la variable state_dict['intentions']['recipe'] : ", state_dict['intentions']['recipe'])
 #        print ("valeur de la variable state_dict['intentions']['goal'] : ", state_dict['intentions']['goal'])
 #        print ("valeur de la variable state_dict['intentions']['agent_name'] : ", state_dict['intentions']['agent_name'])
-#        print ("valeur de la variable state_dict['intentions'] : ", state_dict['intentions'])
+        print ("valeur de la variable state_dict['intentions'] : ", state_dict['intentions'])
         return state_dict
 
     def get_data(self):
