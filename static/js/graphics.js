@@ -36,9 +36,6 @@ var scene_config = {
 var game_config = {
     type: Phaser.WEBGL,
     pixelArt: true,
-    audio: {
-        noAudio: false // Ensure audio is enabled
-    },
     scale: {
         mode: Phaser.Scale.NONE},
 };
@@ -680,9 +677,6 @@ class OvercookedScene extends Phaser.Scene {
         }
     }
 
-
- 
-
 // Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
     _soundIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_sound = {
@@ -713,9 +707,9 @@ class OvercookedScene extends Phaser.Scene {
                 }
 
                 let soundKey = this.soundQueueAsset.shift();
-                console.log("Playing sound:", soundKey); // Log the sound being played
+                //console.log("Playing sound:", soundKey); // Log the sound being played
                 this.audio.src = this.audio_loc + soundKey;
-                console.log("Audio source set to:", this.audio.src); // Log the audio source
+                //console.log("Audio source set to:", this.audio.src); // Log the audio source
                 this.audio.playbackRate = 1.5;
                 this.audio.play().then(() => {
                     this.isPlaying = true;
