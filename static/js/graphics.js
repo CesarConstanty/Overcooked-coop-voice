@@ -8,6 +8,9 @@ Added state potential to HUD
 
 // How long a graphics update should take in milliseconds
 // Note that the server updates at 30 fps
+
+
+
 console.log("executing graphics");
 var ANIMATION_DURATION = 50;
 
@@ -34,7 +37,7 @@ var game_config = {
     type: Phaser.WEBGL,
     pixelArt: true,
     audio: {
-        noAudio: true
+        noAudio: false // Ensure audio is enabled
     },
     scale: {
         mode: Phaser.Scale.NONE},
@@ -59,8 +62,6 @@ var rangeSlider = function () {
         });
     });
 };
-
-
 
 
 // Invoked at every state_pong event from server
@@ -136,6 +137,7 @@ class OvercookedScene extends Phaser.Scene {
         this.animation_duration = config.animation_duration;
         this.show_post_cook_time = config.show_post_cook_time;
         this.cook_time = config.cook_time;
+        this.hud_size = config.hud_size;
         this.assets_loc = config.assets_loc;
         this.audio_loc = config.audio_loc;
         this.audio = new Audio(); // Definition audio
@@ -475,7 +477,8 @@ class OvercookedScene extends Phaser.Scene {
                 sprites['objects'][objpos] = {objsprite};
             }
         }        
-
+        // Afficher et intention audio des ingrédients de la recette en cours
+        /*
         // Traiter les différents ingrédents qui composent la recette
         if (typeof(state.players[0].intentions) !== 'undefined') {
             let chef = state.players[0];
@@ -497,9 +500,12 @@ class OvercookedScene extends Phaser.Scene {
                     }
                 );
             }
-        }
+        }*/
+        
     }
 
+// Jouer des sons pour les ingrédients des recettes
+/*
     _playRecipeSounds(ingredients) {
         let ingredient_to_sound = {
             'onion': 'onion.mp3',
@@ -527,7 +533,7 @@ class OvercookedScene extends Phaser.Scene {
             }
         });
 
-        const playNextSound = () => {
+        const playNextSoundRecipe = () => {
             if (this.isPlaying || this.soundQueueRecipe.length === 0) {
                 return;
             }
@@ -538,20 +544,20 @@ class OvercookedScene extends Phaser.Scene {
                 this.isPlaying = true;
                 this.audio.onended = () => {
                     this.isPlaying = false;
-                    playNextSound(); // Play the next sound in the queue
+                    playNextSoundRecipe(); // Play the next sound in the queue
                 };
             }).catch(error => {
                 if (error.name !== 'AbortError') {
                     console.error("Audio play failed:", error);
                 }
                 this.isPlaying = false;
-                playNextSound(); // Try to play the next sound in the queue
+                playNextSoundRecipe(); // Try to play the next sound in the queue
             });
         };
 
-        playNextSound();
+        playNextSoundRecipe();
     }
-
+*/
     _drawHUD(hud_data, sprites, board_height, board_width) {
         if (typeof(hud_data.all_orders) !== 'undefined') {
             this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width);
@@ -573,7 +579,7 @@ class OvercookedScene extends Phaser.Scene {
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
             if (this.condition.asset_hud){
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
-                //this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
+                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }            
             //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
@@ -674,7 +680,65 @@ class OvercookedScene extends Phaser.Scene {
         }
     }
 
-// MODIFICATIONS POUR AJOUTER LES SONS
+
+ 
+
+// Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
+    _soundIntentions(intentions, sprites, board_height, board_width) {
+        let terrain_to_sound = {
+            ' ': '',
+            'X': 'counter.mp3',
+            'P': 'pot.mp3',
+            'O': 'onion.mp3',
+            'T': 'tomato.mp3',
+            'D': 'dish.mp3',
+            'S': 'serve.mp3'
+        };
+
+        if (typeof(intentions) !== 'undefined' && intentions !== null) {
+            // Clear the sound queue before adding new sounds
+            this.soundQueueAsset = [];
+
+            // Update with new sounds
+            for (let i = 0; i < intentions.length; i++) {
+                let soundKey = terrain_to_sound[intentions[i]];
+                if (soundKey) {
+                    this.soundQueueAsset.push(soundKey);
+                }
+            }
+
+            const playNextSoundAsset = () => {
+                if (this.isPlaying || this.soundQueueAsset.length === 0) {
+                    return;
+                }
+
+                let soundKey = this.soundQueueAsset.shift();
+                console.log("Playing sound:", soundKey); // Log the sound being played
+                this.audio.src = this.audio_loc + soundKey;
+                console.log("Audio source set to:", this.audio.src); // Log the audio source
+                this.audio.playbackRate = 1.5;
+                this.audio.play().then(() => {
+                    this.isPlaying = true;
+                    this.audio.onended = () => {
+                        this.isPlaying = false;
+                        playNextSoundAsset(); // Play the next sound in the queue
+                    };
+                }).catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error("Audio play failed:", error);
+                    }
+                    this.isPlaying = false;
+                    playNextSoundAsset(); // Try to play the next sound in the queue
+                });
+            };
+
+            if (!this.isPlaying) {
+                playNextSoundAsset();
+            }
+        } else {
+            console.error("Invalid intentions data:", intentions);
+        }
+    }
 
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
