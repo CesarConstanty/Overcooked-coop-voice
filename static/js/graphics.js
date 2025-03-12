@@ -140,7 +140,8 @@ class OvercookedScene extends Phaser.Scene {
         this.audio_loc = config.audio_loc;
         this.audio = new Audio(); // Definition audio
         this.isPlaying = false; // Definition si le son est en cours de lecture
-        this.soundQueue = []; // Queue to manage sound intentions
+        this.soundQueueAsset = []; // Queue to manage sound asset intention
+        this.soundQueueRecipe = []; // Queue to manage sound recipe intention
         this.hud_size = config.hud_size;
         this.hud_data = {
             potential : config.start_state.potential,
@@ -473,6 +474,74 @@ class OvercookedScene extends Phaser.Scene {
                 sprites['objects'][objpos] = {objsprite};
             }
         }        
+
+        // Traiter les différents ingrédents qui composent la recette
+        if (typeof(state.players[0].intentions) !== 'undefined') {
+            let chef = state.players[0];
+            let ingredients = chef.intentions.recipe;
+            this._playRecipeSounds(ingredients);
+
+            // Display ingredients at the bottom right of the screen under all orders
+            let ingredients_str = ingredients.join(", ");
+            if (typeof(sprites['recipe_ingredients']) !== 'undefined') {
+                sprites['recipe_ingredients'].setText("Ingredients: " + ingredients_str);
+            } else {
+                sprites['recipe_ingredients'] = this.add.text(
+                    this.game.config.width - this.hud_size + 5, this.game.config.height - 50,
+                    "Ingredients: " + ingredients_str,
+                    {
+                        font: "20px Arial",
+                        fill: "black",
+                        align: "left"
+                    }
+                );
+            }
+        }
+    }
+
+    _playRecipeSounds(ingredients) {
+        let ingredient_to_sound = {
+            'onion': 'onion.mp3',
+            'tomato': 'tomato.mp3',
+            'dish': 'dish.mp3'
+        };
+
+        // Clear the sound queue before adding new sounds
+        this.soundQueueRecipe = [];
+
+        // Play "prochaine recette" sound first
+        this.soundQueueRecipe.push('prochaine_recette.mp3');
+
+        ingredients.forEach(ingredient => {
+            let soundKey = ingredient_to_sound[ingredient];
+            if (soundKey) {
+                this.soundQueueRecipe.push(soundKey);
+            }
+        });
+
+        const playNextSound = () => {
+            if (this.isPlaying || this.soundQueueRecipe.length === 0) {
+                return;
+            }
+
+            let soundKey = this.soundQueueRecipe.shift();
+            this.audio.src = this.audio_loc + soundKey;
+            this.audio.play().then(() => {
+                this.isPlaying = true;
+                this.audio.onended = () => {
+                    this.isPlaying = false;
+                    playNextSound(); // Play the next sound in the queue
+                };
+            }).catch(error => {
+                if (error.name !== 'AbortError') {
+                    console.error("Audio play failed:", error);
+                }
+                this.isPlaying = false;
+                playNextSound(); // Try to play the next sound in the queue
+            });
+        };
+
+        playNextSound();
     }
 
     _drawHUD(hud_data, sprites, board_height, board_width) {
@@ -496,7 +565,7 @@ class OvercookedScene extends Phaser.Scene {
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
             if (this.condition.asset_hud){
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
-                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
+                //this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }            
             //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
@@ -596,52 +665,9 @@ class OvercookedScene extends Phaser.Scene {
             }
         }
     }
-/*
-// Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
-    _soundIntentions(intentions, sprites, board_height, board_width) {
-        let terrain_to_sound = {
-            ' ': '',
-            'X': 'counter.mp3',
-            'P': 'pot.mp3',
-            'O': 'onions.mp3',
-            'T': 'tomatoes.mp3',
-            'D': 'dishes.mp3',
-            'S': 'serve.mp3'
-        }; 
-        
-        if (typeof(intentions) !== 'undefined' && intentions !== null) {
-            for (let i = 0; i < intentions.length; i++) {
-                let soundKey = terrain_to_sound[intentions[i]];
-                if (soundKey) {
-                    this.soundQueue.push(soundKey);
-                }
-            }
-            this._playNextSound();
-        }
-    }
 
-    _playNextSound() {
-        if (this.isPlaying || this.soundQueue.length === 0) {
-            return;
-        }
+// MODIFICATIONS POUR AJOUTER LES SONS
 
-        let soundKey = this.soundQueue.shift();
-        this.audio.src = this.audio_loc + soundKey;
-        this.audio.play().then(() => {
-            this.isPlaying = true;
-            this.audio.onended = () => {
-                this.isPlaying = false;
-                this._playNextSound(); // Play the next sound in the queue
-            };
-        }).catch(error => {
-            if (error.name !== 'AbortError') {
-                console.error("Audio play failed:", error);
-            }
-            this.isPlaying = false;
-            this._playNextSound(); // Try to play the next sound in the queue
-        });
-    }
-*/
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
             ' ': 'floor.png',
