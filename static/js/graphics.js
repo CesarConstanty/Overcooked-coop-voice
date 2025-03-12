@@ -154,6 +154,7 @@ class OvercookedScene extends Phaser.Scene {
         this.condition = config.condition;
         this.mechanic = config.mechanic;
         this.show_counter_drop = config.show_counter_drop;
+        this.currentRecipe = null; // Property to store the current recipe
     }
 
     set_state(state) {
@@ -506,6 +507,13 @@ class OvercookedScene extends Phaser.Scene {
             'dish': 'dish.mp3'
         };
 
+        // Check if the recipe has changed
+        let newRecipe = ingredients.join(",");
+        if (this.currentRecipe === newRecipe) {
+            return; // Do not play sounds if the recipe has not changed
+        }
+        this.currentRecipe = newRecipe; // Update the current recipe
+
         // Clear the sound queue before adding new sounds
         this.soundQueueRecipe = [];
 
@@ -523,9 +531,9 @@ class OvercookedScene extends Phaser.Scene {
             if (this.isPlaying || this.soundQueueRecipe.length === 0) {
                 return;
             }
-
             let soundKey = this.soundQueueRecipe.shift();
             this.audio.src = this.audio_loc + soundKey;
+            this.audio.playbackRate = 1.5; // modifier la vitesse de lecture
             this.audio.play().then(() => {
                 this.isPlaying = true;
                 this.audio.onended = () => {
