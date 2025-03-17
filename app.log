@@ -1101,3 +1101,38 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) attempt to write a r
 [SQL: INSERT INTO user (uid, config, step, trial) VALUES (?, ?, ?, ?)]
 [parameters: ('61', '{"mechanic": "recipe", "fps": 20, "show_counter_drop": true, "layouts_dir": "overcooked_ai_py/data/layouts/marin_II_constrained", "completion_link":  ... (3935 characters truncated) ...  "visible": true, "title": "Now you just finish the training phase. Do you have any comment before starting the core of the study ?", "steps": [0]}}}', 0, 0)]
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+Exception on /instructions [POST]
+Traceback (most recent call last):
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask_login/utils.py", line 284, in decorated_view
+    elif not current_user.is_authenticated:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/werkzeug/local.py", line 526, in _get_current_object
+    return get_name(local())
+                    ^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask_login/utils.py", line 25, in <lambda>
+    current_user = LocalProxy(lambda: _get_user())
+                                      ^^^^^^^^^^^
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask_login/utils.py", line 370, in _get_user
+    current_app.login_manager._load_user()
+  File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask_login/login_manager.py", line 364, in _load_user
+    user = self._user_callback(user_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/python-projects/Overcooked-coop-voice/app.py", line 157, in load_user
+    return User.Session.get(user_id)
+           ^^^^^^^^^^^^
+AttributeError: type object 'User' has no attribute 'Session'

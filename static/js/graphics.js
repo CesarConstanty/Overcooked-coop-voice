@@ -679,14 +679,15 @@ class OvercookedScene extends Phaser.Scene {
 
 // Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
     _soundIntentions(intentions, sprites, board_height, board_width) {
+        
         let terrain_to_sound = {
             ' ': '',
-            'X': 'counter.mp3',
-            'P': 'pot.mp3',
-            'O': 'onion.mp3',
-            'T': 'tomato.mp3',
-            'D': 'dish.mp3',
-            'S': 'serve.mp3'
+            'X': 'comptoire!.mp3',
+            'P': 'marmitte!.mp3',
+            'O': 'oignon!.mp3',
+            'T': 'tomate!.mp3',
+            'D': 'assiette!.mp3',
+            'S': 'je_sers!.mp3'
         };
 
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
