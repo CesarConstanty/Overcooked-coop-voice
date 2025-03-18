@@ -137,10 +137,11 @@ class OvercookedScene extends Phaser.Scene {
         this.hud_size = config.hud_size;
         this.assets_loc = config.assets_loc;
         this.audio_loc = config.audio_loc;
-        this.audio = new Audio(); // Definition audio
+        //this.audio = new Audio(); // Definition audio
         this.isPlaying = false; // Definition si le son est en cours de lecture
         this.soundQueueAsset = []; // Queue to manage sound asset intention
         this.soundQueueRecipe = []; // Queue to manage sound recipe intention
+        this.lastIntentions = null; // Store the last intentions
         this.hud_size = config.hud_size;
         this.hud_data = {
             potential : config.start_state.potential,
@@ -186,6 +187,14 @@ class OvercookedScene extends Phaser.Scene {
         if(!this.textures.exists("types")){this.load.atlas("types",
             this.assets_loc + "types.png",
             this.assets_loc + "types.json")}
+
+        // Pour les fichiers audio
+        this.load.audio('comptoire', this.audio_loc + 'comptoire!.mp3');
+        this.load.audio('marmitte', this.audio_loc + 'marmitte!.mp3');
+        this.load.audio('oignon', this.audio_loc + 'oignon!.mp3');
+        this.load.audio('tomate', this.audio_loc + 'tomate!.mp3');
+        this.load.audio('assiette', this.audio_loc + 'assiette!.mp3');
+        this.load.audio('je_sers', this.audio_loc + 'je_sers!.mp3');
     }
 
     create() {
@@ -679,55 +688,65 @@ class OvercookedScene extends Phaser.Scene {
 
 // Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
     _soundIntentions(intentions, sprites, board_height, board_width) {
-        
-        let terrain_to_sound = {
+        const terrain_to_sound = {
             ' ': '',
-            'X': 'comptoire!.mp3',
-            'P': 'marmitte!.mp3',
-            'O': 'oignon!.mp3',
-            'T': 'tomate!.mp3',
-            'D': 'assiette!.mp3',
-            'S': 'je_sers!.mp3'
+            'X': 'comptoire',
+            'P': 'marmitte',
+            'O': 'oignon',
+            'T': 'tomate',
+            'D': 'assiette',
+            'S': 'je_sers'
         };
 
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
+            // Check if intentions have changed
+            if (JSON.stringify(intentions) === JSON.stringify(this.lastIntentions)) {
+                return; // Do not play sound if intentions have not changed
+            }
+
+            // Update last intentions
+            this.lastIntentions = intentions;
+
             // Clear the sound queue before adding new sounds
             this.soundQueueAsset = [];
             console.log("Intentions:", intentions); // Log the intentions
+
             // Update with new sounds
             for (let i = 0; i < intentions.length; i++) {
                 let soundKey = terrain_to_sound[intentions[i]];
                 if (soundKey) {
                     this.soundQueueAsset.push(soundKey);
+                    console.log("taille sound queue add", this.soundQueueAsset.length);
+                    console.log("Added sound to queue:", soundKey); // Log the added sound
                 }
             }
 
             const playNextSoundAsset = () => {
-                if (this.isPlaying || this.soundQueueAsset.length === 0) {
+                if (this.soundQueueAsset.length === 0) {
+                    this.isPlaying = false;
+                    console.log("Sound queue is empty, stopping playback."); // Log when the queue is empty
                     return;
                 }
-
                 let soundKey = this.soundQueueAsset.shift();
-                //console.log("Playing sound:", soundKey); // Log the sound being played
-                this.audio.src = this.audio_loc + soundKey;
-                //console.log("Audio source set to:", this.audio.src); // Log the audio source
-                this.audio.playbackRate = 1.5;
-                this.audio.play().then(() => {
-                    this.isPlaying = true;
-                    this.audio.onended = () => {
-                        this.isPlaying = false;
-                        playNextSoundAsset(); // Play the next sound in the queue
-                    };
-                }).catch(error => {
-                    if (error.name !== 'AbortError') {
-                        console.error("Audio play failed:", error);
-                    }
+                console.log("valeur soundKey apres remove liste", soundKey);
+                console.log("taille sound queue remove", this.soundQueueAsset.length);
+                let sound = this.sound.add(soundKey);
+                sound.setRate(1.5);
+                sound.setVolume(1.0);
+                console.log("Playing sound:", soundKey); // Log the sound being played
+
+                sound.play();
+                sound.once('complete', () => {
                     this.isPlaying = false;
-                    playNextSoundAsset(); // Try to play the next sound in the queue
+                    console.log("Audio play ended"); // Log when audio play ends
+                    playNextSoundAsset();
                 });
             };
 
-            playNextSoundAsset();
+            // Start playing the first sound if not already playing
+            if (!this.isPlaying) {
+                playNextSoundAsset();
+            }
         }
     }
 
