@@ -854,7 +854,7 @@ def trial_save_routine(data):
 # Game Loop #
 #############
 
-def play_game(game, fps=30):
+def play_game(game, fps=5):
     """
     Asynchronously apply real-time game updates and broadcast state to all clients currently active
     in the game. Note that this loop must be initiated by a parallel thread for each active game
