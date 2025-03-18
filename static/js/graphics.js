@@ -693,7 +693,7 @@ class OvercookedScene extends Phaser.Scene {
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
             // Clear the sound queue before adding new sounds
             this.soundQueueAsset = [];
-
+            console.log("Intentions:", intentions); // Log the intentions
             // Update with new sounds
             for (let i = 0; i < intentions.length; i++) {
                 let soundKey = terrain_to_sound[intentions[i]];
@@ -727,11 +727,7 @@ class OvercookedScene extends Phaser.Scene {
                 });
             };
 
-            if (!this.isPlaying) {
-                playNextSoundAsset();
-            }
-        } else {
-            console.error("Invalid intentions data:", intentions);
+            playNextSoundAsset();
         }
     }
 
