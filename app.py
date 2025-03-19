@@ -414,14 +414,27 @@ def index():
             "recipe_head": False,
             "recipe_hud" : False,
             "asset_hud" : False,
-            "motion_goal" : False
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
             }
-            elif value =="E":
+            elif value =="EV":
                 config["conditions"][bloc]={
             "recipe_head": True,
-            "recipe_hud" : True,
+            "recipe_hud" : False,
             "asset_hud" : True,
-            "motion_goal" : True
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
+            }
+            else : # value =="EA"
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : True
             }
 
     except KeyError:

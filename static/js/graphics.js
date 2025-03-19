@@ -73,7 +73,7 @@ function drawState(state) {
 
 // Invoked at 'start_game' event
 function graphics_start(graphics_config) {
-    scene_config.condition = graphics_config.condition;
+    scene_config.condition = graphics_config.condition; //creuser
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
     graphics = new GraphicsManager(game_config, scene_config, graphics_config);
@@ -137,7 +137,7 @@ class OvercookedScene extends Phaser.Scene {
         this.hud_size = config.hud_size;
         this.assets_loc = config.assets_loc;
         this.audio_loc = config.audio_loc;
-        //this.audio = new Audio(); // Definition audio
+        this.audio = new Audio(); // Definition audio
         this.isPlaying = false; // Definition si le son est en cours de lecture
         this.soundQueueAsset = []; // Queue to manage sound asset intention
         this.soundQueueRecipe = []; // Queue to manage sound recipe intention
@@ -309,6 +309,7 @@ class OvercookedScene extends Phaser.Scene {
             else {
                 held_obj = "";
             }
+            
             // highlight motion goal
             if (chef.motion_goal){
                 if (typeof(sprites['motion_goal']) !== 'undefined'){
@@ -325,6 +326,7 @@ class OvercookedScene extends Phaser.Scene {
                     sprites['motion_goal'] = motion_goal
                 }              
             };
+            
             if (typeof(chef.intentions)!=='undefined'){
                 if (typeof(sprites['recipe_goal']) !== 'undefined'){
                     sprites['recipe_goal'].destroy();
@@ -483,40 +485,40 @@ class OvercookedScene extends Phaser.Scene {
                 sprites['objects'][objpos] = {objsprite};
             }
         }        
-        // Afficher et intention audio des ingrédients de la recette en cours
-        /*
+        // Afficher et intention audio des ingrédients de la recette en cours creuser
+        if (this.condition.recipe_sound) {
         // Traiter les différents ingrédents qui composent la recette
-        if (typeof(state.players[0].intentions) !== 'undefined') {
-            let chef = state.players[0];
-            let ingredients = chef.intentions.recipe;
-            this._playRecipeSounds(ingredients);
+            if (typeof(state.players[0].intentions) !== 'undefined') {
+                let chef = state.players[0];
+                let ingredients = chef.intentions.recipe;
+                this._playRecipeSounds(ingredients);
 
-            // Display ingredients at the bottom right of the screen under all orders
-            let ingredients_str = ingredients.join(", ");
-            if (typeof(sprites['recipe_ingredients']) !== 'undefined') {
-                sprites['recipe_ingredients'].setText("Ingredients: " + ingredients_str);
-            } else {
-                sprites['recipe_ingredients'] = this.add.text(
-                    this.game.config.width - this.hud_size + 5, this.game.config.height - 50,
-                    "Ingredients: " + ingredients_str,
-                    {
-                        font: "20px Arial",
-                        fill: "black",
-                        align: "left"
-                    }
-                );
+                // Display ingredients at the bottom right of the screen under all orders
+                let ingredients_str = ingredients.join(", ");
+                if (typeof(sprites['recipe_ingredients']) !== 'undefined') {
+                    sprites['recipe_ingredients'].setText("Ingredients: " + ingredients_str);
+                } else {
+                    sprites['recipe_ingredients'] = this.add.text(
+                        this.game.config.width - this.hud_size + 5, this.game.config.height - 50,
+                        "Ingredients: " + ingredients_str,
+                        {
+                            font: "20px Arial",
+                            fill: "black",
+                            align: "left"
+                        }
+                    );
+                }
             }
-        }*/
-        
+            
+        }
     }
 
 // Jouer des sons pour les ingrédients des recettes
-/*
     _playRecipeSounds(ingredients) {
         let ingredient_to_sound = {
-            'onion': 'onion.mp3',
-            'tomato': 'tomato.mp3',
-            'dish': 'dish.mp3'
+            'onion': 'oignon!.mp3',
+            'tomato': 'tomate!.mp3',
+            'dish': 'assiette!.mp3'
         };
 
         // Check if the recipe has changed
@@ -530,7 +532,7 @@ class OvercookedScene extends Phaser.Scene {
         this.soundQueueRecipe = [];
 
         // Play "prochaine recette" sound first
-        this.soundQueueRecipe.push('prochaine_recette.mp3');
+        this.soundQueueRecipe.push('prochaine_recette!.mp3');
 
         ingredients.forEach(ingredient => {
             let soundKey = ingredient_to_sound[ingredient];
@@ -544,6 +546,8 @@ class OvercookedScene extends Phaser.Scene {
                 return;
             }
             let soundKey = this.soundQueueRecipe.shift();
+            console.log("Playing sound:", soundKey); // Log the sound being played
+            console.log("Sound queue length:", this.soundQueueRecipe.length); // Log the sound queue length
             this.audio.src = this.audio_loc + soundKey;
             this.audio.playbackRate = 1.5; // modifier la vitesse de lecture
             this.audio.play().then(() => {
@@ -563,10 +567,10 @@ class OvercookedScene extends Phaser.Scene {
 
         playNextSoundRecipe();
     }
-*/
+
     _drawHUD(hud_data, sprites, board_height, board_width) {
         if (typeof(hud_data.all_orders) !== 'undefined') {
-            this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width);
+            this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width); // affiche les recette restantes
         }
         /* if (typeof(hud_data.bonus_orders) !== 'undefined') {
             this._drawBonusOrders(hud_data.bonus_orders, sprites, board_height);
@@ -580,16 +584,18 @@ class OvercookedScene extends Phaser.Scene {
         }
         if (typeof(hud_data.potential) !== 'undefined' && hud_data.potential !== null) {
             console.log(hud_data.potential)
-            this._drawPotential(hud_data.potential, sprites, board_height, board_width);
+            this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
             if (this.condition.asset_hud){
-                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
-                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
+                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
+            }
+            if (this.condition.asset_sound){
+                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
             }            
             //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
-                this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe);
+                this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe); // surligne la recette que l'agent a l'intention de faire
             }        
         }
     }
