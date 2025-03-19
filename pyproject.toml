@@ -1,0 +1,58 @@
+#
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+#
+[project]
+classifiers = [
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.11',
+]
+name = "overcooked_coop_voice"
+version = "2025.03"
+description = "Overcooked for Human/Artificial Agent Joint Action study"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "César Constanty" },
+    { name = "Kévin Gravouil" },
+    { name = "Antonin Cabane"},
+    { name = "Marin Leguillou"}
+]
+#maintainers = [{ name = "", email = "" }] #TODO
+keywords = ["HMT", "cooperation"]
+dependencies = [
+"Flask",
+"Flask-SocketIO",
+"eventlet",
+"matplotlib",
+"requests",
+"numpy",
+"gevent",
+"ipython",
+"ipywidgets",
+"Werkzeug",
+"flask-session",
+"flask-login",
+"flask-sqlalchemy",
+"scipy",
+"tqdm"
+]
+
+[project.urls]
+"Repository" = "https://github.com/CesarConstanty/Overcooked-coop-voice"
+"Bug Tracker" = "https://github.com/CesarConstanty/Overcooked-coop-voice/issues"
+
+# build
+#[tool.setuptools.dynamic]
+#version = { attr = "" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+#include = ["da_epiic*"]
+namespaces = false
+
+# TODO properly package data when `python -m build` is invoked
+# [tool.setuptools.package-data]

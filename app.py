@@ -433,7 +433,7 @@ def index():
             "recipe_hud" : False,
             "asset_hud" : False,
             "motion_goal" : False,
-            "asset_sound" : False,
+            "asset_sound" : True,
             "recipe_sound" : True
             }
 
