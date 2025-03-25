@@ -141,8 +141,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'user'
     uid = db.Column(db.String, primary_key=True)
     config = db.Column(JSON)
-    step = db.Column(db.Integer)
-    trial = db.Column(db.Integer)
+    step = db.Column(db.Integer) # Le bloc en cours
+    trial = db.Column(db.Integer) # L'essaie en cours (correspondant au layout)
 
     def get_id(self):
         return str(self.uid)
@@ -312,7 +312,9 @@ def _leave_game(user_id):
 
     return was_active
 
-
+# fonction permettant la création d'un nouveau jeu, 
+# déclanche également un évènement socketIO pour lancer la partie
+# cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
     existing_game = GAMES.get(game_name, None)
     if existing_game:
@@ -431,9 +433,9 @@ def index():
                 config["conditions"][bloc]={
             "recipe_head": False,
             "recipe_hud" : False,
-            "asset_hud" : False,
-            "motion_goal" : False,
-            "asset_sound" : True,
+            "asset_hud" : True,
+            "motion_goal" : True,
+            "asset_sound" : False,
             "recipe_sound" : True
             }
 
@@ -461,7 +463,7 @@ def index():
                     new_user.config["qpt"] = qpt
             except KeyError:
                 new_user.config["qpt"] = {}
-            if new_user.config.get("shuffle_trials", False) == True:
+            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
             try:
@@ -658,13 +660,11 @@ def debug():
 # happen once at the beginning. Thus, socket events are used for all game updates, where more rapid
 # communication is needed
 
-@socketio.on('create')
+@socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
     user_id = current_user.uid
 
-
-    # Retrieve current game if one exists
-    curr_game = get_curr_game(user_id)
+    curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
     if curr_game:
         # Cannot create if currently in a game
         return
@@ -679,6 +679,7 @@ def on_create(data):
             "0": data['params']['condition']}
     params = data.get('params', {})
     game_name = data.get('game_name', 'overcooked')
+    # Déclenche la création du jeu avec les données fournies
     _create_game(user_id, game_name, {"id": current_user.uid, "player_uid": current_user.uid, "step": int(
         current_user.step), "curr_trial_in_game" : int(current_user.trial)-1, "config": current_user.config})
 
@@ -867,7 +868,7 @@ def trial_save_routine(data):
 # Game Loop #
 #############
 
-def play_game(game, fps=5):
+def play_game(game, fps=10):
     """
     Asynchronously apply real-time game updates and broadcast state to all clients currently active
     in the game. Note that this loop must be initiated by a parallel thread for each active game

@@ -71,9 +71,10 @@ function drawState(state) {
     }
 };
 
-// Invoked at 'start_game' event
+// Invoked at 'start_game' event déclenché par app.py, écouté par planning.js 
+// qui définie graphics_config avec les paramètres de la partie
 function graphics_start(graphics_config) {
-    scene_config.condition = graphics_config.condition; //creuser
+    scene_config.condition = graphics_config.condition;
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
     graphics = new GraphicsManager(game_config, scene_config, graphics_config);

@@ -19,20 +19,20 @@ var condition = "U";
 
 
 
-$(function() {
-    $('#create').click(function () {
-        let params = JSON.parse($('#config').text());
+$(function() { // le $ signifie que la fonction attend que le document soit chargé
+    $('#create').click(function () { // fonction qui déclenche la création d'un nouveau jeu
+        let params = JSON.parse($('#config').text()); // extraction des paramètres du jeu
         let uid = $('#uid').text();
-        params.player_uid = uid;
+        params.player_uid = uid; // ajout de paramètres supplémentaires
         params.bloc = bloc;
         params.condition = condition;
         data = {
-            "params" : params,
-            "game_name" : "planning",
+            "params" : params, // stock uid/bloc/essaie dans un dictionnaire
+            "game_name" : "planning", // stipule l'utilisation de la classe PlanningGame
             "create_if_not_found" : false
         };
-        socket.emit("create", data);
-        $('#waiting').show();
+        socket.emit("create", data); // emet l'évènement socketIO create reçu par app.py
+        $('#waiting').show(); // mise à jour de certains élèments de l'interface
         $('#join').hide();
         $('#join').attr("disabled", true);
         $('#create').hide();
@@ -146,7 +146,7 @@ socket.on('creation_failed', function(data) {
     console.log("creation")
     $('#overcooked').append(`<h4>Sorry, game creation code failed with error: ${JSON.stringify(err)}</>`);
 });
-
+// déclenché suite à une requette de app.py
 socket.on('start_game', function(data) {
     // Hide game-over and lobby, show game title header
     if (window.intervalID !== -1) {
@@ -303,7 +303,7 @@ function disable_key_listener() {
 /* * * * * * * * * * *
  * Utility Functions *
  * * * * * * * * * * */
-
+// convertit des dictionnaires en json
 var arrToJSON = function(arr) {
     let retval = {}
     for (let i = 0; i < arr.length; i++) {

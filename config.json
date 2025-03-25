@@ -457,7 +457,7 @@
     },
     "marin_II_constrained_E" :{
         "mechanic" : "recipe",
-        "fps" : 20,
+        "fps" : 10,
         "show_counter_drop" : true,
         "layouts_dir" : "overcooked_ai_py/data/layouts/marin_II_constrained",
         "completion_link" : "https://app.prolific.co/submissions/complete?cc=CFTFPBYQ",

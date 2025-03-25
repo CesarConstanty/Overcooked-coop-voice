@@ -592,7 +592,7 @@ class OvercookedGame(Game):
             self.npc_policies[npc_policy].set_mdp(self.mdp)
             self.npc_state_queues[npc_policy] = LifoQueue()
             self.npc_state_queues[npc_policy].put(self.state)
-            t = Thread(target=self.npc_policy_consumer, args=(npc_policy,))
+            t = Thread(target=self.npc_policy_consumer, args=(npc_policy,)) # permet processus tourne en boucle, ici au npc d'avoir une prise d'information/décision/execution autonome
             self.threads.append(t)
             t.start()
         self.start_time = time()
@@ -758,7 +758,8 @@ class PlanningGame(OvercookedGame):
             "human_action_count": self.human_action_count,
             "agent_action_count": self.agent_action_count,
             "agent_stuck_loop": self.npc_policies[self.planning_agent_id].stuck_frames,
-            "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch
+            "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch,
+            "TEST" : "JE RAJOUTE DES DONNES L741"
 
         }
         transition.update(prev_state.to_dict())
@@ -904,7 +905,8 @@ class OvercookedPsiturk(OvercookedGame):
             "player_0_id": self.players[0],
             "player_1_id": self.players[1],
             "player_0_is_human": self.players[0] in self.human_players,
-            "player_1_is_human": self.players[1] in self.human_players
+            "player_1_is_human": self.players[1] in self.human_players,
+            "TEST" : "JE RAJOUTE DES DONNES L893"
         }
 
         self.trajectory.append(transition)
@@ -1007,7 +1009,8 @@ class OvercookedTutorial(OvercookedGame):
             "player_1_id": self.players[1],
             "player_0_is_human": self.players[0] in self.human_players,
             "player_1_is_human": self.players[1] in self.human_players,
-            "all_orders": self.state.all_orders
+            "all_orders": self.state.all_orders,
+            "TEST" : "JE RAJOUTE DES DONNES L979"
         }
         transition.update(prev_state.to_dict())
         self.trajectory.append(transition)
