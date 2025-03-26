@@ -106,7 +106,10 @@ GAME_NAME_TO_CLS = {
     "overcooked": OvercookedGame,
     "tutorial": OvercookedTutorial,
     "psiturk": OvercookedPsiturk,
-    "planning": PlanningGame
+    "planning": PlanningGame 
+    # C'est grâce à la classe PlanningGame que sont calculé les différents paramètres nécessaires au déroulement de la partie
+    # Ils sont ensuite renvoyés dans la variable data qui est à son tour exploitée tout au long du code
+    # cette classe permet nottement de définir les essais et blocs courant de l'expérimentation
 }
 
 game._configure(MAX_GAME_LENGTH, AGENT_DIR)
@@ -313,7 +316,7 @@ def _leave_game(user_id):
     return was_active
 
 # fonction permettant la création d'un nouveau jeu, 
-# déclanche également un évènement socketIO pour lancer la partie
+# déclenche également un évènement socketIO pour lancer la partie
 # cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
     existing_game = GAMES.get(game_name, None)
@@ -332,12 +335,13 @@ def _create_game(user_id, game_name, params={}):
         else:
             spectating = True
             game.add_spectator(user_id)
-        socketio.close_room(game.id) #ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
+        socketio.close_room(game.id) # ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
         join_room(game.id)
         set_curr_room(user_id, game.id)
-        game.activate()
+        game.activate() 
         ACTIVE_GAMES.add(game.id)
-
+# Déclenche l'évènement pour lancer la partie qui est écouté par planning.js
+# va également déclencher play_game qui permet de mettre à jour la partie
         emit('start_game', {"spectating": spectating,
                 "start_info": game.to_json(), "trial": current_user.trial, "step": current_user.step, "config": game.config}, room=game.id)
         socketio.start_background_task(play_game, game, fps=current_user.config.get("fps",MAX_FPS))
@@ -811,17 +815,17 @@ def post_qpt(data):
     except KeyError:
         pass
 
-@socketio.on("post_qpb")
+@socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
     sid = request.sid
     uid = current_user.uid
-    #condition = current_user.config["conditions"][str(current_user.step)]
+    # condition = current_user.config["conditions"][str(current_user.step)]
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
     condition = current_user.config["conditions"][str(current_user.step)]
-    #form["answer"] = data
+    # form["answer"] = data
     form["step"] = current_user.step
     form["trial_id"] = uid + "_" + str(current_user.step) + 'QPB'
     form["user_agent"] = request.headers.get('User-Agent')
@@ -838,8 +842,8 @@ def post_qpb(data):
             f.close()
     except KeyError:
         pass
-    current_user.step += 1
-    current_user.trial = 0
+    current_user.step += 1 # Permet de passer au bloc suivant
+    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     socketio.emit("next_step", to=sid)
 
@@ -852,6 +856,10 @@ def on_exit():
             game_id).get_data()}, room=game_id)
 
 def trial_save_routine(data):
+    '''
+    Sauvegarder les données relative à un essai dans un fichier json
+    dont nom sous la forme id_bloc_essai
+    '''
     try:
         Path("trajectories/" + data["config"].get("config_id")+ "/" + data["uid"]
                             ).mkdir(parents=True, exist_ok=True)
@@ -868,6 +876,8 @@ def trial_save_routine(data):
 # Game Loop #
 #############
 
+# Déclenche nottement l'évènement state_pong écouté par planning.js 
+# qui permet de mettre à jour les informations de la partie
 def play_game(game, fps=10):
     """
     Asynchronously apply real-time game updates and broadcast state to all clients currently active
@@ -881,7 +891,7 @@ def play_game(game, fps=10):
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
         with game.lock:
             status = game.tick()
-        if status == Game.Status.RESET:
+        if status == Game.Status.RESET: # Si la game doit être reset
             with game.lock:
                 data = game.data  # data is updated in the reset function already triggered at this point
             try:

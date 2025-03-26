@@ -186,7 +186,8 @@ socket.on('start_game', function(data) {
 });
 
 
-
+// Lorsque le serveur émet l'évènement reset_game (via play_game dans app.py)
+// alors le jeu met à jour son affichage graphique pour passer à l'essai suivant
 socket.on('reset_game', function(data) {   
     step = $('#step')
     //graphics_end();

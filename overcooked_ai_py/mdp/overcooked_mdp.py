@@ -1060,7 +1060,7 @@ class OvercookedGridworld(object):
                 raise ValueError('Invalid action')
 
     def get_standard_start_state(self):
-        if self.start_state:
+        if self.start_state: # semble = None (prend cette valeur initialisation overcookedGridWorld)
             return self.start_state
         start_state = OvercookedState.from_player_positions(
             self.start_player_positions, bonus_orders=self.start_bonus_orders, all_orders=self.start_all_orders
