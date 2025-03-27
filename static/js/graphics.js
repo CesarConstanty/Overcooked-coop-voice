@@ -266,7 +266,7 @@ class OvercookedScene extends Phaser.Scene {
             }
         }
     }
-
+/*
     endLevel(){
         const screenCenterX = this.cameras.main.worldView.x + this.cameras.main.width / 4;
         const screenCenterY = this.cameras.main.worldView.y + this.cameras.main.height / 3;
@@ -280,7 +280,7 @@ class OvercookedScene extends Phaser.Scene {
         n_trial_text.depth = 2;
         this.sprites['next_level'] = n_trial_text;
         }
-        
+*/
         
     _drawState (state, sprites) {
         sprites = typeof(sprites) === 'undefined' ? {} : sprites;
