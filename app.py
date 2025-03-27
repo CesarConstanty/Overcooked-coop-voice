@@ -433,12 +433,21 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : False
             }
-            else : # value =="EA"
+            elif value == "EAa" :
                 config["conditions"][bloc]={
             "recipe_head": False,
             "recipe_hud" : False,
-            "asset_hud" : True,
-            "motion_goal" : True,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : False
+            }
+            elif value == "EAr" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
             "asset_sound" : False,
             "recipe_sound" : True
             }
@@ -494,6 +503,8 @@ def instructions():
     uid = current_user.uid
     condition = current_user.config["conditions"]
     is_explained = False
+    breakpoint()
+
     all_conditions = [item for sublist in [list(bloc.values()) for bloc in condition.values()] for item in sublist] #test wheter at least 1 intention is given at some point
     if any(all_conditions):
         is_explained = True
@@ -666,6 +677,7 @@ def debug():
 
 @socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
+    import pdb ; pdb.set_trace()
     user_id = current_user.uid
 
     curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
@@ -888,19 +900,25 @@ def play_game(game, fps=10):
     fps (int):              Number of game ticks that should happen every second
     """
     status = Game.Status.ACTIVE
+    print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
         with game.lock:
+            # Log pour suivre l'état du jeu à chaque tick
+            # print(f"[PLAY_GAME] Current game status: {status}")
             status = game.tick()
         if status == Game.Status.RESET: # Si la game doit être reset
             with game.lock:
                 data = game.data  # data is updated in the reset function already triggered at this point
+            # Log pour indiquer que l'essai est terminé
+            print(f"[PLAY_GAME] Trial {game.curr_trial_in_game+1} in block {game.step+1} completed. Resetting...")    
             try:
                 trial_save_routine(data)
+                print(f"[PLAY_GAME] Trial data saved for trial {game.curr_trial_in_game+1} in block {game.step+1}")
                 if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()) :
                     try:
                         socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"], "show_time": game.config.get("show_trial_time", False), "time_elapsed": data["time_elapsed"]}, room=game.id)
                     except SocketIOTimeOutError:
-                        print("Player " + game.id + " is not on")
+                        print("Player " + str(game.id) + " is not on")
                     
                     socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
                                     room=game.id)
@@ -909,11 +927,13 @@ def play_game(game, fps=10):
                 else:
                     socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
                                     room=game.id)
+                    print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} in block {game.step+1}")
                     socketio.sleep(game.reset_timeout / 1000)
 
             except AttributeError:
                 trial_save_routine(data)
                 socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout}, room=game.id)
+                print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} in block {game.step+1}")
                 socketio.sleep(game.reset_timeout / 1000)            
         
         else:
@@ -939,7 +959,7 @@ def play_game(game, fps=10):
             socketio.emit('end_game', {"status": status,
                                 "data": data}, room=game.id) 
         
-
+    print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
 

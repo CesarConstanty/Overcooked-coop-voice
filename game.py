@@ -552,10 +552,25 @@ class OvercookedGame(Game):
         return super(OvercookedGame, self).tick()
 
     def activate(self):
+        # Log pour indiquer le passage à l'essai suivant
+        try :
+            print(f"[ACTIVATE] Passing to trial {self.curr_trial_in_game + 2} in block {self.step+1}")
+        except Exception as e:
+            print("[ACTIVATE] tutorial, pas de trial")
         self.curr_trial_in_game += 1 # permet de passer à l'essai (et donc au layout) suivant
         self.curr_layout = self.layouts[self.curr_trial_in_game] # charge le layout de l'essai actuel
-        self.mdp = OvercookedGridworld.from_layout_name(
-            self.curr_layout, self.layouts_dir, **self.mdp_params) # met en place le layout chargé
+        # Log pour vérifier le layout chargé
+        print(f"[ACTIVATE] Loading layout: {self.curr_layout}")
+        #self.mdp = OvercookedGridworld.from_layout_name(
+        #   self.curr_layout, self.layouts_dir, **self.mdp_params) # met en place le layout chargé
+        try:
+            self.mdp = OvercookedGridworld.from_layout_name(
+                self.curr_layout, self.layouts_dir, **self.mdp_params
+            )
+        except Exception as e:
+            # Log en cas d'erreur lors du chargement du layout
+            print(f"[ACTIVATE] Failed to load layout {self.curr_layout}: {e}")
+            raise
         player_to_renew, needs_player_renew = self.needs_player_renew()
         if needs_player_renew: # condition jamais respectée
             self.remove_player(player_to_renew)
@@ -610,7 +625,11 @@ class OvercookedGame(Game):
             self.threads.append(t)
             t.start()
         self.start_time = time()
-
+        # Log pour indiquer que le jeu est activé
+        try :
+            print(f"[ACTIVATE] Game activated for trial {self.curr_trial_in_game+1} in block {self.step+1}")
+        except Exception as e:
+            print("[ACTIVATE] tutorial, pas de trial")
     def deactivate(self):
         super(OvercookedGame, self).deactivate()
         # Ensure the background consumers do not hang

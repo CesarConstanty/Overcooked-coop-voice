@@ -492,9 +492,9 @@ class OvercookedScene extends Phaser.Scene {
             if (typeof(state.players[0].intentions) !== 'undefined') {
                 let chef = state.players[0];
                 let ingredients = chef.intentions.recipe;
-                this._playRecipeSounds(ingredients);
+                this._playRecipeSounds(ingredients)/*;
 
-                // Display ingredients at the bottom right of the screen under all orders
+                // Afficher les ingrédients qui composent la recette voulue par l'agent (vérifier la cohérence)
                 let ingredients_str = ingredients.join(", ");
                 if (typeof(sprites['recipe_ingredients']) !== 'undefined') {
                     sprites['recipe_ingredients'].setText("Ingredients: " + ingredients_str);
@@ -508,7 +508,7 @@ class OvercookedScene extends Phaser.Scene {
                             align: "left"
                         }
                     );
-                }
+                }*/
             }
             
         }

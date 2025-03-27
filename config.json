@@ -5,7 +5,7 @@
     "MAX_GAMES" : 10,
     "MAX_GAME_LENGTH" : 500,
     "AGENT_DIR" : "./static/assets/agents",
-    "MAX_FPS" : 10,
+    "MAX_FPS" : 20,
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
@@ -29,7 +29,7 @@
         "gameTime" : 8,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"0" : "U", "1":"E", "2":"U","3":"E"},
+        "conditions" : {"1" : "EA", "0":"EA", "2":"EA","3":"EA"},
         "blocs" : {
             "0": ["trial0_0", "trial0_1", "trial0_2"],
             "1": ["trial1_0", "trial1_1", "trial1_2"],
@@ -68,7 +68,7 @@
         "gameTime" : 100,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"0" : "U", "1":"E", "2":"U","3":"E", "4":"U", "5":"E", "6":"U", "7":"E", "8":"U", "9":"E"},
+        "conditions" : {"1" : "EAa", "0":"EAr", "2":"EAa","3":"EAr","4":"EV", "5":"U", "6":"EV", "7":"U", "8":"U", "9":"EV"},
         "blocs" : {
             "0": ["coord_map2_1", "recipe_trial0_0"],
             "1": ["coord_map2_2", "recipe_trial0_4"],

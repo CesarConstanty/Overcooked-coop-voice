@@ -189,6 +189,8 @@ socket.on('start_game', function(data) {
 // Lorsque le serveur émet l'évènement reset_game (via play_game dans app.py)
 // alors le jeu met à jour son affichage graphique pour passer à l'essai suivant
 socket.on('reset_game', function(data) {   
+    console.log(`[RESET_GAME] Received reset_game event for trial ${data.trial + 1} in block ${data.step + 1}`);
+    console.log(`[RESET_GAME] State:`, data.state);
     step = $('#step')
     //graphics_end();
     game_config.scene.endLevel();
@@ -199,6 +201,7 @@ socket.on('reset_game', function(data) {
     $('#game-title').text(`Experiment in Progress, Bloc ${data.step+1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[data.step]).length}`);
     $("#reset-game").show();
     setTimeout(function() {
+        console.log(`[RESET_GAME] Resetting graphics for trial ${curr_trial} in block ${data.step + 1}`);
         $("reset-game").hide();
         graphics_config = {
             container_id : "overcooked",
@@ -209,8 +212,11 @@ socket.on('reset_game', function(data) {
             enable_key_listener();
         }
         graphics_reset(graphics_config);
+        console.log(`[RESET_GAME] Graphics reset complete for trial ${curr_trial} in block ${data.step + 1}`);
+
     }, data.timeout);
     socket.emit("new_trial");     
+    console.log(`[RESET_GAME] Emitted new_trial event for trial ${curr_trial} in block ${data.step + 1}`);
 });
 
 socket.on('state_pong', function(data) {
