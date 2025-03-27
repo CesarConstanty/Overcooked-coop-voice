@@ -427,18 +427,27 @@ def index():
             elif value =="EV":
                 config["conditions"][bloc]={
             "recipe_head": True,
-            "recipe_hud" : False,
+            "recipe_hud" : True,
             "asset_hud" : True,
-            "motion_goal" : False,
+            "motion_goal" : True,
             "asset_sound" : False,
             "recipe_sound" : False
             }
-            else : # value =="EA"
+            elif value =="EAa" :
                 config["conditions"][bloc]={
             "recipe_head": False,
             "recipe_hud" : False,
-            "asset_hud" : True,
-            "motion_goal" : True,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : False
+            }
+            elif value =="EAr" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
             "asset_sound" : False,
             "recipe_sound" : True
             }
@@ -888,20 +897,26 @@ def play_game(game, fps=10):
     fps (int):              Number of game ticks that should happen every second
     """
     status = Game.Status.ACTIVE
+    # boucle continue tant que le jeu n'est pas terminé (bloc/essai) ou désactivé (fin de passation/participant quitte)
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
-        with game.lock:
-            status = game.tick()
-        if status == Game.Status.RESET: # Si la game doit être reset
+        with game.lock: # eviter les conflits entre Threads, creuser thread
+            status = game.tick() # retourne le statut actuel du jeu après la mise à jour
+        if status == Game.Status.RESET: # Si la game doit être reset car un essai est terminé
             with game.lock:
                 data = game.data  # data is updated in the reset function already triggered at this point
             try:
                 trial_save_routine(data)
                 if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()) :
                     try:
+                        # appel l'affichage du questionnaire post trial
+                        # qpt_length = durée pour répondre au questionnaire
+                        # trial = numéro de l'essai actuel
+                        # show_time = indique si le temps écoulé doit être affiché
+                        # time_elapsed = temps écoulé depuis le début de l'essai (cf game.py)
                         socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"], "show_time": game.config.get("show_trial_time", False), "time_elapsed": data["time_elapsed"]}, room=game.id)
                     except SocketIOTimeOutError:
                         print("Player " + game.id + " is not on")
-                    
+                    # requête pour réinitialiser le jeu (et passer à l'essai suivant)
                     socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
                                     room=game.id)
                     socketio.sleep(game.reset_timeout / 1000)
@@ -914,9 +929,11 @@ def play_game(game, fps=10):
             except AttributeError:
                 trial_save_routine(data)
                 socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout}, room=game.id)
-                socketio.sleep(game.reset_timeout / 1000)            
-        
+                socketio.sleep(game.reset_timeout / 1000)         
+
+        # si le jeu doit continuer normalement, renvoie la requette pong
         else:
+            # semble envoyer une requête de mise à jour à (presque) tous les fichier JavaScript
             socketio.emit(
                 'state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
@@ -925,6 +942,7 @@ def play_game(game, fps=10):
             game.deactivate()
         data = game.data
         trial_save_routine(data)
+        # Logique permettant d'afficher les questionnaires de fin d'essai et de fin de bloc au participant
         if status == Game.Status.DONE:
             try:
                 if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()):

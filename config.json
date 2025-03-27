@@ -5,7 +5,7 @@
     "MAX_GAMES" : 10,
     "MAX_GAME_LENGTH" : 500,
     "AGENT_DIR" : "./static/assets/agents",
-    "MAX_FPS" : 10,
+    "MAX_FPS" : 20,
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
@@ -457,7 +457,7 @@
     },
     "marin_II_constrained_E" :{
         "mechanic" : "recipe",
-        "fps" : 10,
+        "fps" : 1,
         "show_counter_drop" : true,
         "layouts_dir" : "overcooked_ai_py/data/layouts/marin_II_constrained",
         "completion_link" : "https://app.prolific.co/submissions/complete?cc=CFTFPBYQ",
@@ -475,7 +475,7 @@
         "gameTime" : 300,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "EA", "0":"EA", "2":"EA","3":"EA", "4":"EA", "5":"EA"},
+        "conditions" : {"1" : "EV", "0":"U", "2":"EAa","3":"EAr", "4":"EAa", "5":"EAr"},
         "blocs_former":{"0": ["marinII4"], "1": ["marinII0", "marinII1", "marinII2", "marinII3"], "2": ["marinII090", "marinII190", "marinII290", "marinII390"], "3": ["marinII0180", "marinII1180", "marinII2180", "marinII3180"], "4": ["marinII0270", "marinII1270", "marinII2270", "marinII3270"], "5": ["marinII0T", "marinII1T", "marinII2T", "marinII3T"]},
         "blocs":{"0": ["marinII4"], "1": ["marinII0", "marinII1", "marinII2", "marinII3"], "2": ["marinII090", "marinII190", "marinII290", "marinII390"], "3": ["marinII0180", "marinII1180", "marinII2180", "marinII3180"]},
         "shuffle_trials" : false,
