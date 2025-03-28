@@ -503,7 +503,6 @@ def instructions():
     uid = current_user.uid
     condition = current_user.config["conditions"]
     is_explained = False
-    breakpoint()
 
     all_conditions = [item for sublist in [list(bloc.values()) for bloc in condition.values()] for item in sublist] #test wheter at least 1 intention is given at some point
     if any(all_conditions):
@@ -677,7 +676,6 @@ def debug():
 
 @socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
-    import pdb ; pdb.set_trace()
     user_id = current_user.uid
 
     curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
@@ -890,7 +888,7 @@ def trial_save_routine(data):
 
 # Déclenche nottement l'évènement state_pong écouté par planning.js 
 # qui permet de mettre à jour les informations de la partie
-def play_game(game, fps=10):
+def play_game(game, fps=30):
     """
     Asynchronously apply real-time game updates and broadcast state to all clients currently active
     in the game. Note that this loop must be initiated by a parallel thread for each active game
@@ -911,7 +909,10 @@ def play_game(game, fps=10):
             with game.lock:
                 data = game.data  # data is updated in the reset function already triggered at this point
             # Log pour indiquer que l'essai est terminé
-            print(f"[PLAY_GAME] Trial {game.curr_trial_in_game+1} in block {game.step+1} completed. Resetting...")    
+            try :
+                print(f"[PLAY_GAME] Trial {game.curr_trial_in_game+1} in block {game.step+1} completed. Resetting...")  
+            except :
+                print(f"[PLAY GAME] Trial {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")  
             try:
                 trial_save_routine(data)
                 print(f"[PLAY_GAME] Trial data saved for trial {game.curr_trial_in_game+1} in block {game.step+1}")
@@ -933,13 +934,19 @@ def play_game(game, fps=10):
                 else:
                     socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
                                     room=game.id)
-                    print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} in block {game.step+1}")
+                    try :
+                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} in block {game.step+1}")
+                    except :
+                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
                     socketio.sleep(game.reset_timeout / 1000)
 
             except AttributeError:
                 trial_save_routine(data)
                 socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout}, room=game.id)
-                print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} in block {game.step+1}")
+                try :
+                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} in block {game.step+1}")
+                except :
+                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
                 socketio.sleep(game.reset_timeout / 1000)         
 
         # si le jeu doit continuer normalement, renvoie la requette pong

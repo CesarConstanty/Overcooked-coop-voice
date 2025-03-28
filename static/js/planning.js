@@ -193,8 +193,8 @@ socket.on('reset_game', function(data) {
     console.log(`[RESET_GAME] State:`, data.state);
     step = $('#step')
     //graphics_end();
-    game_config.scene.endLevel();
-    if (!window.spectating) {
+    game_config.scene.endLevel(); // Il semble que endlevel n'existe pas ce qui engendre un chargement du layout du premier essai en boucle lorsque complété
+    if (!window.spectating) {     // problème observé en utilisant la config test_layout(bug__enlevel)
         disable_key_listener();
     }
     curr_trial = data.trial + 1;

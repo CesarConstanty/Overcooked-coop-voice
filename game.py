@@ -440,6 +440,8 @@ class OvercookedGame(Game):
             self.npc_policies[player_one_id] = self.get_policy(
                 self.playerOne, idx=1)
             self.npc_state_queues[player_one_id] = LifoQueue()
+       # breakpoint()
+        #1
 
     def needs_player_renew(self):
         '''

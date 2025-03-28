@@ -562,7 +562,7 @@ class PlanningAgent(Agent):
                 player.pos_and_or, mg)]          
             
             assert len(motion_goals) != 0
-
+        #breakpoint()
         return motion_goals
 
     def hl_info(self, state):
@@ -708,6 +708,7 @@ class GreedyAgent(PlanningAgent):
             "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
             "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
             }
+        #breakpoint()
         return cheapest_info
 
 class LazyAgent(PlanningAgent):
@@ -725,10 +726,6 @@ class LazyAgent(PlanningAgent):
             self.hl_objective_switch += 1
             self.hl_goal = shortest
         return shortest
-
-
-
-
 
 
 
