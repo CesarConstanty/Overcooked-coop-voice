@@ -451,6 +451,15 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : True
             }
+            elif value =="EA" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : True
+            }
 
     except KeyError:
         return render_template('UID_error.html')
@@ -766,8 +775,8 @@ def on_action(data):
     game.enqueue_action(user_id, action)
 
 
-@socketio.on('connect')
-def on_connect():
+@socketio.on('connect') # est déclenché à chaque fois qu'un client se connect au serveur via Socket.IO
+def on_connect():       # utilise le user_id pour gérer ces connexions
     user_id = current_user.uid
     if user_id in USERS:
         return
@@ -888,7 +897,7 @@ def trial_save_routine(data):
 
 # Déclenche nottement l'évènement state_pong écouté par planning.js 
 # qui permet de mettre à jour les informations de la partie
-def play_game(game, fps=30):
+def play_game(game, fps=15):
     """
     Asynchronously apply real-time game updates and broadcast state to all clients currently active
     in the game. Note that this loop must be initiated by a parallel thread for each active game

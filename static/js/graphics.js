@@ -98,7 +98,7 @@ function graphics_reset(graphics_config) {
     game_config.scene.scene.restart();
 }
 
-class GraphicsManager {
+class GraphicsManager { // initialise et gère les graphismes du jeu
     constructor(game_config, scene_config, graphics_config) {
         let start_info = graphics_config.start_info;
         start_info.counter_goals.forEach(element => start_info.terrain[element[1]][element[0]] = 'Y');
@@ -125,7 +125,7 @@ class GraphicsManager {
 }
 
 
-class OvercookedScene extends Phaser.Scene {
+class OvercookedScene extends Phaser.Scene { // dessine les éléments individuels du layout en utilisant Phaser
     constructor(config) {
         super({key: "PlayGame"});
         this.state = config.start_state.state;
@@ -547,8 +547,8 @@ class OvercookedScene extends Phaser.Scene {
                 return;
             }
             let soundKey = this.soundQueueRecipe.shift();
-            console.log("Playing sound:", soundKey); // Log the sound being played
-            console.log("Sound queue length:", this.soundQueueRecipe.length); // Log the sound queue length
+            //console.log("Playing sound:", soundKey); // Log the sound being played
+            //console.log("Sound queue length:", this.soundQueueRecipe.length); // Log the sound queue length
             this.audio.src = this.audio_loc + soundKey;
             this.audio.playbackRate = 1.5; // modifier la vitesse de lecture
             this.audio.play().then(() => {
@@ -716,36 +716,36 @@ class OvercookedScene extends Phaser.Scene {
 
             // Clear the sound queue before adding new sounds
             this.soundQueueAsset = [];
-            console.log("Intentions:", intentions); // Log the intentions
+            //console.log("Intentions:", intentions); // Log the intentions
 
             // Update with new sounds
             for (let i = 0; i < intentions.length; i++) {
                 let soundKey = terrain_to_sound[intentions[i]];
                 if (soundKey) {
                     this.soundQueueAsset.push(soundKey);
-                    console.log("taille sound queue add", this.soundQueueAsset.length);
-                    console.log("Added sound to queue:", soundKey); // Log the added sound
+                    //console.log("taille sound queue add", this.soundQueueAsset.length);
+                    //console.log("Added sound to queue:", soundKey); // Log the added sound
                 }
             }
 
             const playNextSoundAsset = () => {
                 if (this.soundQueueAsset.length === 0) {
                     this.isPlaying = false;
-                    console.log("Sound queue is empty, stopping playback."); // Log when the queue is empty
+                    //console.log("Sound queue is empty, stopping playback."); // Log when the queue is empty
                     return;
                 }
                 let soundKey = this.soundQueueAsset.shift();
-                console.log("valeur soundKey apres remove liste", soundKey);
-                console.log("taille sound queue remove", this.soundQueueAsset.length);
+                //console.log("valeur soundKey apres remove liste", soundKey);
+                //console.log("taille sound queue remove", this.soundQueueAsset.length);
                 let sound = this.sound.add(soundKey);
                 sound.setRate(1.5);
                 sound.setVolume(1.0);
-                console.log("Playing sound:", soundKey); // Log the sound being played
+                //console.log("Playing sound:", soundKey); // Log the sound being played
 
                 sound.play();
                 sound.once('complete', () => {
                     this.isPlaying = false;
-                    console.log("Audio play ended"); // Log when audio play ends
+                    //console.log("Audio play ended"); // Log when audio play ends
                     playNextSoundAsset();
                 });
             };
