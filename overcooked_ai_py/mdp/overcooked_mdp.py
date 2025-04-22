@@ -1,12 +1,16 @@
+import copy
+import itertools
+import json
+import warnings
+from collections import Counter, defaultdict
 from email.policy import default
-import itertools, copy, warnings
-import numpy as np
 from functools import reduce
-from collections import defaultdict, Counter
-from overcooked_ai_py.utils import pos_distance, read_layout_dict, classproperty
+
+import numpy as np
+
 from overcooked_ai_py.mdp.actions import Action, Direction
 from overcooked_ai_py.static import LAYOUTS_DIR
-import json
+from overcooked_ai_py.utils import classproperty, pos_distance, read_layout_dict
 
 
 class Recipe:

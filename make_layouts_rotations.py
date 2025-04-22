@@ -1,14 +1,15 @@
 import argparse
 import json
+import os
+import shutil
+from copy import deepcopy
 
 # all imports used in this tutorial, run this if you want to jump to different sections and run only selected cells
 import numpy as np
-from copy import deepcopy
-from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
+
 from overcooked_ai_py.mdp.layout_generator import Grid
+from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
 from overcooked_ai_py.utils import read_layout_dict
-import shutil
-import os
 
 
 def make_grid_string(grid):

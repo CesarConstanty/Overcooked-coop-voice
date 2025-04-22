@@ -1,4 +1,6 @@
-import itertools, copy
+import copy
+import itertools
+
 import numpy as np
 
 

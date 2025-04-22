@@ -1,10 +1,13 @@
-import numpy as np
-import os
 import argparse
-import random, copy
-from overcooked_ai_py.utils import rnd_int_uniform, rnd_uniform
+import copy
+import os
+import random
+
+import numpy as np
+
 from overcooked_ai_py.mdp.actions import Action, Direction
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Recipe
+from overcooked_ai_py.utils import rnd_int_uniform, rnd_uniform
 
 EMPTY = " "
 COUNTER = "X"

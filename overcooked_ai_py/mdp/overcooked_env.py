@@ -1,18 +1,20 @@
 import time
+
 import numpy as np
-from overcooked_ai_py.utils import mean_and_std_err, append_dictionaries
+
 from overcooked_ai_py.mdp.actions import Action
-from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, EVENT_TYPES
+from overcooked_ai_py.mdp.overcooked_mdp import EVENT_TYPES, OvercookedGridworld
 from overcooked_ai_py.mdp.overcooked_trajectory import (
-    TIMESTEP_TRAJ_KEYS,
-    EPISODE_TRAJ_KEYS,
     DEFAULT_TRAJ_KEYS,
+    EPISODE_TRAJ_KEYS,
+    TIMESTEP_TRAJ_KEYS,
 )
 from overcooked_ai_py.planning.planners import (
+    NO_COUNTERS_PARAMS,
     MediumLevelActionManager,
     MotionPlanner,
-    NO_COUNTERS_PARAMS,
 )
+from overcooked_ai_py.utils import append_dictionaries, mean_and_std_err
 
 DEFAULT_ENV_PARAMS = {"horizon": 400}
 

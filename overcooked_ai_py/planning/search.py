@@ -1,4 +1,6 @@
-import heapq, time
+import heapq
+import time
+
 import numpy as np
 import scipy.sparse
 

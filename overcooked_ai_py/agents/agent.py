@@ -1,17 +1,19 @@
-from copy import deepcopy
 import itertools
 import math
-import numpy as np
-from operator import attrgetter
 from collections import defaultdict
+from copy import deepcopy
+from operator import attrgetter
+
+import numpy as np
+
 from overcooked_ai_py.mdp.actions import Action
+from overcooked_ai_py.mdp.overcooked_mdp import Recipe
 from overcooked_ai_py.planning.planners import (
+    COUNTERS_MLG_PARAMS,
+    NO_COUNTERS_PARAMS,
     MediumLevelActionManager,
     MotionPlanner,
-    NO_COUNTERS_PARAMS,
-    COUNTERS_MLG_PARAMS,
 )
-from overcooked_ai_py.mdp.overcooked_mdp import Recipe
 
 
 class Agent(object):

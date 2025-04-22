@@ -1,11 +1,19 @@
-import io, json, pickle, pstats, cProfile, os, tempfile, uuid
+import cProfile
+import io
+import json
+import os
+import pickle
+import pstats
+import tempfile
+import uuid
+from collections import defaultdict
+from collections.abc import Iterable
+from pathlib import Path
+
 import numpy as np
 from numpy import nan
-from collections import defaultdict
-from pathlib import Path
-from collections.abc import Iterable
+
 from overcooked_ai_py.static import LAYOUTS_DIR
-from collections.abc import Iterable
 
 # I/O
 

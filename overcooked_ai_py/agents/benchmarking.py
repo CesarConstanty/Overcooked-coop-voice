@@ -1,23 +1,24 @@
 import copy
+
 import numpy as np
 
+from overcooked_ai_py.agents.agent import AgentPair, GreedyAgent, RandomAgent
+from overcooked_ai_py.mdp.layout_generator import LayoutGenerator
+from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
+from overcooked_ai_py.mdp.overcooked_mdp import Action, OvercookedGridworld, OvercookedState
+from overcooked_ai_py.mdp.overcooked_trajectory import DEFAULT_TRAJ_KEYS
+from overcooked_ai_py.planning.planners import NO_COUNTERS_PARAMS
 from overcooked_ai_py.utils import (
-    save_pickle,
-    load_pickle,
     cumulative_rewards_from_rew_list,
-    save_as_json,
+    is_iterable,
     load_from_json,
+    load_pickle,
     merge_dictionaries,
     rm_idx_from_dict,
+    save_as_json,
+    save_pickle,
     take_indexes_from_dict,
-    is_iterable,
 )
-from overcooked_ai_py.planning.planners import NO_COUNTERS_PARAMS
-from overcooked_ai_py.agents.agent import AgentPair, RandomAgent, GreedyAgent
-from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Action, OvercookedState
-from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
-from overcooked_ai_py.mdp.layout_generator import LayoutGenerator
-from overcooked_ai_py.mdp.overcooked_trajectory import DEFAULT_TRAJ_KEYS
 
 
 class AgentEvaluator(object):
