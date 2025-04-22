@@ -751,6 +751,7 @@ class PlanningGame(OvercookedGame):
             "agent_action_count": self.agent_action_count,
             "agent_stuck_loop": self.npc_policies[self.planning_agent_id].stuck_frames,
             "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch,
+            # TODO add HL goal, ML goal and motion goal
         }
         transition.update(prev_state.to_dict())
         self.trajectory.append(transition)

@@ -465,7 +465,11 @@ class PlanningAgent(Agent):
                 motion_goals = am.pickup_dish_actions(counter_objects)
             else:
                 self.next_order_info = self.hl_action(state)
-                self.intentions["recipe"] = self.next_order_info["recipe"].ingredients
+
+                # FIXME a priori ça sert à rien
+                # if self.intentions["recipe"] is None:  # consider new recipe if no intention is set
+                #     self.intentions["recipe"] = self.next_order_info["recipe"].ingredients  # FIXME ensure recipe recipe ingredient do not collide
+
                 soups_ready_to_cook_key = "{}_items".format(len(self.next_order_info["recipe"].ingredients))
                 soups_ready_to_cook = pot_states_dict[soups_ready_to_cook_key]
                 if soups_ready_to_cook:
@@ -486,7 +490,9 @@ class PlanningAgent(Agent):
                         motion_goals = am.wait_actions(player)
                         motion_goals
                 else:
-                    motion_goals = am.go_to_closest_feature_actions(player)
+                    # Do not move instead of moving towards dispensers
+                    motion_goals = am.wait_actions(player)
+                    # motion_goals = am.go_to_closest_feature_actions(player)
                     motion_goals
 
         else:
@@ -545,11 +551,13 @@ class PlanningAgent(Agent):
                 self.intentions["goal"] = "X"
             else:
                 motion_goals = am.go_to_closest_feature_actions(player)
+
             motion_goals = [
                 mg
                 for mg in motion_goals
                 if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)
             ]
+
             if len(motion_goals) == 0:
                 motion_goals = am.go_to_closest_feature_actions(player)
                 motion_goals = [
@@ -668,6 +676,9 @@ class PlanningAgent(Agent):
 
         return all_recipes
 
+    def hl_action(self, state):
+        raise NotImplementedError()
+
 
 class RationalAgent(PlanningAgent):
     def __init__(
@@ -734,6 +745,45 @@ class GreedyAgent(PlanningAgent):
             "min_cost_to_complete": all_recipes[cheapest]["min_cost_to_complete"],
         }
         return cheapest_info
+
+
+class SuperGreedyAgent(PlanningAgent):
+    def __init__(
+        self,
+        hl_boltzmann_rational=False,
+        ll_boltzmann_rational=False,
+        hl_temp=1,
+        ll_temp=1,
+        auto_unstuck=True,
+    ):
+        super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
+        self.hl_goal: Recipe | None = None  # instead of Recipe(["tomato"])
+        self.intentions["agent_name"] = "supergreedy"
+
+    def hl_action(self, state):
+        """set an HL action then do not change it until completion"""
+        if self.hl_goal is not None and self.hl_goal not in state.all_orders:
+            # if my HL goal is not in the order list, set it it None
+            # WARNING if the same recipe is present multiple times in `self.all_orders`
+            self.hl_goal = self.intentions["recipe"] = None
+
+        if self.hl_goal is not None:
+            pass  # set the current HL goal is the cheapest goal
+        else:  # otherwise, compute the cheapest goal
+            all_recipes = self.hl_info(state)
+            if len(all_recipes) == 0:
+                return self.next_order_info
+            cheapest = max(all_recipes, key=lambda key: all_recipes.get(key)["value"])
+            self.hl_goal = self.intentions["recipe"] = cheapest
+            # cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
+
+        return {
+            "recipe": all_recipes[self.hl_goal]["recipe"],
+            "most_advanced_pot": all_recipes[self.hl_goal]["most_advanced_pot"],
+            "missing_ingredients_in_MA_pot": all_recipes[self.hl_goal]["missing_ingredients_in_MA_pot"],
+            "point_time_ratio": all_recipes[self.hl_goal]["point_time_ratio"],
+            "min_cost_to_complete": all_recipes[self.hl_goal]["min_cost_to_complete"],
+        }
 
 
 class LazyAgent(PlanningAgent):

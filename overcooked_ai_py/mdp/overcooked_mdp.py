@@ -714,6 +714,7 @@ class OvercookedState(object):
 
     @property
     def all_orders(self):
+        # FIXME pourquoi c'est trié ça ?
         return sorted(self._all_orders)  # if self._all_orders  else sorted(Recipe.ALL_RECIPES)
 
     @property
@@ -1806,8 +1807,8 @@ class OvercookedGridworld(object):
         """
         NOTE: this only works if self.num_players == 2
         Useful if:
-        - Pot is ready/cooking and there is no player with a dish               \ 
-        - 2 pots are ready/cooking and there is one player with a dish          | -> number of dishes in players hands < number of ready/cooking/partially full soups 
+        - Pot is ready/cooking and there is no player with a dish               \
+        - 2 pots are ready/cooking and there is one player with a dish          | -> number of dishes in players hands < number of ready/cooking/partially full soups
         - Partially full pot is ok if the other player is on course to fill it  /
 
         We also want to prevent picking up and dropping dishes, so add the condition
