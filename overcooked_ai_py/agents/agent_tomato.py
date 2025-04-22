@@ -7,7 +7,6 @@ from overcooked_ai_py.planning.search import SearchTree
 
 
 class Agent(object):
-
     def __init__(self):
         self.reset()
 
@@ -24,7 +23,7 @@ class Agent(object):
     def actions(self, states, agent_indices):
         """
         A multi-state version of the action method. This enables for parallized
-        implementations that can potentially give speedups in action prediction. 
+        implementations that can potentially give speedups in action prediction.
         Args:
             states (list): list of OvercookedStates for which we want actions for
             agent_indices (list): list to inform which agent we are requesting the action for in each state
@@ -42,7 +41,11 @@ class Agent(object):
     def check_action_probs(action_probs, tolerance=1e-4):
         """Check that action probabilities sum to ≈ 1.0"""
         probs_sum = sum(action_probs)
-        assert math.isclose(probs_sum, 1.0, rel_tol=tolerance), "Action probabilities {} should sum up to approximately 1 but sum up to {}".format(list(action_probs), probs_sum)
+        assert math.isclose(probs_sum, 1.0, rel_tol=tolerance), (
+            "Action probabilities {} should sum up to approximately 1 but sum up to {}".format(
+                list(action_probs), probs_sum
+            )
+        )
 
     def set_agent_index(self, agent_index):
         self.agent_index = agent_index
@@ -61,7 +64,7 @@ class Agent(object):
 
 class AgentGroup(object):
     """
-    AgentGroup is a group of N agents used to sample 
+    AgentGroup is a group of N agents used to sample
     joint actions in the context of an OvercookedEnv instance.
     """
 
@@ -71,7 +74,9 @@ class AgentGroup(object):
         self.reset()
 
         if not all(a0 is not a1 for a0, a1 in itertools.combinations(agents, 2)):
-            assert allow_duplicate_agents, "All agents should be separate instances, unless allow_duplicate_agents is set to true"
+            assert allow_duplicate_agents, (
+                "All agents should be separate instances, unless allow_duplicate_agents is set to true"
+            )
 
     def joint_action(self, state):
         actions_and_probs_n = tuple(a.action(state) for a in self.agents)
@@ -99,13 +104,15 @@ class AgentPair(AgentGroup):
     for both fields can lead to problems if the agents have state / history)
     """
 
-    def __init__(self, *agents, allow_duplicate_agents=False): 
+    def __init__(self, *agents, allow_duplicate_agents=False):
         super().__init__(*agents, allow_duplicate_agents=allow_duplicate_agents)
         assert self.n == 2
         self.a0, self.a1 = self.agents
 
         if type(self.a0) is CoupledPlanningAgent and type(self.a1) is CoupledPlanningAgent:
-            print("If the two planning agents have same params, consider using CoupledPlanningPair instead to reduce computation time by a factor of 2")
+            print(
+                "If the two planning agents have same params, consider using CoupledPlanningPair instead to reduce computation time by a factor of 2"
+            )
 
     def joint_action(self, state):
         if self.a0 is self.a1:
@@ -132,7 +139,9 @@ class CoupledPlanningPair(AgentPair):
 
     def joint_action(self, state):
         # Reduce computation by half if both agents are coupled planning agents
-        joint_action_plan = self.a0.mlp.get_low_level_action_plan(state, self.a0.heuristic, delivery_horizon=self.a0.delivery_horizon, goal_info=True)
+        joint_action_plan = self.a0.mlp.get_low_level_action_plan(
+            state, self.a0.heuristic, delivery_horizon=self.a0.delivery_horizon, goal_info=True
+        )
 
         if len(joint_action_plan) == 0:
             return ((Action.STAY, {}), (Action.STAY, {}))
@@ -167,14 +176,14 @@ class AgentFromPolicy(Agent):
     """
     This is a useful Agent class backbone from which to subclass from NN-based agents.
     """
-    
+
     def __init__(self, policy):
         """
         Takes as input an NN Policy instance
         """
         self.policy = policy
         self.reset()
-        
+
     def action(self, state):
         return self.actions([state], [self.agent_index])[0]
 
@@ -189,9 +198,10 @@ class AgentFromPolicy(Agent):
     def set_mdp(self, mdp):
         super().set_mdp(mdp)
         self.policy.mdp = mdp
-    
+
     def reset(self):
         self.policy.mdp = None
+
 
 class RandomAgent(Agent):
     """
@@ -203,7 +213,7 @@ class RandomAgent(Agent):
         self.sim_threads = sim_threads
         self.all_actions = all_actions
         self.custom_wait_prob = custom_wait_prob
-    
+
     def action(self, state):
         action_probs = np.zeros(Action.NUM_ACTIONS)
         legal_actions = list(Action.MOTION_ACTIONS)
@@ -229,10 +239,9 @@ class RandomAgent(Agent):
 
 
 class StayAgent(Agent):
-
     def __init__(self, sim_threads=None):
         self.sim_threads = sim_threads
-    
+
     def action(self, state):
         a = Action.STAY
         return a, {}
@@ -250,7 +259,7 @@ class FixedPlanAgent(Agent):
     def __init__(self, plan):
         self.plan = plan
         self.i = 0
-    
+
     def action(self, state):
         if self.i >= len(self.plan):
             return Action.STAY, {}
@@ -278,7 +287,9 @@ class CoupledPlanningAgent(Agent):
 
     def action(self, state):
         try:
-            joint_action_plan = self.mlp.get_low_level_action_plan(state, self.heuristic, delivery_horizon=self.delivery_horizon, goal_info=True)
+            joint_action_plan = self.mlp.get_low_level_action_plan(
+                state, self.heuristic, delivery_horizon=self.delivery_horizon, goal_info=True
+            )
         except TimeoutError:
             print("COUPLED PLANNING FAILURE")
             self.mlp.failures += 1
@@ -305,7 +316,7 @@ class EmbeddedPlanningAgent(Agent):
     def action(self, state):
         start_state = state.deepcopy()
         order_list = start_state.order_list if start_state.order_list is not None else ["any", "any"]
-        start_state.order_list = order_list[:self.delivery_horizon]
+        start_state.order_list = order_list[: self.delivery_horizon]
         other_agent_index = 1 - self.agent_index
         initial_env_state = self.env.state
         self.other_agent.env = self.env
@@ -358,8 +369,15 @@ class GreedyHumanModel(Agent):
     in which an individual agent cannot complete the task on their own.
     """
 
-    def __init__(self, mlp, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1,
-                 auto_unstuck=True):
+    def __init__(
+        self,
+        mlp,
+        hl_boltzmann_rational=False,
+        ll_boltzmann_rational=False,
+        hl_temp=1,
+        ll_temp=1,
+        auto_unstuck=True,
+    ):
         self.mlp = mlp
         self.mdp = self.mlp.mdp
 
@@ -418,7 +436,8 @@ class GreedyHumanModel(Agent):
                         unblocking_joint_actions.append(j_a)
 
                 chosen_action = unblocking_joint_actions[np.random.choice(len(unblocking_joint_actions))][
-                    self.agent_index]
+                    self.agent_index
+                ]
                 action_probs = self.a_probs_from_action(chosen_action)
 
             # NOTE: Assumes that calls to the action method are sequential
@@ -496,23 +515,22 @@ class GreedyHumanModel(Agent):
         other_player = state.players[1 - self.agent_index]
         am = self.mlp.ml_action_manager
 
-        counter_objects = self.mlp.mdp.get_counter_objects_dict(state, list(self.mlp.mdp.terrain_pos_dict['X']))
+        counter_objects = self.mlp.mdp.get_counter_objects_dict(state, list(self.mlp.mdp.terrain_pos_dict["X"]))
         pot_states_dict = self.mlp.mdp.get_pot_states(state)
 
         # NOTE: this most likely will fail in some tomato scenarios
         curr_order = state.curr_order
 
         if not player.has_object():
-
-            if curr_order == 'any':
-                ready_soups = pot_states_dict['onion']['ready'] + pot_states_dict['tomato']['ready']
-                cooking_soups = pot_states_dict['onion']['cooking'] + pot_states_dict['tomato']['cooking']
+            if curr_order == "any":
+                ready_soups = pot_states_dict["onion"]["ready"] + pot_states_dict["tomato"]["ready"]
+                cooking_soups = pot_states_dict["onion"]["cooking"] + pot_states_dict["tomato"]["cooking"]
             else:
-                ready_soups = pot_states_dict[curr_order]['ready']
-                cooking_soups = pot_states_dict[curr_order]['cooking']
+                ready_soups = pot_states_dict[curr_order]["ready"]
+                cooking_soups = pot_states_dict[curr_order]["cooking"]
 
             soup_nearly_ready = len(ready_soups) > 0 or len(cooking_soups) > 0
-            other_has_dish = other_player.has_object() and other_player.get_object().name == 'dish'
+            other_has_dish = other_player.has_object() and other_player.get_object().name == "dish"
 
             if soup_nearly_ready and not other_has_dish:
                 motion_goals = am.pickup_dish_actions(counter_objects)
@@ -521,26 +539,26 @@ class GreedyHumanModel(Agent):
                 if state.num_orders_remaining > 1:
                     next_order = state.next_order
 
-                if next_order == 'onion':
+                if next_order == "onion":
                     motion_goals = am.pickup_onion_actions(counter_objects)
-                elif next_order == 'tomato':
+                elif next_order == "tomato":
                     motion_goals = am.pickup_tomato_actions(counter_objects)
-                elif next_order is None or next_order == 'any':
+                elif next_order is None or next_order == "any":
                     motion_goals = am.pickup_onion_actions(counter_objects) + am.pickup_tomato_actions(counter_objects)
 
         else:
             player_obj = player.get_object()
 
-            if player_obj.name == 'onion':
+            if player_obj.name == "onion":
                 motion_goals = am.put_onion_in_pot_actions(pot_states_dict)
 
-            elif player_obj.name == 'tomato':
+            elif player_obj.name == "tomato":
                 motion_goals = am.put_tomato_in_pot_actions(pot_states_dict)
 
-            elif player_obj.name == 'dish':
+            elif player_obj.name == "dish":
                 motion_goals = am.pickup_soup_with_dish_actions(pot_states_dict, only_nearly_ready=True)
 
-            elif player_obj.name == 'soup':
+            elif player_obj.name == "soup":
                 motion_goals = am.deliver_soup_actions()
 
             else:
@@ -550,7 +568,9 @@ class GreedyHumanModel(Agent):
 
         if len(motion_goals) == 0:
             motion_goals = am.go_to_closest_feature_actions(player)
-            motion_goals = [mg for mg in motion_goals if self.mlp.mp.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+            motion_goals = [
+                mg for mg in motion_goals if self.mlp.mp.is_valid_motion_start_goal_pair(player.pos_and_or, mg)
+            ]
             assert len(motion_goals) != 0
 
         return motion_goals

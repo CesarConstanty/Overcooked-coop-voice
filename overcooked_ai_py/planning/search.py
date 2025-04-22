@@ -2,11 +2,12 @@ import heapq, time
 import numpy as np
 import scipy.sparse
 
+
 class SearchTree(object):
     """
     A class to help perform tree searches of various types. Once a goal state is found, returns a list of tuples
     containing (action, state) pairs. This enables to recover the optimal action and state path.
-    
+
     Args:
         root (state): Initial state in our search
         goal_fn (func): Takes in a state and returns whether it is a goal state
@@ -53,10 +54,17 @@ class SearchTree(object):
 
             if self.is_goal(curr_state):
                 elapsed_time = time.time() - start_time
-                if info: print("Found goal after: \t{:.2f} seconds,   \t{} state expanded ({:.2f} unique) \t ~{:.2f} expansions/s".format(
-                    elapsed_time, iter_count, len(seen)/iter_count, iter_count/elapsed_time))
+                if info:
+                    print(
+                        "Found goal after: \t{:.2f} seconds,   \t{} state expanded ({:.2f} unique) \t ~{:.2f} expansions/s".format(
+                            elapsed_time,
+                            iter_count,
+                            len(seen) / iter_count,
+                            iter_count / elapsed_time,
+                        )
+                    )
                 return curr_node.get_path(), curr_node.backwards_cost
-            
+
             successors = self.expand(curr_state)
 
             for action, child, cost in successors:
@@ -71,19 +79,20 @@ class SearchTree(object):
     def estimated_total_cost(self, node):
         """
         Calculates the estimated total cost of going from node to goal
-        
+
         Args:
             node (SearchNode): node of the state we are interested in
-        
+
         Returns:
             float: h(s) + g(s), where g is the total backwards cost
         """
         return node.backwards_cost + self.heuristic_fn(node.state)
 
+
 class SearchNode(object):
     """
     A helper class that stores a state, action, and parent tuple and enables to restore paths
-    
+
     Args:
         state (any): Game state corresponding to the node
         action (any): Action that brought to the current state
@@ -113,7 +122,7 @@ class SearchNode(object):
     def get_path(self):
         """
         Returns the path leading from the earliest parent-less node to the current
-        
+
         Returns:
             List of tuples (action, state) where action is the action that led to the state.
             NOTE: The first entry will be (None, start_state).
@@ -125,10 +134,11 @@ class SearchNode(object):
             node = node.parent
         return path
 
+
 class Graph(object):
     def __init__(self, dense_adjacency_matrix, encoder, decoder, debug=False):
         """
-        Each graph node is distinguishable by a key, encoded by the encoder into 
+        Each graph node is distinguishable by a key, encoded by the encoder into
         a index that corresponds to that node in the adjacency matrix defining the graph.
 
         Arguments:
@@ -141,7 +151,8 @@ class Graph(object):
         self._encoder = encoder
         self._decoder = decoder
         start_time = time.time()
-        if debug: print("Computing shortest paths took {} seconds".format(time.time() - start_time))
+        if debug:
+            print("Computing shortest paths took {} seconds".format(time.time() - start_time))
         self._ccs = None
 
     @property
@@ -184,7 +195,7 @@ class Graph(object):
         # NOTE: Assuming successor costs are non-zero
         _, children_indices = self.sparse_adjacency_matrix.getrow(node_index).nonzero()
         return children_indices
-        
+
     def get_node_path(self, start_node, goal_node):
         """
         Given a start node key and a goal node key, returns a list of
@@ -225,8 +236,10 @@ class Graph(object):
             # X X X X X         X X X X X
             # This is actually an absolutely impossible transition
             # 08/16/2020 update: This has been addressed by catching NotConnectedError upstream
-            raise NotConnectedError("No path could be found from {} to {}".format(self._decoder[start_index], self._decoder[goal_index])
-                                   + "This could be caused by using another layout's planner on this layout")
+            raise NotConnectedError(
+                "No path could be found from {} to {}".format(self._decoder[start_index], self._decoder[goal_index])
+                + "This could be caused by using another layout's planner on this layout"
+            )
 
         return [start_index] + self._get_node_index_path(best_index, goal_index)
 
@@ -241,11 +254,15 @@ class Graph(object):
     def are_in_same_cc(self, node1, node2):
         node1_cc_index = [i for i, cc in enumerate(self.connected_components) if node1 in cc]
         node2_cc_index = [i for i, cc in enumerate(self.connected_components) if node2 in cc]
-        assert len(node1_cc_index) == len(node2_cc_index) == 1, "Node 1 cc: {} \t Node 2 cc: {}".format(node1_cc_index, node2_cc_index)
+        assert len(node1_cc_index) == len(node2_cc_index) == 1, "Node 1 cc: {} \t Node 2 cc: {}".format(
+            node1_cc_index, node2_cc_index
+        )
         return node1_cc_index[0] == node2_cc_index[0]
+
 
 class NotConnectedError(Exception):
     pass
+
 
 class PriorityQueue:
     """Taken from UC Berkeley's CS188 project utils.
@@ -258,7 +275,8 @@ class PriorityQueue:
     Note that this PriorityQueue does not allow you to change the priority
     of an item. However, you may insert the same item multiple times with
     different priorities."""
-    def  __init__(self):
+
+    def __init__(self):
         self.heap = []
 
     def push(self, item, priority):

@@ -1,8 +1,17 @@
 import copy
 import numpy as np
 
-from overcooked_ai_py.utils import save_pickle, load_pickle, cumulative_rewards_from_rew_list, save_as_json, \
-    load_from_json, merge_dictionaries, rm_idx_from_dict, take_indexes_from_dict, is_iterable
+from overcooked_ai_py.utils import (
+    save_pickle,
+    load_pickle,
+    cumulative_rewards_from_rew_list,
+    save_as_json,
+    load_from_json,
+    merge_dictionaries,
+    rm_idx_from_dict,
+    take_indexes_from_dict,
+    is_iterable,
+)
 from overcooked_ai_py.planning.planners import NO_COUNTERS_PARAMS
 from overcooked_ai_py.agents.agent import AgentPair, RandomAgent, GreedyAgent
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Action, OvercookedState
@@ -36,8 +45,15 @@ class AgentEvaluator(object):
         self.force_compute = force_compute
 
     @staticmethod
-    def from_mdp_params_infinite(mdp_params, env_params, outer_shape=None, mdp_params_schedule_fn=None, force_compute=False,
-                        mlam_params=NO_COUNTERS_PARAMS, debug=False):
+    def from_mdp_params_infinite(
+        mdp_params,
+        env_params,
+        outer_shape=None,
+        mdp_params_schedule_fn=None,
+        force_compute=False,
+        mlam_params=NO_COUNTERS_PARAMS,
+        debug=False,
+    ):
         """
         mdp_params (dict): params for creation of an OvercookedGridworld instance through the `from_layout_name` method
         outer_shape: the outer shape of environment
@@ -47,14 +63,20 @@ class AgentEvaluator(object):
         Infinitely generate mdp using the naive mdp_fn
         """
         assert outer_shape is not None, "outer_shape needs to be defined for variable mdp"
-        assert "num_mdp" in env_params and np.isinf(env_params["num_mdp"]), \
-            "num_mdp needs to be specified and infinite"
+        assert "num_mdp" in env_params and np.isinf(env_params["num_mdp"]), "num_mdp needs to be specified and infinite"
         mdp_fn_naive = LayoutGenerator.mdp_gen_fn_from_dict(mdp_params, outer_shape, mdp_params_schedule_fn)
         return AgentEvaluator(env_params, mdp_fn_naive, force_compute, mlam_params, debug)
 
     @staticmethod
-    def from_mdp_params_finite(mdp_params, env_params, outer_shape=None, mdp_params_schedule_fn=None, force_compute=False,
-                        mlam_params=NO_COUNTERS_PARAMS, debug=False):
+    def from_mdp_params_finite(
+        mdp_params,
+        env_params,
+        outer_shape=None,
+        mdp_params_schedule_fn=None,
+        force_compute=False,
+        mlam_params=NO_COUNTERS_PARAMS,
+        debug=False,
+    ):
         """
         mdp_params (dict): params for creation of an OvercookedGridworld instance through the `from_layout_name` method
         outer_shape: the outer shape of environment
@@ -65,15 +87,21 @@ class AgentEvaluator(object):
         the AgentEvaluator
         """
         assert outer_shape is not None, "outer_shape needs to be defined for variable mdp"
-        assert "num_mdp" in env_params and not np.isinf(env_params["num_mdp"]), \
+        assert "num_mdp" in env_params and not np.isinf(env_params["num_mdp"]), (
             "num_mdp needs to be specified and finite"
+        )
         mdp_fn_naive = LayoutGenerator.mdp_gen_fn_from_dict(mdp_params, outer_shape, mdp_params_schedule_fn)
         # finite mdp, random choice
-        num_mdp = env_params['num_mdp']
+        num_mdp = env_params["num_mdp"]
         assert type(num_mdp) == int and num_mdp > 0, "invalid number of mdp: " + str(num_mdp)
         mdp_lst = [mdp_fn_naive() for _ in range(num_mdp)]
-        return AgentEvaluator.from_mdp_lst(mdp_lst=mdp_lst, env_params=env_params,
-                                           force_compute=force_compute, mlam_params=mlam_params, debug=debug)
+        return AgentEvaluator.from_mdp_lst(
+            mdp_lst=mdp_lst,
+            env_params=env_params,
+            force_compute=force_compute,
+            mlam_params=mlam_params,
+            debug=debug,
+        )
 
     @staticmethod
     def from_mdp(mdp, env_params, force_compute=False, mlam_params=NO_COUNTERS_PARAMS, debug=False):
@@ -96,17 +124,26 @@ class AgentEvaluator(object):
         return AgentEvaluator.from_mdp(mdp, env_params, force_compute, mlam_params, debug)
 
     @staticmethod
-    def from_mdp_lst(mdp_lst, env_params, sampling_freq=None, force_compute=False, mlam_params=NO_COUNTERS_PARAMS, debug=False):
+    def from_mdp_lst(
+        mdp_lst,
+        env_params,
+        sampling_freq=None,
+        force_compute=False,
+        mlam_params=NO_COUNTERS_PARAMS,
+        debug=False,
+    ):
         """
         mdp_lst (list): a list of mdp (OvercookedGridworld) we would like to
         sampling_freq (list): a list of number that signify the sampling frequency of each mdp in the mdp_lst
         Information for the rest of params please refer to the __init__ method above
         """
         assert is_iterable(mdp_lst), "mdp_lst must be a list"
-        assert all([type(mdp) == OvercookedGridworld for mdp in mdp_lst]), "some mdps are not OvercookedGridworld objects"
+        assert all([type(mdp) == OvercookedGridworld for mdp in mdp_lst]), (
+            "some mdps are not OvercookedGridworld objects"
+        )
 
         if sampling_freq is None:
-            sampling_freq = np.ones(len(mdp_lst)) /len(mdp_lst)
+            sampling_freq = np.ones(len(mdp_lst)) / len(mdp_lst)
 
         mdp_fn = lambda _ignored: np.random.choice(mdp_lst, p=sampling_freq)
         return AgentEvaluator(env_params, mdp_fn, force_compute, mlam_params, debug)
@@ -121,8 +158,20 @@ class AgentEvaluator(object):
         agent_pair = AgentPair(a0, a1)
         return self.evaluate_agent_pair(agent_pair, num_games=num_games, display=display, native_eval=native_eval)
 
-    def evaluate_agent_pair(self, agent_pair, num_games, game_length=None, start_state_fn=None, metadata_fn=None, metadata_info_fn=None, display=False, dir=None,
-                            display_phi=False, info=True, native_eval=False):
+    def evaluate_agent_pair(
+        self,
+        agent_pair,
+        num_games,
+        game_length=None,
+        start_state_fn=None,
+        metadata_fn=None,
+        metadata_info_fn=None,
+        display=False,
+        dir=None,
+        display_phi=False,
+        info=True,
+        native_eval=False,
+    ):
         # this index has to be 0 because the Agent_Evaluator only has 1 env initiated
         # if you would like to evaluate on a different env using rllib, please modifiy
         # rllib/ -> rllib.py -> get_rllib_eval_function -> _evaluate
@@ -131,24 +180,70 @@ class AgentEvaluator(object):
         # this is particulally helpful with variable MDP, where we want to make sure
         # the mdp used in evaluation is the same as the native self.env.mdp
         if native_eval:
-            return self.env.get_rollouts(agent_pair, num_games=num_games, display=display, dir=dir, display_phi=display_phi,
-                                         info=info, metadata_fn=metadata_fn, metadata_info_fn=metadata_info_fn)
+            return self.env.get_rollouts(
+                agent_pair,
+                num_games=num_games,
+                display=display,
+                dir=dir,
+                display_phi=display_phi,
+                info=info,
+                metadata_fn=metadata_fn,
+                metadata_info_fn=metadata_info_fn,
+            )
         else:
             horizon_env = self.env.copy()
             horizon_env.horizon = self.env.horizon if game_length is None else game_length
             horizon_env.start_state_fn = self.env.start_state_fn if start_state_fn is None else start_state_fn
             horizon_env.reset()
-            return horizon_env.get_rollouts(agent_pair, num_games=num_games, display=display, dir=dir, display_phi=display_phi,
-                                            info=info, metadata_fn=metadata_fn, metadata_info_fn=metadata_info_fn)
+            return horizon_env.get_rollouts(
+                agent_pair,
+                num_games=num_games,
+                display=display,
+                dir=dir,
+                display_phi=display_phi,
+                info=info,
+                metadata_fn=metadata_fn,
+                metadata_info_fn=metadata_info_fn,
+            )
 
-    def get_agent_pair_trajs(self, a0, a1=None, num_games=100, game_length=None, start_state_fn=None, display=False, info=True):
+    def get_agent_pair_trajs(
+        self,
+        a0,
+        a1=None,
+        num_games=100,
+        game_length=None,
+        start_state_fn=None,
+        display=False,
+        info=True,
+    ):
         """Evaluate agent pair on both indices, and return trajectories by index"""
         if a1 is None:
             ap = AgentPair(a0, a0, allow_duplicate_agents=True)
-            trajs_0 = trajs_1 = self.evaluate_agent_pair(ap, num_games=num_games, game_length=game_length, start_state_fn=start_state_fn, display=display, info=info)
+            trajs_0 = trajs_1 = self.evaluate_agent_pair(
+                ap,
+                num_games=num_games,
+                game_length=game_length,
+                start_state_fn=start_state_fn,
+                display=display,
+                info=info,
+            )
         else:
-            trajs_0 = self.evaluate_agent_pair(AgentPair(a0, a1), num_games=num_games, game_length=game_length, start_state_fn=start_state_fn, display=display, info=info)
-            trajs_1 = self.evaluate_agent_pair(AgentPair(a1, a0), num_games=num_games, game_length=game_length, start_state_fn=start_state_fn, display=display, info=info)
+            trajs_0 = self.evaluate_agent_pair(
+                AgentPair(a0, a1),
+                num_games=num_games,
+                game_length=game_length,
+                start_state_fn=start_state_fn,
+                display=display,
+                info=info,
+            )
+            trajs_1 = self.evaluate_agent_pair(
+                AgentPair(a1, a0),
+                num_games=num_games,
+                game_length=game_length,
+                start_state_fn=start_state_fn,
+                display=display,
+                info=info,
+            )
         return trajs_0, trajs_1
 
     @staticmethod
@@ -166,15 +261,25 @@ class AgentEvaluator(object):
     @staticmethod
     def _check_standard_traj_keys(traj_keys_set):
         default_traj_keys = DEFAULT_TRAJ_KEYS
-        assert traj_keys_set == set(default_traj_keys), "Keys of traj dict did not match standard form.\nMissing keys: {}\nAdditional keys: {}".format(
-            [k for k in default_traj_keys if k not in traj_keys_set], [k for k in traj_keys_set if k not in default_traj_keys]
+        assert traj_keys_set == set(default_traj_keys), (
+            "Keys of traj dict did not match standard form.\nMissing keys: {}\nAdditional keys: {}".format(
+                [k for k in default_traj_keys if k not in traj_keys_set],
+                [k for k in traj_keys_set if k not in default_traj_keys],
+            )
         )
-    
+
     @staticmethod
     def _check_right_types(trajectories):
         for idx in range(len(trajectories["ep_states"])):
-            states, actions, rewards = trajectories["ep_states"][idx], trajectories["ep_actions"][idx], trajectories["ep_rewards"][idx]
-            mdp_params, env_params = trajectories["mdp_params"][idx], trajectories["env_params"][idx]
+            states, actions, rewards = (
+                trajectories["ep_states"][idx],
+                trajectories["ep_actions"][idx],
+                trajectories["ep_rewards"][idx],
+            )
+            mdp_params, env_params = (
+                trajectories["mdp_params"][idx],
+                trajectories["env_params"][idx],
+            )
             assert all(type(j_a) is tuple for j_a in actions)
             assert all(type(s) is OvercookedState for s in states)
             assert type(mdp_params) is dict
@@ -185,14 +290,20 @@ class AgentEvaluator(object):
     def _check_trajectories_dynamics(trajectories, verbose=True):
         if any(env_params["_variable_mdp"] for env_params in trajectories["env_params"]):
             if verbose:
-                print("Skipping trajectory consistency checking because MDP was recognized as variable. "
-                    "Trajectory consistency checking is not yet supported for variable MDPs.")
+                print(
+                    "Skipping trajectory consistency checking because MDP was recognized as variable. "
+                    "Trajectory consistency checking is not yet supported for variable MDPs."
+                )
             return
 
         _, envs = AgentEvaluator.get_mdps_and_envs_from_trajectories(trajectories)
 
         for idx in range(len(trajectories["ep_states"])):
-            states, actions, rewards = trajectories["ep_states"][idx], trajectories["ep_actions"][idx], trajectories["ep_rewards"][idx]
+            states, actions, rewards = (
+                trajectories["ep_states"][idx],
+                trajectories["ep_actions"][idx],
+                trajectories["ep_rewards"][idx],
+            )
             simulation_env = envs[idx]
 
             assert len(states) == len(actions) == len(rewards), "# states {}\t# actions {}\t# rewards {}".format(
@@ -206,8 +317,12 @@ class AgentEvaluator(object):
 
                 next_state, reward, done, info = simulation_env.step(actions[i])
 
-                assert states[i + 1] == next_state, "States differed (expected vs actual): {}\n\nexpected dict: \t{}\nactual dict: \t{}".format(
-                    simulation_env.display_states(states[i + 1], next_state), states[i+1].to_dict(), next_state.to_dict()
+                assert states[i + 1] == next_state, (
+                    "States differed (expected vs actual): {}\n\nexpected dict: \t{}\nactual dict: \t{}".format(
+                        simulation_env.display_states(states[i + 1], next_state),
+                        states[i + 1].to_dict(),
+                        next_state.to_dict(),
+                    )
                 )
                 assert rewards[i] == reward, "{} \t {}".format(rewards[i], reward)
 
@@ -223,15 +338,16 @@ class AgentEvaluator(object):
             envs.append(env)
         return mdps, envs
 
-
     ### I/O METHODS ###
 
     @staticmethod
     def save_trajectories(trajectories, filename):
         AgentEvaluator.check_trajectories(trajectories)
         if any(t["env_params"]["start_state_fn"] is not None for t in trajectories):
-            print("Saving trajectories with a custom start state. This can currently "
-                  "cause things to break when loading in the trajectories.")
+            print(
+                "Saving trajectories with a custom start state. This can currently "
+                "cause things to break when loading in the trajectories."
+            )
         save_pickle(trajectories, filename)
 
     @staticmethod
@@ -243,7 +359,9 @@ class AgentEvaluator(object):
     @staticmethod
     def save_traj_as_json(trajectory, filename):
         """Saves the `idx`th trajectory as a list of state action pairs"""
-        assert set(DEFAULT_TRAJ_KEYS) == set(trajectory.keys()), "{} vs\n{}".format(DEFAULT_TRAJ_KEYS, trajectory.keys())
+        assert set(DEFAULT_TRAJ_KEYS) == set(trajectory.keys()), "{} vs\n{}".format(
+            DEFAULT_TRAJ_KEYS, trajectory.keys()
+        )
         AgentEvaluator.check_trajectories(trajectory)
         trajectory = AgentEvaluator.make_trajectories_json_serializable(trajectory)
         save_as_json(trajectory, filename)
@@ -258,22 +376,27 @@ class AgentEvaluator(object):
         dict_traj["ep_states"] = [[ob.to_dict() for ob in one_ep_obs] for one_ep_obs in trajectories["ep_states"]]
         for k in dict_traj.keys():
             dict_traj[k] = list(dict_traj[k])
-        dict_traj['ep_actions'] = [list(lst) for lst in dict_traj['ep_actions']]
-        dict_traj['ep_rewards'] = [list(lst) for lst in dict_traj['ep_rewards']]
-        dict_traj['ep_dones'] = [list(lst) for lst in dict_traj['ep_dones']]
-        dict_traj['ep_returns'] = [int(val) for val in dict_traj['ep_returns']]
-        dict_traj['ep_lengths'] = [int(val) for val in dict_traj['ep_lengths']]
+        dict_traj["ep_actions"] = [list(lst) for lst in dict_traj["ep_actions"]]
+        dict_traj["ep_rewards"] = [list(lst) for lst in dict_traj["ep_rewards"]]
+        dict_traj["ep_dones"] = [list(lst) for lst in dict_traj["ep_dones"]]
+        dict_traj["ep_returns"] = [int(val) for val in dict_traj["ep_returns"]]
+        dict_traj["ep_lengths"] = [int(val) for val in dict_traj["ep_lengths"]]
 
         # NOTE: Currently saving to JSON does not support ep_infos (due to nested np.arrays) or metadata
-        del dict_traj['ep_infos']
-        del dict_traj['metadatas']
+        del dict_traj["ep_infos"]
+        del dict_traj["metadatas"]
         return dict_traj
 
     @staticmethod
     def load_traj_from_json(filename):
         traj_dict = load_from_json(filename)
-        traj_dict["ep_states"] = [[OvercookedState.from_dict(ob) for ob in curr_ep_obs] for curr_ep_obs in traj_dict["ep_states"]]
-        traj_dict["ep_actions"] = [[tuple(tuple(a) if type(a) is list else a for a in j_a) for j_a in ep_acts] for ep_acts in traj_dict["ep_actions"]]
+        traj_dict["ep_states"] = [
+            [OvercookedState.from_dict(ob) for ob in curr_ep_obs] for curr_ep_obs in traj_dict["ep_states"]
+        ]
+        traj_dict["ep_actions"] = [
+            [tuple(tuple(a) if type(a) is list else a for a in j_a) for j_a in ep_acts]
+            for ep_acts in traj_dict["ep_actions"]
+        ]
         return traj_dict
 
     ############################
@@ -315,7 +438,7 @@ class AgentEvaluator(object):
     @staticmethod
     def add_metadata_to_traj(trajs, metadata_fn, input_keys):
         """
-        Add an additional metadata entry to the trajectory, based on manipulating 
+        Add an additional metadata entry to the trajectory, based on manipulating
         the trajectory `input_keys` values
         """
         metadata_fn_input = [trajs[k] for k in input_keys]
@@ -327,16 +450,18 @@ class AgentEvaluator(object):
     @staticmethod
     def add_observations_to_trajs_in_metadata(trajs, encoding_fn):
         """Adds processed observations (for both agent indices) in the metadatas"""
+
         def metadata_fn(data):
             traj_ep_states = data[0]
             obs_metadata = []
             for one_traj_states in traj_ep_states:
                 obs_metadata.append([encoding_fn(s) for s in one_traj_states])
             return "ep_obs_for_both_agents", obs_metadata
+
         return AgentEvaluator.add_metadata_to_traj(trajs, metadata_fn, ["ep_states"])
 
     # EVENTS VISUALIZATION METHODS #
-    
+
     @staticmethod
     def events_visualization(trajs, traj_index):
         # TODO

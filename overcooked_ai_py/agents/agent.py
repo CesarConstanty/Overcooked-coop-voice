@@ -5,11 +5,16 @@ import numpy as np
 from operator import attrgetter
 from collections import defaultdict
 from overcooked_ai_py.mdp.actions import Action
-from overcooked_ai_py.planning.planners import MediumLevelActionManager, MotionPlanner, NO_COUNTERS_PARAMS, COUNTERS_MLG_PARAMS
+from overcooked_ai_py.planning.planners import (
+    MediumLevelActionManager,
+    MotionPlanner,
+    NO_COUNTERS_PARAMS,
+    COUNTERS_MLG_PARAMS,
+)
 from overcooked_ai_py.mdp.overcooked_mdp import Recipe
 
-class Agent(object):
 
+class Agent(object):
     def __init__(self):
         self.motion_goal = None
         self.chosen_goal = None
@@ -31,7 +36,7 @@ class Agent(object):
     def actions(self, states, agent_indices):
         """
         A multi-state version of the action method. This enables for parallized
-        implementations that can potentially give speedups in action prediction. 
+        implementations that can potentially give speedups in action prediction.
 
         Args:
             states (list): list of OvercookedStates for which we want actions for
@@ -51,8 +56,11 @@ class Agent(object):
     def check_action_probs(action_probs, tolerance=1e-4):
         """Check that action probabilities sum to ≈ 1.0"""
         probs_sum = sum(action_probs)
-        assert math.isclose(probs_sum, 1.0, rel_tol=tolerance), "Action probabilities {} should sum up to approximately 1 but sum up to {}".format(
-            list(action_probs), probs_sum)
+        assert math.isclose(probs_sum, 1.0, rel_tol=tolerance), (
+            "Action probabilities {} should sum up to approximately 1 but sum up to {}".format(
+                list(action_probs), probs_sum
+            )
+        )
 
     def set_agent_index(self, agent_index):
         self.agent_index = agent_index
@@ -71,7 +79,7 @@ class Agent(object):
 
 class AgentGroup(object):
     """
-    AgentGroup is a group of N agents used to sample 
+    AgentGroup is a group of N agents used to sample
     joint actions in the context of an OvercookedEnv instance.
     """
 
@@ -81,7 +89,9 @@ class AgentGroup(object):
         self.reset()
 
         if not all(a0 is not a1 for a0, a1 in itertools.combinations(agents, 2)):
-            assert allow_duplicate_agents, "All agents should be separate instances, unless allow_duplicate_agents is set to true"
+            assert allow_duplicate_agents, (
+                "All agents should be separate instances, unless allow_duplicate_agents is set to true"
+            )
 
     def joint_action(self, state):
         actions_and_probs_n = tuple(a.action(state) for a in self.agents)
@@ -171,8 +181,7 @@ class AgentFromPolicy(Agent):
         actions_and_infos_n = []
         for action_probs in action_probs_n:
             action = Action.sample(action_probs)
-            actions_and_infos_n.append(
-                (action, {"action_probs": action_probs}))
+            actions_and_infos_n.append((action, {"action_probs": action_probs}))
         return actions_and_infos_n
 
     def set_mdp(self, mdp):
@@ -204,8 +213,7 @@ class RandomAgent(Agent):
         legal_actions = list(Action.MOTION_ACTIONS)
         if self.all_actions:
             legal_actions = Action.ALL_ACTIONS
-        legal_actions_indices = np.array(
-            [Action.ACTION_TO_INDEX[motion_a] for motion_a in legal_actions])
+        legal_actions_indices = np.array([Action.ACTION_TO_INDEX[motion_a] for motion_a in legal_actions])
         action_probs[legal_actions_indices] = 1 / len(legal_actions_indices)
 
         if self.custom_wait_prob is not None:
@@ -213,8 +221,7 @@ class RandomAgent(Agent):
             if np.random.random() < self.custom_wait_prob:
                 return stay, {"action_probs": Agent.a_probs_from_action(stay)}
             else:
-                action_probs = Action.remove_indices_and_renormalize(
-                    action_probs, [Action.ACTION_TO_INDEX[stay]])
+                action_probs = Action.remove_indices_and_renormalize(action_probs, [Action.ACTION_TO_INDEX[stay]])
 
         return Action.sample(action_probs), {"action_probs": action_probs}
 
@@ -226,7 +233,6 @@ class RandomAgent(Agent):
 
 
 class StayAgent(Agent):
-
     def __init__(self, sim_threads=None):
         self.sim_threads = sim_threads
 
@@ -270,17 +276,22 @@ class PlanningAgent(Agent):
     Will work only in environments where the only order is 3 onion soup.
     """
 
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1,
-                 auto_unstuck=True):
-        #self.mdp = mdp
+    def __init__(
+        self,
+        hl_boltzmann_rational=False,
+        ll_boltzmann_rational=False,
+        hl_temp=1,
+        ll_temp=1,
+        auto_unstuck=True,
+    ):
+        # self.mdp = mdp
         self.intentions = {"recipe": None, "goal": None, "agent_name": None}
         self.motion_goal = None
         self.chosen_goal = None
         self.hl_objective_switch = 0
         self.stuck_frames = 0
         Recipe.configure({})
-        self.hl_goal = Recipe(['tomato'])
-        
+        self.hl_goal = Recipe(["tomato"])
 
         # Bool for perfect rationality vs Boltzmann rationality for high level and low level action selection
         # For choices among high level goals of same type
@@ -300,8 +311,8 @@ class PlanningAgent(Agent):
 
     def reset(self):
         self.prev_state = None
-        #self.mdp = mdp
-        #self.mlam = MediumLevelActionManager.from_pickle_or_compute(self.mdp, NO_COUNTERS_PARAMS)
+        # self.mdp = mdp
+        # self.mlam = MediumLevelActionManager.from_pickle_or_compute(self.mdp, NO_COUNTERS_PARAMS)
 
     def set_mdp(self, mdp):
         super().set_mdp(mdp)
@@ -310,8 +321,7 @@ class PlanningAgent(Agent):
             counter_params["counter_goals"] = self.mdp.counter_goals
             counter_params["counter_drop"] = self.mdp.counter_goals
             counter_params["counter_pickup"] = self.mdp.counter_goals
-        self.mlam = MediumLevelActionManager.from_pickle_or_compute(
-            self.mdp, counter_params, force_compute=False)
+        self.mlam = MediumLevelActionManager.from_pickle_or_compute(self.mdp, counter_params, force_compute=False)
         a = 1
 
     def actions(self, states, agent_indices):
@@ -329,13 +339,11 @@ class PlanningAgent(Agent):
         # level action we want to perform, select the one with lowest cost
         start_pos_and_or = state.players_pos_and_or[self.agent_index]
 
-        chosen_goal, chosen_action, action_probs = self.choose_motion_goal(
-            start_pos_and_or, self.motion_goal)
+        chosen_goal, chosen_action, action_probs = self.choose_motion_goal(start_pos_and_or, self.motion_goal)
         self.chosen_goal = chosen_goal
 
         if self.ll_boltzmann_rational and chosen_goal[0] == start_pos_and_or[0]:
-            chosen_action, action_probs = self.boltzmann_rational_ll_action(
-                start_pos_and_or, chosen_goal)
+            chosen_action, action_probs = self.boltzmann_rational_ll_action(start_pos_and_or, chosen_goal)
 
         if self.auto_unstuck:
             # HACK: if two agents get stuck, select an action at random that would
@@ -343,25 +351,23 @@ class PlanningAgent(Agent):
             if self.prev_state is not None and state.players_pos_and_or == self.prev_state.players_pos_and_or:
                 self.stuck_frames += 1
                 if self.agent_index == 0:
-                    joint_actions = list(itertools.product(
-                        Action.ALL_ACTIONS, [Action.STAY]))
+                    joint_actions = list(itertools.product(Action.ALL_ACTIONS, [Action.STAY]))
                 elif self.agent_index == 1:
-                    joint_actions = list(itertools.product(
-                        [Action.STAY], Action.ALL_ACTIONS))
+                    joint_actions = list(itertools.product([Action.STAY], Action.ALL_ACTIONS))
                 else:
                     raise ValueError("Player index not recognized")
 
                 unblocking_joint_actions = []
                 for j_a in joint_actions:
-                    new_state, _ = self.mlam.mdp.get_state_transition(
-                        state, j_a)
+                    new_state, _ = self.mlam.mdp.get_state_transition(state, j_a)
                     if new_state.player_positions != self.prev_state.player_positions:
                         unblocking_joint_actions.append(j_a)
                 # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
                 if len(unblocking_joint_actions) == 0:
                     unblocking_joint_actions.append([Action.STAY, Action.STAY])
                 chosen_action = unblocking_joint_actions[np.random.choice(len(unblocking_joint_actions))][
-                    self.agent_index]
+                    self.agent_index
+                ]
                 action_probs = self.a_probs_from_action(chosen_action)
 
             # NOTE: Assumes that calls to the action method are sequential
@@ -375,24 +381,20 @@ class PlanningAgent(Agent):
         or rationally), and returns the plan and the corresponding first action on that plan.
         """
         if self.hl_boltzmann_rational:
-            possible_plans = [self.mlam.motion_planner.get_plan(
-                start_pos_and_or, goal) for goal in motion_goals]
+            possible_plans = [self.mlam.motion_planner.get_plan(start_pos_and_or, goal) for goal in motion_goals]
             plan_costs = [plan[2] for plan in possible_plans]
-            goal_idx, action_probs = self.get_boltzmann_rational_action_idx(
-                plan_costs, self.hl_temperature)
+            goal_idx, action_probs = self.get_boltzmann_rational_action_idx(plan_costs, self.hl_temperature)
             chosen_goal = motion_goals[goal_idx]
             chosen_goal_action = possible_plans[goal_idx][0][0]
         else:
-            chosen_goal, chosen_goal_action = self.get_lowest_cost_action_and_goal(
-                start_pos_and_or, motion_goals)
+            chosen_goal, chosen_goal_action = self.get_lowest_cost_action_and_goal(start_pos_and_or, motion_goals)
             action_probs = self.a_probs_from_action(chosen_goal_action)
         return chosen_goal, chosen_goal_action, action_probs
 
     def get_boltzmann_rational_action_idx(self, costs, temperature):
         """Chooses index based on softmax probabilities obtained from cost array"""
         costs = np.array(costs)
-        softmax_probs = np.exp(-costs * temperature) / \
-            np.sum(np.exp(-costs * temperature))
+        softmax_probs = np.exp(-costs * temperature) / np.sum(np.exp(-costs * temperature))
         action_idx = np.random.choice(len(costs), p=softmax_probs)
         return action_idx, softmax_probs
 
@@ -404,8 +406,7 @@ class PlanningAgent(Agent):
         min_cost = np.inf
         best_action, best_goal = None, None
         for goal in motion_goals:
-            action_plan, _, plan_cost = self.mlam.motion_planner.get_plan(
-                start_pos_and_or, goal)
+            action_plan, _, plan_cost = self.mlam.motion_planner.get_plan(start_pos_and_or, goal)
             if plan_cost < min_cost:
                 best_action = action_plan[0]
                 min_cost = plan_cost
@@ -424,19 +425,12 @@ class PlanningAgent(Agent):
         for action in Action.ALL_ACTIONS:
             pos, orient = start_pos_and_or
             new_pos_and_or = self.mdp._move_if_direction(pos, orient, action)
-            _, _, plan_cost = self.mlam.motion_planner.get_plan(
-                new_pos_and_or, goal)
+            _, _, plan_cost = self.mlam.motion_planner.get_plan(new_pos_and_or, goal)
             sign = (-1) ** int(inverted_costs)
             future_costs.append(sign * plan_cost)
 
-        action_idx, action_probs = self.get_boltzmann_rational_action_idx(
-            future_costs, self.ll_temperature)
+        action_idx, action_probs = self.get_boltzmann_rational_action_idx(future_costs, self.ll_temperature)
         return Action.ALL_ACTIONS[action_idx], action_probs
-
-    
-
-
-
 
     def ml_action(self, state):
         """
@@ -454,44 +448,39 @@ class PlanningAgent(Agent):
         other_player = state.players[1 - self.agent_index]
         am = self.mlam
 
-        counter_objects = self.mlam.mdp.get_counter_objects_dict(
-            state, list(self.mlam.mdp.terrain_pos_dict['X']))
+        counter_objects = self.mlam.mdp.get_counter_objects_dict(state, list(self.mlam.mdp.terrain_pos_dict["X"]))
         pot_states_dict = self.mlam.mdp.get_pot_states(state)
 
         if not player.has_object():
-            ready_soups = pot_states_dict['ready']
-            cooking_soups = pot_states_dict['cooking']
+            ready_soups = pot_states_dict["ready"]
+            cooking_soups = pot_states_dict["cooking"]
 
             soup_nearly_ready = len(ready_soups) > 0 or len(cooking_soups) > 0
-            other_has_dish = other_player.has_object(
-            ) and other_player.get_object().name == 'dish'
+            other_has_dish = other_player.has_object() and other_player.get_object().name == "dish"
 
             if soup_nearly_ready and not other_has_dish:
-                self.intentions['goal'] = 'D'
+                self.intentions["goal"] = "D"
                 motion_goals = am.pickup_dish_actions(counter_objects)
             else:
                 self.next_order_info = self.hl_action(state)
                 self.intentions["recipe"] = self.next_order_info["recipe"].ingredients
-                soups_ready_to_cook_key = '{}_items'.format(
-                    len(self.next_order_info["recipe"].ingredients))
+                soups_ready_to_cook_key = "{}_items".format(len(self.next_order_info["recipe"].ingredients))
                 soups_ready_to_cook = pot_states_dict[soups_ready_to_cook_key]
                 if soups_ready_to_cook:
                     only_pot_states_ready_to_cook = defaultdict(list)
                     only_pot_states_ready_to_cook[soups_ready_to_cook_key] = soups_ready_to_cook
                     # we want to cook only soups that has same len as order
-                    motion_goals = am.start_cooking_actions(
-                        only_pot_states_ready_to_cook)
+                    motion_goals = am.start_cooking_actions(only_pot_states_ready_to_cook)
 
                 elif self.next_order_info["most_advanced_pot"]:
-                    if 'onion' in self.next_order_info["missing_ingredients_in_MA_pot"]:
-                        self.intentions['goal'] = 'O'
+                    if "onion" in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                        self.intentions["goal"] = "O"
                         motion_goals = am.pickup_onion_actions(counter_objects)
-                    elif 'tomato' in self.next_order_info["missing_ingredients_in_MA_pot"]:
-                        self.intentions['goal'] = 'T'
-                        motion_goals = am.pickup_tomato_actions(
-                            counter_objects)
+                    elif "tomato" in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                        self.intentions["goal"] = "T"
+                        motion_goals = am.pickup_tomato_actions(counter_objects)
                     else:
-                        #self.next_order = self.hl_action(state)
+                        # self.next_order = self.hl_action(state)
                         motion_goals = am.wait_actions(player)
                         motion_goals
                 else:
@@ -501,72 +490,77 @@ class PlanningAgent(Agent):
         else:
             player_obj = player.get_object()
             all_recipes = self.hl_info(state)
-            try :
-                self.next_order_info["missing_ingredients_in_MA_pot"] = all_recipes[self.next_order_info["recipe"]]["missing_ingredients_in_MA_pot"]
+            try:
+                self.next_order_info["missing_ingredients_in_MA_pot"] = all_recipes[self.next_order_info["recipe"]][
+                    "missing_ingredients_in_MA_pot"
+                ]
             except KeyError:
                 pass
 
-            if player_obj.name == 'onion':
+            if player_obj.name == "onion":
                 # self.next_order_info["min_cost_to_complete"] == any([10000, 0]):
-                if 'onion' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                if "onion" not in self.next_order_info["missing_ingredients_in_MA_pot"]:
                     motion_goals = am.place_obj_on_counter_actions(state)
-                    self.intentions['goal'] = 'X'
+                    self.intentions["goal"] = "X"
                 else:
-                    motion_goals = am.put_onion_in_pot_actions(
-                        pot_states_dict)  # TODO : sélectionner le bon pot
-                    self.intentions['goal'] = 'P'
+                    motion_goals = am.put_onion_in_pot_actions(pot_states_dict)  # TODO : sélectionner le bon pot
+                    self.intentions["goal"] = "P"
 
-            elif player_obj.name == 'tomato':
+            elif player_obj.name == "tomato":
                 # self.next_order.min_cost_to_complete == 10000 or self.next_order.min_cost_to_complete == 0 :
-                if 'tomato' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                if "tomato" not in self.next_order_info["missing_ingredients_in_MA_pot"]:
                     motion_goals = am.place_obj_on_counter_actions(state)
-                    self.intentions['goal'] = 'X'
+                    self.intentions["goal"] = "X"
                 else:
-                    motion_goals = am.put_tomato_in_pot_actions(
-                        pot_states_dict)
-                    self.intentions['goal'] = 'P'
+                    motion_goals = am.put_tomato_in_pot_actions(pot_states_dict)
+                    self.intentions["goal"] = "P"
 
-            elif player_obj.name == 'dish':
-                self.intentions['goal'] = 'P'
-                motion_goals = am.pickup_soup_with_dish_actions(
-                    pot_states_dict, only_nearly_ready=True)
+            elif player_obj.name == "dish":
+                self.intentions["goal"] = "P"
+                motion_goals = am.pickup_soup_with_dish_actions(pot_states_dict, only_nearly_ready=True)
                 if motion_goals == []:
-                   motion_goals = am.place_obj_on_counter_actions(state) 
-                   self.intentions['goal'] = 'X'
-
-            elif player_obj.name == 'soup':
-                if player_obj.recipe not in state.all_orders :
                     motion_goals = am.place_obj_on_counter_actions(state)
-                    self.intentions['goal'] = 'X'
-                else : 
-                    self.intentions['goal'] = 'S'
+                    self.intentions["goal"] = "X"
+
+            elif player_obj.name == "soup":
+                if player_obj.recipe not in state.all_orders:
+                    motion_goals = am.place_obj_on_counter_actions(state)
+                    self.intentions["goal"] = "X"
+                else:
+                    self.intentions["goal"] = "S"
                     motion_goals = am.deliver_soup_actions()
 
             else:
                 raise ValueError()
 
-        motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-            player.pos_and_or, mg)]
+        motion_goals = [
+            mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)
+        ]
 
         if len(motion_goals) == 0:
             if player.has_object():
                 motion_goals = am.place_obj_on_counter_actions(state)
-                self.intentions['goal'] = 'X'                
+                self.intentions["goal"] = "X"
             else:
                 motion_goals = am.go_to_closest_feature_actions(player)
-            motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-                player.pos_and_or, mg)]
-            if len(motion_goals) ==0:
+            motion_goals = [
+                mg
+                for mg in motion_goals
+                if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)
+            ]
+            if len(motion_goals) == 0:
                 motion_goals = am.go_to_closest_feature_actions(player)
-                motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-                player.pos_and_or, mg)]          
-            
+                motion_goals = [
+                    mg
+                    for mg in motion_goals
+                    if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)
+                ]
+
             assert len(motion_goals) != 0
 
         return motion_goals
 
     def hl_info(self, state):
-
         def missing_ingredients_in_pot(recipe, pos):
             """
             computes the difference between recipe's ingredients and ingredients already present in pot
@@ -585,23 +579,34 @@ class PlanningAgent(Agent):
             delivery_locations = self.mdp.get_serving_locations()
             onion_locations = self.mlam.mdp.get_onion_dispenser_locations()
             tomato_locations = self.mlam.mdp.get_tomato_dispenser_locations()
-            onion_delivery_cost = self.mlam.motion_planner.min_cost_between_features(onion_locations, delivery_locations, manhattan_if_fail=False)
-            tomato_delivery_cost = self.mlam.motion_planner.min_cost_between_features(tomato_locations, delivery_locations, manhattan_if_fail=False)
+            onion_delivery_cost = self.mlam.motion_planner.min_cost_between_features(
+                onion_locations, delivery_locations, manhattan_if_fail=False
+            )
+            tomato_delivery_cost = self.mlam.motion_planner.min_cost_between_features(
+                tomato_locations, delivery_locations, manhattan_if_fail=False
+            )
             cost = 0
             missing_ingredients = missing_ingredients_in_pot(recipe, pot_pos)
-            for index, ingredient in enumerate(missing_ingredients) :
-                if index ==0 :
-                    if ingredient == 'onion' :
-                        cost = self.mlam.motion_planner.min_cost_to_feature(state.players[self.agent_index].pos_and_or, onion_locations) + costs_dict['onion-pot'] 
-                    else : 
-                        cost = self.mlam.motion_planner.min_cost_to_feature(state.players[self.agent_index].pos_and_or, tomato_locations)# + costs_dict['tomato-pot']
-                else :
-                    if ingredient == 'onion' :
-                            cost+= costs_dict['onion-pot'] * 2
-                    else :
-                            pass
-                            #cost+= costs_dict['tomato-pot'] * 2     
-            return cost + costs_dict['pot-delivery'] + min([onion_delivery_cost, tomato_delivery_cost])
+            for index, ingredient in enumerate(missing_ingredients):
+                if index == 0:
+                    if ingredient == "onion":
+                        cost = (
+                            self.mlam.motion_planner.min_cost_to_feature(
+                                state.players[self.agent_index].pos_and_or, onion_locations
+                            )
+                            + costs_dict["onion-pot"]
+                        )
+                    else:
+                        cost = self.mlam.motion_planner.min_cost_to_feature(
+                            state.players[self.agent_index].pos_and_or, tomato_locations
+                        )  # + costs_dict['tomato-pot']
+                else:
+                    if ingredient == "onion":
+                        cost += costs_dict["onion-pot"] * 2
+                    else:
+                        pass
+                        # cost+= costs_dict['tomato-pot'] * 2
+            return cost + costs_dict["pot-delivery"] + min([onion_delivery_cost, tomato_delivery_cost])
 
         def cost_to_complete(recipe, state):
             pot_locations = self.mlam.mdp.get_pot_locations().copy()
@@ -611,57 +616,66 @@ class PlanningAgent(Agent):
                 if pos in state.objects.keys():
                     missing_ingredients_in_pots[pos] = missing_ingredients_in_pot(recipe, pos)
 
-                    if len(missing_ingredients_in_pots[pos]) + len(state.objects[pos].ingredients) > recipe.MAX_NUM_INGREDIENTS : #test wether ingredients already in pot are compatible with order
-                        costs[pos] = 10000 #arbitrary value allowing to drop onion on counter.
+                    if (
+                        len(missing_ingredients_in_pots[pos]) + len(state.objects[pos].ingredients)
+                        > recipe.MAX_NUM_INGREDIENTS
+                    ):  # test wether ingredients already in pot are compatible with order
+                        costs[pos] = 10000  # arbitrary value allowing to drop onion on counter.
                     else:
                         costs[pos] = calculate_recipe_cost(recipe, pos)
                 else:
                     missing_ingredients_in_pots[pos] = list(recipe.ingredients)
                     costs[pos] = calculate_recipe_cost(recipe, pos)
             min_cost_to_complete = min(costs.values())
-            return  costs, min_cost_to_complete, missing_ingredients_in_pots
+            return costs, min_cost_to_complete, missing_ingredients_in_pots
 
         def point_time_ratio(recipe, costs):
             pot_locations = self.mlam.mdp.get_pot_locations()
-            if costs :
-                point_time_ratio = 1#recipe.value*10/(min(costs.values()) + recipe.time)
-                most_advanced_pot = min(costs, key=costs.get) #so the min is calculated on value rather than key
-            else :
+            if costs:
+                point_time_ratio = 1  # recipe.value*10/(min(costs.values()) + recipe.time)
+                most_advanced_pot = min(costs, key=costs.get)  # so the min is calculated on value rather than key
+            else:
                 point_time_ratio = -1
                 most_advanced_pot = pot_locations[0]
             return point_time_ratio, most_advanced_pot
-        
-        
+
         all_recipes = {}
         costs = {}
-        cooking_or_ready_soups = [sorted(soup.ingredients) for soup in filter(lambda soup: soup.is_cooking or soup.is_ready, state.all_objects_by_type['soup'])]
-        for index, recipe in enumerate(state.all_orders) :
+        cooking_or_ready_soups = [
+            sorted(soup.ingredients)
+            for soup in filter(lambda soup: soup.is_cooking or soup.is_ready, state.all_objects_by_type["soup"])
+        ]
+        for index, recipe in enumerate(state.all_orders):
             try:
                 assert recipe.value is not None
             except AssertionError:
                 recipe.configure(self.mdp.recipe_config)
             if list(recipe.ingredients) in cooking_or_ready_soups:
-                continue            
+                continue
             costs, min_cost_to_complete, missing_ingredients_in_pots = cost_to_complete(recipe, state)
             ratio, most_advanced_pot = point_time_ratio(recipe, costs)
             all_recipes[recipe] = {
-                "recipe" : recipe,
-                "costs" : costs,
-                "min_cost_to_complete" : min_cost_to_complete,
-                "point_time_ratio" : ratio,
-                "most_advanced_pot" : most_advanced_pot,
-                "value" : recipe.value,
-                "missing_ingredients_in_MA_pot" : missing_ingredients_in_pot(recipe, most_advanced_pot)
-                }
-            
-            
-        
+                "recipe": recipe,
+                "costs": costs,
+                "min_cost_to_complete": min_cost_to_complete,
+                "point_time_ratio": ratio,
+                "most_advanced_pot": most_advanced_pot,
+                "value": recipe.value,
+                "missing_ingredients_in_MA_pot": missing_ingredients_in_pot(recipe, most_advanced_pot),
+            }
+
         return all_recipes
-        
-        
+
 
 class RationalAgent(PlanningAgent):
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
+    def __init__(
+        self,
+        hl_boltzmann_rational=False,
+        ll_boltzmann_rational=False,
+        hl_temp=1,
+        ll_temp=1,
+        auto_unstuck=True,
+    ):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "rational"
 
@@ -669,72 +683,93 @@ class RationalAgent(PlanningAgent):
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
             return self.next_order_info
-        cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["point_time_ratio"])  
-         # the cheapest recipe is the one from the all_recipes dict based on point time ratio of value dict 
-        #cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
-        if cheapest != self.hl_goal :
-            #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
-            #cheapest.update_point_time_ratio(self.mlam)
+        cheapest = max(all_recipes, key=lambda key: all_recipes.get(key)["point_time_ratio"])
+        # the cheapest recipe is the one from the all_recipes dict based on point time ratio of value dict
+        # cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
+        if cheapest != self.hl_goal:
+            # cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
+            # cheapest.update_point_time_ratio(self.mlam)
             self.hl_objective_switch += 1
-            self.hl_goal =cheapest
+            self.hl_goal = cheapest
         cheapest_info = {
-            "recipe" : all_recipes[cheapest]["recipe"],
-            "most_advanced_pot" : all_recipes[cheapest]["most_advanced_pot"],
-            "missing_ingredients_in_MA_pot" : all_recipes[cheapest]["missing_ingredients_in_MA_pot"],
-            "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
-            "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
-            }
+            "recipe": all_recipes[cheapest]["recipe"],
+            "most_advanced_pot": all_recipes[cheapest]["most_advanced_pot"],
+            "missing_ingredients_in_MA_pot": all_recipes[cheapest]["missing_ingredients_in_MA_pot"],
+            "point_time_ratio": all_recipes[cheapest]["point_time_ratio"],
+            "min_cost_to_complete": all_recipes[cheapest]["min_cost_to_complete"],
+        }
         return cheapest_info
 
+
 class GreedyAgent(PlanningAgent):
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
+    def __init__(
+        self,
+        hl_boltzmann_rational=False,
+        ll_boltzmann_rational=False,
+        hl_temp=1,
+        ll_temp=1,
+        auto_unstuck=True,
+    ):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "greedy"
+
     def hl_action(self, state):
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
             return self.next_order_info
-        cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["value"])  
-        #cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
-        if cheapest != self.hl_goal :
-            #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
-            #cheapest.update_point_time_ratio(self.mlam)
+        cheapest = max(all_recipes, key=lambda key: all_recipes.get(key)["value"])
+        # cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
+        if cheapest != self.hl_goal:
+            # cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
+            # cheapest.update_point_time_ratio(self.mlam)
             self.hl_objective_switch += 1
-            self.hl_goal =cheapest
+            self.hl_goal = cheapest
         cheapest_info = {
-            "recipe" : all_recipes[cheapest]["recipe"],
-            "most_advanced_pot" : all_recipes[cheapest]["most_advanced_pot"],
-            "missing_ingredients_in_MA_pot" : all_recipes[cheapest]["missing_ingredients_in_MA_pot"],
-            "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
-            "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
-            }
+            "recipe": all_recipes[cheapest]["recipe"],
+            "most_advanced_pot": all_recipes[cheapest]["most_advanced_pot"],
+            "missing_ingredients_in_MA_pot": all_recipes[cheapest]["missing_ingredients_in_MA_pot"],
+            "point_time_ratio": all_recipes[cheapest]["point_time_ratio"],
+            "min_cost_to_complete": all_recipes[cheapest]["min_cost_to_complete"],
+        }
         return cheapest_info
 
+
 class LazyAgent(PlanningAgent):
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
+    def __init__(
+        self,
+        hl_boltzmann_rational=False,
+        ll_boltzmann_rational=False,
+        hl_temp=1,
+        ll_temp=1,
+        auto_unstuck=True,
+    ):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
-        self.intentions["agent_name"] = "lazy" 
+        self.intentions["agent_name"] = "lazy"
+
     def hl_action(self, state):
-        cooking_or_ready_soups = [sorted(soup.ingredients) for soup in filter(lambda soup: soup.is_cooking or soup.is_ready, state.all_objects_by_type['soup'])]
-        for recipe in state.all_orders :
+        cooking_or_ready_soups = [
+            sorted(soup.ingredients)
+            for soup in filter(lambda soup: soup.is_cooking or soup.is_ready, state.all_objects_by_type["soup"])
+        ]
+        for recipe in state.all_orders:
             recipe.update_cost_to_complete(state, self.mlam, self.agent_index)
             recipe.update_point_time_ratio(self.mlam)
 
-        shortest = min(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, state.all_orders), key=attrgetter("min_cost_to_complete"))
-        if shortest != self.hl_goal :
+        shortest = min(
+            filter(
+                lambda recipe: sorted(recipe.ingredients) not in cooking_or_ready_soups,
+                state.all_orders,
+            ),
+            key=attrgetter("min_cost_to_complete"),
+        )
+        if shortest != self.hl_goal:
             self.hl_objective_switch += 1
             self.hl_goal = shortest
         return shortest
 
 
-
-
-
-
-
 class SampleAgent(Agent):
-    """ Agent that samples action using the average action_probs across multiple agents
-    """
+    """Agent that samples action using the average action_probs across multiple agents"""
 
     def __init__(self, agents):
         self.agents = agents
@@ -743,10 +778,13 @@ class SampleAgent(Agent):
         action_probs = np.zeros(Action.NUM_ACTIONS)
         for agent in self.agents:
             action_probs += agent.action(state)[1]["action_probs"]
-        action_probs = action_probs/len(self.agents)
+        action_probs = action_probs / len(self.agents)
         return Action.sample(action_probs), {"action_probs": action_probs}
+
     """
     """
+
+
 # Deprecated. Need to fix Heuristic to work with the new MDP to reactivate Planning
 # class CoupledPlanningAgent(Agent):
 #     """

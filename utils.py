@@ -1,11 +1,10 @@
 from threading import Lock
 
-class ThreadSafeSet(set):
 
+class ThreadSafeSet(set):
     def __init__(self, *args, **kwargs):
         super(ThreadSafeSet, self).__init__(*args, **kwargs)
         self.lock = Lock()
-        
 
     def add(self, *args):
         with self.lock:
@@ -33,8 +32,8 @@ class ThreadSafeSet(set):
                 retval = None
         return retval
 
-class ThreadSafeDict(dict):
 
+class ThreadSafeDict(dict):
     def __init__(self, *args, **kwargs):
         super(ThreadSafeDict, self).__init__(*args, **kwargs)
         self.lock = Lock()
@@ -62,14 +61,14 @@ class ThreadSafeDict(dict):
                 retval = None
         return retval
 
+
 def questionnaire_to_surveyjs(questionnaire, current_step, pagify):
     if pagify:
-        survey_object = {"pages":[]}
+        survey_object = {"pages": []}
         for key, value in questionnaire.items():
             if current_step in value["steps"]:
-                survey_object["pages"].append({"elements":[value]})
+                survey_object["pages"].append({"elements": [value]})
     else:
-        survey_object={"elements" :[value for key,value in questionnaire.items() if current_step in value["steps"]] }
-    
-    return survey_object
+        survey_object = {"elements": [value for key, value in questionnaire.items() if current_step in value["steps"]]}
 
+    return survey_object

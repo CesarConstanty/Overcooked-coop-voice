@@ -6,15 +6,15 @@ class Direction(object):
     """
     The four possible directions a player can be facing.
     """
-    
+
     NORTH = (0, -1)
     SOUTH = (0, 1)
-    EAST  = (1, 0)
-    WEST  = (-1, 0)
+    EAST = (1, 0)
+    WEST = (-1, 0)
     ALL_DIRECTIONS = INDEX_TO_DIRECTION = [NORTH, SOUTH, EAST, WEST]
-    DIRECTION_TO_INDEX = { a:i for i, a in enumerate(INDEX_TO_DIRECTION) }
-    OPPOSITE_DIRECTIONS = { NORTH: SOUTH, SOUTH: NORTH, EAST: WEST, WEST: EAST }
-    DIRECTION_TO_NAME = { d:name for d, name in zip([NORTH, SOUTH, EAST, WEST], ["NORTH", "SOUTH", "EAST", "WEST"])}
+    DIRECTION_TO_INDEX = {a: i for i, a in enumerate(INDEX_TO_DIRECTION)}
+    OPPOSITE_DIRECTIONS = {NORTH: SOUTH, SOUTH: NORTH, EAST: WEST, WEST: EAST}
+    DIRECTION_TO_NAME = {d: name for d, name in zip([NORTH, SOUTH, EAST, WEST], ["NORTH", "SOUTH", "EAST", "WEST"])}
 
     @staticmethod
     def get_adjacent_directions(direction):
@@ -26,7 +26,7 @@ class Direction(object):
             return [Direction.EAST, Direction.WEST]
         elif direction in [Direction.EAST, Direction.WEST]:
             return [Direction.NORTH, Direction.SOUTH]
-        raise ValueError('Invalid direction: %s' % direction)
+        raise ValueError("Invalid direction: %s" % direction)
 
 
 class Action(object):
@@ -38,18 +38,18 @@ class Action(object):
     """
 
     STAY = (0, 0)
-    INTERACT = 'interact'
+    INTERACT = "interact"
     ALL_ACTIONS = INDEX_TO_ACTION = Direction.INDEX_TO_DIRECTION + [STAY, INTERACT]
     INDEX_TO_ACTION_INDEX_PAIRS = [v for v in itertools.product(range(len(INDEX_TO_ACTION)), repeat=2)]
-    ACTION_TO_INDEX = { a:i for i, a in enumerate(INDEX_TO_ACTION) }
+    ACTION_TO_INDEX = {a: i for i, a in enumerate(INDEX_TO_ACTION)}
     MOTION_ACTIONS = Direction.ALL_DIRECTIONS + [STAY]
-    ACTION_TO_CHAR = { 
+    ACTION_TO_CHAR = {
         Direction.NORTH: "↑",
         Direction.SOUTH: "↓",
         Direction.EAST: "→",
         Direction.WEST: "←",
         STAY: "stay",
-        INTERACT: INTERACT
+        INTERACT: INTERACT,
     }
     NUM_ACTIONS = len(ALL_ACTIONS)
 
@@ -80,7 +80,7 @@ class Action(object):
     @staticmethod
     def sample(action_probs):
         return np.random.choice(Action.ALL_ACTIONS, p=action_probs)
-    
+
     @staticmethod
     def argmax(action_probs):
         action_idx = np.argmax(action_probs)
@@ -94,7 +94,7 @@ class Action(object):
             for row_idx, row in enumerate(indices):
                 for idx in indices:
                     probs[row_idx][idx] = eps
-            norm_probs =  probs.T / np.sum(probs, axis=1)
+            norm_probs = probs.T / np.sum(probs, axis=1)
             return norm_probs.T
         else:
             for idx in indices:
