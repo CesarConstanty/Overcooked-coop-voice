@@ -577,7 +577,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawBonusOrders(hud_data.bonus_orders, sprites, board_height);
         } */
         
-        if (typeof(hud_data.time) !== 'undefined' && this.mechanic !== "recipe") {
+        if (typeof(hud_data.time) !== 'undefined' && this.mechanic == "recipe") {//changed to see what i get : that's what was intended
+            //console.log("_drawTimeLeft");
             this._drawTimeLeft(hud_data.time, sprites, board_height, board_width);
         }
         if (typeof(hud_data.score) !== 'undefined'&& this.mechanic !== "recipe") {
@@ -588,7 +589,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
-            if (this.condition.asset_hud){
+            console.log('intentions');
+            if (/* this.condition.asset_hud */true){
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
             }
             if (this.condition.asset_sound){
@@ -878,6 +880,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
     _drawTimeLeft(time_left, sprites, board_height, board_width) {
         time_left = "Time Left: "+time_left;
+        //console.log(time_left);
         if (typeof(sprites['time_left']) !== 'undefined') {
             sprites['time_left'].setText(time_left);
         }
@@ -900,3 +903,4 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
 }
 
+console.log('graphics executed?');

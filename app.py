@@ -620,7 +620,7 @@ def planning_design():
 
 @app.route('/cat')
 def cat():
-    return render_template('cat.html')
+    return render_template('cat.html')  
 
 
 @app.route('/tutorial')
