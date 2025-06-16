@@ -686,7 +686,7 @@ def debug():
 @socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
     user_id = current_user.uid
-
+    print(data)
     curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
     if curr_game:
         # Cannot create if currently in a game

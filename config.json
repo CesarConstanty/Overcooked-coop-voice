@@ -83,7 +83,9 @@
         "onion_time" : 9,
         "tomato_time" : 6,
         "order_bonus" : 2,
-        "max_num_ingredients" : 3
+        "max_num_ingredients" : 3,
+        "infinite_all_order" : false,
+        "Game_Trial_Timer" : true 
     },
 
     "overcooked_SOAVersionUE" : {

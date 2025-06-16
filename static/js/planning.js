@@ -33,6 +33,7 @@ $(function() { // le $ signifie que la fonction attend que le document html soit
             "game_name" : "planning", // stipule l'utilisation de la classe PlanningGame
             "create_if_not_found" : false
         };
+        console.log(data);
         socket.emit("create", data); // emet l'évènement socketIO create reçu par app.py
         $('#waiting').show(); // mise à jour de certains élèments de l'interface
         $('#join').hide();
@@ -160,6 +161,7 @@ socket.on('start_game', function(data) {
         start_info : data.start_info,
         condition : data.config.conditions[data.step],
         mechanic : data.config.mechanic,
+        Game_Trial_Timer : data.config.Game_Trial_Timer,
         show_counter_drop : data.config.show_counter_drop,
     };
     window.spectating = data.spectating;
@@ -209,6 +211,7 @@ socket.on('reset_game', function(data) {
             container_id : "overcooked",
             start_info : data.state, 
             condition : data.condition,
+            Game_Trial_Timer : data.config.Game_Trial_Timer
         };
         if (!window.spectating) {
             enable_key_listener();

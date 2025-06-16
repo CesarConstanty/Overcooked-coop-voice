@@ -76,6 +76,7 @@ function drawState(state) {
 function graphics_start(graphics_config) {
     scene_config.condition = graphics_config.condition;
     scene_config.mechanic = graphics_config.mechanic;
+    scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
     graphics = new GraphicsManager(game_config, scene_config, graphics_config);
 };
@@ -154,6 +155,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         this.condition = config.condition;
         this.mechanic = config.mechanic;
+        console.log(config);
+        this.Game_Trial_Timer = config.Game_Trial_Timer;
         this.show_counter_drop = config.show_counter_drop;
         this.currentRecipe = null; // Property to store the current recipe
     }
@@ -576,10 +579,11 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         /* if (typeof(hud_data.bonus_orders) !== 'undefined') {
             this._drawBonusOrders(hud_data.bonus_orders, sprites, board_height);
         } */
-        
-        if (typeof(hud_data.time) !== 'undefined' && this.mechanic == "recipe") {//changed to see what i get : that's what was intended
+        //console.log(this.Game_Trial_Timer);
+        if (typeof(hud_data.time) !== 'undefined' && this.mechanic == "recipe" && this.Game_Trial_Timer) {//changed to see what i get : that's what was intended
             //console.log("_drawTimeLeft");
             this._drawTimeLeft(hud_data.time, sprites, board_height, board_width);
+            this._validateOrder(sprites, board_height, board_width);
         }
         if (typeof(hud_data.score) !== 'undefined'&& this.mechanic !== "recipe") {
             this._drawScore(hud_data.score, sprites, board_height, board_width);
@@ -589,10 +593,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
-            console.log('intentions');
-            if (/* this.condition.asset_hud */true){
-                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
-            }
+            this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
+            
             if (this.condition.asset_sound){
                 this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
             }            
@@ -895,6 +897,19 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             )
         }
     }
+
+    _validateOrder(sprites, board_height, board_width) {       
+        let valid_order = 'valid order!!'
+        sprites['valid_order'] = this.add.text(
+            board_width + 5, 350, valid_order,
+            {
+                font: "20px Arial",
+                fill: "red",
+                align: "left"
+            }
+        )
+    }
+    
 
     _ingredientsToSpriteFrame(ingredients, status) {
         let num_tomatoes = ingredients.filter(x => x === 'tomato').length;
