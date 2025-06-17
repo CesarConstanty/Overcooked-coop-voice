@@ -13,4 +13,4 @@ ENV FLASK_ENV=production
 CMD [ "python", "app.py" ]
 
 # docker build -t overcooked:dev .
-# docker run -it --rm -p 5000:5000 overcook:dev
+# docker run -it --rm -p 5000:5000 overcooked:dev
