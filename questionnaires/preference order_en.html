@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Classement des Conditions</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    h2 { margin-bottom: 0.5rem; }
+
+    .instructions {
+      margin-bottom: 1.5rem;
+      padding: 10px;
+      background: #f9f9f9;
+      border-left: 4px solid #0077cc;
+    }
+
+    .arrow-container {
+      position: relative;
+      height: 220px;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .arrow-background {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 120"><polygon points="0,0 950,0 990,60 950,120 0,120" fill="white" stroke="black" stroke-width="3"/></svg>') no-repeat center;
+      background-size: contain;
+      z-index: 0;
+    }
+
+    .arrow-zone {
+      display: flex;
+      gap: 10px;
+      z-index: 1;
+    }
+
+    .arrow-slot {
+      width: 120px;
+      height: 60px;
+      border: 2px dashed #ccc;
+      background: white;
+      border-radius: 5px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+
+    .arrow-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.2rem;
+      padding: 0 10px;
+    }
+
+    .arrow-footer span {
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    .condition-bank {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px;
+      border: 2px solid black;
+      border-radius: 5px;
+      background: #fafafa;
+      height: 180px;
+      overflow-y: auto;
+      margin-top: 1.5rem;
+    }
+
+    .condition-item {
+      width: 220px;
+      height: 60px;
+      box-sizing: border-box;
+      padding: 10px;
+      background: #f0f0f0;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      padding: 10px 20px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Ranking of communications</h2>
+  <div class="instructions">
+    Drag each condition of communication into a box on the arrow, from left to right (from least to most preferred).<br>
+    You may adjust your ranking at any time.<br>
+    <strong>There are no right or wrong answers</strong> — we are simply interested in your personal preference.
+  </div>
+
+  <div class="arrow-container">
+    <div class="arrow-background"></div>
+    <div class="arrow-zone" id="arrowSlots"></div>
+  </div>
+
+  <div class="arrow-footer">
+    <span>Least preferred</span>
+    <span>Most preferred</span>
+  </div>
+
+  <div class="condition-bank" id="conditionBank" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+
+  <button id="submitBtn" onclick="submitRanking()" disabled>Valider</button>
+
+  <script>
+    const conditions = [
+      "Assets - Visual", "Assets - Vocal",
+      "Recipes - Visual", "Recipes - Vocal",
+      "Assets and Recipes - Visual", "Assets and Recipes - Vocal",
+      "No Communication"
+    ];
+
+    const slotsContainer = document.getElementById('arrowSlots');
+    const bank = document.getElementById('conditionBank');
+    const submitBtn = document.getElementById('submitBtn');
+
+    shuffle(conditions).forEach((text, i) => {
+      const item = createDraggableItem(text, `cond-${i}`);
+      bank.appendChild(item);
+    });
+
+    Array.from({ length: 7 }).forEach(() => {
+      const slot = document.createElement('div');
+      slot.className = 'arrow-slot';
+      slot.ondrop = drop;
+      slot.ondragover = allowDrop;
+      slotsContainer.appendChild(slot);
+    });
+
+    function createDraggableItem(text, id) {
+      const item = document.createElement('div');
+      item.className = 'condition-item';
+      item.textContent = text;
+      item.id = id;
+      item.draggable = true;
+      item.ondragstart = e => e.dataTransfer.setData("text", id);
+      return item;
+    }
+
+    function allowDrop(e) {
+      e.preventDefault();
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      const data = e.dataTransfer.getData("text");
+      const dragged = document.getElementById(data);
+
+      if (e.target.classList.contains("arrow-slot") && e.target.hasChildNodes()) return;
+      if (e.target.classList.contains("arrow-slot") || e.target.id === "conditionBank") {
+        e.target.appendChild(dragged);
+        updateSubmitState();
+      }
+    }
+
+    function updateSubmitState() {
+      const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
+      submitBtn.disabled = (filled.length !== 7);
+    }
+
+    function submitRanking() {
+      const ranking = Array.from(document.querySelectorAll('.arrow-slot')).map(slot => slot.textContent.trim());
+      console.log("Classement :", ranking);
+      alert("Merci ! Votre classement a bien été enregistré.");
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+  </script>
+
+</body>
+</html>
