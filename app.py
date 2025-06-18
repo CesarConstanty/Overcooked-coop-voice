@@ -22,7 +22,7 @@ import glob
 from time import gmtime, asctime, sleep, time
 from threading import Lock
 from utils import ThreadSafeSet, ThreadSafeDict, questionnaire_to_surveyjs
-from flask import Flask, render_template, jsonify, request, session
+from flask import Flask, redirect, render_template, jsonify, request, session, url_for
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_session import Session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
@@ -501,7 +501,8 @@ def index():
             db.session.add(new_user)
             db.session.commit()
             login_user(new_user)
-        return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
+        return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS) #--- uncomment
+        #return redirect(url_for('planning'))
     else:
         return render_template('UID_error.html')
 
@@ -523,6 +524,8 @@ def instructions():
     form["date"] = asctime(form["timestamp"])
     form["useragent"] = request.headers.get('User-Agent')
     #form["IPadress"] = request.remote_addr
+    #form["consentRadio"]= "accept" # comment
+    #return redirect(url_for('planning'))
     if form["consentRadio"] == "accept":
         Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
         try:

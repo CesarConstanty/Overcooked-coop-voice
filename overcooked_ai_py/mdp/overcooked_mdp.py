@@ -47,6 +47,8 @@ class Recipe:
         self.min_cost_to_complete = 10000
         self.point_time_ratio = -1
         self.most_advanced_pot = None
+        #TODO: delete
+        #print(self)
 
     def __getnewargs__(self):
         return (self._ingredients,)
@@ -628,10 +630,19 @@ class OvercookedState(object):
         self._all_orders = all_orders
         self.timestep = timestep
 
+        if len(self._all_orders)<5 and self.timestep%20 == 0 :
+            l = Recipe.generate_random_recipes()
+                
+            self._all_orders += list(l) #+ self._all_orders  
+        
+        print(self.timestep)
+        #print(self._all_orders)
         assert len(set(self.bonus_orders)) == len(self.bonus_orders), "Bonus orders must not have duplicates"
-        assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"
-        assert set(self.bonus_orders).issubset(set(self.all_orders)), "Bonus orders must be a subset of all orders"
+        #assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"
+        #assert set(self.bonus_orders).issubset(set(self.all_orders)), "Bonus orders must be a subset of all orders"
 
+    
+    
     @property
     def player_positions(self):
         return tuple([player.position for player in self.players])
@@ -689,7 +700,7 @@ class OvercookedState(object):
 
     @property
     def all_orders(self):
-        return sorted(self._all_orders) #if self._all_orders  else sorted(Recipe.ALL_RECIPES)
+        return self._all_orders #if self._all_orders  else sorted(Recipe.ALL_RECIPES)
 
     @property
     def bonus_orders(self):

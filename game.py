@@ -694,6 +694,7 @@ class PlanningGame(OvercookedGame):
         self.step = kwargs.get("step", -1)
         kwargs.get("config").pop("completion_link", None)
         self.config = kwargs.get("config")
+        #print("CONFIG:::::::::::::::::::::",self.config)
         self.shuffle_trials = bool(self.config.get("shuffle_trials", False))
         self.layouts = self.config.get("blocs")[str(self.step)]
         self.curr_condition = self.config.get("conditions")[str(self.step)]
@@ -722,9 +723,13 @@ class PlanningGame(OvercookedGame):
   
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
+            #print(self.state.all_orders)
             return len(self.state.all_orders) == 0 or time() - self.start_time >= self.max_time
         else :
             return time() - self.start_time >= self.max_time
+    
+    def game_timer(self):
+        return time() - self.start_time
 
     def set_trial_id_error(self):
         self.trial_id = self.participant_uid + '_' + \
