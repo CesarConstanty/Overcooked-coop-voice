@@ -398,7 +398,6 @@ def _ensure_consistent_state():
 def get_agent_names():
     return [d for d in os.listdir(AGENT_DIR) if os.path.isdir(os.path.join(AGENT_DIR, d))]
 
-
 ######################
 # Application routes #
 ######################
@@ -477,6 +476,7 @@ def index():
             login_user(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
+
             try:
                 if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
                     with open("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"], 'r', encoding='utf-8') as f:
@@ -572,12 +572,28 @@ def planning():
         condition = request.args.get('CONDITION')
     agent_names = get_agent_names()
 
+    #qvg = à remplire 
     qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
-    qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
+    
+    print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
+    print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['qpb'], indent=2)}")
+    #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
+    qpb_elements = []
+    for key, value in current_user.config["qpb"].items():
+        if isinstance(value, dict): # ESSENTIAL CHECK ?
+            
+            if current_user.step in value.get("steps", []):
+                qpb_elements.append(value)
+            print("qpd_elements:   ",qpb_elements)
+    qpb = {"elements": qpb_elements}
+
+    
+    #qex = à remplire
+
     if current_user.step >= len(current_user.config["blocs"].keys()):
-        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
+        return qex_ranking()
     else :
-        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt))
+        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt))#, qvg=json.dumps(qvg), qex=json.dumps(qex))
 
 
 @app.route('/transition', methods=['GET', 'POST'])
@@ -605,6 +621,75 @@ def transition():
     return render_template('goodbye.html', uid=uid, step=step, completion_link=current_user.config["completion_link"])
     # else :
     #   return render_template('bloc_transition.html', uid = uid, step = step)
+
+
+
+
+@app.route('/qex_ranking', methods=['GET'])
+@login_required
+def qex_ranking():
+    return render_template('preference order_en.html')
+
+@app.route('/submit_qex_ranking', methods=['POST'])
+@login_required
+def submit_qex_ranking():
+
+    uid = current_user.uid
+    step = current_user.step 
+
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A" 
+
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+
+    # --- QEX specific data extraction ---
+    ranking_json_string = request.form.get('ranking_data')
+
+    if not ranking_json_string:
+        print("Error: No 'ranking_data' received for QEX submission.")
+        
+        return redirect(url_for('planning')) # Or a specific error page
+
+    try:
+        # Parse the JSON string back into a Python list
+        ranking_list = json.loads(ranking_json_string)
+        form_data["ranking_response"] = ranking_list # Store the QEX ranking here
+
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON received for QEX 'ranking_data': {ranking_json_string}")
+        return "Error: Invalid ranking data format for QEX", 400
+
+    # --- Save the QEX data to a JSON file ---
+    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{uid}/{uid}_{step}_QEX.json" # Naming convention for QEX?
+    try:
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(form_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved QEX data for user {uid} at step {step} to {file_name}")
+    except Exception as e: 
+        print(f"Error saving QEX data for user {uid} at step {step}: {e}")
+        
+        return "Error saving QEX data", 500
+
+    
+    current_user.step += 1
+    #current_user.save() # Make sure User model has a save method to persist changes?
+
+    
+    return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
+    
+
+
+
+
+
 
 
 @app.route('/planning_design')
@@ -689,7 +774,7 @@ def debug():
 @socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
     user_id = current_user.uid
-    print(data)
+    #print(data)
     curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
     if curr_game:
         # Cannot create if currently in a game

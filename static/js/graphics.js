@@ -583,7 +583,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         if (typeof(hud_data.time) !== 'undefined' && this.mechanic == "recipe" && this.Game_Trial_Timer) {//changed to see what i get : that's what was intended
             //console.log("_drawTimeLeft");
             this._drawTimeLeft(hud_data.time, sprites, board_height, board_width);
-            this._validateOrder(sprites, board_height, board_width);
+            //this._validateOrder(sprites, board_height, board_width);
         }
         if (typeof(hud_data.score) !== 'undefined'&& this.mechanic !== "recipe") {
             this._drawScore(hud_data.score, sprites, board_height, board_width);
@@ -599,7 +599,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
             }            
             //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
-            if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
+            if (typeof(hud_data.all_orders) !== 'undefined' /* && this.condition.recipe_hud */) {
                 this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe); // surligne la recette que l'agent a l'intention de faire
             }        
         }
@@ -899,7 +899,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
 
     _validateOrder(sprites, board_height, board_width) {       
-        let valid_order = 'valid order!!'
+        //TODO: add the validation of the recipe 1st see(overcooked_mdp:633) 
+
+        let valid_order = ' '
         sprites['valid_order'] = this.add.text(
             board_width + 5, 350, valid_order,
             {

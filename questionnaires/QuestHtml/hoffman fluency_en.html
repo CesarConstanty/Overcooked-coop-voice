@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Human–Robot Interaction Survey</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+    h1 { text-align: center; }
+    .question { margin: 20px 0; }
+    .likert { display: flex; justify-content: space-between; margin-top: 5px; }
+    .likert label { width: 18%; text-align: center; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+
+<h1>Human–Robot Interaction Survey</h1>
+<p>
+  This questionnaire assesses how you experienced your recent collaboration with the <strong>artificial agent in Overcooked</strong>. 
+  Please read each statement carefully and indicate how much you agree or disagree. There are no right or wrong answers — we are interested in your personal experience.
+</p>
+<hr>
+
+<form>
+  <ol id="questions"></ol>
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+const items = [
+  "The human-robot team worked fluently together.",
+  "The human-robot team’s fluency improved over time.",
+  "The robot contributed to the fluency of the interaction.",
+  "I had to carry the weight to make the human-robot team better.",
+  "The robot contributed equally to the team performance.",
+  "I was the most important team member on the team.",
+  "The robot was the most important team member on the team.",
+  "I trusted the robot to do the right thing at the right time.",
+  "The robot was trustworthy.",
+  "The robot was intelligent.",
+  "The robot was committed to the task.",
+  "The human-robot team improved over time.",
+  "I feel uncomfortable with the robot.",
+  "I believe the robot likes me.",
+  "The robot and I respect each other.",
+  "I am confident in the robot’s ability to help me.",
+  "I feel that the robot appreciates me.",
+  "The robot and I trust each other.",
+  "The robot perceives accurately what my goals are.",
+  "The robot does not understand what I am trying to accomplish.",
+  "I find what I am doing with the robot confusing.",
+  "The robot had an important contribution to the success of the team.",
+  "The robot was committed to the success of the team.",
+  "I was committed to the success of the team.",
+  "The robot was cooperative."
+];
+
+// Fisher-Yates shuffle
+for (let i = items.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [items[i], items[j]] = [items[j], items[i]];
+}
+
+const container = document.getElementById('questions');
+
+items.forEach((text, i) => {
+  const li = document.createElement('li');
+  li.className = "question";
+  li.innerHTML = `<p>${text}</p><div class="likert">` +
+    [1,2,3,4,5].map(val =>
+      `<label><input type="radio" name="q${i+1}" value="${val}">${["Strongly Disagree","Disagree","Neutral","Agree","Strongly Agree"][val-1]}</label>`
+    ).join('') +
+    `</div>`;
+  container.appendChild(li);
+});
+</script>
+
+</body>
+</html>
