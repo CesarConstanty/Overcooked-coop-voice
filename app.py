@@ -477,6 +477,7 @@ def index():
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
 
+            ## -- qpt
             try:
                 if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
                     with open("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"], 'r', encoding='utf-8') as f:
@@ -488,6 +489,7 @@ def index():
             if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
+            ## -- qpb
             try:
                 if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
                     with open("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"], 'r', encoding='utf-8') as f:
@@ -498,6 +500,22 @@ def index():
                 new_user.config["qpb"] = {}
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
+            ## -- hoffman
+            try:
+                if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
+                    with open("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"], 'r', encoding='utf-8') as f:
+                        hoffman = json.load(f)
+                    f.close()
+                    new_user.config["hoffman"] = hoffman
+                    print("hada",hoffman)
+            except KeyError:
+                new_user.config["hoffman"] = {}
+                print("erhada",hoffman)
+                for key, value in new_user.config["blocs"].items():
+                    random.shuffle(value)
+
+
+
             db.session.add(new_user)
             db.session.commit()
             login_user(new_user)
@@ -535,11 +553,12 @@ def instructions():
         except KeyError:
             pass
         if condition:
-            if mechanic_type == "recipe":
+            """ if mechanic_type == "recipe":
                 if isAgency:
                     return render_template('instructions_recipe_Agency.html', is_explained=is_explained)
                 else :
-                    return render_template('instructions_recipe.html', is_explained=is_explained)
+                    return render_template('instructions_recipe.html', is_explained=is_explained) """
+            return redirect(url_for('qvg_survey'))
 
         else:
             return render_template('condition_error.html')
@@ -575,8 +594,7 @@ def planning():
     #qvg = à remplire 
     qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
     
-    print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
-    print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['qpb'], indent=2)}")
+    #print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
     #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
     qpb_elements = []
     for key, value in current_user.config["qpb"].items():
@@ -587,13 +605,30 @@ def planning():
             print("qpd_elements:   ",qpb_elements)
     qpb = {"elements": qpb_elements}
 
+
+    print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
+    hoffman_elements = []
+    for key, value in current_user.config["hoffman"].items():
+        if isinstance(value, dict): # ?
+            
+            if current_user.step in value.get("steps", []):
+                hoffman_elements.append(value)
+            print("hoffman_elements:   ",hoffman_elements)
+    hoffman = {"elements": hoffman_elements}
+    print("hooooooooooooooooooooooooooooooooo: ", hoffman)
+    
+    
+    # TODO: refformat this code pls, a lot of redendency !!!!!!
     
     #qex = à remplire
 
     if current_user.step >= len(current_user.config["blocs"].keys()):
+        sid = request.sid
+        socketio.emit("next_step", to=sid)
         return qex_ranking()
     else :
-        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt))#, qvg=json.dumps(qvg), qex=json.dumps(qex))
+        #
+        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt),hoffman=json.dumps(hoffman))#, qvg=json.dumps(qvg), qex=json.dumps(qex))
 
 
 @app.route('/transition', methods=['GET', 'POST'])
@@ -621,6 +656,8 @@ def transition():
     return render_template('goodbye.html', uid=uid, step=step, completion_link=current_user.config["completion_link"])
     # else :
     #   return render_template('bloc_transition.html', uid = uid, step = step)
+
+
 
 
 
@@ -686,6 +723,82 @@ def submit_qex_ranking():
     return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
     
 
+#TODO: qvg
+
+
+@app.route('/experience_video_games_survey', methods=['GET'])
+@login_required
+def qvg_survey():
+    """
+    Renders the video game questionnaire (QVG) HTML page.
+    """
+    return render_template('experience_video_games_en.html') # Ensure this matches your file name
+
+@app.route('/submit_qvg_survey', methods=['POST'])
+@login_required
+def submit_qvg_survey():
+    """
+    Handles the POST submission of the video game questionnaire (QVG).
+    Extracts data, saves it to a JSON file, and progresses the user's step.
+    """
+    uid = current_user.uid
+    step = current_user.step
+
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        # Get condition if applicable for this step, similar to other forms
+        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A" # Default if condition not found for step
+
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+
+    # --- QVG specific data extraction ---
+    # Get the JSON string from the hidden input field
+    qvg_json_string = request.form.get('qvg_data')
+
+    if not qvg_json_string:
+        print(f"Error: No 'qvg_data' received for QVG submission for user {uid} at step {step}.")
+        # Decide how to handle this: render an error page, redirect, etc.
+        # Redirect to planning if data is missing, similar to QEX
+        return redirect(url_for('planning'))
+
+    try:
+        # Parse the JSON string back into a Python dictionary
+        qvg_response_data = json.loads(qvg_json_string)
+        form_data["qvg_response"] = qvg_response_data # Store the QVG responses here
+
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON received for QVG 'qvg_data': {qvg_json_string} for user {uid} at step {step}.")
+        return "Error: Invalid QVG data format", 400
+
+    # --- Save the QVG data to a JSON file ---
+    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+    # Using a clear naming convention: _QVG.json
+    file_name = f"trajectories/{uid}/{uid}_{step}_QVG.json"
+    try:
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(form_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved QVG data for user {uid} at step {step} to {file_name}")
+    except Exception as e:
+        print(f"Error saving QVG data for user {uid} at step {step}: {e}")
+        return "Error saving QVG data", 500
+
+    # --- Update current_user.step and redirect ---
+    #current_user.step += 1
+    # You MUST save the current_user object to persist the step change
+    # If using Flask-SQLAlchemy with a User model, it might be: db.session.commit()
+    # Or current_user.save() if you have a custom method.
+    # Assuming current_user.save() is the correct method based on your previous examples.
+    #current_user.save() ?????
+
+    # Determine the next page based on the new step value, similar to the /transition route
+    
+    return redirect(url_for('tutorial')) #TODO: put tuttorial ?
 
 
 
@@ -952,7 +1065,41 @@ def post_qpb(data):
     current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
+    #socketio.emit("next_step", to=sid)
+    socketio.emit("hoffman", to=sid)
+
+@socketio.on("post_hoffman")
+def post_hoffman(data):
+    sid = request.sid
+    uid = current_user.uid
+    # condition = current_user.config["conditions"][str(current_user.step)]
+    form = {}
+    form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
+    for key, value in data["survey_data"].items():
+        form["answer"][key] = value
+    condition = current_user.config["conditions"][str(current_user.step)]
+    # form["answer"] = data
+    form["step"] = current_user.step
+    form["trial_id"] = uid + "_" + str(current_user.step) + 'HOFFMAN'
+    form["user_agent"] = request.headers.get('User-Agent')
+    form["condition"] = current_user.config["conditions"][str(
+        current_user.step)]
+    form["uid"] = current_user.uid
+    form["timestamp"] = gmtime()
+    form["date"] = asctime(form["timestamp"])
+
+    Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
+    try:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
+            json.dump(form, f, ensure_ascii=False, indent=4)
+            f.close()
+    except KeyError:
+        pass
+    #current_user.step += 1 # Permet de passer au bloc suivant
+    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
+    db.session.commit()
     socketio.emit("next_step", to=sid)
+
 
 # Exit handler for server
 def on_exit():
@@ -1063,8 +1210,9 @@ def play_game(game, fps=15):
                 if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()):
                         socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"]}, room=game.id)
                 socketio.emit("qpb", room=game.id)
-                                
+                #      
             except AttributeError:
+                #      
                 pass
             except SocketIOTimeOutError:
                 print("Player " + game.id + " is not on")

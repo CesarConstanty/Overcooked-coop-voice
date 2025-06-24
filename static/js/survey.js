@@ -34,6 +34,8 @@ socket.on("connect", function () {
         qpt_timeout_bool = false;
     });
     $("#QptDisplay").Survey({ model: qpt_model });
+    
+    // -- qpb 
     var qpb_elements = JSON.parse($('#qpb_elements').text());
     var qpb_model = new Survey.Model(qpb_elements);
     qpb_model.onComplete.add(function (sender) {
@@ -42,6 +44,18 @@ socket.on("connect", function () {
     $("#QpbDisplay").Survey({
         model: qpb_model
     });
+
+    // -- hoffman
+    var hoffman_elements = JSON.parse($('#hoffman_elements').text());
+    var hoffman_model = new Survey.Model(hoffman_elements);
+    hoffman_model.onComplete.add(function (sender) {
+        socket.emit("post_hoffman", { "survey_data": sender.data });
+        console.log('debug', sender.data);
+    });
+    $("#HoffmanDisplay").Survey({
+        model: hoffman_model
+    });
+
 })
 
 socket.on('qpt', function (data, callback) {
@@ -71,6 +85,12 @@ socket.on('qpt', function (data, callback) {
 socket.on('qpb', function () {
     $('#overcooked').hide();
     $("#qpb").show();
+})
+
+socket.on('hoffman', function () {
+    $('#overcooked').hide();
+    $("#qpb").hide();
+    $("#hoffman").show();
 })
 
 socket.on('next_step', function () {

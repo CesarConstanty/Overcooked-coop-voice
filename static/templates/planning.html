@@ -47,10 +47,11 @@
 
   <script src="static/js/graphics.js" type="text/javascript"></script>
   <script src="static/js/planning.js" type="text/javascript"></script>
-  <div id="qvg_elements" style="display:none;">{{qvg}}</div>
+  <!-- <div id="qvg_elements" style="display:none;">{{qvg}}</div> -->
   <div id="qpt_elements" style="display:none;">{{qpt}}</div>
   <div id="qpb_elements" style="display:none;">{{qpb}}</div>
-  <div id="qex_elements" style="display:none;">{{qex}}</div>
+  <div id="hoffman_elements" style="display:none;">{{hoffman}}</div>
+  <!-- <div id="qex_elements" style="display:none;">{{qex}}</div> -->
   <script type="text/javascript" src="./static/js/survey.js" ></script>
 </head>
 
@@ -117,11 +118,20 @@
     
     <div id="QpbDisplay" style="display:inline-block;width:100%;"></div>
 
-
   </div>
 
 
+  <div id="hoffman" style="display:none;" class="wrap">
+    <h1 class="likert-header">Human–Robot Interaction Survey</h1>
+    <p>
+      This questionnaire assesses how you experienced your recent collaboration with the <strong>artificial agent in Overcooked</strong>. 
+      Please read each statement carefully and indicate how much you agree or disagree. There are no right or wrong answers — we are interested in your personal experience.
+    </p>
+    
+    <div id="HoffmanDisplay" style="display:inline-block;width:100%;"></div>
+  </div>
 
+  
   <noscript>
     <h1>Warning: Javascript seems to be disabled</h1>
     <p>This website requires that Javascript be enabled on your browser.</p>
