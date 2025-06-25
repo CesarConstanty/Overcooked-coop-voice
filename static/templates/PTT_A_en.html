@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PTT-A Survey</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+    h1 { text-align: center; }
+    .question { margin: 20px 0; }
+    .likert { display: flex; justify-content: space-between; margin-top: 10px; }
+    label { width: 13%; text-align: center; }
+    button:disabled {
+      background-color: #ccc;
+      color: #666;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Survey: Propensity to Trust in Automated Technology (PTT-A)</h1>
+
+<p>Now we are interested in your opinions about automated technology – i.e., technology that can perform certain functions automatically without any input from you.</p>
+<p>Automated technology is taking on more and more tasks in various areas of life. For example, robots are becoming more widely used in industry and in private households. Many means of transport (airplanes, trains, or cars) are also now increasingly automated.</p>
+<p>The term automated technology includes (among other things):</p>
+<ul>
+  <li>Automated means of transport (e.g., autonomous cars, trains, airplanes)</li>
+  <li>Industrial robots (e.g., assembly robots, logistics robots)</li>
+  <li>Service and assistance robots (e.g., vacuum cleaners, healthcare robots)</li>
+  <li>AI-based programs (e.g., language assistants, image recognition)</li>
+</ul>
+<p>There are a number of statements below about automated technology that may apply to you more or less. Please indicate how much you agree with each one (1 = strongly disagree, 7 = strongly agree).</p>
+
+<hr>
+
+<form id="pttaForm" method="POST" action="/submit_ptta_survey">
+  <input type="hidden" name="ptta_data" id="pttaDataInput">
+
+  <ol id="questions"></ol>
+  <button type="submit" id="submitBtn" disabled>Submit</button>
+</form>
+
+<script>
+const items = [
+  "Even though I may sometimes suffer the consequences of trusting automated technological systems, I still prefer to trust than not to trust them.",
+  "I feel good about trusting automated technological systems.",
+  "I believe that I am generally better off when I do not trust automated technological systems than when I trust them.",
+  "I rarely trust automated technological systems because I can’t handle the uncertainty.",
+  "Automated technological systems are competent.",
+  "Automated technological systems have sound knowledge about problems for which they are intended.",
+  "I am wary about the capabilities of automated technological systems.",
+  "Automated technological systems do not have the capabilities that could help me reach my goals.",
+  "I believe that automated technological systems have good intentions.",
+  "I feel that automated technological systems are out to get as much as they can for themselves.",
+  "I don't expect that automated technological systems are willing to assist and support people.",
+  "Most automated technological systems are honest.",
+  "I feel that automated technological systems can be relied upon to do what they say they will do.",
+  "One cannot expect to be treated fairly by automated technological systems."
+];
+
+const container = document.getElementById('questions');
+
+items.forEach((text, i) => {
+  const li = document.createElement('li');
+  li.className = "question";
+  li.innerHTML = `<p>${text}</p><div class="likert">` +
+    Array.from({length: 7}, (_, j) =>
+      `<label><input type="radio" name="q${i+1}" value="${j+1}" required>${j+1}</label>` 
+    ).join('') +
+    `</div>`;
+  container.appendChild(li);
+});
+
+
+const form = document.getElementById('pttaForm');
+const submitBtn = document.getElementById('submitBtn');
+const pttaDataInput = document.getElementById('pttaDataInput'); 
+
+function checkFormValidity() {
+    const requiredRadioGroups = form.querySelectorAll('input[type="radio"][required]');
+    const questionNames = new Set();
+    requiredRadioGroups.forEach(input => questionNames.add(input.name));
+
+    let allGroupsChecked = true;
+    questionNames.forEach(name => {
+        const group = form.querySelectorAll(`input[name="${name}"]`);
+        const oneChecked = Array.from(group).some(r => r.checked);
+        if (!oneChecked) {
+            allGroupsChecked = false;
+        }
+    });
+    return allGroupsChecked;
+}
+
+function collectFormData() {
+    const formData = {};
+    const inputs = form.querySelectorAll('input[type="radio"]'); 
+    inputs.forEach(input => {
+        if (input.checked) {
+            formData[input.name] = input.value;
+        }
+    });
+    return formData;
+}
+
+form.addEventListener('input', () => {
+    const allFilled = checkFormValidity();
+    submitBtn.disabled = !allFilled;
+
+    if (allFilled) {
+        const collectedData = collectFormData();
+        pttaDataInput.value = JSON.stringify(collectedData); // Store as JSON string in hidden input
+    } else {
+        pttaDataInput.value = ''; // Clear if not all required fields are filled
+    }
+});
+
+
+form.addEventListener('submit', (event) => {
+    const allFilled = checkFormValidity();
+    if (allFilled) {
+        const collectedData = collectFormData();
+        pttaDataInput.value = JSON.stringify(collectedData);
+    } else {
+        
+        event.preventDefault();
+    }
+});
+
+</script>
+
+</body>
+</html>

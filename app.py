@@ -542,8 +542,7 @@ def instructions():
     form["date"] = asctime(form["timestamp"])
     form["useragent"] = request.headers.get('User-Agent')
     #form["IPadress"] = request.remote_addr
-    #form["consentRadio"]= "accept" # comment
-    #return redirect(url_for('planning'))
+    #
     if form["consentRadio"] == "accept":
         Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
         try:
@@ -553,12 +552,12 @@ def instructions():
         except KeyError:
             pass
         if condition:
-            """ if mechanic_type == "recipe":
+            if mechanic_type == "recipe":
                 if isAgency:
                     return render_template('instructions_recipe_Agency.html', is_explained=is_explained)
                 else :
-                    return render_template('instructions_recipe.html', is_explained=is_explained) """
-            return redirect(url_for('qvg_survey'))
+                    return render_template('instructions_recipe.html', is_explained=is_explained)
+            #return redirect(url_for('qvg_survey'))
 
         else:
             return render_template('condition_error.html')
@@ -584,6 +583,7 @@ def instructions_explained():
 @app.route('/planning', methods=['GET', 'POST'])
 @login_required
 def planning():
+    #sid = request.sid
     uid = current_user.uid
     try:
         condition = current_user.config["conditions"][str(current_user.step)]
@@ -621,10 +621,10 @@ def planning():
     # TODO: refformat this code pls, a lot of redendency !!!!!!
     
     #qex = à remplire
-
+   
     if current_user.step >= len(current_user.config["blocs"].keys()):
-        sid = request.sid
-        socketio.emit("next_step", to=sid)
+        
+        socketio.emit("next_step")
         return qex_ranking()
     else :
         #
@@ -723,7 +723,7 @@ def submit_qex_ranking():
     return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
     
 
-#TODO: qvg
+# --qvg
 
 
 @app.route('/experience_video_games_survey', methods=['GET'])
@@ -778,7 +778,6 @@ def submit_qvg_survey():
 
     # --- Save the QVG data to a JSON file ---
     Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
-    # Using a clear naming convention: _QVG.json
     file_name = f"trajectories/{uid}/{uid}_{step}_QVG.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
@@ -788,19 +787,75 @@ def submit_qvg_survey():
         print(f"Error saving QVG data for user {uid} at step {step}: {e}")
         return "Error saving QVG data", 500
 
-    # --- Update current_user.step and redirect ---
-    #current_user.step += 1
-    # You MUST save the current_user object to persist the step change
-    # If using Flask-SQLAlchemy with a User model, it might be: db.session.commit()
-    # Or current_user.save() if you have a custom method.
-    # Assuming current_user.save() is the correct method based on your previous examples.
-    #current_user.save() ?????
-
+    
     # Determine the next page based on the new step value, similar to the /transition route
     
-    return redirect(url_for('tutorial')) #TODO: put tuttorial ?
+    return redirect(url_for('ptta_survey')) #TODO: put tuttorial ?
 
 
+
+
+# -- ptta
+
+@app.route('/ptta_survey', methods=['GET'])
+@login_required
+def ptta_survey():
+    return render_template('PTT_A_en.html')
+
+@app.route('/submit_ptta_survey', methods=['POST'])
+@login_required
+def submit_ptta_survey():
+    """
+    Handles the POST submission of the PTT-A survey.
+    Extracts data, saves it to a JSON file, and progresses the user's step.
+    """
+    uid = current_user.uid
+    step = current_user.step
+
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A"
+
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+
+    # --- PTT-A specific data extraction ---
+    # Get the JSON string from the hidden input field named 'ptta_data'
+    ptta_json_string = request.form.get('ptta_data')
+
+    if not ptta_json_string:
+        print(f"Error: No 'ptta_data' received for PTT-A submission for user {uid} at step {step}.")
+        
+        return redirect(url_for('planning')) # Or an error page
+
+    try:
+        # Parse the JSON string back into a Python dictionary
+        ptta_response_data = json.loads(ptta_json_string)
+        form_data["ptta_response"] = ptta_response_data # Store the PTT-A responses here
+
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON received for PTT-A 'ptta_data': {ptta_json_string} for user {uid} at step {step}.")
+        return "Error: Invalid PTT-A data format", 400
+
+    # --- Save the PTT-A data to a JSON file ---
+    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+    # Using a clear naming convention: _PTTA.json
+    file_name = f"trajectories/{uid}/{uid}_{step}_PTTA.json"
+    try:
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(form_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved PTT-A data for user {uid} at step {step} to {file_name}")
+    except Exception as e:
+        print(f"Error saving PTT-A data for user {uid} at step {step}: {e}")
+        return "Error saving PTT-A data", 500
+
+
+    return redirect(url_for('tutorial'))
 
 
 
@@ -1077,13 +1132,12 @@ def post_hoffman(data):
     form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"][str(current_user.step)]
+    condition = current_user.config["conditions"]
     # form["answer"] = data
     form["step"] = current_user.step
     form["trial_id"] = uid + "_" + str(current_user.step) + 'HOFFMAN'
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][str(
-        current_user.step)]
+    form["condition"] = condition
     form["uid"] = current_user.uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
