@@ -70,16 +70,16 @@ socket.on('qpt', function (data, callback) {
     callbacktrigger = new CallBackTrigger(callback, data.trial)
     const timeout_start = Date.now();
     callback = callback
-    /* timeout = setTimeout(function () {
+    timeout = setTimeout(function () {
         qpt_timeout_bool = true;
         qpt_model.doComplete(true);
     }, data.qpt_length * 1000
-    ); */ // a remettre
+    );  // a remettre
 
-    /* timeleft = setInterval(() => {
+    timeleft = setInterval(() => {
         //console.log("Time left: ", data.qpt_length- (Date.now() - timeout_start)/1000, "s");
         $('#qpt_timer').text("Remaining time  " + Math.round(data.qpt_length * 10 - (Date.now() - timeout_start) / 100) / 10 + "  Seconds");
-    }, 100); */
+    }, 100);
 })
 
 socket.on('qpb', function () {
