@@ -599,7 +599,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
             }            
             //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
-            if (typeof(hud_data.all_orders) !== 'undefined' /* && this.condition.recipe_hud */) {
+            if (typeof(hud_data.all_orders) !== 'undefined'  && this.condition.recipe_hud ) {
                 this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe); // surligne la recette que l'agent a l'intention de faire
             }        
         }

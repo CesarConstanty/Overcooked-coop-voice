@@ -1064,6 +1064,7 @@ def on_new_trial():
 
 @socketio.on("post_qpt")
 def post_qpt(data):
+    sid = request.sid #
     uid = current_user.uid
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]}
@@ -1089,6 +1090,7 @@ def post_qpt(data):
             f.close()
     except KeyError:
         pass
+    socketio.emit("next_step", to=sid) #to eliminate the freeze that happens after each changement of layout
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
