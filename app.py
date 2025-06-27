@@ -777,7 +777,9 @@ def submit_qvg_survey():
         return "Error: Invalid QVG data format", 400
 
     # --- Save the QVG data to a JSON file ---
-    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+    # saving demographic and video game scale in prolific ID folder
+    config_id = current_user.config["config_id"]
+    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{uid}/{uid}_{step}_QVG.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
@@ -843,7 +845,9 @@ def submit_ptta_survey():
         return "Error: Invalid PTT-A data format", 400
 
     # --- Save the PTT-A data to a JSON file ---
-    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+    # path to save PTT-A scale in an prolific ID folder
+    config_id = current_user.config["config_id"]
+    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
     file_name = f"trajectories/{uid}/{uid}_{step}_PTTA.json"
     try:
