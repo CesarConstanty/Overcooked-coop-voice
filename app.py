@@ -780,7 +780,7 @@ def submit_qvg_survey():
     # saving demographic and video game scale in prolific ID folder
     config_id = current_user.config["config_id"]
     Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{uid}/{uid}_{step}_QVG.json"
+    file_name = f"trajectories/{config_id}/{uid}/{uid}_{step}_QVG.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -849,7 +849,7 @@ def submit_ptta_survey():
     config_id = current_user.config["config_id"]
     Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
-    file_name = f"trajectories/{uid}/{uid}_{step}_PTTA.json"
+    file_name = f"trajectories/{config_id}/{uid}/{uid}_{step}_PTTA.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
