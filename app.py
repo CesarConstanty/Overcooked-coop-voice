@@ -778,9 +778,8 @@ def submit_qvg_survey():
 
     # --- Save the QVG data to a JSON file ---
     # saving demographic and video game scale in prolific ID folder
-    config_id = current_user.config["config_id"]
-    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{config_id}/{uid}/{uid}_{step}_QVG.json"
+    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
+    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -846,10 +845,9 @@ def submit_ptta_survey():
 
     # --- Save the PTT-A data to a JSON file ---
     # path to save PTT-A scale in an prolific ID folder
-    config_id = current_user.config["config_id"]
-    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
-    file_name = f"trajectories/{config_id}/{uid}/{uid}_{step}_PTTA.json"
+    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_PTTA.json'
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
