@@ -1225,7 +1225,14 @@ def play_game(game, fps=15):
                         # trial = numéro de l'essai actuel
                         # show_time = indique si le temps écoulé doit être affiché
                         # time_elapsed = temps écoulé depuis le début de l'essai (cf game.py)
-                        socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"], "show_time": game.config.get("show_trial_time", False), "time_elapsed": data["time_elapsed"]}, room=game.id)
+                        socketio.call("qpt", {
+                            "qpt_length": game.qpt_length,
+                            "trial": data["curr_trial_in_game"],
+                            "show_time": game.config.get("show_trial_time", False),
+                            "time_elapsed": data["time_elapsed"],
+                            "score": data["score"],
+                            "infinite_all_order": game.config.get("infinite_all_order", False)
+                        }, room=game.id)
                     except SocketIOTimeOutError:
                         print("Player " + str(game.id) + " is not on")
                     # requête pour réinitialiser le jeu (et passer à l'essai suivant)

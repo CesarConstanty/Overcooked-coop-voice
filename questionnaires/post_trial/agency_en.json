@@ -21,7 +21,7 @@
   },
   "Q3": {
     "name": "accountability",
-    "title": "Who is accountable for this result (\"score\"), 0 being you, 50 the team and 100 the agent only?",
+    "title": "Who is accountable for this result, 0 being you, 50 the team and 100 the agent only?",
     "cat": "Sense of Agency",
     "type": "nouislider",
     "isRequired": true,

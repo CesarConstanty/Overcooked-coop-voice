@@ -63,21 +63,26 @@ socket.on('qpt', function (data, callback) {
     qpt_model.render();
     $('#overcooked').hide();
     $("#qpt").show();
-    if (data.show_time) {
-        $("#elapsed_time").text("You have completed the game in " + Math.round(data.time_elapsed) +" seconds !")
+
+    // Affichage conditionnel du score ou du temps
+    if (data.infinite_all_order) {
+        $("#elapsed_time").text("");
+        $("#state_score").remove();
+        $("#qpt .likert-header").after('<h2 id="state_score">You have reached a score of <span id="qpt_score">'+data.score+'</span>, congratulations !</h2>');
+    } else {
+        $("#elapsed_time").text("You have completed the game in " + Math.round(data.time_elapsed) +" seconds !");
+        $("#state_score").remove();
+        $("#qpt .likert-header").after('<h2 id="state_score">You have reached a score of <span id="qpt_score">'+data.score+'</span>, congratulations !</h2>');
     }
-    console.log(data.show_time);
+
     callbacktrigger = new CallBackTrigger(callback, data.trial)
     const timeout_start = Date.now();
-    callback = callback
     timeout = setTimeout(function () {
         qpt_timeout_bool = true;
         qpt_model.doComplete(true);
-    }, data.qpt_length * 1000
-    );  // a remettre
+    }, data.qpt_length * 1000);
 
     timeleft = setInterval(() => {
-        //console.log("Time left: ", data.qpt_length- (Date.now() - timeout_start)/1000, "s");
         $('#qpt_timer').text("Remaining time  " + Math.round(data.qpt_length * 10 - (Date.now() - timeout_start) / 100) / 10 + "  Seconds");
     }, 100);
 })
