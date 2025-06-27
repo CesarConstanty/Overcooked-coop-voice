@@ -593,8 +593,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
-            this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
-            
+            if (this.condition.asset_hud){
+                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
+            }
             if (this.condition.asset_sound){
                 this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
             }            
