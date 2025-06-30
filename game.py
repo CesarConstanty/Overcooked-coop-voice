@@ -161,6 +161,10 @@ class Game(ABC):
         Returns whether the game should be reset on the next call to `tick`
         """
         return False
+# méthode appelée périodiquement pour mettre à jour l'état du jeu
+# elle applique les actions en attente
+# Elle met nottament à jour la classe PlanningGame lorsque tick
+# est appelée périodiquement pas la boucle de jeu asynchrone play_game
 
     def tick(self):
         """
@@ -436,11 +440,16 @@ class OvercookedGame(Game):
             self.npc_policies[player_one_id] = self.get_policy(
                 self.playerOne, idx=1)
             self.npc_state_queues[player_one_id] = LifoQueue()
+       # breakpoint()
+        #1
 
     def needs_player_renew(self):
+        '''
+        renvoie None, False
+        '''
         return None, False
 
-    def _curr_game_over(self):
+    def _curr_game_over(self): # Vérifie si la durée maximum de l'essaie est dépassée
         return time() - self.start_time >= self.max_time
 
     def needs_reset(self):
@@ -475,7 +484,7 @@ class OvercookedGame(Game):
     def is_full(self):
         return self.num_players >= self.max_players
 
-    def is_finished(self):
+    def is_finished(self): # Vérifie si le dernier essai réalisé était le dernier 
         val = self.curr_trial_in_game >= len(
             self.layouts) - 1 and self._curr_game_over()
         return val
@@ -545,12 +554,27 @@ class OvercookedGame(Game):
         return super(OvercookedGame, self).tick()
 
     def activate(self):
-        self.curr_trial_in_game += 1
-        self.curr_layout = self.layouts[self.curr_trial_in_game]
-        self.mdp = OvercookedGridworld.from_layout_name(
-            self.curr_layout, self.layouts_dir, **self.mdp_params)
+        # Log pour indiquer le passage à l'essai suivant
+        try :
+            print(f"[ACTIVATE] Passing to trial {self.curr_trial_in_game + 2} in block {self.step+1}")
+        except Exception as e:
+            print("[ACTIVATE] tutorial, pas de trial")
+        self.curr_trial_in_game += 1 # permet de passer à l'essai (et donc au layout) suivant
+        self.curr_layout = self.layouts[self.curr_trial_in_game] # charge le layout de l'essai actuel
+        # Log pour vérifier le layout chargé
+        print(f"[ACTIVATE] Loading layout: {self.curr_layout}")
+        #self.mdp = OvercookedGridworld.from_layout_name(
+        #   self.curr_layout, self.layouts_dir, **self.mdp_params) # met en place le layout chargé
+        try:
+            self.mdp = OvercookedGridworld.from_layout_name(
+                self.curr_layout, self.layouts_dir, **self.mdp_params
+            )
+        except Exception as e:
+            # Log en cas d'erreur lors du chargement du layout
+            print(f"[ACTIVATE] Failed to load layout {self.curr_layout}: {e}")
+            raise
         player_to_renew, needs_player_renew = self.needs_player_renew()
-        if needs_player_renew:
+        if needs_player_renew: # condition jamais respectée
             self.remove_player(player_to_renew)
             self.npc_policies = {}
             self.npc_state_queues = {}
@@ -573,30 +597,41 @@ class OvercookedGame(Game):
                 self.npc_state_queues[player_one_id] = LifoQueue()
 
         # Sanity check at start of each game
-        if not self.npc_players.union(self.human_players) == set(self.players):
+        # vérifier que les joueurs enregistrés soint présents dans la liste des joueurs
+        # pas compris pourquoi c'est nécessaire
+            # self.npc_players = ensemble contenant les identifiants de tous les joueurs AA
+            # self.human_players = ensemble contenant les identifiants de tous les joueurs humains
+            # self.players = liste contenant les identifiants de tous les joueurs
+        if not self.npc_players.union(self.human_players) == set(self.players): 
             raise ValueError("Inconsistent State")
 
+        if self.show_potential: # semble prendre la valeur false à l'initialisation de la classe overcookedGame
+            self.mp = MotionPlanner.from_pickle_or_compute( # permet de charger un système de planification du mouvement pour l'essai en cours
+                self.mdp, counter_goals=self.mdp.counter_goals) # Le fichier motionplanner.py gére tous les calculs liés aux déplacements et interactions avec layout
+        self.state = self.mdp.get_standard_start_state() # retourne la position, l'orientation du joueur et s'il tient objet
         if self.show_potential:
-            self.mp = MotionPlanner.from_pickle_or_compute(
-                self.mdp, counter_goals=self.mdp.counter_goals)
-        self.state = self.mdp.get_standard_start_state()
-        if self.show_potential:
-            self.phi = self.mdp.potential_function(
+            self.phi = self.mdp.potential_function( # fonction plus utilisée (gérait un comportement)
                 self.state, self.mp, gamma=0.99)
         self.curr_tick = 0
         self.score = 0
         self.threads = []
-        super(OvercookedGame, self).activate()
+        super(OvercookedGame, self).activate() # attribut à _is_active la valeur True ce qui active la méthode tick
         for npc_policy in self.npc_policies:
             self.npc_policies[npc_policy].reset()
             self.npc_policies[npc_policy].set_mdp(self.mdp)
             self.npc_state_queues[npc_policy] = LifoQueue()
             self.npc_state_queues[npc_policy].put(self.state)
-            t = Thread(target=self.npc_policy_consumer, args=(npc_policy,))
+            
+            t = Thread(target=self.npc_policy_consumer, args=(npc_policy,)) # permet processus tourne en boucle, ici au npc d'avoir une prise d'information/décision/execution autonome
+            # creuser le fonctionnement/utilité de Thread
             self.threads.append(t)
             t.start()
         self.start_time = time()
-
+        # Log pour indiquer que le jeu est activé
+        try :
+            print(f"[ACTIVATE] Game activated for trial {self.curr_trial_in_game+1} in block {self.step+1}")
+        except Exception as e:
+            print("[ACTIVATE] tutorial, pas de trial")
     def deactivate(self):
         super(OvercookedGame, self).deactivate()
         # Ensure the background consumers do not hang
@@ -617,7 +652,7 @@ class OvercookedGame(Game):
         state_dict['score'] = self.score
         state_dict['time_left'] = max(
             self.max_time - (time() - self.start_time), 0)
-        print ("valeur de la variable state_dict['state'] : ", state_dict['state'])
+#        print ("valeur de la variable state_dict['state'] : ", state_dict['state'])
         return state_dict
 
     def to_json(self):
@@ -659,6 +694,7 @@ class PlanningGame(OvercookedGame):
         self.step = kwargs.get("step", -1)
         kwargs.get("config").pop("completion_link", None)
         self.config = kwargs.get("config")
+        #print("CONFIG:::::::::::::::::::::",self.config)
         self.shuffle_trials = bool(self.config.get("shuffle_trials", False))
         self.layouts = self.config.get("blocs")[str(self.step)]
         self.curr_condition = self.config.get("conditions")[str(self.step)]
@@ -680,16 +716,20 @@ class PlanningGame(OvercookedGame):
         super(PlanningGame, self).__init__(
             mdp_params=mdp_params, layouts=self.layouts, *args, **kwargs)
 
-    def is_finished(self):
+    def is_finished(self): # Vérifie si le dernier essai réalisé était le dernier
         val = self.curr_trial_in_game >= len(
             self.layouts) - 1 and self._curr_game_over()
         return val
   
-    def _curr_game_over(self):
+    def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
+            #print(self.state.all_orders)
             return len(self.state.all_orders) == 0 or time() - self.start_time >= self.max_time
         else :
             return time() - self.start_time >= self.max_time
+    
+    def game_timer(self):
+        return time() - self.start_time
 
     def set_trial_id_error(self):
         self.trial_id = self.participant_uid + '_' + \
@@ -697,6 +737,8 @@ class PlanningGame(OvercookedGame):
 
     def activate(self):
         """
+        En plus de vérifier le passage à l'essai suivant,
+        Cette méthode permet de réinitialiser les différentes métriques des résultats entre chaque essai
         Resets trial ID at start of new "game"
         """
         self.human_action_count = 0
@@ -758,7 +800,8 @@ class PlanningGame(OvercookedGame):
             "human_action_count": self.human_action_count,
             "agent_action_count": self.agent_action_count,
             "agent_stuck_loop": self.npc_policies[self.planning_agent_id].stuck_frames,
-            "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch
+            "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch,
+            "TEST" : "JE RAJOUTE DES DONNES L741"
 
         }
         transition.update(prev_state.to_dict())
@@ -799,7 +842,10 @@ class PlanningGame(OvercookedGame):
             self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['intentions'] = self.get_intentions(self.planning_agent_id)
-        print ("valeur de la variable state_dict['intentions'] : ", state_dict['intentions'])
+#        print ("valeur de la variable state_dict['intentions']['recipe'] : ", state_dict['intentions']['recipe'])
+#        print ("valeur de la variable state_dict['intentions']['goal'] : ", state_dict['intentions']['goal'])
+#        print ("valeur de la variable state_dict['intentions']['agent_name'] : ", state_dict['intentions']['agent_name'])
+#        print ("valeur de la variable state_dict['intentions'] : ", state_dict['intentions'])
         return state_dict
 
     def get_data(self):
@@ -901,7 +947,8 @@ class OvercookedPsiturk(OvercookedGame):
             "player_0_id": self.players[0],
             "player_1_id": self.players[1],
             "player_0_is_human": self.players[0] in self.human_players,
-            "player_1_is_human": self.players[1] in self.human_players
+            "player_1_is_human": self.players[1] in self.human_players,
+            "TEST" : "JE RAJOUTE DES DONNES L893"
         }
 
         self.trajectory.append(transition)
@@ -1004,7 +1051,8 @@ class OvercookedTutorial(OvercookedGame):
             "player_1_id": self.players[1],
             "player_0_is_human": self.players[0] in self.human_players,
             "player_1_is_human": self.players[1] in self.human_players,
-            "all_orders": self.state.all_orders
+            "all_orders": self.state.all_orders,
+            "TEST" : "JE RAJOUTE DES DONNES L979"
         }
         transition.update(prev_state.to_dict())
         self.trajectory.append(transition)

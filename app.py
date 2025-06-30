@@ -10,6 +10,7 @@ eventlet.monkey_patch()
 
 
 # All other imports must come after patch to ensure eventlet compatibility
+import time
 import random
 import pickle
 import queue
@@ -21,7 +22,7 @@ import glob
 from time import gmtime, asctime, sleep, time
 from threading import Lock
 from utils import ThreadSafeSet, ThreadSafeDict, questionnaire_to_surveyjs
-from flask import Flask, render_template, jsonify, request, session
+from flask import Flask, redirect, render_template, jsonify, request, session, url_for
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_session import Session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
@@ -105,7 +106,10 @@ GAME_NAME_TO_CLS = {
     "overcooked": OvercookedGame,
     "tutorial": OvercookedTutorial,
     "psiturk": OvercookedPsiturk,
-    "planning": PlanningGame
+    "planning": PlanningGame 
+    # C'est grâce à la classe PlanningGame que sont calculé les différents paramètres nécessaires au déroulement de la partie
+    # Ils sont ensuite renvoyés dans la variable data qui est à son tour exploitée tout au long du code
+    # cette classe permet nottement de définir les essais et blocs courant de l'expérimentation
 }
 
 game._configure(MAX_GAME_LENGTH, AGENT_DIR)
@@ -140,8 +144,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'user'
     uid = db.Column(db.String, primary_key=True)
     config = db.Column(JSON)
-    step = db.Column(db.Integer)
-    trial = db.Column(db.Integer)
+    step = db.Column(db.Integer) # Le bloc en cours
+    trial = db.Column(db.Integer) # L'essaie en cours (correspondant au layout)
 
     def get_id(self):
         return str(self.uid)
@@ -161,7 +165,7 @@ def load_user(user_id):
 
 is_test = CONFIG.get('mode')
 #is_test = "pas_test"
-print(is_test)
+print("ceci est un : ",is_test)
 
 #################################
 # Global Coordination Functions #
@@ -311,7 +315,9 @@ def _leave_game(user_id):
 
     return was_active
 
-
+# fonction permettant la création d'un nouveau jeu, 
+# déclenche également un évènement socketIO pour lancer la partie
+# cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
     existing_game = GAMES.get(game_name, None)
     if existing_game:
@@ -329,12 +335,13 @@ def _create_game(user_id, game_name, params={}):
         else:
             spectating = True
             game.add_spectator(user_id)
-        socketio.close_room(game.id) #ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
+        socketio.close_room(game.id) # ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
         join_room(game.id)
         set_curr_room(user_id, game.id)
-        game.activate()
+        game.activate() 
         ACTIVE_GAMES.add(game.id)
-
+# Déclenche l'évènement pour lancer la partie qui est écouté par planning.js
+# va également déclencher play_game qui permet de mettre à jour la partie
         emit('start_game', {"spectating": spectating,
                 "start_info": game.to_json(), "trial": current_user.trial, "step": current_user.step, "config": game.config}, room=game.id)
         socketio.start_background_task(play_game, game, fps=current_user.config.get("fps",MAX_FPS))
@@ -391,7 +398,6 @@ def _ensure_consistent_state():
 def get_agent_names():
     return [d for d in os.listdir(AGENT_DIR) if os.path.isdir(os.path.join(AGENT_DIR, d))]
 
-
 ######################
 # Application routes #
 ######################
@@ -413,14 +419,45 @@ def index():
             "recipe_head": False,
             "recipe_hud" : False,
             "asset_hud" : False,
-            "motion_goal" : False
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
             }
-            elif value =="E":
+            elif value =="EV":
                 config["conditions"][bloc]={
             "recipe_head": True,
             "recipe_hud" : True,
             "asset_hud" : True,
-            "motion_goal" : True
+            "motion_goal" : True,
+            "asset_sound" : False,
+            "recipe_sound" : False
+            }
+            elif value =="EAa" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : False
+            }
+            elif value =="EAr" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : True
+            }
+            elif value =="EA" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : True
             }
 
     except KeyError:
@@ -430,13 +467,17 @@ def index():
         session["type"] = "PROLIFIC"
     else:
         uid = request.args.get('TEST_UID', default=None)
+        #uid = int(time.time())
         session["type"] = "TEST"
     if uid:
         user = User.query.filter_by(uid=uid).first()
+        #user = False
         if user:
             login_user(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
+
+            ## -- qpt
             try:
                 if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
                     with open("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"], 'r', encoding='utf-8') as f:
@@ -445,9 +486,10 @@ def index():
                     new_user.config["qpt"] = qpt
             except KeyError:
                 new_user.config["qpt"] = {}
-            if new_user.config.get("shuffle_trials", False) == True:
+            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
+            ## -- qpb
             try:
                 if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
                     with open("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"], 'r', encoding='utf-8') as f:
@@ -458,10 +500,27 @@ def index():
                 new_user.config["qpb"] = {}
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
+            ## -- hoffman
+            try:
+                if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
+                    with open("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"], 'r', encoding='utf-8') as f:
+                        hoffman = json.load(f)
+                    f.close()
+                    new_user.config["hoffman"] = hoffman
+                    print("hada",hoffman)
+            except KeyError:
+                new_user.config["hoffman"] = {}
+                print("erhada",hoffman)
+                for key, value in new_user.config["blocs"].items():
+                    random.shuffle(value)
+
+
+
             db.session.add(new_user)
             db.session.commit()
             login_user(new_user)
-        return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
+        return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS) #--- uncomment
+        #return redirect(url_for('planning'))
     else:
         return render_template('UID_error.html')
 
@@ -472,6 +531,7 @@ def instructions():
     uid = current_user.uid
     condition = current_user.config["conditions"]
     is_explained = False
+
     all_conditions = [item for sublist in [list(bloc.values()) for bloc in condition.values()] for item in sublist] #test wheter at least 1 intention is given at some point
     if any(all_conditions):
         is_explained = True
@@ -482,6 +542,7 @@ def instructions():
     form["date"] = asctime(form["timestamp"])
     form["useragent"] = request.headers.get('User-Agent')
     #form["IPadress"] = request.remote_addr
+    #
     if form["consentRadio"] == "accept":
         Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
         try:
@@ -496,6 +557,7 @@ def instructions():
                     return render_template('instructions_recipe_Agency.html', is_explained=is_explained)
                 else :
                     return render_template('instructions_recipe.html', is_explained=is_explained)
+            #return redirect(url_for('qvg_survey'))
 
         else:
             return render_template('condition_error.html')
@@ -521,6 +583,7 @@ def instructions_explained():
 @app.route('/planning', methods=['GET', 'POST'])
 @login_required
 def planning():
+    #sid = request.sid
     uid = current_user.uid
     try:
         condition = current_user.config["conditions"][str(current_user.step)]
@@ -528,12 +591,44 @@ def planning():
         condition = request.args.get('CONDITION')
     agent_names = get_agent_names()
 
+    #qvg = à remplire 
     qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
-    qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
+    
+    #print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
+    #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
+    qpb_elements = []
+    for key, value in current_user.config["qpb"].items():
+        if isinstance(value, dict): # ESSENTIAL CHECK ?
+            
+            if current_user.step in value.get("steps", []):
+                qpb_elements.append(value)
+            print("qpd_elements:   ",qpb_elements)
+    qpb = {"elements": qpb_elements}
+
+
+    print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
+    hoffman_elements = []
+    for key, value in current_user.config["hoffman"].items():
+        if isinstance(value, dict): # ?
+            
+            if current_user.step in value.get("steps", []):
+                hoffman_elements.append(value)
+            print("hoffman_elements:   ",hoffman_elements)
+    hoffman = {"elements": hoffman_elements}
+    print("hooooooooooooooooooooooooooooooooo: ", hoffman)
+    
+    
+    # TODO: refformat this code pls, a lot of redendency !!!!!!
+    
+    #qex = à remplire
+   
     if current_user.step >= len(current_user.config["blocs"].keys()):
-        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
+        
+        socketio.emit("next_step")
+        return qex_ranking()
     else :
-        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt))
+        #
+        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt),hoffman=json.dumps(hoffman))#, qvg=json.dumps(qvg), qex=json.dumps(qex))
 
 
 @app.route('/transition', methods=['GET', 'POST'])
@@ -563,6 +658,210 @@ def transition():
     #   return render_template('bloc_transition.html', uid = uid, step = step)
 
 
+
+
+
+
+@app.route('/qex_ranking', methods=['GET'])
+@login_required
+def qex_ranking():
+    return render_template('preference order_en.html')
+
+@app.route('/submit_qex_ranking', methods=['POST'])
+@login_required
+def submit_qex_ranking():
+
+    uid = current_user.uid
+    step = current_user.step 
+
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A" 
+
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+
+    # --- QEX specific data extraction ---
+    ranking_json_string = request.form.get('ranking_data')
+
+    if not ranking_json_string:
+        print("Error: No 'ranking_data' received for QEX submission.")
+        
+        return redirect(url_for('planning')) # Or a specific error page
+
+    try:
+        # Parse the JSON string back into a Python list
+        ranking_list = json.loads(ranking_json_string)
+        form_data["ranking_response"] = ranking_list # Store the QEX ranking here
+
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON received for QEX 'ranking_data': {ranking_json_string}")
+        return "Error: Invalid ranking data format for QEX", 400
+
+    # --- Save the QEX data to a JSON file ---
+    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{uid}/{uid}_{step}_QEX.json" # Naming convention for QEX?
+    try:
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(form_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved QEX data for user {uid} at step {step} to {file_name}")
+    except Exception as e: 
+        print(f"Error saving QEX data for user {uid} at step {step}: {e}")
+        
+        return "Error saving QEX data", 500
+
+    
+    current_user.step += 1
+    #current_user.save() # Make sure User model has a save method to persist changes?
+
+    
+    return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
+    
+
+# --qvg
+
+
+@app.route('/experience_video_games_survey', methods=['GET'])
+@login_required
+def qvg_survey():
+    """
+    Renders the video game questionnaire (QVG) HTML page.
+    """
+    return render_template('experience_video_games_en.html') # Ensure this matches your file name
+
+@app.route('/submit_qvg_survey', methods=['POST'])
+@login_required
+def submit_qvg_survey():
+    """
+    Handles the POST submission of the video game questionnaire (QVG).
+    Extracts data, saves it to a JSON file, and progresses the user's step.
+    """
+    uid = current_user.uid
+    step = current_user.step
+
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        # Get condition if applicable for this step, similar to other forms
+        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A" # Default if condition not found for step
+
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+
+    # --- QVG specific data extraction ---
+    # Get the JSON string from the hidden input field
+    qvg_json_string = request.form.get('qvg_data')
+
+    if not qvg_json_string:
+        print(f"Error: No 'qvg_data' received for QVG submission for user {uid} at step {step}.")
+        # Decide how to handle this: render an error page, redirect, etc.
+        # Redirect to planning if data is missing, similar to QEX
+        return redirect(url_for('planning'))
+
+    try:
+        # Parse the JSON string back into a Python dictionary
+        qvg_response_data = json.loads(qvg_json_string)
+        form_data["qvg_response"] = qvg_response_data # Store the QVG responses here
+
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON received for QVG 'qvg_data': {qvg_json_string} for user {uid} at step {step}.")
+        return "Error: Invalid QVG data format", 400
+
+    # --- Save the QVG data to a JSON file ---
+    # saving demographic and video game scale in prolific ID folder
+    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
+    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
+    try:
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(form_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved QVG data for user {uid} at step {step} to {file_name}")
+    except Exception as e:
+        print(f"Error saving QVG data for user {uid} at step {step}: {e}")
+        return "Error saving QVG data", 500
+
+    
+    # Determine the next page based on the new step value, similar to the /transition route
+    
+    return redirect(url_for('ptta_survey')) #TODO: put tuttorial ?
+
+
+
+
+# -- ptta
+
+@app.route('/ptta_survey', methods=['GET'])
+@login_required
+def ptta_survey():
+    return render_template('PTT_A_en.html')
+
+@app.route('/submit_ptta_survey', methods=['POST'])
+@login_required
+def submit_ptta_survey():
+    """
+    Handles the POST submission of the PTT-A survey.
+    Extracts data, saves it to a JSON file, and progresses the user's step.
+    """
+    uid = current_user.uid
+    step = current_user.step
+
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A"
+
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+
+    # --- PTT-A specific data extraction ---
+    # Get the JSON string from the hidden input field named 'ptta_data'
+    ptta_json_string = request.form.get('ptta_data')
+
+    if not ptta_json_string:
+        print(f"Error: No 'ptta_data' received for PTT-A submission for user {uid} at step {step}.")
+        
+        return redirect(url_for('planning')) # Or an error page
+
+    try:
+        # Parse the JSON string back into a Python dictionary
+        ptta_response_data = json.loads(ptta_json_string)
+        form_data["ptta_response"] = ptta_response_data # Store the PTT-A responses here
+
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON received for PTT-A 'ptta_data': {ptta_json_string} for user {uid} at step {step}.")
+        return "Error: Invalid PTT-A data format", 400
+
+    # --- Save the PTT-A data to a JSON file ---
+    # path to save PTT-A scale in an prolific ID folder
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}").mkdir(parents=True, exist_ok=True)
+    # Using a clear naming convention: _PTTA.json
+    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_PTTA.json'
+    try:
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(form_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved PTT-A data for user {uid} at step {step} to {file_name}")
+    except Exception as e:
+        print(f"Error saving PTT-A data for user {uid} at step {step}: {e}")
+        return "Error saving PTT-A data", 500
+
+
+    return redirect(url_for('tutorial'))
+
+
+
+
 @app.route('/planning_design')
 def planning_design():
     uid = "design" + str(gmtime())
@@ -579,7 +878,7 @@ def planning_design():
 
 @app.route('/cat')
 def cat():
-    return render_template('cat.html')
+    return render_template('cat.html')  
 
 
 @app.route('/tutorial')
@@ -642,13 +941,11 @@ def debug():
 # happen once at the beginning. Thus, socket events are used for all game updates, where more rapid
 # communication is needed
 
-@socketio.on('create')
+@socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
     user_id = current_user.uid
-
-
-    # Retrieve current game if one exists
-    curr_game = get_curr_game(user_id)
+    #print(data)
+    curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
     if curr_game:
         # Cannot create if currently in a game
         return
@@ -663,6 +960,7 @@ def on_create(data):
             "0": data['params']['condition']}
     params = data.get('params', {})
     game_name = data.get('game_name', 'overcooked')
+    # Déclenche la création du jeu avec les données fournies
     _create_game(user_id, game_name, {"id": current_user.uid, "player_uid": current_user.uid, "step": int(
         current_user.step), "curr_trial_in_game" : int(current_user.trial)-1, "config": current_user.config})
 
@@ -735,8 +1033,8 @@ def on_action(data):
     game.enqueue_action(user_id, action)
 
 
-@socketio.on('connect')
-def on_connect():
+@socketio.on('connect') # est déclenché à chaque fois qu'un client se connect au serveur via Socket.IO
+def on_connect():       # utilise le user_id pour gérer ces connexions
     user_id = current_user.uid
     if user_id in USERS:
         return
@@ -768,6 +1066,7 @@ def on_new_trial():
 
 @socketio.on("post_qpt")
 def post_qpt(data):
+    sid = request.sid #
     uid = current_user.uid
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]}
@@ -793,18 +1092,23 @@ def post_qpt(data):
             f.close()
     except KeyError:
         pass
+    #print("trial: ", current_user.trial)
+    total_trial = len(current_user.config["blocs"].get('0'))
+    if current_user.trial < total_trial-1:
+        print("wtf")
+        socketio.emit("next_step", to=sid) #to eliminate the freeze that happens after each changement of layout
 
-@socketio.on("post_qpb")
+@socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
     sid = request.sid
     uid = current_user.uid
-    #condition = current_user.config["conditions"][str(current_user.step)]
+    # condition = current_user.config["conditions"][str(current_user.step)]
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
     condition = current_user.config["conditions"][str(current_user.step)]
-    #form["answer"] = data
+    # form["answer"] = data
     form["step"] = current_user.step
     form["trial_id"] = uid + "_" + str(current_user.step) + 'QPB'
     form["user_agent"] = request.headers.get('User-Agent')
@@ -821,10 +1125,43 @@ def post_qpb(data):
             f.close()
     except KeyError:
         pass
-    current_user.step += 1
-    current_user.trial = 0
+    current_user.step += 1 # Permet de passer au bloc suivant
+    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
+    db.session.commit()
+    #socketio.emit("next_step", to=sid)
+    socketio.emit("hoffman", to=sid)
+
+@socketio.on("post_hoffman")
+def post_hoffman(data):
+    sid = request.sid
+    uid = current_user.uid
+    # condition = current_user.config["conditions"][str(current_user.step)]
+    form = {}
+    form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
+    for key, value in data["survey_data"].items():
+        form["answer"][key] = value
+    condition = current_user.config["conditions"]
+    # form["answer"] = data
+    form["step"] = current_user.step
+    form["trial_id"] = uid + "_" + str(current_user.step) + 'HOFFMAN'
+    form["user_agent"] = request.headers.get('User-Agent')
+    form["condition"] = condition
+    form["uid"] = current_user.uid
+    form["timestamp"] = gmtime()
+    form["date"] = asctime(form["timestamp"])
+
+    Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
+    try:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
+            json.dump(form, f, ensure_ascii=False, indent=4)
+            f.close()
+    except KeyError:
+        pass
+    #current_user.step += 1 # Permet de passer au bloc suivant
+    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     socketio.emit("next_step", to=sid)
+
 
 # Exit handler for server
 def on_exit():
@@ -835,6 +1172,10 @@ def on_exit():
             game_id).get_data()}, room=game_id)
 
 def trial_save_routine(data):
+    '''
+    Sauvegarder les données relative à un essai dans un fichier json
+    dont nom sous la forme id_bloc_essai
+    '''
     try:
         Path("trajectories/" + data["config"].get("config_id")+ "/" + data["uid"]
                             ).mkdir(parents=True, exist_ok=True)
@@ -851,7 +1192,9 @@ def trial_save_routine(data):
 # Game Loop #
 #############
 
-def play_game(game, fps=30):
+# Déclenche nottement l'évènement state_pong écouté par planning.js 
+# qui permet de mettre à jour les informations de la partie
+def play_game(game, fps=15):
     """
     Asynchronously apply real-time game updates and broadcast state to all clients currently active
     in the game. Note that this loop must be initiated by a parallel thread for each active game
@@ -861,20 +1204,42 @@ def play_game(game, fps=30):
     fps (int):              Number of game ticks that should happen every second
     """
     status = Game.Status.ACTIVE
+    print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
+    # boucle continue tant que le jeu n'est pas terminé (bloc/essai) ou désactivé (fin de passation/participant quitte)
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
-        with game.lock:
-            status = game.tick()
-        if status == Game.Status.RESET:
+        with game.lock: # eviter les conflits entre Threads, creuser thread
+            # Log pour suivre l'état du jeu à chaque tick
+            # print(f"[PLAY_GAME] Current game status: {status}")
+            status = game.tick() # retourne le statut actuel du jeu après la mise à jour
+        if status == Game.Status.RESET: # Si la game doit être reset car un essai est terminé
             with game.lock:
                 data = game.data  # data is updated in the reset function already triggered at this point
+            # Log pour indiquer que l'essai est terminé
+            try :
+                print(f"[PLAY_GAME] Trial {game.curr_trial_in_game+1} in block {game.step+1} completed. Resetting...")  
+            except :
+                print(f"[PLAY GAME] Trial {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")  
             try:
                 trial_save_routine(data)
+                print(f"[PLAY_GAME] Trial data saved for trial {game.curr_trial_in_game+1} in block {game.step+1}")
                 if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()) :
                     try:
-                        socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"], "show_time": game.config.get("show_trial_time", False), "time_elapsed": data["time_elapsed"]}, room=game.id)
+                        # appel l'affichage du questionnaire post trial
+                        # qpt_length = durée pour répondre au questionnaire
+                        # trial = numéro de l'essai actuel
+                        # show_time = indique si le temps écoulé doit être affiché
+                        # time_elapsed = temps écoulé depuis le début de l'essai (cf game.py)
+                        socketio.call("qpt", {
+                            "qpt_length": game.qpt_length,
+                            "trial": data["curr_trial_in_game"],
+                            "show_time": game.config.get("show_trial_time", False),
+                            "time_elapsed": data["time_elapsed"],
+                            "score": data["score"],
+                            "infinite_all_order": game.config.get("infinite_all_order", False)
+                        }, room=game.id)
                     except SocketIOTimeOutError:
-                        print("Player " + game.id + " is not on")
-                    
+                        print("Player " + str(game.id) + " is not on")
+                    # requête pour réinitialiser le jeu (et passer à l'essai suivant)
                     socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
                                     room=game.id)
                     socketio.sleep(game.reset_timeout / 1000)
@@ -882,14 +1247,24 @@ def play_game(game, fps=30):
                 else:
                     socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
                                     room=game.id)
+                    try :
+                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} in block {game.step+1}")
+                    except :
+                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
                     socketio.sleep(game.reset_timeout / 1000)
 
             except AttributeError:
                 trial_save_routine(data)
                 socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout}, room=game.id)
-                socketio.sleep(game.reset_timeout / 1000)            
-        
+                try :
+                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} in block {game.step+1}")
+                except :
+                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
+                socketio.sleep(game.reset_timeout / 1000)         
+
+        # si le jeu doit continuer normalement, renvoie la requette pong
         else:
+            # semble envoyer une requête de mise à jour à (presque) tous les fichier JavaScript
             socketio.emit(
                 'state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
@@ -898,13 +1273,15 @@ def play_game(game, fps=30):
             game.deactivate()
         data = game.data
         trial_save_routine(data)
+        # Logique permettant d'afficher les questionnaires de fin d'essai et de fin de bloc au participant
         if status == Game.Status.DONE:
             try:
                 if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()):
                         socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"]}, room=game.id)
                 socketio.emit("qpb", room=game.id)
-                                
+                #      
             except AttributeError:
+                #      
                 pass
             except SocketIOTimeOutError:
                 print("Player " + game.id + " is not on")
@@ -912,7 +1289,7 @@ def play_game(game, fps=30):
             socketio.emit('end_game', {"status": status,
                                 "data": data}, room=game.id) 
         
-
+    print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
 
@@ -928,4 +1305,4 @@ if __name__ == '__main__':
         debug_env=True
 
     # https://localhost:80 is external facing address regardless of build environment
-    socketio.run(app, host='127.0.0.1', port='5000', debug=debug_env)
+    socketio.run(app, host='0.0.0.0', port='5000', debug=debug_env)

@@ -34,6 +34,8 @@ socket.on("connect", function () {
         qpt_timeout_bool = false;
     });
     $("#QptDisplay").Survey({ model: qpt_model });
+    
+    // -- qpb 
     var qpb_elements = JSON.parse($('#qpb_elements').text());
     var qpb_model = new Survey.Model(qpb_elements);
     qpb_model.onComplete.add(function (sender) {
@@ -42,6 +44,18 @@ socket.on("connect", function () {
     $("#QpbDisplay").Survey({
         model: qpb_model
     });
+
+    // -- hoffman
+    var hoffman_elements = JSON.parse($('#hoffman_elements').text());
+    var hoffman_model = new Survey.Model(hoffman_elements);
+    hoffman_model.onComplete.add(function (sender) {
+        socket.emit("post_hoffman", { "survey_data": sender.data });
+        console.log('debug', sender.data);
+    });
+    $("#HoffmanDisplay").Survey({
+        model: hoffman_model
+    });
+
 })
 
 socket.on('qpt', function (data, callback) {
@@ -49,21 +63,26 @@ socket.on('qpt', function (data, callback) {
     qpt_model.render();
     $('#overcooked').hide();
     $("#qpt").show();
-    if (data.show_time) {
-        $("#elapsed_time").text("You have completed the game in " + Math.round(data.time_elapsed) +" seconds !")
+
+    // Affichage conditionnel du score ou du temps
+    if (data.infinite_all_order) {
+        $("#elapsed_time").text("");
+        $("#state_score").remove();
+        $("#qpt .likert-header").after('<h2 id="state_score">You have reached a score of <span id="qpt_score">'+data.score+'</span>, congratulations !</h2>');
+    } else {
+        $("#elapsed_time").text("You have completed the game in " + Math.round(data.time_elapsed) +" seconds !");
+        $("#state_score").remove();
+        $("#qpt .likert-header").after('<h2 id="state_score">You have reached a score of <span id="qpt_score">'+data.score+'</span>, congratulations !</h2>');
     }
-    console.log(data.show_time);
+
     callbacktrigger = new CallBackTrigger(callback, data.trial)
     const timeout_start = Date.now();
-    callback = callback
     timeout = setTimeout(function () {
         qpt_timeout_bool = true;
         qpt_model.doComplete(true);
-    }, data.qpt_length * 1000
-    );
+    }, data.qpt_length * 1000);
 
     timeleft = setInterval(() => {
-        //console.log("Time left: ", data.qpt_length- (Date.now() - timeout_start)/1000, "s");
         $('#qpt_timer').text("Remaining time  " + Math.round(data.qpt_length * 10 - (Date.now() - timeout_start) / 100) / 10 + "  Seconds");
     }, 100);
 })
@@ -71,6 +90,12 @@ socket.on('qpt', function (data, callback) {
 socket.on('qpb', function () {
     $('#overcooked').hide();
     $("#qpb").show();
+})
+
+socket.on('hoffman', function () {
+    $('#overcooked').hide();
+    $("#qpb").hide();
+    $("#hoffman").show();
 })
 
 socket.on('next_step', function () {

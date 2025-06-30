@@ -145,3 +145,5 @@ dmypy.json
 db.sqlite
 .idea/*
 .vscode/*
+
+*\:Zone.Identifier

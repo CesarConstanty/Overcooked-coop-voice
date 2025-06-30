@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Game Questionnaire</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 8px;
+      vertical-align: top;
+    }
+    table {
+      width: 100%;
+      margin-bottom: 30px;
+    }
+    fieldset {
+      border: 2px solid #ccc;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    legend {
+      font-weight: bold;
+    }
+    label {
+      display: block;
+      margin: 5px 0;
+    }
+    .radio-group {
+      margin-left: 20px;
+    }
+    button:disabled {
+      background-color: #ccc;
+      color: #666;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <form id="gameForm">
+
+    <!-- Personal Info Table -->
+    <table>
+      <tr>
+        <th rowspan="2">Laterality</th>
+        <td><label><input type="radio" name="laterality" value="left" required> Left</label></td>
+        <td><label><input type="radio" name="laterality" value="right"> Right</label></td>
+        <th rowspan="2">Do you know the video game Overcooked?</th>
+        <td><label><input type="radio" name="knows_overcooked" value="yes" required> Yes</label></td>
+        <td><label><input type="radio" name="knows_overcooked" value="no"> No</label></td>
+      </tr>
+      <tr>
+        <td colspan="2">Age: <input type="number" name="age" min="0" required style="width: 60px;"></td>
+        <td colspan="2">How many hours did you play this game? <input type="number" name="hours_played" min="0" required style="width: 80px;"></td>
+      </tr>
+      <tr>
+        <td>Level of education:</td>
+        <td colspan="2"><input type="text" name="education_level" required style="width: 95%;"></td>
+        <td>Gender:</td>
+        <td colspan="2"><input type="text" name="gender" required style="width: 95%;"></td>
+      </tr>
+    </table>
+
+    <!-- Main Survey -->
+    <fieldset>
+      <legend>In the past 12 months, how many times have you played a video game?</legend>
+      <div class="radio-group">
+        <label><input type="radio" name="times_played" value="0" required> 0 times</label>
+        <label><input type="radio" name="times_played" value="1-10"> 1 to 10 times</label>
+        <label><input type="radio" name="times_played" value="11-30"> 11 to 30 times</label>
+        <label><input type="radio" name="times_played" value="31-60"> 31 to 60 times</label>
+        <label><input type="radio" name="times_played" value=">60"> More than 60 times</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Currently, how much time do you spend playing video games per day?</legend>
+      <div class="radio-group">
+        <label><input type="radio" name="daily_time" value="0" required> 0 hours</label>
+        <label><input type="radio" name="daily_time" value="0-30"> 0–30 minutes</label>
+        <label><input type="radio" name="daily_time" value="30-60"> 30–60 minutes</label>
+        <label><input type="radio" name="daily_time" value="1-2"> 1 to 2 hours</label>
+        <label><input type="radio" name="daily_time" value="2-3"> 2 to 3 hours</label>
+        <label><input type="radio" name="daily_time" value="3-4"> 3 to 4 hours</label>
+        <label><input type="radio" name="daily_time" value=">4"> More than 4 hours</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Do you consider yourself an active video game player?</legend>
+      <div class="radio-group">
+        <label><input type="radio" name="active_player" value="yes" required> Yes</label>
+        <label><input type="radio" name="active_player" value="no"> No</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Have you ever played intensively (2+ hrs/day for 3+ months)?</legend>
+      <div class="radio-group">
+        <label><input type="radio" name="intensive_period" value="yes" required> Yes</label>
+        <label><input type="radio" name="intensive_period" value="no"> No</label>
+      </div>
+    </fieldset>
+
+    <button type="submit" id="submitBtn" disabled>Next</button>
+  </form>
+
+  <script>
+    const form = document.getElementById('gameForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('input', () => {
+      // Vérifie que tous les champs requis sont remplis
+      const requiredInputs = form.querySelectorAll('input[required]');
+      let allFilled = true;
+
+      requiredInputs.forEach(input => {
+        const name = input.name;
+        const group = form.querySelectorAll(`input[name="${name}"]`);
+        const isRadioGroup = group.length > 1 && group[0].type === 'radio';
+
+        if (isRadioGroup) {
+          const oneChecked = Array.from(group).some(r => r.checked);
+          if (!oneChecked) allFilled = false;
+        } else {
+          if (!input.value) allFilled = false;
+        }
+      });
+
+      submitBtn.disabled = !allFilled;
+    });
+  </script>
+
+</body>
+</html>

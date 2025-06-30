@@ -66,10 +66,15 @@ def questionnaire_to_surveyjs(questionnaire, current_step, pagify):
     if pagify:
         survey_object = {"pages":[]}
         for key, value in questionnaire.items():
-            if current_step in value["steps"]:
+            # Use .get("steps", []) to safely retrieve steps, defaulting to an empty list
+            # if "steps" key is not present.
+            if current_step in value.get("steps", []):
                 survey_object["pages"].append({"elements":[value]})
     else:
-        survey_object={"elements" :[value for key,value in questionnaire.items() if current_step in value["steps"]] }
+        # Use .get("steps", []) here as well
+        survey_object={"elements" :[
+            value for key, value in questionnaire.items()
+            if current_step in value.get("steps", [])
+        ]}
     
     return survey_object
-

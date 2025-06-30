@@ -20,7 +20,7 @@ class Agent(object):
     def action(self, state):
         """
         Should return an action, and an action info dictionary.
-        If collecting trajectories of the agent with OvercookedEnv, the action
+        If collectingaction trajectories of the agent with OvercookedEnv, the action
         info data will be included in the trajectory data under `ep_infos`.
 
         This allows agents to optionally store useful information about them
@@ -562,7 +562,7 @@ class PlanningAgent(Agent):
                 player.pos_and_or, mg)]          
             
             assert len(motion_goals) != 0
-
+        #breakpoint()
         return motion_goals
 
     def hl_info(self, state):
@@ -624,7 +624,7 @@ class PlanningAgent(Agent):
         def point_time_ratio(recipe, costs):
             pot_locations = self.mlam.mdp.get_pot_locations()
             if costs :
-                point_time_ratio = 1#recipe.value*10/(min(costs.values()) + recipe.time)
+                point_time_ratio = recipe.value*10/(min(costs.values()) + recipe.time)
                 most_advanced_pot = min(costs, key=costs.get) #so the min is calculated on value rather than key
             else :
                 point_time_ratio = -1
@@ -653,7 +653,7 @@ class PlanningAgent(Agent):
                 "value" : recipe.value,
                 "missing_ingredients_in_MA_pot" : missing_ingredients_in_pot(recipe, most_advanced_pot)
                 }
-            
+        # breakpoint()
             
         
         return all_recipes
@@ -664,19 +664,25 @@ class RationalAgent(PlanningAgent):
     def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "rational"
+        self.switch_step = 0
+        #print(self.intentions)
 
     def hl_action(self, state):
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
             return self.next_order_info
         cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["point_time_ratio"])  
+        #print(self.hl_goal)
          # the cheapest recipe is the one from the all_recipes dict based on point time ratio of value dict 
         #cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
-        if cheapest != self.hl_goal :
+        if cheapest != self.hl_goal and self.switch_step % 5 == 0 :
             #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
             #cheapest.update_point_time_ratio(self.mlam)
             self.hl_objective_switch += 1
             self.hl_goal =cheapest
+            # breakpoint()
+        self.switch_step += 1
+        print("switch", self.switch_step, self.hl_objective_switch)
         cheapest_info = {
             "recipe" : all_recipes[cheapest]["recipe"],
             "most_advanced_pot" : all_recipes[cheapest]["most_advanced_pot"],
@@ -684,12 +690,15 @@ class RationalAgent(PlanningAgent):
             "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
             "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
             }
+        print("here:  ",cheapest_info)
         return cheapest_info
 
 class GreedyAgent(PlanningAgent):
     def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "greedy"
+        
+        
     def hl_action(self, state):
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
@@ -708,6 +717,7 @@ class GreedyAgent(PlanningAgent):
             "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
             "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
             }
+        #breakpoint()
         return cheapest_info
 
 class LazyAgent(PlanningAgent):
@@ -725,10 +735,6 @@ class LazyAgent(PlanningAgent):
             self.hl_objective_switch += 1
             self.hl_goal = shortest
         return shortest
-
-
-
-
 
 
 
