@@ -507,10 +507,10 @@ def index():
                         hoffman = json.load(f)
                     f.close()
                     new_user.config["hoffman"] = hoffman
-                    print("hada",hoffman)
+                    #print("hada",hoffman)
             except KeyError:
                 new_user.config["hoffman"] = {}
-                print("erhada",hoffman)
+                #print("erhada",hoffman)
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
 
@@ -592,7 +592,11 @@ def planning():
     agent_names = get_agent_names()
 
     #qvg = à remplire 
-    qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
+    post_trial = current_user.config.get("questionnaire_post_trial", "")
+    if post_trial.endswith(".html"):
+        qpt = None  # Pas de SurveyJS, on affiche le HTML natif
+    else:
+        qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
     
     #print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
     #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
@@ -628,7 +632,12 @@ def planning():
         return qex_ranking()
     else :
         #
-        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt),hoffman=json.dumps(hoffman))#, qvg=json.dumps(qvg), qex=json.dumps(qex))
+        return render_template(
+            "planning.html",
+            qpb=json.dumps(qpb),
+            qpt=qpt,
+            hoffman=json.dumps(hoffman)
+        )#, qvg=json.dumps(qvg), qex=json.dumps(qex))
 
 
 @app.route('/transition', methods=['GET', 'POST'])
@@ -1071,7 +1080,9 @@ def post_qpt(data):
     sid = request.sid #
     uid = current_user.uid
     form = {}
-    form["answer"] = {value["name"] : None for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]}
+    # Si tu veux mapper les noms q1/q2/q3 vers control_used, control_felt, accountability, fais-le ici
+    mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
+    form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
     condition = current_user.config["conditions"][str(current_user.step)]
@@ -1122,7 +1133,7 @@ def post_qpb(data):
 
     Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
     try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'AATL.json', 'w', encoding='utf-8') as f:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'QPB.json', 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
             f.close()
     except KeyError:
@@ -1209,61 +1220,28 @@ def play_game(game, fps=15):
     print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
     # boucle continue tant que le jeu n'est pas terminé (bloc/essai) ou désactivé (fin de passation/participant quitte)
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
-        with game.lock: # eviter les conflits entre Threads, creuser thread
-            # Log pour suivre l'état du jeu à chaque tick
-            # print(f"[PLAY_GAME] Current game status: {status}")
-            status = game.tick() # retourne le statut actuel du jeu après la mise à jour
-        if status == Game.Status.RESET: # Si la game doit être reset car un essai est terminé
+        with game.lock:
+            status = game.tick()
+        if status == Game.Status.RESET:
             with game.lock:
-                data = game.data  # data is updated in the reset function already triggered at this point
-            # Log pour indiquer que l'essai est terminé
-            try :
-                print(f"[PLAY_GAME] Trial {game.curr_trial_in_game+1} in block {game.step+1} completed. Resetting...")  
-            except :
-                print(f"[PLAY GAME] Trial {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")  
+                data = game.data
             try:
                 trial_save_routine(data)
-                print(f"[PLAY_GAME] Trial data saved for trial {game.curr_trial_in_game+1} in block {game.step+1}")
-                if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()) :
-                    try:
-                        # appel l'affichage du questionnaire post trial
-                        # qpt_length = durée pour répondre au questionnaire
-                        # trial = numéro de l'essai actuel
-                        # show_time = indique si le temps écoulé doit être affiché
-                        # time_elapsed = temps écoulé depuis le début de l'essai (cf game.py)
-                        socketio.call("qpt", {
-                            "qpt_length": game.qpt_length,
-                            "trial": data["curr_trial_in_game"],
-                            "show_time": game.config.get("show_trial_time", False),
-                            "time_elapsed": data["time_elapsed"],
-                            "score": data["score"],
-                            "infinite_all_order": game.config.get("infinite_all_order", False)
-                        }, room=game.id)
-                    except SocketIOTimeOutError:
-                        print("Player " + str(game.id) + " is not on")
-                    # requête pour réinitialiser le jeu (et passer à l'essai suivant)
-                    socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
-                                    room=game.id)
-                    socketio.sleep(game.reset_timeout / 1000)
-                                        
-                else:
-                    socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
-                                    room=game.id)
-                    try :
-                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} in block {game.step+1}")
-                    except :
-                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
-                    socketio.sleep(game.reset_timeout / 1000)
-
-            except AttributeError:
-                trial_save_routine(data)
-                socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout}, room=game.id)
-                try :
-                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} in block {game.step+1}")
-                except :
-                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
-                socketio.sleep(game.reset_timeout / 1000)         
-
+                # Affiche le questionnaire agency à chaque fin de trial
+                socketio.call("qpt", {
+                    "qpt_length": game.config.get("qpt_length", 30),  # durée en secondes
+                    "trial": data.get("curr_trial_in_game", 0),
+                    "show_time": game.config.get("show_trial_time", False),
+                    "time_elapsed": data.get("time_elapsed", 0),
+                    "score": data.get("score", 0),
+                    "infinite_all_order": game.config.get("infinite_all_order", False)
+                }, room=game.id)
+            except SocketIOTimeOutError:
+                print("Player " + str(game.id) + " is not on")
+            # Ensuite, reset le jeu après le questionnaire
+            socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
+                            room=game.id)
+            socketio.sleep(game.reset_timeout / 1000)
         # si le jeu doit continuer normalement, renvoie la requette pong
         else:
             # semble envoyer une requête de mise à jour à (presque) tous les fichier JavaScript
@@ -1278,18 +1256,20 @@ def play_game(game, fps=15):
         # Logique permettant d'afficher les questionnaires de fin d'essai et de fin de bloc au participant
         if status == Game.Status.DONE:
             try:
-                if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()):
-                        socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"]}, room=game.id)
+                # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai
+                socketio.call("qpt", {
+                    "qpt_length": game.config.get("qpt_length", 30),
+                    "trial": data.get("curr_trial_in_game", 0),
+                    "show_time": game.config.get("show_trial_time", False),
+                    "time_elapsed": data.get("time_elapsed", 0),
+                    "score": data.get("score", 0),
+                    "infinite_all_order": game.config.get("infinite_all_order", False)
+                }, room=game.id)
                 socketio.emit("qpb", room=game.id)
-                #      
-            except AttributeError:
-                #      
-                pass
             except SocketIOTimeOutError:
                 print("Player " + game.id + " is not on")
                 socketio.emit("qpb", room=game.id)
-            socketio.emit('end_game', {"status": status,
-                                "data": data}, room=game.id) 
+            socketio.emit('end_game', {"status": status, "data": data}, room=game.id) 
         
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)

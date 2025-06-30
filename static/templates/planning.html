@@ -135,15 +135,35 @@
     <hr>
   </div>
 
-  {% if qpt %}
+{% if qpt %}
+  <!-- SurveyJS version -->
   <div id="qpt" class="wrap" style="display: none;">
-  <h1 id="elapsed_time"></h1>
-  <h6 class="likert-header">Please answer the following question minding the very last game:</h6>
-  <div id="QptDisplay"></div>
-  <div id="surveyResult"></div>
-  <div id="qpt_timer">0</div>
-</div>
-
+    <div id="QptDisplay"></div>
+    <div id="qpt_timer"></div>
+  </div>
+{% else %}
+  <!-- HTML natif -->
+  <div id="qpt" class="wrap" style="display: none;">
+    <form id="qptForm">
+      <div class="question">
+        <p><strong>How much control did you use?</strong></p>
+        <input type="range" name="q1" min="0" max="100" value="50">
+        <div class="label-row"><span>Low control (0)</span><span>High control (100)</span></div>
+      </div>
+      <div class="question">
+        <p><strong>How much control did you feel?</strong></p>
+        <input type="range" name="q2" min="0" max="100" value="50">
+        <div class="label-row"><span>Low control (0)</span><span>High control (100)</span></div>
+      </div>
+      <div class="question">
+        <p><strong>Who is accountable for this result ("score")?</strong></p>
+        <input type="range" name="q3" min="0" max="100" value="50">
+        <div class="label-row"><span>Me (0)</span><span>The team (50)</span><span>Artificial agent (100)</span></div>
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+    <div id="qpt_timer"></div>
+  </div>
 {% endif %}
 
 <div id="qpb" class="wrap" style="display: none;">

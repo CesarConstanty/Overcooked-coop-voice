@@ -20,20 +20,23 @@ var qpt_elements
 socket.on("connect", function () {
     console.log("connect survey")
     Survey.StylesManager.applyTheme("defaultV2");
-    qpt_elements = JSON.parse($('#qpt_elements').text());
-    qpt_model = new Survey.Model(qpt_elements);
+    var qpt_raw = $('#qpt_elements').text();
+    if (qpt_raw && qpt_raw.trim() !== "None" && qpt_raw.trim() !== "") {
+        qpt_elements = JSON.parse(qpt_raw);
+        qpt_model = new Survey.Model(qpt_elements);
 
-    qpt_model.onComplete.add(function (sender) {
-        callbacktrigger.trigger()
-        clearTimeout(timeout);
-        clearInterval(timeleft);
-        $('#overcooked').show();
-        $('#qpt').hide();
-        console.log(sender.data);
-        socket.emit("post_qpt", { "survey_data": sender.data, "trial_id": callbacktrigger.trial_id, "timeout_bool": qpt_timeout_bool });
-        qpt_timeout_bool = false;
-    });
-    $("#QptDisplay").Survey({ model: qpt_model });
+        qpt_model.onComplete.add(function (sender) {
+            callbacktrigger.trigger()
+            clearTimeout(timeout);
+            clearInterval(timeleft);
+            $('#overcooked').show();
+            $('#qpt').hide();
+            console.log(sender.data);
+            socket.emit("post_qpt", { "survey_data": sender.data, "trial_id": callbacktrigger.trial_id, "timeout_bool": qpt_timeout_bool });
+            qpt_timeout_bool = false;
+        });
+        $("#QptDisplay").Survey({ model: qpt_model });
+    }
     
     // -- qpb 
     var qpb_elements = JSON.parse($('#qpb_elements').text());
@@ -59,33 +62,32 @@ socket.on("connect", function () {
 })
 
 socket.on('qpt', function (data, callback) {
-    qpt_model.clear();
-    qpt_model.render();
+    console.log("qpt event received", data);
     $('#overcooked').hide();
     $("#qpt").show();
+    window.qptCallback = callback;
 
-    // Affichage conditionnel du score ou du temps
-    if (data.infinite_all_order) {
-        $("#elapsed_time").text("");
-        $("#state_score").remove();
-        $("#qpt .likert-header").after('<h2 id="state_score">You have reached a score of <span id="qpt_score">'+data.score+'</span>, congratulations !</h2>');
-    } else {
-        $("#elapsed_time").text("You have completed the game in " + Math.round(data.time_elapsed) +" seconds !");
-        $("#state_score").remove();
-        $("#qpt .likert-header").after('<h2 id="state_score">You have reached a score of <span id="qpt_score">'+data.score+'</span>, congratulations !</h2>');
-    }
+    // Affiche juste le timer informatif
+    let timer = data.qpt_length || 30;
+    let interval = setInterval(function() {
+        timer -= 1;
+        $("#qpt_timer").text(timer + " seconds left");
+        if (timer <= 0) {
+            clearInterval(interval);
+            // Auto-submit le questionnaire si non soumis
+            if ($("#qpt").is(":visible")) {
+                // Option 1 : soumission automatique du formulaire (si tu veux forcer la collecte des valeurs actuelles)
+                $("#qptForm").submit();
+                // Option 2 : si tu veux juste passer à la suite sans soumettre :
+                // $("#qpt").hide();
+                // if (window.qptCallback) window.qptCallback();
+            }
+        }
+    }, 1000);
 
-    callbacktrigger = new CallBackTrigger(callback, data.trial)
-    const timeout_start = Date.now();
-    timeout = setTimeout(function () {
-        qpt_timeout_bool = true;
-        qpt_model.doComplete(true);
-    }, data.qpt_length * 1000);
-
-    timeleft = setInterval(() => {
-        $('#qpt_timer').text("Remaining time  " + Math.round(data.qpt_length * 10 - (Date.now() - timeout_start) / 100) / 10 + "  Seconds");
-    }, 100);
-})
+    // Laisse le bouton actif
+    $("#qptForm button[type=submit]").prop("disabled", false);
+});
 
 socket.on('qpb', function () {
     $('#overcooked').hide();
@@ -101,4 +103,15 @@ socket.on('hoffman', function () {
 socket.on('next_step', function () {
     location.reload();
 })
+
+$(document).on('submit', '#qptForm', function(e) {
+    e.preventDefault();
+    const data = {};
+    $('#qptForm input[type=range]').each(function() {
+        data[$(this).attr('name')] = $(this).val();
+    });
+    socket.emit("post_qpt", { "survey_data": data, "timeout_bool": false, "trial_id": window.curr_trial_id || 0 });
+    $("#qpt").hide();
+    if (window.qptCallback) window.qptCallback();
+});
 

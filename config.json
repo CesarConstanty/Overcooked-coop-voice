@@ -38,9 +38,9 @@
             "3": ["trial3_0", "trial3_1", "trial3_2"]
         },
         "shuffle_trials" : true,
-        "questionnaire_post_bloc":"AAT_L_en_test.json",
-        "questionnaire_post_trial" : "agency_en.json",
-        "questionnaire_hoffman":"hoffman fluency_en_test.json",
+        "questionnaire_post_trial" : "agency_en.html",
+        "questionnaire_post_bloc":"AAT_L_en.json",
+        "questionnaire_hoffman":"hoffman fluency_en.json",
         "qpt_length" : 50,
         "tomato_value" : 2,
         "onion_value" : 3,
@@ -49,7 +49,15 @@
         "order_bonus" : 2,
         "max_num_ingredients" : 3,
         "infinite_all_order" : true,
-        "Game_Trial_Timer" : false 
+        "Game_Trial_Timer" : false,
+        "shortcut": {
+        "hoffman": true,
+        "qpb": true,
+        "qpt": true,
+        "qvg": false,
+        "ptta": true,
+        "qex": true
+    }
     },
     "test_layout(bug__enlevel)" : {
         "mechanic" : "recipe",
