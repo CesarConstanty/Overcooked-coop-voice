@@ -142,27 +142,46 @@
     <div id="qpt_timer"></div>
   </div>
 {% else %}
-  <!-- HTML natif -->
-  <div id="qpt" class="wrap" style="display: none;">
-    <form id="qptForm">
-      <div class="question">
-        <p><strong>How much control did you use?</strong></p>
-        <input type="range" name="q1" min="0" max="100" value="50">
-        <div class="label-row"><span>Low control (0)</span><span>High control (100)</span></div>
+  <!-- HTML natif amélioré pour le questionnaire agency -->
+  <div id="qpt" class="wrap" style="display: none; max-width: 900px; margin: 2.5rem auto; background: #fff; box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07); border-radius: 0.7rem;">
+    <form id="qptForm" style="padding: 2.5rem 2rem;">
+      <h1 style="text-align:center; font-size:2rem; color:#2a3a5a; margin-bottom:2.2rem; font-weight:600;">Sense of Agency Survey</h1>
+      <div class="question" style="margin-bottom:2.2rem;">
+        <p style="font-size:1.15rem; font-weight:600; color:#2a3a5a;">How much control did you use?</p>
+        <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">This refers to the actual influence you exerted on what happened. Think about how much of the outcome resulted from your direct actions or commands.</p>
+        <input type="range" name="q1" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
+        <div class="label-row" style="display:flex; justify-content:space-between; font-size:1rem; color:#6a7a99; margin-top:0.5rem;">
+          <span>Low control (0)</span>
+          <span>High control (100)</span>
+        </div>
       </div>
-      <div class="question">
-        <p><strong>How much control did you feel?</strong></p>
-        <input type="range" name="q2" min="0" max="100" value="50">
-        <div class="label-row"><span>Low control (0)</span><span>High control (100)</span></div>
+      <div class="question" style="margin-bottom:2.2rem;">
+        <p style="font-size:1.15rem; font-weight:600; color:#2a3a5a;">How much control did you feel?</p>
+        <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">This measures your subjective experience of control, how much it felt like you were the one guiding what happened.</p>
+        <input type="range" name="q2" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
+        <div class="label-row" style="display:flex; justify-content:space-between; font-size:1rem; color:#6a7a99; margin-top:0.5rem;">
+          <span>Low control (0)</span>
+          <span>High control (100)</span>
+        </div>
       </div>
-      <div class="question">
-        <p><strong>Who is accountable for this result ("score")?</strong></p>
-        <input type="range" name="q3" min="0" max="100" value="50">
-        <div class="label-row"><span>Me (0)</span><span>The team (50)</span><span>Artificial agent (100)</span></div>
+      <div class="question" style="margin-bottom:2.2rem;">
+        <p style="font-size:1.15rem; font-weight:600; color:#2a3a5a;">
+          Who is accountable for this result (<span id="agency_score_placeholder" style="color:#007bff;">score</span>) ?
+        </p>
+        <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">Accountability is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent involved.</p>
+        <input type="range" name="q3" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
+        <div class="label-row" style="display:flex; justify-content:space-between; font-size:1rem; color:#6a7a99; margin-top:0.5rem;">
+          <span>Me (0)</span>
+          <span>The team (50)</span>
+          <span>Artificial agent (100)</span>
+        </div>
       </div>
-      <button type="submit">Submit</button>
+      <button type="submit" disabled
+        style="margin:2.5rem auto 0 auto; display:block; padding:14px 44px; font-size:1.15rem; background:linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%); color:#fff; border:none; border-radius:8px; box-shadow:0 2px 8px rgba(60,60,120,0.10); font-weight:600; letter-spacing:1px; transition:background 0.2s,transform 0.1s;">
+        Submit
+      </button>
+      <div id="qpt_timer" style="text-align:center; font-size:1.08em; color:#3a7bd5; margin-top:1.5rem; font-weight:500; letter-spacing:1px;"></div>
     </form>
-    <div id="qpt_timer"></div>
   </div>
 {% endif %}
 

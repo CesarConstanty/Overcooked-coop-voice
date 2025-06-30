@@ -41,7 +41,7 @@
         "questionnaire_post_trial" : "agency_en.html",
         "questionnaire_post_bloc":"AAT_L_en.json",
         "questionnaire_hoffman":"hoffman fluency_en.json",
-        "qpt_length" : 50,
+        "qpt_length" : 5,
         "tomato_value" : 2,
         "onion_value" : 3,
         "onion_time" : 9,

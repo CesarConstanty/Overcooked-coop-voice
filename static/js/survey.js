@@ -67,26 +67,27 @@ socket.on('qpt', function (data, callback) {
     $("#qpt").show();
     window.qptCallback = callback;
 
-    // Affiche juste le timer informatif
+    // Met à jour dynamiquement le score dans la question 3
+    if (typeof data.score !== "undefined") {
+        $("#agency_score_placeholder").text(data.score);
+    }
+
+    // Timer et autres logiques...
     let timer = data.qpt_length || 30;
     let interval = setInterval(function() {
         timer -= 1;
         $("#qpt_timer").text(timer + " seconds left");
         if (timer <= 0) {
             clearInterval(interval);
-            // Auto-submit le questionnaire si non soumis
             if ($("#qpt").is(":visible")) {
-                // Option 1 : soumission automatique du formulaire (si tu veux forcer la collecte des valeurs actuelles)
                 $("#qptForm").submit();
-                // Option 2 : si tu veux juste passer à la suite sans soumettre :
-                // $("#qpt").hide();
-                // if (window.qptCallback) window.qptCallback();
             }
         }
     }, 1000);
 
-    // Laisse le bouton actif
-    $("#qptForm button[type=submit]").prop("disabled", false);
+    // Initialisation des sliders
+    $('#qptForm input[type=range]').attr('data-touched', 'false');
+    checkQptFormComplete();
 });
 
 socket.on('qpb', function () {
@@ -108,7 +109,74 @@ $(document).on('submit', '#qptForm', function(e) {
     e.preventDefault();
     const data = {};
     $('#qptForm input[type=range]').each(function() {
-        data[$(this).attr('name')] = $(this).val();
+        let val = $(this).val();
+        data[$(this).attr('name')] = (val === "" || val === undefined || val === null) ? "nan" : val;
+    });
+    socket.emit("post_qpt", { "survey_data": data, "timeout_bool": false, "trial_id": window.curr_trial_id || 0 });
+    $("#qpt").hide();
+    if (window.qptCallback) window.qptCallback();
+});
+
+function checkQptFormComplete() {
+    let complete = true;
+    $('#qptForm input[type=range]').each(function() {
+        // On considère qu'une réponse est donnée si le slider a été touché
+        if ($(this).attr('data-touched') !== "true") {
+            complete = false;
+        }
+    });
+    $("#qptForm button[type=submit]").prop("disabled", !complete);
+}
+
+// Met à jour à chaque changement de slider
+$(document).on('input change', '#qptForm input[type=range]', function() {
+    checkQptFormComplete();
+});
+
+// Vérifie à l'ouverture du questionnaire
+socket.on('qpt', function (data, callback) {
+    console.log("qpt event received", data);
+    $('#overcooked').hide();
+    $("#qpt").show();
+    window.qptCallback = callback;
+
+    // Timer
+    let timer = data.qpt_length || 30;
+    let interval = setInterval(function() {
+        timer -= 1;
+        $("#qpt_timer").text(timer + " seconds left");
+        if (timer <= 0) {
+            clearInterval(interval);
+            // Auto-submit le questionnaire si non soumis
+            if ($("#qpt").is(":visible")) {
+                $("#qptForm").submit();
+            }
+        }
+    }, 1000);
+
+    checkQptFormComplete(); // Vérifie au démarrage
+});
+
+// Ajoute l'attribut data-touched à chaque slider au chargement du questionnaire
+socket.on('qpt', function (data, callback) {
+    $('#qptForm input[type=range]').attr('data-touched', 'false');
+    checkQptFormComplete(); // Vérifie au démarrage
+});
+
+// Marque le slider comme touché à la première interaction
+$(document).on('input change', '#qptForm input[type=range]', function() {
+    $(this).attr('data-touched', 'true');
+    checkQptFormComplete();
+});
+
+// Modifie la collecte des données à la soumission
+$(document).on('submit', '#qptForm', function(e) {
+    e.preventDefault();
+    const data = {};
+    $('#qptForm input[type=range]').each(function() {
+        let touched = $(this).attr('data-touched');
+        let val = $(this).val();
+        data[$(this).attr('name')] = (touched !== "true") ? "nan" : val;
     });
     socket.emit("post_qpt", { "survey_data": data, "timeout_bool": false, "trial_id": window.curr_trial_id || 0 });
     $("#qpt").hide();

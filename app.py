@@ -715,8 +715,8 @@ def submit_qex_ranking():
     # --- Save the QEX data to a JSON file ---
     # saving preference scale in prolific ID folder
     config_id = current_user.config["config_id"]
-    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{uid}/{uid}_{step}_preference.json"
+    Path(f"trajectories/{config_id}/{uid}/Post_experiment").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{config_id}/{uid}/Post_experiment{uid}_{step}_preference.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -789,8 +789,8 @@ def submit_qvg_survey():
 
     # --- Save the QVG data to a JSON file ---
     # saving demographic and video game scale in prolific ID folder
-    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
-    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
+    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid + "/" + "Pre_experiment").mkdir(parents=True, exist_ok=True)
+    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "Pre_experiment" + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -856,9 +856,9 @@ def submit_ptta_survey():
 
     # --- Save the PTT-A data to a JSON file ---
     # path to save PTT-A scale in an prolific ID folder
-    Path(f"trajectories/{current_user.config['config_id']}/{uid}").mkdir(parents=True, exist_ok=True)
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
-    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_PTTA.json'
+    file_name = f"trajectories/{current_user.config['config_id']}/Pre_experiment/{uid}/{uid}_{current_user.step}_PTTA.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -1077,39 +1077,40 @@ def on_new_trial():
 
 @socketio.on("post_qpt")
 def post_qpt(data):
-    sid = request.sid #
+    sid = request.sid
     uid = current_user.uid
+    bloc = current_user.step
+    trial = current_user.trial
+
     form = {}
-    # Si tu veux mapper les noms q1/q2/q3 vers control_used, control_felt, accountability, fais-le ici
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"][str(current_user.step)]
+    condition = current_user.config["conditions"][str(bloc)]
     form["timeout_bool"] = data["timeout_bool"]
-    form["step"] = current_user.step
-    form["trial"] = current_user.trial
-    form["trial_id"] = uid + "_" + str(current_user.step) + 'QPT' + str(data["trial_id"])
-    form["layout"] = current_user.config["blocs"][str(current_user.step)][current_user.trial]
+    form["step"] = bloc
+    form["trial"] = trial
+    form["trial_id"] = f"{uid}_{bloc}_{trial}_QPT"
+    form["layout"] = current_user.config["blocs"][str(bloc)][trial]
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][str(
-        current_user.step)]
-    form["uid"] = current_user.uid
+    form["condition"] = condition
+    form["uid"] = uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/"+ current_user.config["config_id"] + "/" + uid + "/QPT").mkdir(parents=True, exist_ok=True)
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPT").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{bloc}_{trial}_QPT.json"
     try:
-        with open('trajectories/'+ current_user.config["config_id"] + "/" + uid + "/QPT/" + uid + "_" + str(current_user.step) + 'QPT' + str(data["trial_id"]) + '.json', 'w', encoding='utf-8') as f:
+        with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
     except KeyError:
         pass
+
     #print("trial: ", current_user.trial)
-    total_trial = len(current_user.config["blocs"].get('0'))
-    if current_user.trial < total_trial-1:
-        print("wtf")
-        socketio.emit("next_step", to=sid) #to eliminate the freeze that happens after each changement of layout
+    total_trial = len(current_user.config["blocs"].get(str(bloc)))
+    if trial < total_trial-1:
+        socketio.emit("next_step", to=sid)
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
@@ -1131,9 +1132,9 @@ def post_qpb(data):
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
+    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/" + "QPB").mkdir(parents=True, exist_ok=True)
     try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'QPB.json', 'w', encoding='utf-8') as f:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'AAT_L.json', 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
             f.close()
     except KeyError:
@@ -1163,9 +1164,9 @@ def post_hoffman(data):
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
+    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/"+ "QPB").mkdir(parents=True, exist_ok=True)
     try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
             f.close()
     except KeyError:
