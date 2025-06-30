@@ -64,7 +64,7 @@
             "email": "laurent.prevot@univ-amu.fr",
             "institution" : "Laboratoire Parole Language (LPL)"
         },
-        "gameTime" : 5,
+        "gameTime" : 500,
         "playerZero" : "Planning",
         "agent" : "Rational",
         "conditions" : {"1" : "EAa", "0":"EAa", "2":"EA","3":"EA"},
@@ -75,9 +75,9 @@
             "3": ["trial3_0", "trial3_1", "trial3_2"]
         },
         "shuffle_trials" : false,
-        "questionnaire_post_bloc":"AAT_L_en_test.json",
+        "questionnaire_post_bloc":"AAT_L_en.json",
         "questionnaire_post_trial" : "agency_en.json",
-        "questionnaire_hoffman":"hoffman fluency_en_test.json",
+        "questionnaire_hoffman":"hoffman fluency_en.json",
         "qpt_length" : 10,
         "tomato_value" : 2,
         "onion_value" : 3,

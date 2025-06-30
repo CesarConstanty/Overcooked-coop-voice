@@ -5,9 +5,10 @@ Developed as part of a thesis using a software base developed by the BAIR team (
 ## Installation
 - Clone repo
 - Create dedicated virtual environment and activate it, python 3.9.2
+- ps: latest versions of scipy doesn't have sparse extension, downgrade it to 1.10.0
 - Update pip : `python -m pip install --upgrade pip`
 - `cd {install_dir}`
-- `pip install -r requirement.txt`
+- `pip install -r requirements.txt`
 
 ## Run in development mode
 - `export FLASK_ENV=development`

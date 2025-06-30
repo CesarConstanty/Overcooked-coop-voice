@@ -433,11 +433,6 @@ class PlanningAgent(Agent):
             future_costs, self.ll_temperature)
         return Action.ALL_ACTIONS[action_idx], action_probs
 
-    
-
-
-
-
     def ml_action(self, state):
         """
         Selects a medium level action for the current state.
@@ -457,6 +452,12 @@ class PlanningAgent(Agent):
         counter_objects = self.mlam.mdp.get_counter_objects_dict(
             state, list(self.mlam.mdp.terrain_pos_dict['X']))
         pot_states_dict = self.mlam.mdp.get_pot_states(state)
+
+        # if self._delay_before_next_switch > 0 :
+        #     _, orient = player.pos_and_or
+        #      
+        #     print("orient",orient)
+        #     return  (Action.STAY, orient ) # TODO
 
         if not player.has_object():
             ready_soups = pot_states_dict['ready']
@@ -562,7 +563,6 @@ class PlanningAgent(Agent):
                 player.pos_and_or, mg)]          
             
             assert len(motion_goals) != 0
-        #breakpoint()
         return motion_goals
 
     def hl_info(self, state):
@@ -665,33 +665,46 @@ class RationalAgent(PlanningAgent):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "rational"
         self.switch_step = 0
+        ##self._delay_before_next_switch = 0 #with 0 the player doesn't move!! but if you put any other number 50+ errors
+
         #print(self.intentions)
 
     def hl_action(self, state):
+
+      
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
+            
             return self.next_order_info
-        cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["point_time_ratio"])  
-        #print(self.hl_goal)
-         # the cheapest recipe is the one from the all_recipes dict based on point time ratio of value dict 
-        #cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
-        if cheapest != self.hl_goal and self.switch_step % 5 == 0 :
-            #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
-            #cheapest.update_point_time_ratio(self.mlam)
-            self.hl_objective_switch += 1
-            self.hl_goal =cheapest
-            # breakpoint()
-        self.switch_step += 1
-        print("switch", self.switch_step, self.hl_objective_switch)
-        cheapest_info = {
-            "recipe" : all_recipes[cheapest]["recipe"],
-            "most_advanced_pot" : all_recipes[cheapest]["most_advanced_pot"],
-            "missing_ingredients_in_MA_pot" : all_recipes[cheapest]["missing_ingredients_in_MA_pot"],
-            "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
-            "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
-            }
-        print("here:  ",cheapest_info)
-        return cheapest_info
+        
+        # elif self._delay_before_next_switch > 0 :
+        #     assert self.next_order_info is not None, "danger danger"
+        #     return self.next_order_info
+        
+        else:
+            all_recipes = self.hl_info(state)
+            cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["point_time_ratio"])  
+            #print(self.hl_goal)
+            # the cheapest recipe is the one from the all_recipes dict based on point time ratio of value dict 
+            #cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
+            if cheapest != self.hl_goal  :
+                #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
+                #cheapest.update_point_time_ratio(self.mlam)
+                self.hl_objective_switch += 1
+                self.hl_goal = cheapest
+                # self._delay_before_next_switch = 6
+                # breakpoint()
+
+            print("switch", self.switch_step, self.hl_objective_switch)
+            cheapest_info = {
+                "recipe" : all_recipes[cheapest]["recipe"],
+                "most_advanced_pot" : all_recipes[cheapest]["most_advanced_pot"],
+                "missing_ingredients_in_MA_pot" : all_recipes[cheapest]["missing_ingredients_in_MA_pot"],
+                "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
+                "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
+                }
+            print("here:  ",cheapest_info)
+            return cheapest_info
 
 class GreedyAgent(PlanningAgent):
     def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
@@ -717,7 +730,6 @@ class GreedyAgent(PlanningAgent):
             "point_time_ratio" : all_recipes[cheapest]["point_time_ratio"],
             "min_cost_to_complete" : all_recipes[cheapest]["min_cost_to_complete"]
             }
-        #breakpoint()
         return cheapest_info
 
 class LazyAgent(PlanningAgent):
