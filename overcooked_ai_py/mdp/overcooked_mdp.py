@@ -635,7 +635,7 @@ class OvercookedState(object):
                 
             self._all_orders += list(l) #+ self._all_orders  
         
-        print(self.timestep)
+        #print(self.timestep)
         #print(self._all_orders)
         assert len(set(self.bonus_orders)) == len(self.bonus_orders), "Bonus orders must not have duplicates"
         #assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"

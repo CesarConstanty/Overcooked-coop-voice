@@ -704,8 +704,10 @@ def submit_qex_ranking():
         return "Error: Invalid ranking data format for QEX", 400
 
     # --- Save the QEX data to a JSON file ---
-    Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{uid}/{uid}_{step}_QEX.json" # Naming convention for QEX?
+    # saving preference scale in prolific ID folder
+    config_id = current_user.config["config_id"]
+    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{uid}/{uid}_{step}_preference.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -1120,7 +1122,7 @@ def post_qpb(data):
 
     Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
     try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'QPB.json', 'w', encoding='utf-8') as f:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'AATL.json', 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
             f.close()
     except KeyError:

@@ -5,15 +5,16 @@
     "MAX_GAMES" : 10,
     "MAX_GAME_LENGTH" : 500,
     "AGENT_DIR" : "./static/assets/agents",
-    "MAX_FPS" : 15,
+    "MAX_FPS" : 10,
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
     "test_voice" : {
         "mechanic" : "recipe",
+        "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/overcooked2804",
         "show_counter_drop" : true,
-        "show_trial_time" : false,
+        "show_trial_time" : true,
         "completion_link" : "https://app.prolific.co/submissions/complete?cc=7317FC6A",
         "researcher" : {
             "name": "xx",
@@ -36,7 +37,7 @@
             "2": ["trial2_0", "trial2_1", "trial2_2"],
             "3": ["trial3_0", "trial3_1", "trial3_2"]
         },
-        "shuffle_trials" : false,
+        "shuffle_trials" : true,
         "questionnaire_post_bloc":"AAT_L_en_test.json",
         "questionnaire_post_trial" : "agency_en.json",
         "questionnaire_hoffman":"hoffman fluency_en_test.json",
