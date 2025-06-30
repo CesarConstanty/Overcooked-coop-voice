@@ -1092,7 +1092,11 @@ def post_qpt(data):
             f.close()
     except KeyError:
         pass
-    socketio.emit("next_step", to=sid) #to eliminate the freeze that happens after each changement of layout
+    #print("trial: ", current_user.trial)
+    total_trial = len(current_user.config["blocs"].get('0'))
+    if current_user.trial < total_trial-1:
+        print("wtf")
+        socketio.emit("next_step", to=sid) #to eliminate the freeze that happens after each changement of layout
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
