@@ -113,6 +113,11 @@ GAME_NAME_TO_CLS = {
 }
 
 game._configure(MAX_GAME_LENGTH, AGENT_DIR)
+#######################
+# Random #
+#######################
+
+random.seed(114101072025)
 
 #######################
 # Flask Configuration #
