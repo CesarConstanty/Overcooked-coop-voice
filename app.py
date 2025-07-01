@@ -716,7 +716,7 @@ def submit_qex_ranking():
     # saving preference scale in prolific ID folder
     config_id = current_user.config["config_id"]
     Path(f"trajectories/{config_id}/{uid}/Post_experiment").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{config_id}/{uid}/Post_experiment{uid}_{step}_preference.json"
+    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -858,7 +858,7 @@ def submit_ptta_survey():
     # path to save PTT-A scale in an prolific ID folder
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
-    file_name = f"trajectories/{current_user.config['config_id']}/Pre_experiment/{uid}/{uid}_{current_user.step}_PTTA.json"
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment/{uid}_{current_user.step}_PTTA.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
