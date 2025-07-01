@@ -500,7 +500,9 @@ def index():
             login_user(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
-
+            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
+                for key, value in new_user.config["blocs"].items():
+                    random.shuffle(value)
             ## -- qpt
             try:
                 if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
@@ -510,9 +512,7 @@ def index():
                     new_user.config["qpt"] = qpt
             except KeyError:
                 new_user.config["qpt"] = {}
-            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
+            
             ## -- qpb
             try:
                 if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
@@ -522,8 +522,6 @@ def index():
                     new_user.config["qpb"] = qpb
             except KeyError:
                 new_user.config["qpb"] = {}
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
             ## -- hoffman
             try:
                 if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
@@ -535,9 +533,6 @@ def index():
             except KeyError:
                 new_user.config["hoffman"] = {}
                 #print("erhada",hoffman)
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
-
 
 
             db.session.add(new_user)

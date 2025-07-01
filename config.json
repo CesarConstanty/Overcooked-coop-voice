@@ -41,6 +41,7 @@
             "6": ["trial6_0", "trial6_1", "trial6_2"]
         },
         "shuffle_trials" : true,
+        "shuffle_blocs" : true,
         "questionnaire_post_trial" : "agency_en.html",
         "questionnaire_post_bloc":"AAT_L_en.json",
         "questionnaire_hoffman":"hoffman fluency_en.json",
