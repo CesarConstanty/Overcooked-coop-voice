@@ -500,6 +500,17 @@ def index():
             login_user(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
+            # gère la randomisation des blocs
+            if new_user.config.get("shuffle_blocs", False):
+                bloc_keys = list(new_user.config["blocs"].keys())
+                random.shuffle(bloc_keys)
+                print ("ordre des essais :" , bloc_keys)
+                new_user.config["bloc_order"] = bloc_keys
+                bloc_key = new_user.config["bloc_order"][new_user.step]
+                print("premier bloc :", bloc_key)
+                print ("liste des essais : ",new_user.config["blocs"][bloc_key] )
+            else:
+                new_user.config["bloc_order"] = list(new_user.config["blocs"].keys())
             if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
@@ -605,7 +616,9 @@ def planning():
     #sid = request.sid
     uid = current_user.uid
     try:
-        condition = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        condition = current_user.config["conditions"][bloc_key]
+        print ("CONDITION random bloc : ", condition)
     except KeyError:
         condition = request.args.get('CONDITION')
     agent_names = get_agent_names()
@@ -615,7 +628,7 @@ def planning():
     if post_trial.endswith(".html"):
         qpt = None  # Pas de SurveyJS, on affiche le HTML natif
     else:
-        qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
+        qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.config["bloc_order"][current_user.step], current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
     
     #print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
     #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
@@ -625,21 +638,19 @@ def planning():
             
             if current_user.step in value.get("steps", []):
                 qpb_elements.append(value)
-            print("qpd_elements:   ",qpb_elements)
+            #print("qpd_elements:   ",qpb_elements)
     qpb = {"elements": qpb_elements}
 
 
-    print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
+    #print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
     hoffman_elements = []
     for key, value in current_user.config["hoffman"].items():
         if isinstance(value, dict): # ?
             
             if current_user.step in value.get("steps", []):
                 hoffman_elements.append(value)
-            print("hoffman_elements:   ",hoffman_elements)
-    hoffman = {"elements": hoffman_elements}
-    print("hooooooooooooooooooooooooooooooooo: ", hoffman)
-    
+            #print("hoffman_elements:   ",hoffman_elements)
+    hoffman = {"elements": hoffman_elements}    
     
     # TODO: refformat this code pls, a lot of redendency !!!!!!
     
@@ -663,7 +674,8 @@ def planning():
 def transition():
     uid = current_user.uid
     step = current_user.step
-    condition = current_user.config["conditions"][str(current_user.step)]
+    bloc_key = current_user.config["bloc_order"][current_user.step]
+    condition = current_user.config["conditions"][bloc_key]
     form = {}
     form["answer"] = request.form.to_dict()
     form["step"] = step
@@ -706,7 +718,8 @@ def submit_qex_ranking():
     form_data["step"] = step
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
-        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        condition = current_user.config["conditions"][bloc_key]
     except (KeyError, IndexError):
         form_data["condition"] = "N/A" 
 
@@ -779,7 +792,8 @@ def submit_qvg_survey():
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
         # Get condition if applicable for this step, similar to other forms
-        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        condition = current_user.config["conditions"][bloc_key]
     except (KeyError, IndexError):
         form_data["condition"] = "N/A" # Default if condition not found for step
 
@@ -847,7 +861,8 @@ def submit_ptta_survey():
     form_data["step"] = step
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
-        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        form_data["condition"] = current_user.config["conditions"][bloc_key]
     except (KeyError, IndexError):
         form_data["condition"] = "N/A"
 
@@ -1098,7 +1113,7 @@ def on_new_trial():
 def post_qpt(data):
     sid = request.sid
     uid = current_user.uid
-    bloc = current_user.step
+    bloc_key = current_user.config["bloc_order"][current_user.step]
     trial = current_user.trial
 
     form = {}
@@ -1106,12 +1121,12 @@ def post_qpt(data):
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"][str(bloc)]
+    condition = current_user.config["conditions"][bloc_key]
     form["timeout_bool"] = data["timeout_bool"]
-    form["step"] = bloc
+    form["step"] = current_user.step
     form["trial"] = trial
-    form["trial_id"] = f"{uid}_{bloc}_{trial}_QPT"
-    form["layout"] = current_user.config["blocs"][str(bloc)][trial]
+    form["trial_id"] = f"{uid}_{bloc_key}_{trial}_QPT"
+    form["layout"] = current_user.config["blocs"][bloc_key][trial]
     form["user_agent"] = request.headers.get('User-Agent')
     form["condition"] = condition
     form["uid"] = uid
@@ -1119,32 +1134,32 @@ def post_qpt(data):
     form["date"] = asctime(form["timestamp"])
 
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPT").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{bloc}_{trial}_QPT.json"
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{current_user.step}_{trial}_QPT.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
     except KeyError:
         pass
 
-    #print("trial: ", current_user.trial)
-    total_trial = len(current_user.config["blocs"].get(str(bloc)))
+    total_trial = len(current_user.config["blocs"][bloc_key])
     if trial < total_trial-1:
+        current_user.trial += 1
+        db.session.commit()
         socketio.emit("next_step", to=sid)
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
     sid = request.sid
     uid = current_user.uid
-    # condition = current_user.config["conditions"][str(current_user.step)]
+    bloc_key = current_user.config["bloc_order"][current_user.step]
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
     form["step"] = current_user.step
-    form["trial_id"] = uid + "_" + str(current_user.step) + 'QPB'
+    form["trial_id"] = f"{uid}_{bloc_key}_QPB"
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][str(
-        current_user.step)]
+    form["condition"] = current_user.config["conditions"][bloc_key]
     form["uid"] = current_user.uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
@@ -1166,16 +1181,15 @@ def post_qpb(data):
 def post_hoffman(data):
     sid = request.sid
     uid = current_user.uid
-    # condition = current_user.config["conditions"][str(current_user.step)]
+    bloc_key = current_user.config["bloc_order"][current_user.step]
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
     form["step"] = current_user.step
-    form["trial_id"] = uid + "_" + str(current_user.step) + 'HOFFMAN'
+    form["trial_id"] = f"{uid}_{bloc_key}_HOFFMAN"
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][str(
-        current_user.step)]
+    form["condition"] = current_user.config["conditions"][bloc_key]
     form["uid"] = current_user.uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])

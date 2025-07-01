@@ -159,7 +159,7 @@ socket.on('start_game', function(data) {
     graphics_config = {
         container_id : "overcooked",
         start_info : data.start_info,
-        condition : data.config.conditions[data.step],
+        condition : data.config.conditions[data.config.bloc_order[data.step]],
         mechanic : data.config.mechanic,
         Game_Trial_Timer : data.config.Game_Trial_Timer,
         show_counter_drop : data.config.show_counter_drop,
@@ -180,7 +180,8 @@ socket.on('start_game', function(data) {
     $('#leave').attr("disabled", false)
     curr_trial = data.trial +1;
 
-    $('#game-title').text(`Experiment in Progress, Bloc ${data.step + 1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[data.step]).length}`);
+    let bloc_key = data.config.bloc_order[data.step];
+    $('#game-title').text(`Experiment in Progress, Bloc ${data.step + 1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[bloc_key]).length}`);
     $('#game-title').show(); 
     
     if (!window.spectating) {

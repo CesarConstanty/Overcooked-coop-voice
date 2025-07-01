@@ -98,9 +98,9 @@
   <!-- User and Config Info -->
   <div id="uid" style="display:none;">{{current_user.uid}}</div>
   <div id="step" style="display:none;">{{current_user.step}}</div>
-  <div id="condition" style="display:none;">{{current_user.config["conditions"][current_user.step]}}</div>
+  <div id="condition" style="display:none;">{{current_user.config["conditions"][current_user.config["bloc_order"][current_user.step]]}}</div>
   <div id="config" style="display:none;">{{current_user.config}}</div>
-  <div id="trials" style="display:none;">{{current_user.config["blocs"][current_user.step|string]}}</div>
+  <div id="trials" style="display:none;">{{current_user.config["blocs"][current_user.config["bloc_order"][current_user.step]]}}</div>
 
 
   <!-- Game States -->

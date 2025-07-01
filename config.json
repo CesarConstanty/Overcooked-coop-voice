@@ -28,6 +28,7 @@
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
         "gameTime" : 20,
+        "qpt_length" : 5,
         "playerZero" : "Planning",
         "agent" : "Greedy",
         "conditions" : {"1" : "U", "0":"EAa", "2":"EAr","3":"EV", "4":"EV", "5":"EVa", "6":"EVr"},
@@ -45,7 +46,6 @@
         "questionnaire_post_trial" : "agency_en.html",
         "questionnaire_post_bloc":"AAT_L_en.json",
         "questionnaire_hoffman":"hoffman fluency_en.json",
-        "qpt_length" : 5,
         "tomato_value" : 2,
         "onion_value" : 3,
         "onion_time" : 9,
