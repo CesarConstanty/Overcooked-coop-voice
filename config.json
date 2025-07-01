@@ -30,12 +30,15 @@
         "gameTime" : 20,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "EAa", "0":"EAa", "2":"EA","3":"EA"},
+        "conditions" : {"1" : "U", "0":"EAa", "2":"EAr","3":"EV", "4":"EV", "5":"EVa", "6":"EVr"},
         "blocs" : {
             "0": ["trial0_0", "trial0_1", "trial0_2"],
             "1": ["trial1_0", "trial1_1", "trial1_2"],
             "2": ["trial2_0", "trial2_1", "trial2_2"],
-            "3": ["trial3_0", "trial3_1", "trial3_2"]
+            "3": ["trial3_0", "trial3_1", "trial3_2"],
+            "4": ["trial4_0", "trial4_1", "trial4_2"],
+            "5": ["trial5_0", "trial5_1", "trial5_2"],
+            "6": ["trial6_0", "trial6_1", "trial6_2"]
         },
         "shuffle_trials" : true,
         "questionnaire_post_trial" : "agency_en.html",

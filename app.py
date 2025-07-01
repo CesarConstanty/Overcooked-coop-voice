@@ -425,12 +425,39 @@ def index():
             }
             elif value =="EV":
                 config["conditions"][bloc]={
-            "recipe_head": True,
+            "recipe_head": False,
             "recipe_hud" : True,
             "asset_hud" : True,
-            "motion_goal" : True,
+            "motion_goal" : False,
             "asset_sound" : False,
             "recipe_sound" : False
+            }
+            elif value =="EVa":
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : True,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
+            }
+            elif value =="EVr":
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : True,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
+            }
+            elif value =="EA" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : True
             }
             elif value =="EAa" :
                 config["conditions"][bloc]={
@@ -450,15 +477,7 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : True
             }
-            elif value =="EA" :
-                config["conditions"][bloc]={
-            "recipe_head": False,
-            "recipe_hud" : False,
-            "asset_hud" : False,
-            "motion_goal" : False,
-            "asset_sound" : True,
-            "recipe_sound" : True
-            }
+            
 
     except KeyError:
         return render_template('UID_error.html')
@@ -1121,8 +1140,6 @@ def post_qpb(data):
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"][str(current_user.step)]
-    # form["answer"] = data
     form["step"] = current_user.step
     form["trial_id"] = uid + "_" + str(current_user.step) + 'QPB'
     form["user_agent"] = request.headers.get('User-Agent')
@@ -1139,8 +1156,8 @@ def post_qpb(data):
             f.close()
     except KeyError:
         pass
-    current_user.step += 1 # Permet de passer au bloc suivant
-    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
+    #current_user.step += 1 # Permet de passer au bloc suivant
+    #current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     #socketio.emit("next_step", to=sid)
     socketio.emit("hoffman", to=sid)
@@ -1154,12 +1171,11 @@ def post_hoffman(data):
     form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"]
-    # form["answer"] = data
     form["step"] = current_user.step
     form["trial_id"] = uid + "_" + str(current_user.step) + 'HOFFMAN'
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = condition
+    form["condition"] = current_user.config["conditions"][str(
+        current_user.step)]
     form["uid"] = current_user.uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
@@ -1171,7 +1187,7 @@ def post_hoffman(data):
             f.close()
     except KeyError:
         pass
-    #current_user.step += 1 # Permet de passer au bloc suivant
+    current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     socketio.emit("next_step", to=sid)
