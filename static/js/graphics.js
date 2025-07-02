@@ -193,12 +193,12 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this.assets_loc + "types.json")}
 
         // Pour les fichiers audio
-        this.load.audio('comptoire', this.audio_loc + 'comptoire!.mp3');
-        this.load.audio('marmitte', this.audio_loc + 'marmitte!.mp3');
-        this.load.audio('oignon', this.audio_loc + 'oignon!.mp3');
-        this.load.audio('tomate', this.audio_loc + 'tomate!.mp3');
-        this.load.audio('assiette', this.audio_loc + 'assiette!.mp3');
-        this.load.audio('je_sers', this.audio_loc + 'je_sers!.mp3');
+        this.load.audio('comptoir', this.audio_loc + 'comptoir.mp3');
+        this.load.audio('marmite', this.audio_loc + 'marmite.mp3');
+        this.load.audio('oignon', this.audio_loc + 'oignon.mp3');
+        this.load.audio('tomate', this.audio_loc + 'tomate.mp3');
+        this.load.audio('assiette', this.audio_loc + 'assiette.mp3');
+        this.load.audio('service', this.audio_loc + 'service.mp3');
     }
 
     create() {
@@ -491,7 +491,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }        
         // Afficher et intention audio des ingrédients de la recette en cours creuser
         if (this.condition.recipe_sound) {
-        // Traiter les différents ingrédents qui composent la recette
+        // Traiter les différents ingrédients qui composent la recette
             if (typeof(state.players[0].intentions) !== 'undefined') {
                 let chef = state.players[0];
                 let ingredients = chef.intentions.recipe;
@@ -519,57 +519,49 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
 // Jouer des sons pour les ingrédients des recettes
     _playRecipeSounds(ingredients) {
-        let ingredient_to_sound = {
-            'onion': 'oignon!.mp3',
-            'tomato': 'tomate!.mp3',
-            'dish': 'assiette!.mp3'
-        };
+        // Génère le nom du fichier son pour la recette
+        let recipeSound = this._getRecipeSoundFile(ingredients);
 
-        // Check if the recipe has changed
+        // Ne joue le son que si la recette a changé
         let newRecipe = ingredients.join(",");
         if (this.currentRecipe === newRecipe) {
-            return; // Do not play sounds if the recipe has not changed
+            return;
         }
-        this.currentRecipe = newRecipe; // Update the current recipe
+        this.currentRecipe = newRecipe;
 
-        // Clear the sound queue before adding new sounds
+        // Vide la file et ajoute le son spécifique à la recette
         this.soundQueueRecipe = [];
-
-        // Play "prochaine recette" sound first
-        this.soundQueueRecipe.push('prochaine_recette!.mp3');
-
-        ingredients.forEach(ingredient => {
-            let soundKey = ingredient_to_sound[ingredient];
-            if (soundKey) {
-                this.soundQueueRecipe.push(soundKey);
-            }
-        });
+        this.soundQueueRecipe.push(recipeSound);
 
         const playNextSoundRecipe = () => {
             if (this.isPlaying || this.soundQueueRecipe.length === 0) {
                 return;
             }
             let soundKey = this.soundQueueRecipe.shift();
-            //console.log("Playing sound:", soundKey); // Log the sound being played
-            //console.log("Sound queue length:", this.soundQueueRecipe.length); // Log the sound queue length
             this.audio.src = this.audio_loc + soundKey;
-            this.audio.playbackRate = 1.5; // modifier la vitesse de lecture
+            this.audio.playbackRate = 1;
             this.audio.play().then(() => {
                 this.isPlaying = true;
                 this.audio.onended = () => {
                     this.isPlaying = false;
-                    playNextSoundRecipe(); // Play the next sound in the queue
+                    playNextSoundRecipe();
                 };
             }).catch(error => {
                 if (error.name !== 'AbortError') {
                     console.error("Audio play failed:", error);
                 }
                 this.isPlaying = false;
-                playNextSoundRecipe(); // Try to play the next sound in the queue
+                playNextSoundRecipe();
             });
         };
 
         playNextSoundRecipe();
+    }
+
+    _getRecipeSoundFile(ingredients) {
+        let num_onions = ingredients.filter(x => x === 'onion').length;
+        let num_tomatoes = ingredients.filter(x => x === 'tomato').length;
+        return `recette_${num_onions}o_${num_tomatoes}t.mp3`;
     }
 
     _drawHUD(hud_data, sprites, board_height, board_width) {
@@ -702,12 +694,12 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     _soundIntentions(intentions, sprites, board_height, board_width) {
         const terrain_to_sound = {
             ' ': '',
-            'X': 'comptoire',
-            'P': 'marmitte',
+            'X': 'comptoir',
+            'P': 'marmite',
             'O': 'oignon',
             'T': 'tomate',
             'D': 'assiette',
-            'S': 'je_sers'
+            'S': 'service'
         };
 
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
@@ -743,7 +735,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 //console.log("valeur soundKey apres remove liste", soundKey);
                 //console.log("taille sound queue remove", this.soundQueueAsset.length);
                 let sound = this.sound.add(soundKey);
-                sound.setRate(1.5);
+                sound.setRate(1);
                 sound.setVolume(1.0);
                 //console.log("Playing sound:", soundKey); // Log the sound being played
 
