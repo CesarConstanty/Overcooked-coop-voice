@@ -38,8 +38,8 @@
             "2": ["trial2_0", "trial2_1", "trial2_2"],
             "3": ["trial3_0", "trial3_1", "trial3_2"],
             "4": ["trial4_0", "trial4_1", "trial4_2"],
-            "5": ["trial5_0", "trial5_1", "trial5_2"],
-            "6": ["trial6_0", "trial6_1", "trial6_2"]
+            "5": ["trial0_3", "trial0_4", "trial0_5"],
+            "6": ["trial1_3", "trial1_4", "trial1_5"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
