@@ -488,14 +488,14 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 objsprite.setOrigin(0);
                 sprites['objects'][objpos] = {objsprite};
             }
-        }        
+        } /*       
         // Afficher et intention audio des ingrédients de la recette en cours creuser
         if (this.condition.recipe_sound) {
         // Traiter les différents ingrédients qui composent la recette
             if (typeof(state.players[0].intentions) !== 'undefined') {
                 let chef = state.players[0];
                 let ingredients = chef.intentions.recipe;
-                this._playRecipeSounds(ingredients)/*;
+                this._playRecipeSounds(ingredients);
 
                 // Afficher les ingrédients qui composent la recette voulue par l'agent (vérifier la cohérence)
                 let ingredients_str = ingredients.join(", ");
@@ -511,10 +511,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                             align: "left"
                         }
                     );
-                }*/
+                }
             }
             
-        }
+        }*/
     }
 
 // Jouer des sons pour les ingrédients des recettes
@@ -585,16 +585,29 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
-            if (this.condition.asset_hud){
-                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
+            if (this.condition.asset_hud && this.condition.asset_sound) {
+                this._playRecipeThenAsset(hud_data.intentions, hud_data.players);
             }
-            if (this.condition.asset_sound){
-                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
-            }            
-            //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
-            if (typeof(hud_data.all_orders) !== 'undefined'  && this.condition.recipe_hud ) {
-                this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe); // surligne la recette que l'agent a l'intention de faire
-            }        
+                else {
+                    if (this.condition.recipe_sound) {
+                        // Traiter les différents ingrédients qui composent la recette
+                            if (typeof(state.players[0].intentions) !== 'undefined') {
+                                let chef = state.players[0];
+                                let ingredients = chef.intentions.recipe;
+                                this._playRecipeSounds(ingredients);
+                            }
+                    }
+                    if (this.condition.asset_sound){
+                        this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
+                    }
+                }
+        if (this.condition.asset_hud){
+            this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
+        }                
+        //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
+        if (typeof(hud_data.all_orders) !== 'undefined'  && this.condition.recipe_hud ) {
+            this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe); // surligne la recette que l'agent a l'intention de faire
+        }        
         }
     }
 
@@ -754,6 +767,76 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
     }
 
+    /**
+     * Joue d'abord la recette, puis l'intention d'asset courante (pas la file d'attente)
+     */
+    _playRecipeThenAsset(intentions, players) {
+        // Récupère la recette courante
+        let ingredients = [];
+        if (typeof(players) !== 'undefined' && typeof(players[0].intentions) !== 'undefined') {
+            ingredients = players[0].intentions.recipe;
+        }
+        let recipeSound = this._getRecipeSoundFile(ingredients);
+
+        // Récupère l'intention d'asset courante
+        let assetIntentions = intentions.goal || [];
+        const terrain_to_sound = {
+            ' ': '',
+            'X': 'comptoir',
+            'P': 'marmite',
+            'O': 'oignon',
+            'T': 'tomate',
+            'D': 'assiette',
+            'S': 'service'
+        };
+        // On ne garde que l'intention d'asset actuelle (pas d'enchaînement)
+        let assetSounds = assetIntentions.map(i => terrain_to_sound[i]).filter(Boolean);
+
+        // Si la recette n'a pas changé, ne rien faire
+        let newRecipe = ingredients.join(",");
+        if (this.currentRecipe === newRecipe && this.lastAssetIntentions && JSON.stringify(this.lastAssetIntentions) === JSON.stringify(assetIntentions)) {
+            return;
+        }
+        this.currentRecipe = newRecipe;
+        this.lastAssetIntentions = [...assetIntentions];
+
+        // Joue la recette puis l'asset (séquentiellement)
+        let playAsset = () => {
+            if (assetSounds.length === 0) return;
+            let soundKey = assetSounds[0];
+            this.audio.src = this.audio_loc + soundKey + ".mp3";
+            this.audio.playbackRate = 1;
+            this.audio.play().then(() => {
+                this.isPlaying = true;
+                this.audio.onended = () => {
+                    this.isPlaying = false;
+                };
+            }).catch(error => {
+                if (error.name !== 'AbortError') {
+                    console.error("Audio play failed:", error);
+                }
+                this.isPlaying = false;
+            });
+        };
+
+        // Joue la recette, puis l'asset à la fin
+        this.audio.src = this.audio_loc + recipeSound;
+        this.audio.playbackRate = 1;
+        this.audio.play().then(() => {
+            this.isPlaying = true;
+            this.audio.onended = () => {
+                this.isPlaying = false;
+                playAsset();
+            };
+        }).catch(error => {
+            if (error.name !== 'AbortError') {
+                console.error("Audio play failed:", error);
+            }
+            this.isPlaying = false;
+            playAsset();
+        });
+    }
+    
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
             ' ': 'floor.png',

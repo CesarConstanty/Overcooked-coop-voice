@@ -604,10 +604,10 @@ class OvercookedGame(Game):
             # self.players = liste contenant les identifiants de tous les joueurs
         if not self.npc_players.union(self.human_players) == set(self.players): 
             raise ValueError("Inconsistent State")
-
-        if self.show_potential: # semble prendre la valeur false à l'initialisation de la classe overcookedGame
-            self.mp = MotionPlanner.from_pickle_or_compute( # permet de charger un système de planification du mouvement pour l'essai en cours
-                self.mdp, counter_goals=self.mdp.counter_goals) # Le fichier motionplanner.py gére tous les calculs liés aux déplacements et interactions avec layout
+# Try to remove the unecessary motion planner
+        #if self.show_potential: # semble prendre la valeur false à l'initialisation de la classe overcookedGame
+        #    self.mp = MotionPlanner.from_pickle_or_compute( # permet de charger un système de planification du mouvement pour l'essai en cours
+        #       self.mdp, counter_goals=self.mdp.counter_goals) # Le fichier motionplanner.py gére tous les calculs liés aux déplacements et interactions avec layout
         self.state = self.mdp.get_standard_start_state() # retourne la position, l'orientation du joueur et s'il tient objet
         if self.show_potential:
             self.phi = self.mdp.potential_function( # fonction plus utilisée (gérait un comportement)

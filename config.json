@@ -1,5 +1,5 @@
 {
-    "mode" : "pas_test",
+    "mode" : "test",
     "logfile" : "app.log",
     "layouts" : ["cramped_room", "cramped_room_tomato", "asymmetric_advantages", "coordination_ring", "forced_coordination", "counter_circuit", "cramped_corridor", "marshmallow_experiment", "long_cook_time", "forced_coordination_tomato", "asymmetric_advantages_tomato", "marshmallow_experiment_coordination", "pipeline", "you_shall_not_pass", "tutorial_3"],
     "MAX_GAMES" : 10,
@@ -85,7 +85,7 @@
         "qpt_length" : 15,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "U", "0":"EAa", "2":"EAr","3":"EA", "4":"EA", "5":"EAa", "6":"EAr"},
+        "conditions" : {"1" : "EA", "0":"EA", "2":"EA","3":"EA", "4":"EA", "5":"EA", "6":"EA"},
         "blocs" : {
             "0": ["trial0_0", "trial0_1", "trial0_2"],
             "1": ["trial1_0", "trial1_1", "trial1_2"],
