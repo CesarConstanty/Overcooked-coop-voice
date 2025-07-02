@@ -638,8 +638,8 @@ class OvercookedState(object):
         #print(self.timestep)
         #print(self._all_orders)
         assert len(set(self.bonus_orders)) == len(self.bonus_orders), "Bonus orders must not have duplicates"
-        #assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"
-        #assert set(self.bonus_orders).issubset(set(self.all_orders)), "Bonus orders must be a subset of all orders"
+        assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"
+        assert set(self.bonus_orders).issubset(set(self.all_orders)), "Bonus orders must be a subset of all orders"
 
     
     
@@ -700,7 +700,8 @@ class OvercookedState(object):
 
     @property
     def all_orders(self):
-        return self._all_orders #if self._all_orders  else sorted(Recipe.ALL_RECIPES)
+        return sorted(self._all_orders) #if self._all_orders  else sorted(Recipe.ALL_RECIPES)
+        #return self._all_orders #if self._all_orders  else sorted(Recipe.ALL_RECIPES) #INTERN
 
     @property
     def bonus_orders(self):
