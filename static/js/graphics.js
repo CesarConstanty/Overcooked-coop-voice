@@ -212,7 +212,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             try {
                 this._drawState(this.state, this.sprites);
             } catch (error) {
-                console.log("error in drawing state")
+                //console.log("error in drawing state")
             }
         }
         if (typeof(this.hud_data) !== 'undefined') {
