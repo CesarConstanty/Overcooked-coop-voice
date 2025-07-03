@@ -946,7 +946,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
         // Si la recette n'a pas changé, ne relance pas la séquence (mais continue à jouer les intentions d'assets si besoin)
         if (this.lastRecipeIntentions === currentRecipe) {
-            // Si on veut rejouer les intentions d'assets à chaque changement d'assets, on peut comparer assetIntentions ici
+            // On ne joue les intentions d'assets que si la séquence annonce+recette a déjà été jouée
             if (JSON.stringify(assetIntentions) !== JSON.stringify(this.lastAssetIntentions)) {
                 this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
                 this.lastAssetIntentions = [...assetIntentions];
@@ -964,7 +964,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.audio.playbackRate = 1;
         this.audio.play().then(() => {
             this.audio.onended = () => {
-                // 2. Joue le son de la recette
+                // 2. Joue le son de la recette complète
                 if (ingredients.length > 0) {
                     let recipeSound = this._getRecipeSoundFile(ingredients);
                     this.audio.src = this.audio_loc + recipeSound;
@@ -1023,41 +1023,39 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      * Cette fonction ne relance la séquence que si la recette n'a pas changé.
      */
     _playAssetIntentionsSounds(intentions, sprites, board_height, board_width) {
-        const terrain_to_sound = {
-            ' ': '',
-            'X': 'comptoir',
-            'P': 'marmite',
-            'O': 'oignon',
-            'T': 'tomate',
-            'D': 'assiette',
-            'S': 'service'
-        };
-        if (!intentions || intentions.length === 0) return;
-        this.soundQueueAsset = [];
-        for (let i = 0; i < intentions.length; i++) {
-            let soundKey = terrain_to_sound[intentions[i]];
-            if (soundKey) {
-                this.soundQueueAsset.push(soundKey);
-            }
+    const terrain_to_sound = {
+        ' ': '',
+        'X': 'comptoir',
+        //'P': 'marmite',
+        'O': 'oignon',
+        'T': 'tomate',
+        'D': 'assiette',
+        'S': 'service'
+    };
+    if (!intentions || intentions.length === 0) return;
+    this.soundQueueAsset = [];
+    for (let i = 0; i < intentions.length; i++) {
+        let soundKey = terrain_to_sound[intentions[i]];
+        if (soundKey) {
+            this.soundQueueAsset.push(soundKey);
         }
-        const playNextSoundAsset = () => {
-            if (this.soundQueueAsset.length === 0) {
-                this.isPlaying = false;
-                return;
-            }
-            let soundKey = this.soundQueueAsset.shift();
-            let sound = this.sound.add(soundKey);
-            sound.setRate(1);
-            sound.setVolume(1.0);
-            this.isPlaying = true;
-            sound.play();
-            sound.once('complete', () => {
-                this.isPlaying = false;
-                playNextSoundAsset();
-            });
-        };
-        playNextSoundAsset();
     }
+    const playNextSoundAsset = () => {
+        if (this.soundQueueAsset.length === 0) {
+            this.isPlaying = false;
+            return;
+        }
+        let soundKey = this.soundQueueAsset.shift();
+        let sound = this.sound.add(soundKey);
+        sound.setRate(1);
+        sound.setVolume(1.0);
+        this.isPlaying = true;
+        sound.play();
+        sound.once('complete', () => {
+            this.isPlaying = false;
+            playNextSoundAsset();
+        });
+    };
+    playNextSoundAsset();
 }
-
-console.log('graphics executed?');
+}
