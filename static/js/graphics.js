@@ -1032,7 +1032,13 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         'D': 'assiette',
         'S': 'service'
     };
+    // vérifie que intention n'est ni nulle ni vide
     if (!intentions || intentions.length === 0) return;
+
+    // Met à jour immédiatement la référence des intentions d'asset
+    this.lastAssetIntentions = [...intentions];
+
+    // Vide la file d'attente pour ne jouer que les intentions actuelles
     this.soundQueueAsset = [];
     for (let i = 0; i < intentions.length; i++) {
         let soundKey = terrain_to_sound[intentions[i]];
