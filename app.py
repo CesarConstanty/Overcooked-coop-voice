@@ -626,7 +626,7 @@ def planning():
     #qvg = à remplire 
     post_trial = current_user.config.get("questionnaire_post_trial", "")
     if post_trial.endswith(".html"):
-        qpt = None  # Pas de SurveyJS, on affiche le HTML natif
+        qpt = ""  # Pas de SurveyJS, on affiche le HTML natif
     else:
         qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.config["bloc_order"][current_user.step], current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
     
@@ -665,7 +665,7 @@ def planning():
         return render_template(
             "planning.html",
             qpb=json.dumps(qpb),
-            qpt=qpt,
+            qpt=qpt if qpt else "",
             hoffman=json.dumps(hoffman)
         )#, qvg=json.dumps(qvg), qex=json.dumps(qex))
 
