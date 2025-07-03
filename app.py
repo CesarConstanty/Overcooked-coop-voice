@@ -613,7 +613,6 @@ def instructions_explained():
 @app.route('/planning', methods=['GET', 'POST'])
 @login_required
 def planning():
-    #sid = request.sid
     uid = current_user.uid
     try:
         bloc_key = current_user.config["bloc_order"][current_user.step]
@@ -623,53 +622,39 @@ def planning():
         condition = request.args.get('CONDITION')
     agent_names = get_agent_names()
 
-    #qvg = à remplire 
     post_trial = current_user.config.get("questionnaire_post_trial", "")
     if post_trial.endswith(".html"):
-        qpt = ""  # Pas de SurveyJS, on affiche le HTML natif
+        qpt = ""
     else:
-        qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.config["bloc_order"][current_user.step], current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
-    
-    #print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
-    #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
+        qpt = questionnaire_to_surveyjs(
+            current_user.config["qpt"],
+            current_user.config["bloc_order"][current_user.step],
+            current_user.config.get("pagify_qpt", False)
+        )
+
     qpb_elements = []
     for key, value in current_user.config["qpb"].items():
-        if isinstance(value, dict): # ESSENTIAL CHECK ?
-            
+        if isinstance(value, dict):
             if current_user.step in value.get("steps", []):
                 qpb_elements.append(value)
-            #print("qpd_elements:   ",qpb_elements)
     qpb = {"elements": qpb_elements}
 
-
-    #print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
     hoffman_elements = []
     for key, value in current_user.config["hoffman"].items():
-        if isinstance(value, dict): # ?
-            
+        if isinstance(value, dict):
             if current_user.step in value.get("steps", []):
                 hoffman_elements.append(value)
-            #print("hoffman_elements:   ",hoffman_elements)
-    hoffman = {"elements": hoffman_elements}    
-    
-    # TODO: refformat this code pls, a lot of redendency !!!!!!
-    
-    #qex = à remplire
-   
-    if current_user.step >= len(current_user.config["blocs"].keys()):
-        
-        socketio.emit("next_step")
-        return qex_ranking()
-    else :
-        #
-        return render_template(
-            "planning.html",
-            qpb=json.dumps(qpb),
-            qpt=qpt if qpt else "",
-            hoffman=json.dumps(hoffman)
-        )#, qvg=json.dumps(qvg), qex=json.dumps(qex))
+    hoffman = {"elements": hoffman_elements}
 
-
+    # --- MODIFICATION ICI ---
+    # On ne retourne JAMAIS qex_ranking ici, même si on est au dernier bloc.
+    # Le JS s'occupe de rediriger après le dernier questionnaire.
+    return render_template(
+        "planning.html",
+        qpb=json.dumps(qpb),
+        qpt=qpt if qpt else "",
+        hoffman=json.dumps(hoffman)
+    )
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
     uid = current_user.uid

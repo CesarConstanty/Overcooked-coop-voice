@@ -155,7 +155,15 @@ $(document).on('input change', '#qptForm input[type=range]', function() {
 });
 
 socket.on('next_step', function () {
-    location.reload();
+    // Récupère le numéro du bloc courant et le nombre total de blocs
+    var step = parseInt($('#step').text());
+    var total_blocs = parseInt($('#total_blocs').text());
+    // Si on vient de finir le dernier bloc, on redirige vers le ranking
+    if (step + 1 >= total_blocs) {
+        window.location.href = "/qex_ranking";
+    } else {
+        location.reload();
+    }
 });
 
 socket.on('qpb', function () {
