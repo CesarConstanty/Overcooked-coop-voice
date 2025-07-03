@@ -1135,17 +1135,22 @@ def post_qpt(data):
 
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPT").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{current_user.step}_{trial}_QPT.json"
-    try:
-        with open(file_name, 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-    except KeyError:
-        pass
+    # Vérifie si le fichier existe déjà pour éviter un double enregistrement
+    if not os.path.exists(file_name):
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
 
-    total_trial = len(current_user.config["blocs"][bloc_key])
-    if trial < total_trial-1:
-        current_user.trial += 1
-        db.session.commit()
-        socketio.emit("next_step", to=sid)
+        total_trial = len(current_user.config["blocs"][bloc_key])
+        if trial < total_trial-1:
+            current_user.trial += 1
+            db.session.commit()
+            socketio.emit("next_step", to=sid)
+    else:
+        print(f"QPT déjà enregistré pour {file_name}, pas de double incrémentation.")
+
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):

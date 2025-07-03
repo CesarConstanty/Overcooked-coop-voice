@@ -711,7 +711,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         const terrain_to_sound = {
             ' ': '',
             'X': 'comptoir',
-            'P': 'marmite',
+            //'P': 'marmite',
             'O': 'oignon',
             'T': 'tomate',
             'D': 'assiette',

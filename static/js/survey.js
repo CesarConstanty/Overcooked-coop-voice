@@ -10,168 +10,59 @@ class CallBackTrigger {
     }
 }
 
-var timeout;
-var timeleft;
-var callbacktrigger;
-var qpt_timeout_bool = false;
-var qpt_model
-var qpt_elements
+let qptSubmitted = false;
+let qptTimerInterval = null;
 
-socket.on("connect", function () {
-    console.log("connect survey")
-    Survey.StylesManager.applyTheme("defaultV2");
-    var qpt_raw = $('#qpt_elements').text();
-    if (qpt_raw && qpt_raw.trim() !== "None" && qpt_raw.trim() !== "") {
-        qpt_elements = JSON.parse(qpt_raw);
-        qpt_model = new Survey.Model(qpt_elements);
-
-        qpt_model.onComplete.add(function (sender) {
-            callbacktrigger.trigger()
-            clearTimeout(timeout);
-            clearInterval(timeleft);
-            $('#overcooked').show();
-            $('#qpt').hide();
-            console.log(sender.data);
-            socket.emit("post_qpt", { "survey_data": sender.data, "trial_id": callbacktrigger.trial_id, "timeout_bool": qpt_timeout_bool });
-            qpt_timeout_bool = false;
-        });
-        $("#QptDisplay").Survey({ model: qpt_model });
-    }
-    
-    // -- qpb 
-    var qpb_elements = JSON.parse($('#qpb_elements').text());
-    var qpb_model = new Survey.Model(qpb_elements);
-    qpb_model.onComplete.add(function (sender) {
-        socket.emit("post_qpb", { "survey_data": sender.data });
-    });
-    $("#QpbDisplay").Survey({
-        model: qpb_model
-    });
-
-    // -- hoffman
-    var hoffman_elements = JSON.parse($('#hoffman_elements').text());
-    var hoffman_model = new Survey.Model(hoffman_elements);
-    hoffman_model.onComplete.add(function (sender) {
-        socket.emit("post_hoffman", { "survey_data": sender.data });
-        console.log('debug', sender.data);
-    });
-    $("#HoffmanDisplay").Survey({
-        model: hoffman_model
-    });
-
-})
-
+// Handler unique pour le QPT natif (agency)
 socket.on('qpt', function (data, callback) {
-    console.log("qpt event received", data);
+    if (qptTimerInterval) {
+        clearInterval(qptTimerInterval);
+        qptTimerInterval = null;
+    }
+    qptSubmitted = false;
     $('#overcooked').hide();
     $("#qpt").show();
     window.qptCallback = callback;
 
-    // Met à jour dynamiquement le score dans la question 3
     if (typeof data.score !== "undefined") {
         $("#agency_score_placeholder").text(data.score);
     }
 
-    // Timer et autres logiques...
-    let timer = data.qpt_length || 30;
-    let interval = setInterval(function() {
-        timer -= 1;
-        $("#qpt_timer").text(timer + " seconds left");
-        if (timer <= 0) {
-            clearInterval(interval);
-            if ($("#qpt").is(":visible")) {
-                $("#qptForm").submit();
-            }
-        }
-    }, 1000);
-
-    // Initialisation des sliders
-    $('#qptForm input[type=range]').attr('data-touched', 'false');
-    checkQptFormComplete();
-});
-
-socket.on('qpb', function () {
-    $('#overcooked').hide();
-    $("#qpb").show();
-})
-
-socket.on('hoffman', function () {
-    $('#overcooked').hide();
-    $("#qpb").hide();
-    $("#hoffman").show();
-})
-
-socket.on('next_step', function () {
-    location.reload();
-})
-
-$(document).on('submit', '#qptForm', function(e) {
-    e.preventDefault();
-    const data = {};
+    // Réinitialise les sliders et data-touched
     $('#qptForm input[type=range]').each(function() {
-        let val = $(this).val();
-        data[$(this).attr('name')] = (val === "" || val === undefined || val === null) ? "nan" : val;
+        $(this).val(50);
+        $(this).attr('data-touched', 'false');
     });
-    socket.emit("post_qpt", { "survey_data": data, "timeout_bool": false, "trial_id": window.curr_trial_id || 0 });
-    $("#qpt").hide();
-    if (window.qptCallback) window.qptCallback();
-});
 
-function checkQptFormComplete() {
-    let complete = true;
-    $('#qptForm input[type=range]').each(function() {
-        // On considère qu'une réponse est donnée si le slider a été touché
-        if ($(this).attr('data-touched') !== "true") {
-            complete = false;
-        }
-    });
-    $("#qptForm button[type=submit]").prop("disabled", !complete);
-}
-
-// Met à jour à chaque changement de slider
-$(document).on('input change', '#qptForm input[type=range]', function() {
     checkQptFormComplete();
-});
-
-// Vérifie à l'ouverture du questionnaire
-socket.on('qpt', function (data, callback) {
-    console.log("qpt event received", data);
-    $('#overcooked').hide();
-    $("#qpt").show();
-    window.qptCallback = callback;
 
     // Timer
     let timer = data.qpt_length || 30;
-    let interval = setInterval(function() {
+    $("#qpt_timer").text(timer + " seconds left");
+    qptTimerInterval = setInterval(function() {
         timer -= 1;
         $("#qpt_timer").text(timer + " seconds left");
         if (timer <= 0) {
-            clearInterval(interval);
-            // Auto-submit le questionnaire si non soumis
-            if ($("#qpt").is(":visible")) {
+            clearInterval(qptTimerInterval);
+            qptTimerInterval = null;
+            if ($("#qpt").is(":visible") && !qptSubmitted) {
+                qptSubmitted = true;
                 $("#qptForm").submit();
             }
         }
     }, 1000);
-
-    checkQptFormComplete(); // Vérifie au démarrage
 });
 
-// Ajoute l'attribut data-touched à chaque slider au chargement du questionnaire
-socket.on('qpt', function (data, callback) {
-    $('#qptForm input[type=range]').attr('data-touched', 'false');
-    checkQptFormComplete(); // Vérifie au démarrage
-});
-
-// Marque le slider comme touché à la première interaction
-$(document).on('input change', '#qptForm input[type=range]', function() {
-    $(this).attr('data-touched', 'true');
-    checkQptFormComplete();
-});
-
-// Modifie la collecte des données à la soumission
+// Gestion du bouton submit QPT natif
 $(document).on('submit', '#qptForm', function(e) {
     e.preventDefault();
+    if (qptSubmitted) return;
+    qptSubmitted = true;
+    if (qptTimerInterval) {
+        clearInterval(qptTimerInterval);
+        qptTimerInterval = null;
+    }
+    $("#qptForm button[type=submit]").prop("disabled", true);
     const data = {};
     $('#qptForm input[type=range]').each(function() {
         let touched = $(this).attr('data-touched');
@@ -181,5 +72,67 @@ $(document).on('submit', '#qptForm', function(e) {
     socket.emit("post_qpt", { "survey_data": data, "timeout_bool": false, "trial_id": window.curr_trial_id || 0 });
     $("#qpt").hide();
     if (window.qptCallback) window.qptCallback();
+});
+
+// Vérifie si tous les sliders ont été touchés pour activer le bouton submit
+function checkQptFormComplete() {
+    let complete = true;
+    $('#qptForm input[type=range]').each(function() {
+        if ($(this).attr('data-touched') !== "true") {
+            complete = false;
+        }
+    });
+    $("#qptForm button[type=submit]").prop("disabled", !complete);
+}
+
+// Marque le slider comme touché à la première interaction et vérifie le formulaire
+$(document).on('input change', '#qptForm input[type=range]', function() {
+    $(this).attr('data-touched', 'true');
+    checkQptFormComplete();
+});
+
+// -- QPB (SurveyJS)
+let qpb_elements_raw = $('#qpb_elements').text();
+let qpb_elements = null;
+if (qpb_elements_raw && qpb_elements_raw.trim().length > 0) {
+    try {
+        qpb_elements = JSON.parse(qpb_elements_raw);
+    } catch (e) {
+        console.error("Erreur de parsing qpb_elements:", e);
+    }
+}
+if (qpb_elements && qpb_elements.elements && qpb_elements.elements.length > 0) {
+    var qpb_model = new Survey.Model(qpb_elements);
+    qpb_model.onComplete.add(function (sender) {
+        socket.emit("post_qpb", { "survey_data": sender.data });
+    });
+    $("#QpbDisplay").Survey({
+        model: qpb_model
+    });
+}
+
+// -- Hoffman (SurveyJS)
+let hoffman_elements_raw = $('#hoffman_elements').text();
+let hoffman_elements = null;
+if (hoffman_elements_raw && hoffman_elements_raw.trim().length > 0) {
+    try {
+        hoffman_elements = JSON.parse(hoffman_elements_raw);
+    } catch (e) {
+        console.error("Erreur de parsing hoffman_elements:", e);
+    }
+}
+if (hoffman_elements && hoffman_elements.elements && hoffman_elements.elements.length > 0) {
+    var hoffman_model = new Survey.Model(hoffman_elements);
+    hoffman_model.onComplete.add(function (sender) {
+        socket.emit("post_hoffman", { "survey_data": sender.data });
+        console.log('debug', sender.data);
+    });
+    $("#HoffmanDisplay").Survey({
+        model: hoffman_model
+    });
+}
+
+socket.on('next_step', function () {
+    location.reload();
 });
 
