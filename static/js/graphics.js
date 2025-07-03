@@ -219,7 +219,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             let { width, height } = this.game.canvas;
             let board_height = height ;
             let board_width = width - this.hud_size;
-            this._drawHUD(this.hud_data, this.sprites, board_height, board_width);
+            this._drawHUD(this.hud_data, this.sprites, board_height, board_width, this.state);
         }
     }
     drawLevel() {
@@ -519,15 +519,18 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
 // Jouer des sons pour les ingrédients des recettes
     _playRecipeSounds(ingredients) {
-        // Génère le nom du fichier son pour la recette
-        let recipeSound = this._getRecipeSoundFile(ingredients);
-
         // Ne joue le son que si la recette a changé
         let newRecipe = ingredients.join(",");
         if (this.currentRecipe === newRecipe) {
             return;
         }
         this.currentRecipe = newRecipe;
+
+        // Vide la file et ajoute le son spécifique à la recette
+        this.soundQueueRecipe = [];
+
+        // Génère le nom du fichier son pour la recette
+        let recipeSound = this._getRecipeSoundFile(ingredients);
 
         // Vide la file et ajoute le son spécifique à la recette
         this.soundQueueRecipe = [];
@@ -564,7 +567,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         return `recette_${num_onions}o_${num_tomatoes}t.mp3`;
     }
 
-    _drawHUD(hud_data, sprites, board_height, board_width) {
+    _drawHUD(hud_data, sprites, board_height, board_width, state) {
         if (typeof(hud_data.all_orders) !== 'undefined') {
             this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width); // affiche les recette restantes
         }
