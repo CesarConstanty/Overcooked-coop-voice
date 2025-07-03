@@ -46,16 +46,14 @@ socket.on('qpt', function (data, callback) {
             clearInterval(qptTimerInterval);
             qptTimerInterval = null;
             if ($("#qpt").is(":visible") && !qptSubmitted) {
-                qptSubmitted = true;
-                $("#qptForm").submit();
+                sendQptForm(true); // timeout_bool = true
             }
         }
     }, 1000);
 });
 
 // Gestion du bouton submit QPT natif
-$(document).on('submit', '#qptForm', function(e) {
-    e.preventDefault();
+function sendQptForm(timeout_bool = false) {
     if (qptSubmitted) return;
     qptSubmitted = true;
     if (qptTimerInterval) {
@@ -69,9 +67,14 @@ $(document).on('submit', '#qptForm', function(e) {
         let val = $(this).val();
         data[$(this).attr('name')] = (touched !== "true") ? "nan" : val;
     });
-    socket.emit("post_qpt", { "survey_data": data, "timeout_bool": false, "trial_id": window.curr_trial_id || 0 });
+    socket.emit("post_qpt", { "survey_data": data, "timeout_bool": timeout_bool, "trial_id": window.curr_trial_id || 0 });
     $("#qpt").hide();
     if (window.qptCallback) window.qptCallback();
+}
+
+$(document).on('submit', '#qptForm', function(e) {
+    e.preventDefault();
+    sendQptForm(false);
 });
 
 // Vérifie si tous les sliders ont été touchés pour activer le bouton submit
