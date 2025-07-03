@@ -120,7 +120,8 @@
   <div class="wrap">
     <h1>Video Game Experience Questionnaire</h1>
     <h6>Please answer the following questions about your experience with video games.</h6>
-    <form id="vgexpForm" method="POST" action="/submit_experience_video_games">
+    <form id="vgexpForm" method="POST" action="/submit_qvg_survey">
+      <input type="hidden" name="qvg_data" id="qvgDataInput">
       <!-- Personal Info Table -->
       <table>
         <tr>
@@ -189,7 +190,29 @@
       </div>
       <div class="question">
         <label for="fav_genre">Favorite game genre:</label>
-        <input type="text" id="fav_genre" name="fav_genre" placeholder="e.g. Action, Puzzle, RPG">
+        <select id="fav_genre" name="fav_genre" required>
+          <option value="">Select…</option>
+          <option value="Action">Action – fast-paced games that require quick reflexes (e.g., DOOM, Devil May Cry)</option>
+          <option value="Adventure">Adventure – story-driven games with exploration and puzzles (e.g., The Legend of Zelda)</option>
+          <option value="RPG">Role-Playing Games (RPGs) – games where players develop characters and follow narratives (e.g., Skyrim, Final Fantasy)</option>
+          <option value="Shooter">Shooter (First-Person or Third-Person) – gun-based combat games (e.g., Call of Duty, Fortnite)</option>
+          <option value="Simulation">Simulation – realistic systems or life simulations (e.g., The Sims, Flight Simulator)</option>
+          <option value="Strategy">Strategy – games requiring planning and tactical thinking (e.g., StarCraft, Civilization)</option>
+          <option value="Puzzle">Puzzle – games focused on logic and problem solving (e.g., Tetris, Portal)</option>
+          <option value="Sports">Sports – games based on real or fictional sports (e.g., FIFA, NBA 2K)</option>
+          <option value="Racing">Racing – car or vehicle-based competitive games (e.g., Mario Kart, Gran Turismo)</option>
+          <option value="Fighting">Fighting – one-on-one combat games (e.g., Street Fighter, Tekken)</option>
+          <option value="Platformer">Platformer – character jumps and navigates levels (e.g., Super Mario, Celeste)</option>
+          <option value="Horror">Horror – designed to scare or unsettle (e.g., Resident Evil, Amnesia)</option>
+          <option value="Sandbox">Sandbox / Open World – large, explorative worlds with freedom of action (e.g., Minecraft, GTA)</option>
+          <option value="MMO">Massively Multiplayer Online (MMO) – large online worlds with many players (e.g., World of Warcraft)</option>
+          <option value="Visual Novel">Visual Novel / Interactive Story – story-heavy games with branching narratives (e.g., Life is Strange)</option>
+          <option value="Rhythm">Rhythm / Music – games based on timing and music (e.g., Guitar Hero, Beat Saber)</option>
+          <option value="Idle">Idle / Incremental Games – games involving repetitive tasks and progression (e.g., Cookie Clicker)</option>
+          <option value="Party">Party / Casual Games – simple, accessible games often played socially (e.g., Among Us, Fall Guys)</option>
+          <option value="Survival">Survival / Crafting – resource management and survival mechanics (e.g., Rust, Don't Starve)</option>
+          <option value="Educational">Educational / Brain Training – games designed for learning or cognitive enhancement (e.g., Lumosity)</option>
+        </select>
       </div>
       <div class="question">
         <label>Do you play cooperative games?</label>
@@ -246,9 +269,29 @@
   <script>
     const form = document.getElementById('vgexpForm');
     const submitBtn = document.getElementById('submitBtn');
+    const qvgDataInput = document.getElementById('qvgDataInput');
 
-    form.addEventListener('input', () => {
-      // Check all required fields and radio groups
+    function collectFormData() {
+      const data = {};
+      // Table fields
+      data.laterality = form.laterality ? form.laterality.value : '';
+      data.knows_overcooked = form.knows_overcooked ? form.knows_overcooked.value : '';
+      data.age = form.age ? form.age.value : '';
+      data.hours_played = form.hours_played ? form.hours_played.value : '';
+      data.education_level = form.education_level ? form.education_level.value : '';
+      data.gender = form.gender ? form.gender.value : '';
+      // Other questions
+      data.frequency = form.frequency ? form.frequency.value : '';
+      data.fav_genre = form.fav_genre ? form.fav_genre.value : '';
+      data.coop = form.coop ? form.coop.value : '';
+      data.times_played = form.times_played ? form.times_played.value : '';
+      data.daily_time = form.daily_time ? form.daily_time.value : '';
+      data.active_player = form.active_player ? form.active_player.value : '';
+      data.intensive_period = form.intensive_period ? form.intensive_period.value : '';
+      return data;
+    }
+
+    function checkFormValidity() {
       const requiredInputs = form.querySelectorAll('input[required], select[required], textarea[required]');
       let allFilled = true;
       requiredInputs.forEach(input => {
@@ -262,7 +305,26 @@
           if (!input.value) allFilled = false;
         }
       });
+      return allFilled;
+    }
+
+    form.addEventListener('input', () => {
+      const allFilled = checkFormValidity();
       submitBtn.disabled = !allFilled;
+      if (allFilled) {
+        qvgDataInput.value = JSON.stringify(collectFormData());
+      } else {
+        qvgDataInput.value = '';
+      }
+    });
+
+    form.addEventListener('submit', (event) => {
+      if (!checkFormValidity()) {
+        event.preventDefault();
+        return;
+      }
+      qvgDataInput.value = JSON.stringify(collectFormData());
+      // Le backend redirigera automatiquement vers /ptta_survey
     });
   </script>
 </body>
