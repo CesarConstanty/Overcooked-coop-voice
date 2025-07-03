@@ -85,7 +85,7 @@
         "qpt_length" : 15,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "U", "0":"EAr", "2":"EAa","3":"EA", "4":"EV", "5":"EVr", "6":"EVa"},
+        "conditions" : {"1" : "EA", "0":"EA", "2":"EA","3":"EA", "4":"EA", "5":"EA", "6":"EA"},
         "blocs" : {
             "0": ["trial0_0", "trial0_1", "trial0_2"],
             "1": ["trial1_0", "trial1_1", "trial1_2"],
