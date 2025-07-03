@@ -124,22 +124,57 @@
       <!-- Personal Info Table -->
       <table>
         <tr>
-          <th rowspan="2">Laterality</th>
-          <td><label><input type="radio" name="laterality" value="left" required> Left</label></td>
-          <td><label><input type="radio" name="laterality" value="right"> Right</label></td>
-          <th rowspan="2">Do you know the video game Overcooked?</th>
-          <td><label><input type="radio" name="knows_overcooked" value="yes" required> Yes</label></td>
-          <td><label><input type="radio" name="knows_overcooked" value="no"> No</label></td>
+          <th>Laterality</th>
+          <td>
+            <label style="display:inline; margin-right:1.5rem;">
+              <input type="radio" name="laterality" value="left" required> Left
+            </label>
+            <label style="display:inline;">
+              <input type="radio" name="laterality" value="right"> Right
+            </label>
+          </td>
+          <th colspan="2">Do you know the video game Overcooked?</th>
         </tr>
         <tr>
-          <td colspan="2">Age: <input type="number" name="age" min="0" required style="width: 60px;"></td>
-          <td colspan="2">How many hours did you play this game? <input type="number" name="hours_played" min="0" required style="width: 80px;"></td>
+          <td colspan="2"></td>
+          <td colspan="2">
+            <input type="radio" name="knows_overcooked" value="yes" required id="overcooked_yes">
+            <label for="overcooked_yes" style="display:inline; margin-right:1.5rem;">Yes</label>
+            <input type="radio" name="knows_overcooked" value="no" id="overcooked_no">
+            <label for="overcooked_no" style="display:inline;">No</label>
+          </td>
+        </tr>
+        <tr>
+          <td>Age:</td>
+          <td><input type="number" name="age" min="0" required style="width: 60px;"></td>
+          <td>How many hours did you play this game?</td>
+          <td><input type="number" name="hours_played" min="0" required style="width: 80px;"></td>
         </tr>
         <tr>
           <td>Level of education:</td>
-          <td colspan="2"><input type="text" name="education_level" required style="width: 95%;"></td>
+          <td>
+            <select name="education_level" required style="width: 95%;">
+              <option value="">Select…</option>
+              <option value="Early childhood education or no formal education">Early childhood education or no formal education</option>
+              <option value="Primary education">Primary education</option>
+              <option value="Lower secondary education">Lower secondary education</option>
+              <option value="Upper secondary education">Upper secondary education</option>
+              <option value="Post-secondary non-tertiary education">Post-secondary non-tertiary education</option>
+              <option value="Short-cycle tertiary education">Short-cycle tertiary education</option>
+              <option value="Bachelor’s or equivalent level">Bachelor’s or equivalent level</option>
+              <option value="Master’s or equivalent level">Master’s or equivalent level</option>
+              <option value="Doctoral or equivalent level">Doctoral or equivalent level</option>
+            </select>
+          </td>
           <td>Gender:</td>
-          <td colspan="2"><input type="text" name="gender" required style="width: 95%;"></td>
+          <td>
+            <select name="gender" required style="width: 95%;">
+              <option value="">Select…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </td>
         </tr>
       </table>
 
