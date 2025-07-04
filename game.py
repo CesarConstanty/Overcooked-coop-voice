@@ -1008,6 +1008,8 @@ class OvercookedTutorial(OvercookedGame):
     def reset(self):
         self.curr_phase += 1
         self.data = self.get_data()
+        self.score = 0  # Remettre le score à zéro à chaque phase
+        self.phase_two_finished = False  # Réinitialiser la validation de la phase 2
         super(OvercookedTutorial, self).reset()
 
     def activate(self):

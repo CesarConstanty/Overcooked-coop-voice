@@ -916,6 +916,10 @@ def cat():
 def tutorial():
     uid = current_user.uid
     step = 0
+    # Remise à zéro des compteurs d'essai et de bloc pour l'expérience principale
+    current_user.trial = 0
+    current_user.step = 0
+    db.session.commit()
     psiturk = request.args.get('psiturk', False)
     if is_test != "test" :
         return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
@@ -991,8 +995,15 @@ def on_create(data):
     params = data.get('params', {})
     game_name = data.get('game_name', 'overcooked')
     # Déclenche la création du jeu avec les données fournies
-    _create_game(user_id, game_name, {"id": current_user.uid, "player_uid": current_user.uid, "step": int(
-        current_user.step), "curr_trial_in_game" : int(current_user.trial)-1, "config": current_user.config})
+    _create_game(
+        user_id, game_name, {
+            "id": current_user.uid,
+            "player_uid": current_user.uid,
+            "step": int(current_user.step),
+            "curr_trial_in_game": int(current_user.trial) - 1,  # trial doit être 0 ici pour commencer au premier essai
+            "config": current_user.config
+        }
+    )
 
 
 @socketio.on('join')
@@ -1229,17 +1240,8 @@ def trial_save_routine(data):
 # Déclenche nottement l'évènement state_pong écouté par planning.js 
 # qui permet de mettre à jour les informations de la partie
 def play_game(game, fps=15):
-    """
-    Asynchronously apply real-time game updates and broadcast state to all clients currently active
-    in the game. Note that this loop must be initiated by a parallel thread for each active game
-
-    game (Game object):     Stores relevant game state. Note that the game id is the same as to socketio
-                            room id for all clients connected to this game
-    fps (int):              Number of game ticks that should happen every second
-    """
     status = Game.Status.ACTIVE
     print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
-    # boucle continue tant que le jeu n'est pas terminé (bloc/essai) ou désactivé (fin de passation/participant quitte)
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
         with game.lock:
             status = game.tick()
@@ -1248,48 +1250,52 @@ def play_game(game, fps=15):
                 data = game.data
             try:
                 trial_save_routine(data)
-                # Affiche le questionnaire agency à chaque fin de trial
-                socketio.call("qpt", {
-                    "qpt_length": game.config.get("qpt_length", 30),  # durée en secondes
-                    "trial": data.get("curr_trial_in_game", 0),
-                    "show_time": game.config.get("show_trial_time", False),
-                    "time_elapsed": data.get("time_elapsed", 0),
-                    "score": data.get("score", 0),
-                    "infinite_all_order": game.config.get("infinite_all_order", False)
-                }, room=game.id)
+                # Affiche le questionnaire agency à chaque fin de trial SAUF pour le tutoriel
+                if not isinstance(game, OvercookedTutorial):
+                    socketio.call("qpt", {
+                        "qpt_length": game.config.get("qpt_length", 30),
+                        "trial": data.get("curr_trial_in_game", 0),
+                        "show_time": game.config.get("show_trial_time", False),
+                        "time_elapsed": data.get("time_elapsed", 0),
+                        "score": data.get("score", 0),
+                        "infinite_all_order": game.config.get("infinite_all_order", False)
+                    }, room=game.id)
             except SocketIOTimeOutError:
                 print("Player " + str(game.id) + " is not on")
-            # Ensuite, reset le jeu après le questionnaire
-            socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
-                            room=game.id)
+            socketio.emit('reset_game', {
+                "state": game.to_json(),
+                "timeout": game.reset_timeout,
+                "trial": game.curr_trial_in_game,
+                "step": getattr(game, "step", 0),
+                "condition": getattr(game, "curr_condition", None),
+                "config": game.config
+            }, room=game.id)
             socketio.sleep(game.reset_timeout / 1000)
-        # si le jeu doit continuer normalement, renvoie la requette pong
         else:
-            # semble envoyer une requête de mise à jour à (presque) tous les fichier JavaScript
-            socketio.emit(
-                'state_pong', {"state": game.get_state()}, room=game.id)
+            socketio.emit('state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
-    with game.lock:            
+    with game.lock:
         if status != Game.Status.INACTIVE:
             game.deactivate()
         data = game.data
         trial_save_routine(data)
-        # Logique permettant d'afficher les questionnaires de fin d'essai et de fin de bloc au participant
         if status == Game.Status.DONE:
             try:
-                # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai
-                socketio.call("qpt", {
-                    "qpt_length": game.config.get("qpt_length", 30),
-                    "trial": data.get("curr_trial_in_game", 0),
-                    "show_time": game.config.get("show_trial_time", False),
-                    "time_elapsed": data.get("time_elapsed", 0),
-                    "score": data.get("score", 0),
-                    "infinite_all_order": game.config.get("infinite_all_order", False)
-                }, room=game.id)
-                socketio.emit("qpb", room=game.id)
+                # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai SAUF pour le tutoriel
+                if not isinstance(game, OvercookedTutorial):
+                    socketio.call("qpt", {
+                        "qpt_length": game.config.get("qpt_length", 30),
+                        "trial": data.get("curr_trial_in_game", 0),
+                        "show_time": game.config.get("show_trial_time", False),
+                        "time_elapsed": data.get("time_elapsed", 0),
+                        "score": data.get("score", 0),
+                        "infinite_all_order": game.config.get("infinite_all_order", False)
+                    }, room=game.id)
+                    socketio.emit("qpb", room=game.id)
             except SocketIOTimeOutError:
-                print("Player " + game.id + " is not on")
-                socketio.emit("qpb", room=game.id)
+                print("Player " + str(game.id) + " is not on")
+                if not isinstance(game, OvercookedTutorial):
+                    socketio.emit("qpb", room=game.id)
             socketio.emit('end_game', {"status": status, "data": data}, room=game.id) 
         
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
