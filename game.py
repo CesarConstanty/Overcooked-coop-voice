@@ -753,6 +753,24 @@ class PlanningGame(OvercookedGame):
             pass
         super(PlanningGame, self).deactivate()
 
+    def is_finished(self):
+        """
+        Retourne True uniquement à la toute fin de l'expérience (dernier essai du dernier bloc).
+        Sinon, retourne False pour permettre l'affichage du QPB à la fin de chaque bloc.
+        """
+        bloc_order = self.config.get("bloc_order", list(self.config["blocs"].keys()))
+        current_step = getattr(self, "step", 0)
+        current_trial = getattr(self, "curr_trial_in_game", 0)
+        total_blocs = len(bloc_order)
+        current_bloc_key = bloc_order[current_step]
+        total_trials_in_bloc = len(self.config["blocs"][current_bloc_key])
+
+        # Fin de l'expérience : dernier essai du dernier bloc
+        if (current_step == total_blocs - 1) and (current_trial == total_trials_in_bloc - 1):
+            return self._curr_game_over()
+        # Sinon, on n'est pas à la toute fin, donc pas fini
+        return False
+    
     def apply_actions(self):
         """
         Applies pending actions then logs transition data
@@ -1000,24 +1018,6 @@ class OvercookedTutorial(OvercookedGame):
         Retourne True uniquement à la toute fin du tutoriel (après la dernière phase).
         """
         return self.curr_phase >= len(self.layouts)
-    def is_finished(self):
-        """
-        Retourne True uniquement à la toute fin de l'expérience (dernier essai du dernier bloc).
-        Sinon, retourne False pour permettre l'affichage du QPB à la fin de chaque bloc.
-        """
-        bloc_order = self.config.get("bloc_order", list(self.config["blocs"].keys()))
-        current_step = getattr(self, "step", 0)
-        current_trial = getattr(self, "curr_trial_in_game", 0)
-        total_blocs = len(bloc_order)
-        current_bloc_key = bloc_order[current_step]
-        total_trials_in_bloc = len(self.config["blocs"][current_bloc_key])
-
-        # Fin de l'expérience : dernier essai du dernier bloc
-        if (current_step == total_blocs - 1) and (current_trial == total_trials_in_bloc - 1):
-            return self._curr_game_over()
-        # Sinon, on n'est pas à la toute fin, donc pas fini
-        return False
-
 
     def reset(self):
         self.curr_phase += 1
