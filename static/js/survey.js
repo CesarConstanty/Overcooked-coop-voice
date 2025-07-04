@@ -19,6 +19,10 @@ var qpt_elements;
 var qptStartTime = null;
 var qptSubmitted = false;
 var qptTimerInterval = null;
+var qpbTimerInterval = null;
+var qpbSubmitted = false;
+var hoffmanTimerInterval = null;
+var hoffmanSubmitted = false;
 
 // SurveyJS only for QPB and Hoffman
 socket.on("connect", function () {
@@ -38,11 +42,51 @@ socket.on("connect", function () {
     if (qpb_elements && qpb_elements.elements && qpb_elements.elements.length > 0) {
         var qpb_model = new Survey.Model(qpb_elements);
         qpb_model.onComplete.add(function (sender) {
+            qpbSubmitted = true;
+            if (qpbTimerInterval) {
+                clearInterval(qpbTimerInterval);
+                qpbTimerInterval = null;
+            }
             socket.emit("post_qpb", { "survey_data": sender.data });
         });
         $("#QpbDisplay").Survey({
             model: qpb_model
         });
+
+        // --- TIMER LOGIC FOR QPB ---
+        qpbSubmitted = false;
+        let qpb_timer_val = parseInt($("#qpb_timer_value").text()) || 30;
+        let timer = qpb_timer_val;
+        // Ajoute un affichage du timer si besoin
+        if ($("#QpbDisplay").find("#qpb_timer_display").length === 0) {
+            $("#QpbDisplay").prepend('<div id="qpb_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
+        }
+        $("#qpb_timer_display").text(timer + " seconds left");
+
+        if (qpbTimerInterval) {
+            clearInterval(qpbTimerInterval);
+            qpbTimerInterval = null;
+        }
+        qpbTimerInterval = setInterval(function () {
+            timer -= 1;
+            $("#qpb_timer_display").text(timer + " seconds left");
+            if (timer <= 0) {
+                clearInterval(qpbTimerInterval);
+                qpbTimerInterval = null;
+                if (!qpbSubmitted) {
+                    // Remplit les questions non répondues avec "nan"
+                    let data = qpb_model.data;
+                    qpb_elements.elements.forEach(function (q) {
+                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
+                            data[q.name] = "nan";
+                        }
+                    });
+                    qpbSubmitted = true;
+                    qpb_model.onComplete.clear(); // Empêche double envoi
+                    socket.emit("post_qpb", { "survey_data": data });
+                }
+            }
+        }, 1000);
     }
 
     // -- Hoffman (SurveyJS)
@@ -58,12 +102,53 @@ socket.on("connect", function () {
     if (hoffman_elements && hoffman_elements.elements && hoffman_elements.elements.length > 0) {
         var hoffman_model = new Survey.Model(hoffman_elements);
         hoffman_model.onComplete.add(function (sender) {
+            hoffmanSubmitted = true;
+            if (hoffmanTimerInterval) {
+                clearInterval(hoffmanTimerInterval);
+                hoffmanTimerInterval = null;
+            }
             socket.emit("post_hoffman", { "survey_data": sender.data });
             console.log('debug', sender.data);
         });
         $("#HoffmanDisplay").Survey({
             model: hoffman_model
         });
+
+        // --- TIMER LOGIC FOR HOFFMAN ---
+        hoffmanSubmitted = false;
+        // Utilise la même valeur que QPB, ou adapte si tu veux une valeur différente
+        let hoffman_timer_val = parseInt($("#hoffman_timer_value").text()) || 30;
+        let timer = hoffman_timer_val;
+        // Ajoute un affichage du timer si besoin
+        if ($("#HoffmanDisplay").find("#hoffman_timer_display").length === 0) {
+            $("#HoffmanDisplay").prepend('<div id="hoffman_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
+        }
+        $("#hoffman_timer_display").text(timer + " seconds left");
+
+        if (hoffmanTimerInterval) {
+            clearInterval(hoffmanTimerInterval);
+            hoffmanTimerInterval = null;
+        }
+        hoffmanTimerInterval = setInterval(function () {
+            timer -= 1;
+            $("#hoffman_timer_display").text(timer + " seconds left");
+            if (timer <= 0) {
+                clearInterval(hoffmanTimerInterval);
+                hoffmanTimerInterval = null;
+                if (!hoffmanSubmitted) {
+                    // Remplit les questions non répondues avec "nan"
+                    let data = hoffman_model.data;
+                    hoffman_elements.elements.forEach(function (q) {
+                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
+                            data[q.name] = "nan";
+                        }
+                    });
+                    hoffmanSubmitted = true;
+                    hoffman_model.onComplete.clear(); // Empêche double envoi
+                    socket.emit("post_hoffman", { "survey_data": data });
+                }
+            }
+        }, 1000);
     }
 });
 

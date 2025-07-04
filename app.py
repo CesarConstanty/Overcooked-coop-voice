@@ -514,6 +514,7 @@ def index():
             if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
+            # Chargement des questionnaires post trial et post bloc
             ## -- qpt
             try:
                 if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):

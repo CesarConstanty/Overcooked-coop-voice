@@ -82,6 +82,8 @@
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
         "gameTime" : 5,
+        "hoffman_length": 30,
+        "qpb_length" : 15,
         "qpt_length" : 2,
         "qvg_length" : 2,
         "ptta_length" : 2,

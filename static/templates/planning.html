@@ -205,6 +205,13 @@
   <div id="HoffmanDisplay"></div>
 </div>
 
+<div id="qpb_timer_value" style="display:none;">
+  {{ current_user.config.get("qpb_length", 300) }}
+</div>
+<div id="hoffman_timer_value" style="display:none;">
+  {{ current_user.config.get("hoffman_length", 300) }}
+</div>
+
   <!-- No JS fallback -->
   <noscript>
     <h1>Warning: Javascript seems to be disabled</h1>
