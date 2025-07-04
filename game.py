@@ -995,7 +995,11 @@ class OvercookedTutorial(OvercookedGame):
         elif self.curr_phase == 2:
             return self.phase_two_finished
         return False
-    
+    def is_finished(self):
+        """
+        Retourne True uniquement à la toute fin du tutoriel (après la dernière phase).
+        """
+        return self.curr_phase >= len(self.layouts)
     def is_finished(self):
         """
         Retourne True uniquement à la toute fin de l'expérience (dernier essai du dernier bloc).

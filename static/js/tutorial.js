@@ -167,10 +167,23 @@ socket.on('reset_game', function(data) {
     $("#overcooked").empty();
     $('#tutorial-instructions').empty();
     $('#hint').empty();
+
+    // Correction : afficher "Tutorial Complete" si toutes les phases sont faites
+    if (curr_tutorial_phase >= tutorial_instructions.length) {
+        $('#game-title').hide();
+        $('#instructions-wrapper').hide();
+        $('#hint-wrapper').hide();
+        $('#show-hint').hide();
+        $('#game-over').show();
+        $('#quit').hide();
+        $('#startExperiment').show();
+        return;
+    }
+
     $("#tutorial-instructions").append(tutorial_instructions[curr_tutorial_phase]);
     $("#hint").append(tutorial_hints[curr_tutorial_phase]);
     $('#game-title').text(`Tutorial in Progress, Phase ${curr_tutorial_phase + 1}/${tutorial_instructions.length}`);
-    
+
     let button_pressed = $('#show-hint').text() === 'Hide Hint';
     if (button_pressed) {
         $('#show-hint').click();
