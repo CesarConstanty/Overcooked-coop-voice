@@ -636,14 +636,17 @@ def planning():
     qpb_elements = []
     for key, value in current_user.config["qpb"].items():
         if isinstance(value, dict):
-            if current_user.step in value.get("steps", []):
-                qpb_elements.append(value)
+            qpb_elements.append(value)
     qpb = {"elements": qpb_elements}
 
     hoffman_elements = []
     for key, value in current_user.config["hoffman"].items():
         if isinstance(value, dict):
-            if current_user.step in value.get("steps", []):
+            # Correction : inclure aussi l'avant-dernier bloc (step 5 pour un total de 7 blocs)
+            steps = value.get("steps", [])
+            total_blocs = len(current_user.config["bloc_order"])
+            # Afficher Hoffman si on est dans les steps OU si on est à l'avant-dernier bloc
+            if current_user.step in steps or (current_user.step == total_blocs - 2 and (total_blocs - 2) not in steps):
                 hoffman_elements.append(value)
     hoffman = {"elements": hoffman_elements}
 
@@ -1178,7 +1181,7 @@ def post_qpb(data):
     except KeyError:
         pass
     #current_user.step += 1 # Permet de passer au bloc suivant
-    #current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
+    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     #socketio.emit("next_step", to=sid)
     socketio.emit("hoffman", to=sid)
@@ -1301,8 +1304,7 @@ def play_game(game, fps=15):
                 print("Player " + str(game.id) + " is not on")
                 if not isinstance(game, OvercookedTutorial):
                     socketio.emit("qpb", room=game.id)
-            socketio.emit('end_game', {"status": status, "data": data}, room=game.id) 
-        
+            socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
