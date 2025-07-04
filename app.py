@@ -760,7 +760,9 @@ def qvg_survey():
     """
     Renders the video game questionnaire (QVG) HTML page.
     """
-    return render_template('experience_video_games_en.html') # Ensure this matches your file name
+    # Récupère la durée du timer depuis la config utilisateur
+    qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
+    return render_template('experience_video_games_en.html', qvg_length=qvg_length)
 
 @app.route('/submit_qvg_survey', methods=['POST'])
 @login_required
@@ -830,7 +832,8 @@ def submit_qvg_survey():
 @app.route('/ptta_survey', methods=['GET'])
 @login_required
 def ptta_survey():
-    return render_template('PTT_A_en.html')
+    ptta_length = current_user.config.get("ptta_length", 60)
+    return render_template('PTT_A_en.html',ptta_length=ptta_length)
 
 @app.route('/submit_ptta_survey', methods=['POST'])
 @login_required
@@ -845,11 +848,12 @@ def submit_ptta_survey():
     form_data = {}
     form_data["step"] = step
     form_data["user_agent"] = request.headers.get('User-Agent')
-    try:
-        bloc_key = current_user.config["bloc_order"][current_user.step]
-        form_data["condition"] = current_user.config["conditions"][bloc_key]
-    except (KeyError, IndexError):
-        form_data["condition"] = "N/A"
+    # Pour ajouter condition premier bloc au fichier resultat
+    #    #try:
+    #    bloc_key = current_user.config["bloc_order"][current_user.step]
+    #    form_data["condition"] = current_user.config["conditions"][bloc_key]
+    #except (KeyError, IndexError):
+    #    form_data["condition"] = "N/A"
 
     form_data["uid"] = uid
     form_data["timestamp"] = gmtime()

@@ -83,6 +83,8 @@
         },
         "gameTime" : 5,
         "qpt_length" : 2,
+        "qvg_length" : 2,
+        "ptta_length" : 2,
         "playerZero" : "Planning",
         "agent" : "Greedy",
         "conditions" : {"1" : "EA", "0":"EA", "2":"EA","3":"EA", "4":"EA", "5":"EA", "6":"EA"},

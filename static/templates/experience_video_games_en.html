@@ -119,6 +119,7 @@
 <body>
   <div class="wrap">
     <h1>Video Game Experience Questionnaire</h1>
+    <div id="qvg-timer" style="font-weight:bold; color:#b00; text-align:right; margin-bottom:1rem;"></div>
     <h6>Please answer the following questions about your experience with video games.</h6>
     <form id="vgexpForm" method="POST" action="/submit_qvg_survey">
       <input type="hidden" name="qvg_data" id="qvgDataInput">
@@ -267,6 +268,60 @@
     </form>
   </div>
   <script>
+    // Récupère la durée du timer passée par Flask
+    const timer_QVG = {{ qvg_length|default(60)}};
+    let timeLeft = timer_QVG;
+    let timerInterval = null;
+    let qvgSubmitted = false;
+
+    function updateTimerDisplay() {
+      const timerDiv = document.getElementById('qvg-timer');
+      timerDiv.textContent = `Time left: ${timeLeft}s`;
+    }
+
+    function collectFormDataWithNan() {
+      const data = {};
+      // Table fields
+      data.laterality = form.laterality ? (form.laterality.value || "nan") : "nan";
+      data.knows_overcooked = form.knows_overcooked ? (form.knows_overcooked.value || "nan") : "nan";
+      data.age = form.age ? (form.age.value || "nan") : "nan";
+      data.hours_played = form.hours_played ? (form.hours_played.value || "nan") : "nan";
+      data.education_level = form.education_level ? (form.education_level.value || "nan") : "nan";
+      data.gender = form.gender ? (form.gender.value || "nan") : "nan";
+      // Other questions
+      data.frequency = form.frequency ? (form.frequency.value || "nan") : "nan";
+      data.fav_genre = form.fav_genre ? (form.fav_genre.value || "nan") : "nan";
+      data.coop = form.coop ? (form.coop.value || "nan") : "nan";
+      data.times_played = form.times_played ? (form.times_played.value || "nan") : "nan";
+      data.daily_time = form.daily_time ? (form.daily_time.value || "nan") : "nan";
+      data.active_player = form.active_player ? (form.active_player.value || "nan") : "nan";
+      data.intensive_period = form.intensive_period ? (form.intensive_period.value || "nan") : "nan";
+      return data;
+    }
+
+    function submitQVGByTimer() {
+      if (qvgSubmitted) return;
+      qvgSubmitted = true;
+      // Remplit les champs manquants par "nan"
+      qvgDataInput.value = JSON.stringify(collectFormDataWithNan());
+      // Désactive le bouton pour éviter double soumission
+      submitBtn.disabled = true;
+      form.submit();
+    }
+
+    function startQVGTimer() {
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          submitQVGByTimer();
+        }
+      }, 1000);
+    }
+
+    // === LOGIQUE EXISTANTE ===
     const form = document.getElementById('vgexpForm');
     const submitBtn = document.getElementById('submitBtn');
     const qvgDataInput = document.getElementById('qvgDataInput');
@@ -309,6 +364,7 @@
     }
 
     form.addEventListener('input', () => {
+      if (qvgSubmitted) return;
       const allFilled = checkFormValidity();
       submitBtn.disabled = !allFilled;
       if (allFilled) {
@@ -319,13 +375,22 @@
     });
 
     form.addEventListener('submit', (event) => {
+      if (qvgSubmitted) {
+        event.preventDefault();
+        return;
+      }
       if (!checkFormValidity()) {
         event.preventDefault();
         return;
       }
+      qvgSubmitted = true;
+      clearInterval(timerInterval);
       qvgDataInput.value = JSON.stringify(collectFormData());
-      // Le backend redirigera automatiquement vers /ptta_survey
+      submitBtn.disabled = true;
     });
+
+    // Lance le timer au chargement
+    startQVGTimer();
   </script>
 </body>
 </html>
