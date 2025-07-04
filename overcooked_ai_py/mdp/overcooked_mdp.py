@@ -609,7 +609,7 @@ class PlayerState(object):
 
 class OvercookedState(object):
     """A state in OvercookedGridworld."""
-    def __init__(self, players, objects, bonus_orders=[], all_orders=[], timestep=0, **kwargs):
+    def __init__(self, players, objects, bonus_orders=[], all_orders=[], timestep=0, config=None, **kwargs):
         """
         players (list(PlayerState)): Currently active PlayerStates (index corresponds to number)
         objects (dict({tuple:list(ObjectState)})):  Dictionary mapping positions (x, y) to ObjectStates. 
@@ -629,17 +629,19 @@ class OvercookedState(object):
         self._bonus_orders = bonus_orders
         self._all_orders = all_orders
         self.timestep = timestep
+        self.config = config or {}
 
-        if len(self._all_orders)<5 and self.timestep%20 == 0 :
-            l = Recipe.generate_random_recipes()
-                
-            self._all_orders += list(l) #+ self._all_orders  
+        # Ajout conditionnel selon la config
+        if self.config.get("infinite_all_order", False):
+            if len(self._all_orders) < 5 and self.timestep % 20 == 0:
+                l = Recipe.generate_random_recipes()
+                self._all_orders += list(l) #+ self._all_orders  
         
         #print(self.timestep)
         #print(self._all_orders)
         assert len(set(self.bonus_orders)) == len(self.bonus_orders), "Bonus orders must not have duplicates"
-        #assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"
-        #assert set(self.bonus_orders).issubset(set(self.all_orders)), "Bonus orders must be a subset of all orders"
+        assert len(set(self.all_orders)) == len(self.all_orders), "All orders must not have duplicates"
+        assert set(self.bonus_orders).issubset(set(self.all_orders)), "Bonus orders must be a subset of all orders"
 
     
     
@@ -700,7 +702,8 @@ class OvercookedState(object):
 
     @property
     def all_orders(self):
-        return self._all_orders #if self._all_orders  else sorted(Recipe.ALL_RECIPES)
+        return sorted(self._all_orders) #if self._all_orders  else sorted(Recipe.ALL_RECIPES)
+        #return self._all_orders #if self._all_orders  else sorted(Recipe.ALL_RECIPES) #INTERN
 
     @property
     def bonus_orders(self):
@@ -2075,7 +2078,7 @@ class OvercookedGridworld(object):
                     ordered concatenation of player_{j}_features for j != i
                 
                 player_i_dist_to_other_players (length (num_players - 1)*2):
-                    [player_j.pos - player_i.pos for j != i]
+                    [player_j.pos - player_i.pos for player != i]
 
                 player_i_position (length 2)
         """
@@ -2471,66 +2474,3 @@ class OvercookedGridworld(object):
 
         # At last
         return potential
-
-    ##############
-    # DEPRECATED #
-    ##############
-
-    # def calculate_distance_based_shaped_reward(self, state, new_state):
-    #     """
-    #     Adding reward shaping based on distance to certain features.
-    #     """
-    #     distance_based_shaped_reward = 0
-    #
-    #     pot_states = self.get_pot_states(new_state)
-    #     ready_pots = pot_states["tomato"]["ready"] + pot_states["onion"]["ready"]
-    #     cooking_pots = ready_pots + pot_states["tomato"]["cooking"] + pot_states["onion"]["cooking"]
-    #     nearly_ready_pots = cooking_pots + pot_states["tomato"]["partially_full"] + pot_states["onion"]["partially_full"]
-    #     dishes_in_play = len(new_state.player_objects_by_type['dish'])
-    #     for player_old, player_new in zip(state.players, new_state.players):
-    #         # Linearly increase reward depending on vicinity to certain features, where distance of 10 achieves 0 reward
-    #         max_dist = 8
-    #
-    #         if player_new.held_object is not None and player_new.held_object.name == 'dish' and len(nearly_ready_pots) >= dishes_in_play:
-    #             min_dist_to_pot_new = np.inf
-    #             min_dist_to_pot_old = np.inf
-    #             for pot in nearly_ready_pots:
-    #                 new_dist = np.linalg.norm(np.array(pot) - np.array(player_new.position))
-    #                 old_dist = np.linalg.norm(np.array(pot) - np.array(player_old.position))
-    #                 if new_dist < min_dist_to_pot_new:
-    #                     min_dist_to_pot_new = new_dist
-    #                 if old_dist < min_dist_to_pot_old:
-    #                     min_dist_to_pot_old = old_dist
-    #             if min_dist_to_pot_old > min_dist_to_pot_new:
-    #                 distance_based_shaped_reward += self.reward_shaping_params["POT_DISTANCE_REW"] * (1 - min(min_dist_to_pot_new / max_dist, 1))
-    #
-    #         if player_new.held_object is None and len(cooking_pots) > 0 and dishes_in_play == 0:
-    #             min_dist_to_d_new = np.inf
-    #             min_dist_to_d_old = np.inf
-    #             for serving_loc in self.terrain_pos_dict['D']:
-    #                 new_dist = np.linalg.norm(np.array(serving_loc) - np.array(player_new.position))
-    #                 old_dist = np.linalg.norm(np.array(serving_loc) - np.array(player_old.position))
-    #                 if new_dist < min_dist_to_d_new:
-    #                     min_dist_to_d_new = new_dist
-    #                 if old_dist < min_dist_to_d_old:
-    #                     min_dist_to_d_old = old_dist
-    #
-    #             if min_dist_to_d_old > min_dist_to_d_new:
-    #                 distance_based_shaped_reward += self.reward_shaping_params["DISH_DISP_DISTANCE_REW"] * (1 - min(min_dist_to_d_new / max_dist, 1))
-    #
-    #         if player_new.held_object is not None and player_new.held_object.name == 'soup':
-    #             min_dist_to_s_new = np.inf
-    #             min_dist_to_s_old = np.inf
-    #             for serving_loc in self.terrain_pos_dict['S']:
-    #                 new_dist = np.linalg.norm(np.array(serving_loc) - np.array(player_new.position))
-    #                 old_dist = np.linalg.norm(np.array(serving_loc) - np.array(player_old.position))
-    #                 if new_dist < min_dist_to_s_new:
-    #                     min_dist_to_s_new = new_dist
-    #
-    #                 if old_dist < min_dist_to_s_old:
-    #                     min_dist_to_s_old = old_dist
-    #
-    #             if min_dist_to_s_old > min_dist_to_s_new:
-    #                 distance_based_shaped_reward += self.reward_shaping_params["SOUP_DISTANCE_REW"] * (1 - min(min_dist_to_s_new / max_dist, 1))
-    #
-    #     return distance_based_shaped_reward

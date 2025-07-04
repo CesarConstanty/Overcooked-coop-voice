@@ -9,7 +9,7 @@
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
-    "test_voice" : {
+    "test_experiment1" : {
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/overcooked2804",
@@ -28,20 +28,24 @@
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
         "gameTime" : 20,
+        "qpt_length" : 5,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "EAa", "0":"EAa", "2":"EA","3":"EA"},
+        "conditions" : {"1" : "U", "0":"EAa", "2":"EAr","3":"EV", "4":"EV", "5":"EVa", "6":"EVr"},
         "blocs" : {
             "0": ["trial0_0", "trial0_1", "trial0_2"],
             "1": ["trial1_0", "trial1_1", "trial1_2"],
             "2": ["trial2_0", "trial2_1", "trial2_2"],
-            "3": ["trial3_0", "trial3_1", "trial3_2"]
+            "3": ["trial3_0", "trial3_1", "trial3_2"],
+            "4": ["trial4_0", "trial4_1", "trial4_2"],
+            "5": ["trial0_3", "trial0_4", "trial0_5"],
+            "6": ["trial1_3", "trial1_4", "trial1_5"]
         },
         "shuffle_trials" : true,
-        "questionnaire_post_bloc":"AAT_L_en_test.json",
-        "questionnaire_post_trial" : "agency_en.json",
-        "questionnaire_hoffman":"hoffman fluency_en_test.json",
-        "qpt_length" : 50,
+        "shuffle_blocs" : true,
+        "questionnaire_post_trial" : "agency_en.html",
+        "questionnaire_post_bloc":"AAT_L_en.json",
+        "questionnaire_hoffman":"hoffman fluency_en.json",
         "tomato_value" : 2,
         "onion_value" : 3,
         "onion_time" : 9,
@@ -49,7 +53,69 @@
         "order_bonus" : 2,
         "max_num_ingredients" : 3,
         "infinite_all_order" : true,
-        "Game_Trial_Timer" : false 
+        "Game_Trial_Timer" : false,
+        "shortcut": {
+        "hoffman": true,
+        "qpb": true,
+        "qpt": true,
+        "qvg": false,
+        "ptta": true,
+        "qex": true
+    }
+    },
+    "test_voice_intention" : {
+        "mechanic" : "recipe",
+        "fps" : 10,
+        "layouts_dir" : "./overcooked_ai_py/data/layouts/overcooked2804",
+        "show_counter_drop" : true,
+        "show_trial_time" : true,
+        "completion_link" : "https://app.prolific.co/submissions/complete?cc=7317FC6A",
+        "researcher" : {
+            "name": "xx",
+            "email": "xx",
+            "university" : "Aix-Marseille University",
+            "institution" : "ONERA, the French Aerospace Lab, DTIS department"
+        },
+        "supervisor" : {
+            "name": "xx",
+            "email": "xx",
+            "institution" : "ONERA, the French Aerospace Lab, DTIS department"
+        },
+        "gameTime" : 20,
+        "qpt_length" : 10,
+        "playerZero" : "Planning",
+        "agent" : "Greedy",
+        "conditions" : {"1" : "EA", "0":"EA", "2":"EA","3":"EA", "4":"EA", "5":"EA", "6":"EA"},
+        "blocs" : {
+            "0": ["trial0_0", "trial0_1", "trial0_2"],
+            "1": ["trial1_0", "trial1_1", "trial1_2"],
+            "2": ["trial2_0", "trial2_1", "trial2_2"],
+            "3": ["trial3_0", "trial3_1", "trial3_2"],
+            "4": ["trial4_0", "trial4_1", "trial4_2"],
+            "5": ["trial0_0", "trial0_1", "trial0_2"],
+            "6": ["trial1_0", "trial1_1", "trial1_2"]
+        },
+        "shuffle_trials" : true,
+        "shuffle_blocs" : true,
+        "questionnaire_post_trial" : "agency_en.html",
+        "questionnaire_post_bloc":"AAT_L_en.json",
+        "questionnaire_hoffman":"hoffman fluency_en.json",
+        "tomato_value" : 2,
+        "onion_value" : 3,
+        "onion_time" : 9,
+        "tomato_time" : 6,
+        "order_bonus" : 2,
+        "max_num_ingredients" : 3,
+        "infinite_all_order" : false,
+        "Game_Trial_Timer" : true,
+        "shortcut": {
+        "hoffman": true,
+        "qpb": true,
+        "qpt": true,
+        "qvg": false,
+        "ptta": true,
+        "qex": true
+    }
     },
     "test_layout(bug__enlevel)" : {
         "mechanic" : "recipe",

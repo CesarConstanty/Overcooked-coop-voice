@@ -113,6 +113,11 @@ GAME_NAME_TO_CLS = {
 }
 
 game._configure(MAX_GAME_LENGTH, AGENT_DIR)
+#######################
+# Random #
+#######################
+
+random.seed(114101072025)
 
 #######################
 # Flask Configuration #
@@ -425,12 +430,39 @@ def index():
             }
             elif value =="EV":
                 config["conditions"][bloc]={
-            "recipe_head": True,
+            "recipe_head": False,
             "recipe_hud" : True,
             "asset_hud" : True,
-            "motion_goal" : True,
+            "motion_goal" : False,
             "asset_sound" : False,
             "recipe_sound" : False
+            }
+            elif value =="EVa":
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : True,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
+            }
+            elif value =="EVr":
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : True,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False
+            }
+            elif value =="EA" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : True
             }
             elif value =="EAa" :
                 config["conditions"][bloc]={
@@ -450,15 +482,7 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : True
             }
-            elif value =="EA" :
-                config["conditions"][bloc]={
-            "recipe_head": False,
-            "recipe_hud" : False,
-            "asset_hud" : False,
-            "motion_goal" : False,
-            "asset_sound" : True,
-            "recipe_sound" : True
-            }
+            
 
     except KeyError:
         return render_template('UID_error.html')
@@ -476,7 +500,20 @@ def index():
             login_user(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
-
+            # gère la randomisation des blocs
+            if new_user.config.get("shuffle_blocs", False):
+                bloc_keys = list(new_user.config["blocs"].keys())
+                random.shuffle(bloc_keys)
+                print ("ordre des essais :" , bloc_keys)
+                new_user.config["bloc_order"] = bloc_keys
+                bloc_key = new_user.config["bloc_order"][new_user.step]
+                print("premier bloc :", bloc_key)
+                print ("liste des essais : ",new_user.config["blocs"][bloc_key] )
+            else:
+                new_user.config["bloc_order"] = list(new_user.config["blocs"].keys())
+            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
+                for key, value in new_user.config["blocs"].items():
+                    random.shuffle(value)
             ## -- qpt
             try:
                 if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
@@ -486,9 +523,7 @@ def index():
                     new_user.config["qpt"] = qpt
             except KeyError:
                 new_user.config["qpt"] = {}
-            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
+            
             ## -- qpb
             try:
                 if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
@@ -498,8 +533,6 @@ def index():
                     new_user.config["qpb"] = qpb
             except KeyError:
                 new_user.config["qpb"] = {}
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
             ## -- hoffman
             try:
                 if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
@@ -507,13 +540,10 @@ def index():
                         hoffman = json.load(f)
                     f.close()
                     new_user.config["hoffman"] = hoffman
-                    print("hada",hoffman)
+                    #print("hada",hoffman)
             except KeyError:
                 new_user.config["hoffman"] = {}
-                print("erhada",hoffman)
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
-
+                #print("erhada",hoffman)
 
 
             db.session.add(new_user)
@@ -586,13 +616,19 @@ def planning():
     #sid = request.sid
     uid = current_user.uid
     try:
-        condition = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        condition = current_user.config["conditions"][bloc_key]
+        print ("CONDITION random bloc : ", condition)
     except KeyError:
         condition = request.args.get('CONDITION')
     agent_names = get_agent_names()
 
     #qvg = à remplire 
-    qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.step, current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
+    post_trial = current_user.config.get("questionnaire_post_trial", "")
+    if post_trial.endswith(".html"):
+        qpt = ""  # Pas de SurveyJS, on affiche le HTML natif
+    else:
+        qpt = questionnaire_to_surveyjs(current_user.config["qpt"], current_user.config["bloc_order"][current_user.step], current_user.config.get("pagify_qpt", False))#{"elements" :[value for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]] }
     
     #print(f"DEBUG: current_user.config['qpb'] type: {type(current_user.config['qpb'])}")
     #qpb = {"elements" :[value for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]] }
@@ -602,21 +638,19 @@ def planning():
             
             if current_user.step in value.get("steps", []):
                 qpb_elements.append(value)
-            print("qpd_elements:   ",qpb_elements)
+            #print("qpd_elements:   ",qpb_elements)
     qpb = {"elements": qpb_elements}
 
 
-    print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
+    #print(f"DEBUG: current_user.config['qpb'] content: {json.dumps(current_user.config['hoffman'], indent=2)}")
     hoffman_elements = []
     for key, value in current_user.config["hoffman"].items():
         if isinstance(value, dict): # ?
             
             if current_user.step in value.get("steps", []):
                 hoffman_elements.append(value)
-            print("hoffman_elements:   ",hoffman_elements)
-    hoffman = {"elements": hoffman_elements}
-    print("hooooooooooooooooooooooooooooooooo: ", hoffman)
-    
+            #print("hoffman_elements:   ",hoffman_elements)
+    hoffman = {"elements": hoffman_elements}    
     
     # TODO: refformat this code pls, a lot of redendency !!!!!!
     
@@ -628,14 +662,20 @@ def planning():
         return qex_ranking()
     else :
         #
-        return render_template('planning.html', qpb=json.dumps(qpb), qpt=json.dumps(qpt),hoffman=json.dumps(hoffman))#, qvg=json.dumps(qvg), qex=json.dumps(qex))
+        return render_template(
+            "planning.html",
+            qpb=json.dumps(qpb),
+            qpt=qpt if qpt else "",
+            hoffman=json.dumps(hoffman)
+        )#, qvg=json.dumps(qvg), qex=json.dumps(qex))
 
 
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
     uid = current_user.uid
     step = current_user.step
-    condition = current_user.config["conditions"][str(current_user.step)]
+    bloc_key = current_user.config["bloc_order"][current_user.step]
+    condition = current_user.config["conditions"][bloc_key]
     form = {}
     form["answer"] = request.form.to_dict()
     form["step"] = step
@@ -678,7 +718,8 @@ def submit_qex_ranking():
     form_data["step"] = step
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
-        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        condition = current_user.config["conditions"][bloc_key]
     except (KeyError, IndexError):
         form_data["condition"] = "N/A" 
 
@@ -706,8 +747,8 @@ def submit_qex_ranking():
     # --- Save the QEX data to a JSON file ---
     # saving preference scale in prolific ID folder
     config_id = current_user.config["config_id"]
-    Path(f"trajectories/{config_id}/{uid}").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{uid}/{uid}_{step}_preference.json"
+    Path(f"trajectories/{config_id}/{uid}/Post_experiment").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -751,7 +792,8 @@ def submit_qvg_survey():
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
         # Get condition if applicable for this step, similar to other forms
-        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        condition = current_user.config["conditions"][bloc_key]
     except (KeyError, IndexError):
         form_data["condition"] = "N/A" # Default if condition not found for step
 
@@ -780,8 +822,8 @@ def submit_qvg_survey():
 
     # --- Save the QVG data to a JSON file ---
     # saving demographic and video game scale in prolific ID folder
-    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
-    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
+    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid + "/" + "Pre_experiment").mkdir(parents=True, exist_ok=True)
+    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "Pre_experiment" + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -819,7 +861,8 @@ def submit_ptta_survey():
     form_data["step"] = step
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
-        form_data["condition"] = current_user.config["conditions"][str(current_user.step)]
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        form_data["condition"] = current_user.config["conditions"][bloc_key]
     except (KeyError, IndexError):
         form_data["condition"] = "N/A"
 
@@ -847,9 +890,9 @@ def submit_ptta_survey():
 
     # --- Save the PTT-A data to a JSON file ---
     # path to save PTT-A scale in an prolific ID folder
-    Path(f"trajectories/{current_user.config['config_id']}/{uid}").mkdir(parents=True, exist_ok=True)
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
-    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + '_PTTA.json'
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment/{uid}_{current_user.step}_PTTA.json"
     try:
         with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(form_data, f, ensure_ascii=False, indent=4)
@@ -1068,67 +1111,73 @@ def on_new_trial():
 
 @socketio.on("post_qpt")
 def post_qpt(data):
-    sid = request.sid #
+    sid = request.sid
     uid = current_user.uid
+    bloc_key = current_user.config["bloc_order"][current_user.step]
+    trial = current_user.trial
+
     form = {}
-    form["answer"] = {value["name"] : None for key,value in current_user.config["qpt"].items() if current_user.step in value["steps"]}
+    mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
+    form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"][str(current_user.step)]
+    condition = current_user.config["conditions"][bloc_key]
     form["timeout_bool"] = data["timeout_bool"]
     form["step"] = current_user.step
-    form["trial"] = current_user.trial
-    form["trial_id"] = uid + "_" + str(current_user.step) + 'QPT' + str(data["trial_id"])
-    form["layout"] = current_user.config["blocs"][str(current_user.step)][current_user.trial]
+    form["trial"] = trial
+    form["trial_id"] = f"{uid}_{bloc_key}_{trial}_QPT"
+    form["layout"] = current_user.config["blocs"][bloc_key][trial]
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][str(
-        current_user.step)]
-    form["uid"] = current_user.uid
+    form["condition"] = condition
+    form["uid"] = uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/"+ current_user.config["config_id"] + "/" + uid + "/QPT").mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/'+ current_user.config["config_id"] + "/" + uid + "/QPT/" + uid + "_" + str(current_user.step) + 'QPT' + str(data["trial_id"]) + '.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
-    #print("trial: ", current_user.trial)
-    total_trial = len(current_user.config["blocs"].get('0'))
-    if current_user.trial < total_trial-1:
-        print("wtf")
-        socketio.emit("next_step", to=sid) #to eliminate the freeze that happens after each changement of layout
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPT").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{current_user.step}_{trial}_QPT.json"
+    # Vérifie si le fichier existe déjà pour éviter un double enregistrement
+    if not os.path.exists(file_name):
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
+
+        total_trial = len(current_user.config["blocs"][bloc_key])
+        if trial < total_trial-1:
+            current_user.trial += 1
+            db.session.commit()
+            socketio.emit("next_step", to=sid)
+    else:
+        print(f"QPT déjà enregistré pour {file_name}, pas de double incrémentation.")
+
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
     sid = request.sid
     uid = current_user.uid
-    # condition = current_user.config["conditions"][str(current_user.step)]
+    bloc_key = current_user.config["bloc_order"][current_user.step]
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"][str(current_user.step)]
-    # form["answer"] = data
     form["step"] = current_user.step
-    form["trial_id"] = uid + "_" + str(current_user.step) + 'QPB'
+    form["trial_id"] = f"{uid}_{bloc_key}_QPB"
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][str(
-        current_user.step)]
+    form["condition"] = current_user.config["conditions"][bloc_key]
     form["uid"] = current_user.uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
+    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/" + "QPB").mkdir(parents=True, exist_ok=True)
     try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'AATL.json', 'w', encoding='utf-8') as f:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'AAT_L.json', 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
             f.close()
     except KeyError:
         pass
-    current_user.step += 1 # Permet de passer au bloc suivant
-    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
+    #current_user.step += 1 # Permet de passer au bloc suivant
+    #current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     #socketio.emit("next_step", to=sid)
     socketio.emit("hoffman", to=sid)
@@ -1137,29 +1186,27 @@ def post_qpb(data):
 def post_hoffman(data):
     sid = request.sid
     uid = current_user.uid
-    # condition = current_user.config["conditions"][str(current_user.step)]
+    bloc_key = current_user.config["bloc_order"][current_user.step]
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
         form["answer"][key] = value
-    condition = current_user.config["conditions"]
-    # form["answer"] = data
     form["step"] = current_user.step
-    form["trial_id"] = uid + "_" + str(current_user.step) + 'HOFFMAN'
+    form["trial_id"] = f"{uid}_{bloc_key}_HOFFMAN"
     form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = condition
+    form["condition"] = current_user.config["conditions"][bloc_key]
     form["uid"] = current_user.uid
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] + "/" + uid).mkdir(parents=True, exist_ok=True)
+    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/"+ "QPB").mkdir(parents=True, exist_ok=True)
     try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
+        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
             json.dump(form, f, ensure_ascii=False, indent=4)
             f.close()
     except KeyError:
         pass
-    #current_user.step += 1 # Permet de passer au bloc suivant
+    current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     socketio.emit("next_step", to=sid)
@@ -1209,61 +1256,28 @@ def play_game(game, fps=15):
     print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
     # boucle continue tant que le jeu n'est pas terminé (bloc/essai) ou désactivé (fin de passation/participant quitte)
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
-        with game.lock: # eviter les conflits entre Threads, creuser thread
-            # Log pour suivre l'état du jeu à chaque tick
-            # print(f"[PLAY_GAME] Current game status: {status}")
-            status = game.tick() # retourne le statut actuel du jeu après la mise à jour
-        if status == Game.Status.RESET: # Si la game doit être reset car un essai est terminé
+        with game.lock:
+            status = game.tick()
+        if status == Game.Status.RESET:
             with game.lock:
-                data = game.data  # data is updated in the reset function already triggered at this point
-            # Log pour indiquer que l'essai est terminé
-            try :
-                print(f"[PLAY_GAME] Trial {game.curr_trial_in_game+1} in block {game.step+1} completed. Resetting...")  
-            except :
-                print(f"[PLAY GAME] Trial {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")  
+                data = game.data
             try:
                 trial_save_routine(data)
-                print(f"[PLAY_GAME] Trial data saved for trial {game.curr_trial_in_game+1} in block {game.step+1}")
-                if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()) :
-                    try:
-                        # appel l'affichage du questionnaire post trial
-                        # qpt_length = durée pour répondre au questionnaire
-                        # trial = numéro de l'essai actuel
-                        # show_time = indique si le temps écoulé doit être affiché
-                        # time_elapsed = temps écoulé depuis le début de l'essai (cf game.py)
-                        socketio.call("qpt", {
-                            "qpt_length": game.qpt_length,
-                            "trial": data["curr_trial_in_game"],
-                            "show_time": game.config.get("show_trial_time", False),
-                            "time_elapsed": data["time_elapsed"],
-                            "score": data["score"],
-                            "infinite_all_order": game.config.get("infinite_all_order", False)
-                        }, room=game.id)
-                    except SocketIOTimeOutError:
-                        print("Player " + str(game.id) + " is not on")
-                    # requête pour réinitialiser le jeu (et passer à l'essai suivant)
-                    socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
-                                    room=game.id)
-                    socketio.sleep(game.reset_timeout / 1000)
-                                        
-                else:
-                    socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
-                                    room=game.id)
-                    try :
-                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} in block {game.step+1}")
-                    except :
-                        print(f"[PLAY_GAME] reset_game event emitted for trial voie normale {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
-                    socketio.sleep(game.reset_timeout / 1000)
-
-            except AttributeError:
-                trial_save_routine(data)
-                socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout}, room=game.id)
-                try :
-                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} in block {game.step+1}")
-                except :
-                    print(f"[PLAY_GAME] reset_game event emitted for trial voie AttributeError {game.curr_trial_in_game+1} mais pas d'attribut game.step pour le tutorial")
-                socketio.sleep(game.reset_timeout / 1000)         
-
+                # Affiche le questionnaire agency à chaque fin de trial
+                socketio.call("qpt", {
+                    "qpt_length": game.config.get("qpt_length", 30),  # durée en secondes
+                    "trial": data.get("curr_trial_in_game", 0),
+                    "show_time": game.config.get("show_trial_time", False),
+                    "time_elapsed": data.get("time_elapsed", 0),
+                    "score": data.get("score", 0),
+                    "infinite_all_order": game.config.get("infinite_all_order", False)
+                }, room=game.id)
+            except SocketIOTimeOutError:
+                print("Player " + str(game.id) + " is not on")
+            # Ensuite, reset le jeu après le questionnaire
+            socketio.emit('reset_game', {"state": game.to_json(), "timeout": game.reset_timeout, "trial": game.curr_trial_in_game, "step": game.step, "condition": game.curr_condition, "config": game.config},
+                            room=game.id)
+            socketio.sleep(game.reset_timeout / 1000)
         # si le jeu doit continuer normalement, renvoie la requette pong
         else:
             # semble envoyer une requête de mise à jour à (presque) tous les fichier JavaScript
@@ -1278,18 +1292,20 @@ def play_game(game, fps=15):
         # Logique permettant d'afficher les questionnaires de fin d'essai et de fin de bloc au participant
         if status == Game.Status.DONE:
             try:
-                if game.qpt and any(game.step in x["steps"] for x in game.qpt.values()):
-                        socketio.call("qpt", {"qpt_length": game.qpt_length, "trial" : data["curr_trial_in_game"]}, room=game.id)
+                # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai
+                socketio.call("qpt", {
+                    "qpt_length": game.config.get("qpt_length", 30),
+                    "trial": data.get("curr_trial_in_game", 0),
+                    "show_time": game.config.get("show_trial_time", False),
+                    "time_elapsed": data.get("time_elapsed", 0),
+                    "score": data.get("score", 0),
+                    "infinite_all_order": game.config.get("infinite_all_order", False)
+                }, room=game.id)
                 socketio.emit("qpb", room=game.id)
-                #      
-            except AttributeError:
-                #      
-                pass
             except SocketIOTimeOutError:
                 print("Player " + game.id + " is not on")
                 socketio.emit("qpb", room=game.id)
-            socketio.emit('end_game', {"status": status,
-                                "data": data}, room=game.id) 
+            socketio.emit('end_game', {"status": status, "data": data}, room=game.id) 
         
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
