@@ -715,11 +715,6 @@ class PlanningGame(OvercookedGame):
             {"playerZero": self.config["agent"], "gameTime": self.config["gameTime"]})
         super(PlanningGame, self).__init__(
             mdp_params=mdp_params, layouts=self.layouts, *args, **kwargs)
-
-    def is_finished(self): # Vérifie si le dernier essai réalisé était le dernier
-        val = self.curr_trial_in_game >= len(
-            self.layouts) - 1 and self._curr_game_over()
-        return val
   
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
@@ -1000,14 +995,31 @@ class OvercookedTutorial(OvercookedGame):
         elif self.curr_phase == 2:
             return self.phase_two_finished
         return False
-
+    
     def is_finished(self):
-        # = float('inf')
-        return self.curr_trial_in_game >= len(self.layouts) - 1 and self.score > 0
+        """
+        Retourne True uniquement à la toute fin de l'expérience (dernier essai du dernier bloc).
+        Sinon, retourne False pour permettre l'affichage du QPB à la fin de chaque bloc.
+        """
+        bloc_order = self.config.get("bloc_order", list(self.config["blocs"].keys()))
+        current_step = getattr(self, "step", 0)
+        current_trial = getattr(self, "curr_trial_in_game", 0)
+        total_blocs = len(bloc_order)
+        current_bloc_key = bloc_order[current_step]
+        total_trials_in_bloc = len(self.config["blocs"][current_bloc_key])
+
+        # Fin de l'expérience : dernier essai du dernier bloc
+        if (current_step == total_blocs - 1) and (current_trial == total_trials_in_bloc - 1):
+            return self._curr_game_over()
+        # Sinon, on n'est pas à la toute fin, donc pas fini
+        return False
+
 
     def reset(self):
         self.curr_phase += 1
         self.data = self.get_data()
+        self.score = 0  # Remettre le score à zéro à chaque phase
+        self.phase_two_finished = False  # Réinitialiser la validation de la phase 2
         super(OvercookedTutorial, self).reset()
 
     def activate(self):

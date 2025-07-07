@@ -27,7 +27,7 @@
             "email": "xx",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 20,
+        "gameTime" : 5,
         "qpt_length" : 5,
         "playerZero" : "Planning",
         "agent" : "Greedy",
@@ -81,11 +81,15 @@
             "email": "xx",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 50,
-        "qpt_length" : 15,
+        "gameTime" : 5,
+        "hoffman_length": 30,
+        "qpb_length" : 12,
+        "qpt_length" : 4,
+        "qvg_length" : 5,
+        "ptta_length" : 5,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "U", "0":"EAr", "2":"EAa","3":"EA", "4":"EV", "5":"EVr", "6":"EVa"},
+        "conditions" : {"1" : "U", "0":"EAr", "2":"EAa","3":"EV", "4":"EVr", "5":"EVa", "6":"EA"},
         "blocs" : {
             "0": ["trial0_0", "trial0_1", "trial0_2"],
             "1": ["trial1_0", "trial1_1", "trial1_2"],

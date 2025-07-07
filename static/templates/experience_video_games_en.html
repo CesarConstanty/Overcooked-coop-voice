@@ -2,186 +2,395 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Video Game Questionnaire</title>
+  <title>Video Game Experience Questionnaire</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
     }
-    table, th, td {
-      border: 1px solid black;
-      border-collapse: collapse;
-      padding: 8px;
-      vertical-align: top;
+    .wrap {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 2.5rem 2rem;
+      background: #fff;
+      border-radius: 0.7rem;
+      box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07);
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #2a3a5a;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    h6 {
+      font-size: 1.1rem;
+      color: #343a40;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      font-size: 1rem;
+      color: #495057;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 0.3rem;
+      margin-bottom: 1.2rem;
+      font-size: 1rem;
+    }
+    .question {
+      margin-bottom: 1.7rem;
+    }
+    .radio-group {
+      margin-bottom: 1.2rem;
+    }
+    input[type="radio"] {
+      margin-right: 0.5rem;
+      accent-color: #3a7bd5;
+    }
+    button[type="submit"], button[type="button"] {
+      margin: 2.5rem auto 0 auto;
+      display: block;
+      padding: 14px 44px;
+      font-size: 1.15rem;
+      background: linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(60,60,120,0.10);
+      font-weight: 600;
+      letter-spacing: 1px;
+      transition: background 0.2s,transform 0.1s;
+    }
+    button[type="submit"]:disabled {
+      background: #ccc !important;
+      color: #666 !important;
+      cursor: not-allowed;
+      box-shadow: none;
     }
     table {
       width: 100%;
-      margin-bottom: 30px;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      background: #f8f9fa;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    th, td {
+      border: 1px solid #e0e0e0;
+      padding: 0.7rem;
+      text-align: left;
+      font-size: 1rem;
+    }
+    th {
+      background: #e9ecef;
+      color: #2a3a5a;
+      font-weight: 600;
+      text-align: center;
     }
     fieldset {
       border: 2px solid #ccc;
-      padding: 15px;
-      margin-bottom: 20px;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      background: #f8f9fa;
     }
     legend {
-      font-weight: bold;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #2a3a5a;
+      margin-bottom: 0.7rem;
     }
-    label {
-      display: block;
-      margin: 5px 0;
-    }
-    .radio-group {
-      margin-left: 20px;
-    }
-    button:disabled {
-      background-color: #ccc;
-      color: #666;
-      cursor: not-allowed;
+    @media (max-width: 600px) {
+      .wrap { padding: 1rem; }
+      h1 { font-size: 1.2rem; }
+      th, td { font-size: 0.95rem; }
     }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>Video Game Experience Questionnaire</h1>
+    <div id="qvg-timer" style="font-weight:bold; color:#b00; text-align:right; margin-bottom:1rem;"></div>
+    <h6>Please answer the following questions about your experience with video games.</h6>
+    <form id="vgexpForm" method="POST" action="/submit_qvg_survey">
+      <input type="hidden" name="qvg_data" id="qvgDataInput">
+      <!-- Personal Info Table -->
+      <table>
+        <tr>
+          <th>Laterality</th>
+          <td>
+            <label style="display:inline; margin-right:1.5rem;">
+              <input type="radio" name="laterality" value="left" required> Left
+            </label>
+            <label style="display:inline;">
+              <input type="radio" name="laterality" value="right"> Right
+            </label>
+          </td>
+          <th colspan="2">Do you know the video game Overcooked?</th>
+        </tr>
+        <tr>
+          <td colspan="2"></td>
+          <td colspan="2">
+            <input type="radio" name="knows_overcooked" value="yes" required id="overcooked_yes">
+            <label for="overcooked_yes" style="display:inline; margin-right:1.5rem;">Yes</label>
+            <input type="radio" name="knows_overcooked" value="no" id="overcooked_no">
+            <label for="overcooked_no" style="display:inline;">No</label>
+          </td>
+        </tr>
+        <tr>
+          <td>Age:</td>
+          <td><input type="number" name="age" min="0" required style="width: 60px;"></td>
+          <td>How many hours did you play this game?</td>
+          <td><input type="number" name="hours_played" min="0" required style="width: 80px;"></td>
+        </tr>
+        <tr>
+          <td>Level of education:</td>
+          <td>
+            <select name="education_level" required style="width: 95%;">
+              <option value="">Select…</option>
+              <option value="Early childhood education or no formal education">Early childhood education or no formal education</option>
+              <option value="Primary education">Primary education</option>
+              <option value="Lower secondary education">Lower secondary education</option>
+              <option value="Upper secondary education">Upper secondary education</option>
+              <option value="Post-secondary non-tertiary education">Post-secondary non-tertiary education</option>
+              <option value="Short-cycle tertiary education">Short-cycle tertiary education</option>
+              <option value="Bachelor’s or equivalent level">Bachelor’s or equivalent level</option>
+              <option value="Master’s or equivalent level">Master’s or equivalent level</option>
+              <option value="Doctoral or equivalent level">Doctoral or equivalent level</option>
+            </select>
+          </td>
+          <td>Gender:</td>
+          <td>
+            <select name="gender" required style="width: 95%;">
+              <option value="">Select…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </td>
+        </tr>
+      </table>
 
-  <form id="gameForm" method="POST" action="/submit_qvg_survey">
-    <input type="hidden" name="qvg_data" id="qvgDataInput">
-
-    <table>
-      <tr>
-        <th rowspan="2">Laterality</th>
-        <td><label><input type="radio" name="laterality" value="left" required> Left</label></td>
-        <td><label><input type="radio" name="laterality" value="right"> Right</label></td>
-        <th rowspan="2">Do you know the video game Overcooked?</th>
-        <td><label><input type="radio" name="knows_overcooked" value="yes" required> Yes</label></td>
-        <td><label><input type="radio" name="knows_overcooked" value="no"> No</label></td>
-      </tr>
-      <tr>
-        <td colspan="2">Age: <input type="number" name="age" min="0" required style="width: 60px;"></td>
-        <td colspan="2">How many hours did you play this game? <input type="number" name="hours_played" min="0" required style="width: 80px;"></td>
-      </tr>
-      <tr>
-        <td>Level of education:</td>
-        <td colspan="2"><input type="text" name="education_level" required style="width: 95%;"></td>
-        <td>Gender:</td>
-        <td colspan="2">
-          <select name="gender" required style="width: 95%;">
-            <option value="" disabled selected>Select your gender</option>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-            <option value="other">Other</option>
-          </select>
-        </td>
-      </tr>
-    </table>
-
-    <fieldset>
-      <legend>In the past 12 months, how many times have you played a video game?</legend>
-      <div class="radio-group">
-        <label><input type="radio" name="times_played" value="0" required> 0 times</label>
-        <label><input type="radio" name="times_played" value="1-10"> 1 to 10 times</label>
-        <label><input type="radio" name="times_played" value="11-30"> 11 to 30 times</label>
-        <label><input type="radio" name="times_played" value="31-60"> 31 to 60 times</label>
-        <label><input type="radio" name="times_played" value=">60"> More than 60 times</label>
+      <div class="question">
+        <label>How often do you play video games?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="frequency" value="daily" required> Daily</label>
+          <label><input type="radio" name="frequency" value="weekly"> Weekly</label>
+          <label><input type="radio" name="frequency" value="monthly"> Monthly</label>
+          <label><input type="radio" name="frequency" value="rarely"> Rarely</label>
+        </div>
       </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Currently, how much time do you spend playing video games per day?</legend>
-      <div class="radio-group">
-        <label><input type="radio" name="daily_time" value="0" required> 0 hours</label>
-        <label><input type="radio" name="daily_time" value="0-30"> 0–30 minutes</label>
-        <label><input type="radio" name="daily_time" value="30-60"> 30–60 minutes</label>
-        <label><input type="radio" name="daily_time" value="1-2"> 1 to 2 hours</label>
-        <label><input type="radio" name="daily_time" value="2-3"> 2 to 3 hours</label>
-        <label><input type="radio" name="daily_time" value="3-4"> 3 to 4 hours</label>
-        <label><input type="radio" name="daily_time" value=">4"> More than 4 hours</label>
+      <div class="question">
+        <label for="fav_genre">Favorite game genre:</label>
+        <select id="fav_genre" name="fav_genre" required>
+          <option value="">Select…</option>
+          <option value="Action">Action – fast-paced games that require quick reflexes (e.g., DOOM, Devil May Cry)</option>
+          <option value="Adventure">Adventure – story-driven games with exploration and puzzles (e.g., The Legend of Zelda)</option>
+          <option value="RPG">Role-Playing Games (RPGs) – games where players develop characters and follow narratives (e.g., Skyrim, Final Fantasy)</option>
+          <option value="Shooter">Shooter (First-Person or Third-Person) – gun-based combat games (e.g., Call of Duty, Fortnite)</option>
+          <option value="Simulation">Simulation – realistic systems or life simulations (e.g., The Sims, Flight Simulator)</option>
+          <option value="Strategy">Strategy – games requiring planning and tactical thinking (e.g., StarCraft, Civilization)</option>
+          <option value="Puzzle">Puzzle – games focused on logic and problem solving (e.g., Tetris, Portal)</option>
+          <option value="Sports">Sports – games based on real or fictional sports (e.g., FIFA, NBA 2K)</option>
+          <option value="Racing">Racing – car or vehicle-based competitive games (e.g., Mario Kart, Gran Turismo)</option>
+          <option value="Fighting">Fighting – one-on-one combat games (e.g., Street Fighter, Tekken)</option>
+          <option value="Platformer">Platformer – character jumps and navigates levels (e.g., Super Mario, Celeste)</option>
+          <option value="Horror">Horror – designed to scare or unsettle (e.g., Resident Evil, Amnesia)</option>
+          <option value="Sandbox">Sandbox / Open World – large, explorative worlds with freedom of action (e.g., Minecraft, GTA)</option>
+          <option value="MMO">Massively Multiplayer Online (MMO) – large online worlds with many players (e.g., World of Warcraft)</option>
+          <option value="Visual Novel">Visual Novel / Interactive Story – story-heavy games with branching narratives (e.g., Life is Strange)</option>
+          <option value="Rhythm">Rhythm / Music – games based on timing and music (e.g., Guitar Hero, Beat Saber)</option>
+          <option value="Idle">Idle / Incremental Games – games involving repetitive tasks and progression (e.g., Cookie Clicker)</option>
+          <option value="Party">Party / Casual Games – simple, accessible games often played socially (e.g., Among Us, Fall Guys)</option>
+          <option value="Survival">Survival / Crafting – resource management and survival mechanics (e.g., Rust, Don't Starve)</option>
+          <option value="Educational">Educational / Brain Training – games designed for learning or cognitive enhancement (e.g., Lumosity)</option>
+        </select>
       </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Do you consider yourself an active video game player?</legend>
-      <div class="radio-group">
-        <label><input type="radio" name="active_player" value="yes" required> Yes</label>
-        <label><input type="radio" name="active_player" value="no"> No</label>
+      <div class="question">
+        <label>Do you play cooperative games?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="coop" value="yes" required> Yes</label>
+          <label><input type="radio" name="coop" value="no"> No</label>
+        </div>
       </div>
-    </fieldset>
 
-    <fieldset>
-      <legend>Have you ever played intensively (2+ hrs/day for 3+ months)?</legend>
-      <div class="radio-group">
-        <label><input type="radio" name="intensive_period" value="yes" required> Yes</label>
-        <label><input type="radio" name="intensive_period" value="no"> No</label>
-      </div>
-    </fieldset>
+      <!-- New Questions -->
+      <fieldset>
+        <legend>In the past 12 months, how many times have you played a video game?</legend>
+        <div class="radio-group">
+          <label><input type="radio" name="times_played" value="0" required> 0 times</label>
+          <label><input type="radio" name="times_played" value="1-10"> 1 to 10 times</label>
+          <label><input type="radio" name="times_played" value="11-30"> 11 to 30 times</label>
+          <label><input type="radio" name="times_played" value="31-60"> 31 to 60 times</label>
+          <label><input type="radio" name="times_played" value=">60"> More than 60 times</label>
+        </div>
+      </fieldset>
 
-    <button type="submit" id="submitBtn" disabled>Next</button>
-  </form>
+      <fieldset>
+        <legend>Currently, how much time do you spend playing video games per day?</legend>
+        <div class="radio-group">
+          <label><input type="radio" name="daily_time" value="0" required> 0 hours</label>
+          <label><input type="radio" name="daily_time" value="0-30"> 0–30 minutes</label>
+          <label><input type="radio" name="daily_time" value="30-60"> 30–60 minutes</label>
+          <label><input type="radio" name="daily_time" value="1-2"> 1 to 2 hours</label>
+          <label><input type="radio" name="daily_time" value="2-3"> 2 to 3 hours</label>
+          <label><input type="radio" name="daily_time" value="3-4"> 3 to 4 hours</label>
+          <label><input type="radio" name="daily_time" value=">4"> More than 4 hours</label>
+        </div>
+      </fieldset>
 
+      <fieldset>
+        <legend>Do you consider yourself an active video game player?</legend>
+        <div class="radio-group">
+          <label><input type="radio" name="active_player" value="yes" required> Yes</label>
+          <label><input type="radio" name="active_player" value="no"> No</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Have you ever played intensively (2+ hrs/day for 3+ months)?</legend>
+        <div class="radio-group">
+          <label><input type="radio" name="intensive_period" value="yes" required> Yes</label>
+          <label><input type="radio" name="intensive_period" value="no"> No</label>
+        </div>
+      </fieldset>
+
+      <button type="submit" id="submitBtn" disabled>Submit</button>
+    </form>
+  </div>
   <script>
-    const form = document.getElementById('gameForm');
+    // Récupère la durée du timer passée par Flask
+    const timer_QVG = {{ qvg_length|default(60)}};
+    let timeLeft = timer_QVG;
+    let timerInterval = null;
+    let qvgSubmitted = false;
+
+    function updateTimerDisplay() {
+      const timerDiv = document.getElementById('qvg-timer');
+      timerDiv.textContent = `Time left: ${timeLeft}s`;
+    }
+
+    function collectFormDataWithNan() {
+      const data = {};
+      // Table fields
+      data.laterality = form.laterality ? (form.laterality.value || "nan") : "nan";
+      data.knows_overcooked = form.knows_overcooked ? (form.knows_overcooked.value || "nan") : "nan";
+      data.age = form.age ? (form.age.value || "nan") : "nan";
+      data.hours_played = form.hours_played ? (form.hours_played.value || "nan") : "nan";
+      data.education_level = form.education_level ? (form.education_level.value || "nan") : "nan";
+      data.gender = form.gender ? (form.gender.value || "nan") : "nan";
+      // Other questions
+      data.frequency = form.frequency ? (form.frequency.value || "nan") : "nan";
+      data.fav_genre = form.fav_genre ? (form.fav_genre.value || "nan") : "nan";
+      data.coop = form.coop ? (form.coop.value || "nan") : "nan";
+      data.times_played = form.times_played ? (form.times_played.value || "nan") : "nan";
+      data.daily_time = form.daily_time ? (form.daily_time.value || "nan") : "nan";
+      data.active_player = form.active_player ? (form.active_player.value || "nan") : "nan";
+      data.intensive_period = form.intensive_period ? (form.intensive_period.value || "nan") : "nan";
+      return data;
+    }
+
+    function submitQVGByTimer() {
+      if (qvgSubmitted) return;
+      qvgSubmitted = true;
+      // Remplit les champs manquants par "nan"
+      qvgDataInput.value = JSON.stringify(collectFormDataWithNan());
+      // Désactive le bouton pour éviter double soumission
+      submitBtn.disabled = true;
+      form.submit();
+    }
+
+    function startQVGTimer() {
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          submitQVGByTimer();
+        }
+      }, 1000);
+    }
+
+    // === LOGIQUE EXISTANTE ===
+    const form = document.getElementById('vgexpForm');
     const submitBtn = document.getElementById('submitBtn');
-    const qvgDataInput = document.getElementById('qvgDataInput'); // Get the hidden input
+    const qvgDataInput = document.getElementById('qvgDataInput');
+
+    function collectFormData() {
+      const data = {};
+      // Table fields
+      data.laterality = form.laterality ? form.laterality.value : '';
+      data.knows_overcooked = form.knows_overcooked ? form.knows_overcooked.value : '';
+      data.age = form.age ? form.age.value : '';
+      data.hours_played = form.hours_played ? form.hours_played.value : '';
+      data.education_level = form.education_level ? form.education_level.value : '';
+      data.gender = form.gender ? form.gender.value : '';
+      // Other questions
+      data.frequency = form.frequency ? form.frequency.value : '';
+      data.fav_genre = form.fav_genre ? form.fav_genre.value : '';
+      data.coop = form.coop ? form.coop.value : '';
+      data.times_played = form.times_played ? form.times_played.value : '';
+      data.daily_time = form.daily_time ? form.daily_time.value : '';
+      data.active_player = form.active_player ? form.active_player.value : '';
+      data.intensive_period = form.intensive_period ? form.intensive_period.value : '';
+      return data;
+    }
 
     function checkFormValidity() {
-      const requiredInputs = form.querySelectorAll('input[required]');
+      const requiredInputs = form.querySelectorAll('input[required], select[required], textarea[required]');
       let allFilled = true;
-
       requiredInputs.forEach(input => {
         const name = input.name;
         const group = form.querySelectorAll(`input[name="${name}"]`);
         const isRadioGroup = group.length > 1 && group[0].type === 'radio';
-
         if (isRadioGroup) {
           const oneChecked = Array.from(group).some(r => r.checked);
           if (!oneChecked) allFilled = false;
         } else {
-          if (!input.value.trim()) allFilled = false; // Use .trim() for text inputs
+          if (!input.value) allFilled = false;
         }
       });
       return allFilled;
     }
 
-    function collectFormData() {
-      const formData = {};
-      const inputs = form.querySelectorAll('input'); 
-      inputs.forEach(input => {
-        const name = input.name;
-        if (input.type === 'radio') {
-          if (input.checked) {
-            formData[name] = input.value;
-          }
-        } else if (input.type === 'number' || input.type === 'text') {
-          formData[name] = input.value.trim();
-        }
-        
-      });
-      return formData;
-    }
-
     form.addEventListener('input', () => {
+      if (qvgSubmitted) return;
       const allFilled = checkFormValidity();
       submitBtn.disabled = !allFilled;
-
       if (allFilled) {
-        const collectedData = collectFormData();
-        qvgDataInput.value = JSON.stringify(collectedData); // Store as JSON string in hidden input
+        qvgDataInput.value = JSON.stringify(collectFormData());
       } else {
-        qvgDataInput.value = ''; // Clear if not all required fields are filled
+        qvgDataInput.value = '';
       }
     });
 
-   
     form.addEventListener('submit', (event) => {
-        const allFilled = checkFormValidity();
-        if (allFilled) {
-            const collectedData = collectFormData();
-            qvgDataInput.value = JSON.stringify(collectedData);
-        } else {
-           
-            event.preventDefault();
-        }
+      if (qvgSubmitted) {
+        event.preventDefault();
+        return;
+      }
+      if (!checkFormValidity()) {
+        event.preventDefault();
+        return;
+      }
+      qvgSubmitted = true;
+      clearInterval(timerInterval);
+      qvgDataInput.value = JSON.stringify(collectFormData());
+      submitBtn.disabled = true;
     });
 
+    // Lance le timer au chargement
+    startQVGTimer();
   </script>
-
 </body>
 </html>
