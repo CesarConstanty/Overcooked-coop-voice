@@ -124,61 +124,83 @@
     <form id="vgexpForm" method="POST" action="/submit_qvg_survey">
       <input type="hidden" name="qvg_data" id="qvgDataInput">
       <!-- Personal Info Table -->
-      <table>
-        <tr>
-          <th>Laterality</th>
-          <td>
-            <label style="display:inline; margin-right:1.5rem;">
-              <input type="radio" name="laterality" value="left" required> Left
-            </label>
-            <label style="display:inline;">
-              <input type="radio" name="laterality" value="right"> Right
-            </label>
-          </td>
-          <th colspan="2">Do you know the video game Overcooked?</th>
-        </tr>
-        <tr>
-          <td colspan="2"></td>
-          <td colspan="2">
-            <input type="radio" name="knows_overcooked" value="yes" required id="overcooked_yes">
-            <label for="overcooked_yes" style="display:inline; margin-right:1.5rem;">Yes</label>
-            <input type="radio" name="knows_overcooked" value="no" id="overcooked_no">
-            <label for="overcooked_no" style="display:inline;">No</label>
-          </td>
-        </tr>
-        <tr>
-          <td>Age:</td>
-          <td><input type="number" name="age" min="0" required style="width: 60px;"></td>
-          <td>How many hours did you play this game?</td>
-          <td><input type="number" name="hours_played" min="0" required style="width: 80px;"></td>
-        </tr>
-        <tr>
-          <td>Level of education:</td>
-          <td>
-            <select name="education_level" required style="width: 95%;">
-              <option value="">Select…</option>
-              <option value="Early childhood education or no formal education">Early childhood education or no formal education</option>
-              <option value="Primary education">Primary education</option>
-              <option value="Lower secondary education">Lower secondary education</option>
-              <option value="Upper secondary education">Upper secondary education</option>
-              <option value="Post-secondary non-tertiary education">Post-secondary non-tertiary education</option>
-              <option value="Short-cycle tertiary education">Short-cycle tertiary education</option>
-              <option value="Bachelor’s or equivalent level">Bachelor’s or equivalent level</option>
-              <option value="Master’s or equivalent level">Master’s or equivalent level</option>
-              <option value="Doctoral or equivalent level">Doctoral or equivalent level</option>
-            </select>
-          </td>
-          <td>Gender:</td>
-          <td>
-            <select name="gender" required style="width: 95%;">
-              <option value="">Select…</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-          </td>
-        </tr>
-      </table>
+<table style="width: 100%; border-collapse: collapse;">
+  <colgroup>
+    <col style="width: 25%;">
+    <col style="width: 25%;">
+    <col style="width: 25%;">
+    <col style="width: 25%;">
+  </colgroup>
+  
+  <!-- Row 1 : Laterality (question seule) + Overcooked question -->
+  <tr>
+    <th colspan="2" style="text-align: left;">Laterality</th>
+    <th colspan="2" style="text-align: left;">Do you know the video game Overcooked?</th>
+  </tr>
+
+  <!-- Row 2 : Laterality (réponses) + Overcooked réponses sur la même ligne -->
+  <tr>
+    <td style="text-align: center;">
+      <input type="radio" name="laterality" value="left" required id="laterality_left">
+      <label for="laterality_left" style="margin-right:1.5rem;">Left</label>
+    </td>
+    <td style="text-align: center;">
+      <input type="radio" name="laterality" value="right" id="laterality_right">
+      <label for="laterality_right">Right</label>
+    </td>
+    <td style="text-align: center;">
+      <input type="radio" name="knows_overcooked" value="yes" required id="overcooked_yes">
+      <label for="overcooked_yes" style="margin-right:1.5rem;">Yes</label>
+    </td>
+    <td style="text-align: center;">
+      <input type="radio" name="knows_overcooked" value="no" id="overcooked_no">
+      <label for="overcooked_no">No</label>
+    </td>
+  </tr>
+
+  <!-- Row 3 : Age + hours played -->
+  <tr>
+    <td style="text-align: left;">Age:</td>
+    <td style="text-align: center;">
+      <input type="number" name="age" min="0" required style="width: 60px;">
+    </td>
+    <td style="text-align: left;">How many hours did you play this game?</td>
+    <td style="text-align: center;">
+      <input type="number" name="hours_played" min="0" required style="width: 80px;">
+    </td>
+  </tr>
+
+  <!-- Row 4 : Education + gender -->
+  <tr>
+    <td style="text-align: left;">Level of education:</td>
+    <td style="text-align: center;">
+      <select name="education_level" required style="width: 95%;">
+        <option value="">Select…</option>
+        <option value="Early childhood education or no formal education">Early childhood education or no formal education</option>
+        <option value="Primary education">Primary education</option>
+        <option value="Lower secondary education">Lower secondary education</option>
+        <option value="Upper secondary education">Upper secondary education</option>
+        <option value="Post-secondary non-tertiary education">Post-secondary non-tertiary education</option>
+        <option value="Short-cycle tertiary education">Short-cycle tertiary education</option>
+        <option value="Bachelor’s or equivalent level">Bachelor’s or equivalent level</option>
+        <option value="Master’s or equivalent level">Master’s or equivalent level</option>
+        <option value="Doctoral or equivalent level">Doctoral or equivalent level</option>
+      </select>
+    </td>
+    <td style="text-align: left;">Gender:</td>
+    <td style="text-align: center;">
+      <select name="gender" required style="width: 95%;">
+        <option value="">Select…</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+      </select>
+    </td>
+  </tr>
+</table>
+
+
+
 
       <div class="question">
         <label>How often do you play video games?</label>
