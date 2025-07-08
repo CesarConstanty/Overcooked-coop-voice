@@ -697,6 +697,12 @@ def transition():
 @app.route('/qex_ranking', methods=['GET'])
 @login_required
 def qex_ranking():
+    uid = current_user.uid
+    step = current_user.step
+    config_id = current_user.config["config_id"]
+    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
+    if os.path.exists(file_name):
+        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
     return render_template('preference order_en.html')
 
 @app.route('/submit_qex_ranking', methods=['POST'])
@@ -705,6 +711,10 @@ def submit_qex_ranking():
 
     uid = current_user.uid
     step = current_user.step 
+    config_id = current_user.config["config_id"]
+    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
+    if os.path.exists(file_name):
+        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
 
     form_data = {}
     form_data["step"] = step
