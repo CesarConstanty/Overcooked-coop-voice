@@ -244,7 +244,7 @@ socket.on('next_step', function () {
     var step = parseInt($('#step').text());
     var total_blocs = parseInt($('#total_blocs').text());
     // Si on vient de finir le dernier bloc, on redirige vers le ranking
-    if (step + 1 >= total_blocs) {
+    if (step + 1 > total_blocs) {
         window.location.href = "/qex_ranking";
     } else {
         location.reload();
@@ -258,6 +258,9 @@ socket.on('qpb', function () {
 });
 
 socket.on('hoffman', function () {
+    var step = parseInt($('#step').text());
+    var total_blocs = parseInt($('#total_blocs').text());
+    console.log("Signal hoffman reçu : ", hoffman_elements, " STEP : ", step );
     $("#qpb").hide();
     $("#HoffmanDisplay").show();
     $("#hoffman").show();

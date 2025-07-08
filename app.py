@@ -615,6 +615,9 @@ def instructions_explained():
 @login_required
 def planning():
     uid = current_user.uid
+    bloc_order = current_user.config["bloc_order"]
+    if current_user.step >= len(bloc_order):
+        return redirect(url_for('qex_ranking'))
     try:
         bloc_key = current_user.config["bloc_order"][current_user.step]
         condition = current_user.config["conditions"][bloc_key]
@@ -646,8 +649,8 @@ def planning():
             steps = value.get("steps", [])
             total_blocs = len(current_user.config["bloc_order"])
             # Afficher Hoffman si on est dans les steps OU si on est à l'avant-dernier bloc
-            if current_user.step in steps or (current_user.step == total_blocs - 2 and (total_blocs - 2) not in steps):
-                hoffman_elements.append(value)
+            #if current_user.step in steps or (current_user.step == total_blocs - 2 and (total_blocs - 2) not in steps):
+            hoffman_elements.append(value)
     hoffman = {"elements": hoffman_elements}
 
     # --- MODIFICATION ICI ---
@@ -1210,8 +1213,9 @@ def post_hoffman(data):
             f.close()
     except KeyError:
         pass
-    current_user.step += 1 # Permet de passer au bloc suivant
-    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
+    if current_user.step <= 6 :
+        current_user.step += 1 # Permet de passer au bloc suivant
+        current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
     socketio.emit("next_step", to=sid)
 
