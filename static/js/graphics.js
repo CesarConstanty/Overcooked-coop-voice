@@ -537,36 +537,35 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         this.currentRecipe = newRecipe;
 
-        // Génère le nom du fichier son pour la recette
-        let recipeSound = this._getRecipeSoundFile(ingredients);
-
-        // Vide la file et ajoute le son spécifique à la recette
-        this.soundQueueRecipe = [];
-        this.soundQueueRecipe.push(recipeSound);
-
+        // Lecture de l'annonce "prochaine recette" avant le son de recette
+        const recipeSound = this._getRecipeSoundFile(ingredients);
         const playNextSoundRecipe = () => {
-            if (this.isPlaying || this.soundQueueRecipe.length === 0) {
-                return;
-            }
-            let soundKey = this.soundQueueRecipe.shift();
-            this.audio.src = this.audio_loc + soundKey;
+            if (this.isPlaying || !recipeSound) return;
+            this.audio.src = this.audio_loc + recipeSound;
             this.audio.playbackRate = 1;
             this.audio.play().then(() => {
                 this.isPlaying = true;
                 this.audio.onended = () => {
                     this.isPlaying = false;
-                    playNextSoundRecipe();
                 };
-            }).catch(error => {
-                if (error.name !== 'AbortError') {
-                    console.error("Audio play failed:", error);
-                }
+            }).catch(() => {
                 this.isPlaying = false;
-                playNextSoundRecipe();
             });
         };
-
-        playNextSoundRecipe();
+        // 1. Joue l'annonce de recette
+        this.isPlaying = true;
+        this.audio.src = this.audio_loc + "annonce_recette.mp3";
+        this.audio.playbackRate = 1;
+        this.audio.play().then(() => {
+            this.audio.onended = () => {
+                this.isPlaying = false;
+                // 2. Joue ensuite le son de recette
+                playNextSoundRecipe();
+            };
+        }).catch(() => {
+            this.isPlaying = false;
+            playNextSoundRecipe();
+        });
     }
 
     _getRecipeSoundFile(ingredients) {
