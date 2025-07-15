@@ -1,5 +1,5 @@
 {
-    "mode" : "test",
+    "mode" : "pas_test",
     "logfile" : "app.log",
     "layouts" : ["cramped_room", "cramped_room_tomato", "asymmetric_advantages", "coordination_ring", "forced_coordination", "counter_circuit", "cramped_corridor", "marshmallow_experiment", "long_cook_time", "forced_coordination_tomato", "asymmetric_advantages_tomato", "marshmallow_experiment_coordination", "pipeline", "you_shall_not_pass", "tutorial_3"],
     "MAX_GAMES" : 10,
@@ -111,15 +111,7 @@
         "order_bonus" : 2,
         "max_num_ingredients" : 3,
         "infinite_all_order" : false,
-        "Game_Trial_Timer" : true,
-        "shortcut": {
-        "hoffman": true,
-        "qpb": true,
-        "qpt": true,
-        "qvg": false,
-        "ptta": true,
-        "qex": true
-    }
+        "Game_Trial_Timer" : true
     },
     "test_layout(bug__enlevel)" : {
         "mechanic" : "recipe",
