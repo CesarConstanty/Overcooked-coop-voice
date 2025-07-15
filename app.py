@@ -703,7 +703,9 @@ def qex_ranking():
     file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
     if os.path.exists(file_name):
         return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
-    return render_template('preference order_en.html')
+    
+    preference_length = current_user.config.get("preference_length", 60)
+    return render_template('preference order_en.html', preference_length=preference_length)
 
 @app.route('/submit_qex_ranking', methods=['POST'])
 @login_required
@@ -731,6 +733,7 @@ def submit_qex_ranking():
 
     # --- QEX specific data extraction ---
     ranking_json_string = request.form.get('ranking_data')
+    timeout_bool = request.form.get('timeout_bool', 'false') == 'true'
 
     if not ranking_json_string:
         print("Error: No 'ranking_data' received for QEX submission.")
@@ -741,6 +744,7 @@ def submit_qex_ranking():
         # Parse the JSON string back into a Python list
         ranking_list = json.loads(ranking_json_string)
         form_data["ranking_response"] = ranking_list # Store the QEX ranking here
+        form_data["timeout_bool"] = timeout_bool # Store whether submission was by timeout
 
     except json.JSONDecodeError:
         print(f"Error: Invalid JSON received for QEX 'ranking_data': {ranking_json_string}")
