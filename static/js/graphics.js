@@ -96,6 +96,15 @@ function graphics_reset(graphics_config) {
     game_config.scene.tileSize = 600/start_info.terrain[0].length;
     game_config.scene.start_state = start_info.state;
     game_config.scene.condition = graphics_config.condition;
+
+    // Clear audio intention queues and history at end of current trial
+    const scene = graphics.game.scene.getScene('PlayGame');
+    scene.soundQueueAsset = [];
+    scene.soundQueueRecipe = [];
+    scene.lastAssetIntentions = null;
+    scene.lastRecipeIntentions = null;
+    scene.lastIntentions = null;
+
     game_config.scene.scene.restart();
 }
 
@@ -774,7 +783,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         let terrain_to_img = {
             ' ': 'floor.png',
             'X': 'counter.png',
-            'P': 'pot.png',
+            //'P': 'pot.png',
             'O': 'onions.png',
             'T': 'tomatoes.png',
             'D': 'dishes.png',
@@ -961,7 +970,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         // 1. Joue annonce_recette.mp3
         this.isPlaying = true;
         this.audio.src = this.audio_loc + "annonce_recette.mp3";
-        this.audio.playbackRate = 1;
+        this.audio.playbackRate = 1.3;
         this.audio.play().then(() => {
             this.audio.onended = () => {
                 // 2. Joue le son de la recette complète
