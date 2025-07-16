@@ -111,6 +111,7 @@
 <body>
 
   <h2>Ranking of communications</h2>
+  <div id="preference-timer" style="font-weight:bold; color:#b00; text-align:right; margin-bottom:1rem;"></div>
   <div class="instructions">
     Drag each condition of communication into a box on the arrow, from left to right (from least to most preferred).<br>
     You may adjust your ranking at any time.<br>
@@ -131,10 +132,56 @@
 
   <form id="rankingForm" method="POST" action="/submit_qex_ranking">
     <input type="hidden" name="ranking_data" id="rankingDataInput">
+    <input type="hidden" name="timeout_bool" id="timeoutBoolInput" value="false">
     <button type="submit" id="submitBtn" disabled>Valider</button>
   </form>
 
   <script>
+    // Timer logic (similar to other questionnaires)
+    const timer_PREFERENCE = {{ preference_length|default(60) }};
+    let timeLeft = timer_PREFERENCE;
+    let timerInterval = null;
+    let preferenceSubmitted = false;
+
+    function updateTimerDisplay() {
+      const timerDiv = document.getElementById('preference-timer');
+      if (timerDiv) timerDiv.textContent = `Time left: ${timeLeft}s`;
+    }
+
+    function collectRankingDataWithNan() {
+      const slots = Array.from(document.querySelectorAll('.arrow-slot'));
+      const ranking = slots.map(slot => {
+        if (slot.hasChildNodes()) {
+          return slot.textContent.trim();
+        } else {
+          return "nan";
+        }
+      });
+      return ranking;
+    }
+
+    function submitPreferenceByTimer() {
+      if (preferenceSubmitted) return;
+      preferenceSubmitted = true;
+      const ranking = collectRankingDataWithNan();
+      rankingDataInput.value = JSON.stringify(ranking);
+      document.getElementById('timeoutBoolInput').value = "true";
+      submitBtn.disabled = true;
+      document.getElementById('rankingForm').submit();
+    }
+
+    function startPreferenceTimer() {
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          submitPreferenceByTimer();
+        }
+      }, 1000);
+    }
+
     const conditions = [
       "Assets - Visual", "Assets - Vocal",
       "Recipes - Visual", "Recipes - Vocal",
@@ -147,6 +194,7 @@
     const submitBtn = document.getElementById('submitBtn');
     const rankingDataInput = document.getElementById('rankingDataInput'); // Get the hidden input
     const rankingForm = document.getElementById('rankingForm'); // Get the form
+    const timeoutBoolInput = document.getElementById('timeoutBoolInput'); // Get the timeout input
 
     // Initial population of the bank (shuffled)
     shuffle(conditions).forEach((text, i) => {
@@ -193,6 +241,8 @@
     }
 
     function updateSubmitState() {
+      if (preferenceSubmitted) return; // Prevent any changes if already submitted
+      
       const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
       const allSlotsFilled = (filled.length === 7);
       submitBtn.disabled = !allSlotsFilled; // Enable if all slots are filled
@@ -214,6 +264,37 @@
       }
       return array;
     }
+
+    // Form submission handler to prevent double submission
+    document.getElementById('rankingForm').addEventListener('submit', function(event) {
+      if (preferenceSubmitted) {
+        event.preventDefault();
+        return;
+      }
+      
+      // Check if form is complete (manual submission)
+      const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
+      const allSlotsFilled = (filled.length === 7);
+      
+      if (!allSlotsFilled) {
+        event.preventDefault();
+        return;
+      }
+      
+      preferenceSubmitted = true;
+      clearInterval(timerInterval);
+      submitBtn.disabled = true;
+      
+      // Prepare data for manual submission
+      const ranking = Array.from(document.querySelectorAll('.arrow-slot')).map(slot => slot.textContent.trim());
+      rankingDataInput.value = JSON.stringify(ranking);
+      timeoutBoolInput.value = "false"; // Ensure manual submission is marked as such
+    });
+
+    // Start timer when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      startPreferenceTimer();
+    });
 
     // Replace onclick="submitRanking()" with form submission
     // We don't need a direct submitRanking() function call on the button anymore,

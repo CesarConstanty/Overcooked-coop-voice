@@ -715,11 +715,6 @@ class PlanningGame(OvercookedGame):
             {"playerZero": self.config["agent"], "gameTime": self.config["gameTime"]})
         super(PlanningGame, self).__init__(
             mdp_params=mdp_params, layouts=self.layouts, *args, **kwargs)
-
-    def is_finished(self): # Vérifie si le dernier essai réalisé était le dernier
-        val = self.curr_trial_in_game >= len(
-            self.layouts) - 1 and self._curr_game_over()
-        return val
   
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
@@ -993,21 +988,36 @@ class OvercookedTutorial(OvercookedGame):
         return 1
 
     def needs_reset(self):
+        reset_needed = False
         if self.curr_phase == 0:
-            return self.score > 0
+            reset_needed = self.score > 0
         elif self.curr_phase == 1:
-            return self.score > 0
+            reset_needed = self.score > 0
         elif self.curr_phase == 2:
-            return self.phase_two_finished
-        return False
-
+            # Phase 2 validée si phase_two_finished est True OU si score > 0 (condition de secours)
+            reset_needed = self.phase_two_finished or self.score > 0
+        
+        if reset_needed:
+            print(f"[TUTORIAL] Phase {self.curr_phase} completed, needs_reset = True, score = {self.score}, phase_two_finished = {self.phase_two_finished}")
+        
+        return reset_needed
+    
     def is_finished(self):
-        # = float('inf')
-        return self.curr_trial_in_game >= len(self.layouts) - 1 and self.score > 0
+        """
+        Tutorial est terminé quand on a terminé toutes les phases (curr_phase >= 3)
+        """
+        finished = self.curr_phase >= 3
+        if finished:
+            print(f"[TUTORIAL] Tutorial is finished! curr_phase = {self.curr_phase}")
+        return finished
+
 
     def reset(self):
+        print(f"[TUTORIAL] Resetting phase {self.curr_phase} -> {self.curr_phase + 1}")
         self.curr_phase += 1
         self.data = self.get_data()
+        self.score = 0  # Remettre le score à zéro à chaque phase
+        self.phase_two_finished = False  # Réinitialiser la validation de la phase 2
         super(OvercookedTutorial, self).reset()
 
     def activate(self):
@@ -1035,7 +1045,9 @@ class OvercookedTutorial(OvercookedGame):
         # Phase two requires a specific reward to complete
         if self.curr_phase == 2:
             #self.score = 0
-            if human_reward == self.phase_two_score:
+            # Validation plus robuste : accepter tout reward positif pour l'humain
+            if human_reward > 0:
+                print(f"[TUTORIAL] Phase 2 completed! Human reward: {human_reward}, setting phase_two_finished = True")
                 self.phase_two_finished = True
         transition = {
             "joint_action": json.dumps(joint_action),
