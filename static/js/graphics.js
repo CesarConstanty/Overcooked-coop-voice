@@ -11,7 +11,7 @@ Added state potential to HUD
 
 
 
-console.log("executing graphics");
+// console.log("executing graphics");
 var ANIMATION_DURATION = 50;
 
 var DIRECTION_TO_NAME = {
@@ -125,12 +125,12 @@ class GraphicsManager { // initialise et gère les graphismes du jeu
         game_config.width = 600 + scene_config.hud_size ;//scene_config.tileSize*scene_config.terrain[0].length + scene_config.hud_size;
         game_config.height = 600;//scene_config.tileSize*scene_config.terrain.length  //+ scene_config.hud_size;
         game_config.parent = graphics_config.container_id;
-        console.log(game_config)       
+        // console.log(game_config)       
         try{
             this.game = new Phaser.Game(game_config);
         }
         catch(error){
-            console.log(error);
+            // console.log(error);
             location.reload();
         }        
     }
@@ -183,7 +183,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         this.condition = config.condition;
         this.mechanic = config.mechanic;
-        console.log(config);
+        // console.log(config);
         this.Game_Trial_Timer = config.Game_Trial_Timer;
         this.show_counter_drop = config.show_counter_drop;
         this.currentRecipe = null; // Property to store the current recipe
@@ -240,25 +240,33 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             // Ajouter un event listener pour détecter les erreurs de chargement
             this.load.on('fileerror', (key) => {
                 if (key === audioKey) {
-                    console.warn(`Failed to load audio file: ${filename}`);
+                    // console.warn(`Failed to load audio file: ${filename}`);
                 }
             });
         });
     }
 
     create() {
-        // Initialize WebAudio context
-        this.initializeAudioContext();
-        
+        // Initialize basic scene elements first
         this.sprites = {};
         this.drawLevel();
+        
+        // Initialize WebAudio context and wait for buffers to load
+        this.initializeAudioContext().then(() => {
+            // console.log('Audio system fully initialized - game ready');
+            // Émettre un événement pour signaler que l'audio est prêt
+            this.events.emit('audio-ready');
+        }).catch((error) => {
+            // console.warn('Audio initialization failed, using Phaser fallback:', error);
+            this.events.emit('audio-ready'); // Continuer même en cas d'erreur
+        });
         
         // Debug audio system après initialisation (en mode développement uniquement)
         setTimeout(() => {
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 this.debugAudioSystem();
             }
-        }, 1000); // Délai pour permettre l'initialisation async
+        }, 1500); // Délai légèrement augmenté pour permettre l'initialisation async
         
         //this._drawState(this.state, this.sprites);
     }
@@ -273,21 +281,28 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             
             // Résoudre les problèmes d'autoplay policy
             if (this.audioContext.state === 'suspended') {
-                console.log('AudioContext suspended, will resume on user interaction');
+                // console.log('AudioContext suspended, will resume on user interaction');
                 // Le contexte sera repris lors de la première interaction utilisateur
                 document.addEventListener('click', () => {
                     if (this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
-                        console.log('AudioContext resumed');
+                        // console.log('AudioContext resumed');
                     }
                 }, { once: true });
             }
             
-            // Load all audio buffers
+            // Essayer d'abord la méthode principale
             await this.loadAudioBuffers();
-            console.log('WebAudio API initialized successfully');
+            
+            // Si peu de buffers ont été chargés, essayer la méthode alternative
+            if (this.audioBuffers.size < 5) {
+                // console.log('Primary loading method failed, trying alternative...');
+                await this.loadAudioBuffersAlternative();
+            }
+            
+            // console.log('WebAudio API initialized successfully');
         } catch (error) {
-            console.warn('WebAudio API not supported or failed to initialize, falling back to Phaser Audio:', error);
+            // console.warn('WebAudio API not supported or failed to initialize, falling back to Phaser Audio:', error);
             this.audioContext = null;
         }
     }
@@ -304,30 +319,84 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
         ];
         
+        // Attendre que Phaser ait fini de charger tous les fichiers audio
+        await new Promise((resolve) => {
+            if (this.load.isLoading()) {
+                this.load.once('complete', resolve);
+            } else {
+                resolve();
+            }
+        });
+        
         for (const audioKey of audioFiles) {
             try {
                 // Vérifier si le cache audio existe et contient le fichier
                 if (this.cache.audio.exists(audioKey)) {
-                    const audioBuffer = this.cache.audio.get(audioKey);
-                    
-                    // Vérifier que le buffer existe et a une propriété buffer
-                    if (audioBuffer && audioBuffer.buffer) {
-                        const arrayBuffer = audioBuffer.buffer;
+                    // Essayer de récupérer l'ArrayBuffer directement via fetch
+                    try {
+                        const response = await fetch(this.audio_loc + audioKey + '.mp3');
+                        const arrayBuffer = await response.arrayBuffer();
                         const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice());
                         this.audioBuffers.set(audioKey, decodedBuffer);
-                        console.log(`Successfully loaded audio buffer for ${audioKey}`);
-                    } else {
-                        console.warn(`Audio buffer data missing for ${audioKey}, will use Phaser fallback`);
+                        // console.log(`Successfully loaded audio buffer for ${audioKey}`);
+                    } catch (fetchError) {
+                        // console.warn(`Direct fetch failed for ${audioKey}, trying Phaser cache:`, fetchError);
+                        
+                        // Fallback: essayer d'accéder aux données Phaser
+                        const audioBuffer = this.cache.audio.get(audioKey);
+                        if (audioBuffer && audioBuffer.data) {
+                            const decodedBuffer = await this.audioContext.decodeAudioData(audioBuffer.data.slice());
+                            this.audioBuffers.set(audioKey, decodedBuffer);
+                            // console.log(`Successfully loaded audio buffer from Phaser cache for ${audioKey}`);
+                        } else {
+                            // console.warn(`Audio buffer data missing for ${audioKey}, will use Phaser fallback`);
+                        }
                     }
                 } else {
-                    console.warn(`Audio file ${audioKey} not found in cache, will use Phaser fallback`);
+                    // console.warn(`Audio file ${audioKey} not found in cache, will use Phaser fallback`);
                 }
             } catch (error) {
-                console.warn(`Failed to load audio buffer for ${audioKey}:`, error, 'Will use Phaser fallback');
+                // console.warn(`Failed to load audio buffer for ${audioKey}:`, error, 'Will use Phaser fallback');
             }
         }
         
-        console.log(`WebAudio buffers loaded: ${this.audioBuffers.size}/${audioFiles.length}`);
+        // console.log(`WebAudio buffers loaded: ${this.audioBuffers.size}/${audioFiles.length}`);
+    }
+    
+    /**
+     * Alternative method to load audio buffers more aggressively
+     */
+    async loadAudioBuffersAlternative() {
+        const audioFiles = [
+            'comptoir', 'marmite', 'oignon', 'tomate', 
+            'assiette', 'service', 'annonce_recette',
+            'recette_0o_1t', 'recette_0o_2t', 'recette_0o_3t',
+            'recette_1o_0t', 'recette_1o_1t', 'recette_1o_2t',
+            'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
+        ];
+        
+        // console.log('Loading audio buffers using alternative method...');
+        
+        const promises = audioFiles.map(async (audioKey) => {
+            try {
+                const response = await fetch(this.audio_loc + audioKey + '.mp3');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                this.audioBuffers.set(audioKey, decodedBuffer);
+                // console.log(`✓ Loaded ${audioKey} via fetch`);
+                return true;
+            } catch (error) {
+                // console.warn(`✗ Failed to load ${audioKey} via fetch:`, error);
+                return false;
+            }
+        });
+        
+        await Promise.allSettled(promises);
+        // console.log(`Alternative method: ${this.audioBuffers.size}/${audioFiles.length} buffers loaded`);
     }
     
     /**
@@ -339,6 +408,23 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             return;
         }
         
+        // Pour les sons critiques (recettes), essayer d'attendre un court délai si les buffers ne sont pas prêts
+        if ((audioKey.startsWith('recette_') || audioKey === 'annonce_recette') && !this.isAudioReady()) {
+            // Attendre maximum 500ms pour que l'audio soit prêt
+            this.waitForAudioReady(500).then(() => {
+                this._playAudioInternal(audioKey, playbackRate, volume, onComplete);
+            });
+            return;
+        }
+        
+        // Jouer immédiatement
+        this._playAudioInternal(audioKey, playbackRate, volume, onComplete);
+    }
+    
+    /**
+     * Internal method to play audio (synchronous)
+     */
+    _playAudioInternal(audioKey, playbackRate, volume, onComplete) {
         if (this.audioContext && this.audioBuffers.has(audioKey)) {
             return this.playWebAudio(audioKey, playbackRate, volume, onComplete);
         } else {
@@ -353,18 +439,18 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         try {
             // Vérifier l'état du contexte audio
             if (this.audioContext.state === 'suspended') {
-                console.log('AudioContext suspended, resuming...');
+                // console.log('AudioContext suspended, resuming...');
                 this.audioContext.resume().then(() => {
                     this.playWebAudio(audioKey, playbackRate, volume, onComplete);
                 }).catch(() => {
-                    console.warn('Failed to resume AudioContext, falling back to Phaser audio');
+                    // console.warn('Failed to resume AudioContext, falling back to Phaser audio');
                     this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
                 });
                 return;
             }
             
             if (!this.audioBuffers.has(audioKey)) {
-                console.warn(`Audio buffer not found for ${audioKey}, falling back to Phaser audio`);
+                // console.warn(`Audio buffer not found for ${audioKey}, falling back to Phaser audio`);
                 return this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
             }
             
@@ -388,7 +474,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             
             return source;
         } catch (error) {
-            console.warn('WebAudio playback failed, falling back to Phaser audio:', error);
+            // console.warn('WebAudio playback failed, falling back to Phaser audio:', error);
             return this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
         }
     }
@@ -409,7 +495,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             sound.play();
             return sound;
         } catch (error) {
-            console.warn('Phaser audio playback failed:', error);
+            // console.warn('Phaser audio playback failed:', error);
             if (onComplete) onComplete();
             return null;
         }
@@ -805,7 +891,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawScore(hud_data.score, sprites, board_height, board_width);
         }
         if (typeof(hud_data.potential) !== 'undefined' && hud_data.potential !== null) {
-            console.log(hud_data.potential)
+            // console.log(hud_data.potential)
             this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
@@ -995,6 +1081,40 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         };
         
         playNextSound();
+    }
+    
+    /**
+     * Check if audio system is fully ready
+     */
+    isAudioReady() {
+        return this.audioBuffers && this.audioBuffers.size > 0;
+    }
+    
+    /**
+     * Wait for audio system to be ready
+     */
+    waitForAudioReady(maxWaitMs = 500) {
+        return new Promise((resolve) => {
+            if (this.isAudioReady()) {
+                resolve();
+                return;
+            }
+            
+            // Listen for audio-ready event
+            const onReady = () => {
+                clearTimeout(timeoutId);
+                resolve();
+            };
+            
+            this.events.once('audio-ready', onReady);
+            
+            // Fallback timeout - beaucoup plus court
+            const timeoutId = setTimeout(() => {
+                // console.warn(`Audio ready timeout reached after ${maxWaitMs}ms, proceeding with Phaser fallback`);
+                this.events.off('audio-ready', onReady);
+                resolve();
+            }, maxWaitMs);
+        });
     }
 
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
@@ -1255,12 +1375,12 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      */
     debugAudioSystem() {
         console.group('Audio System Debug');
-        console.log('Audio enabled:', this.audioEnabled);
-        console.log('Recipe audio enabled:', this.recipeAudioEnabled);
-        console.log('Asset audio enabled:', this.assetAudioEnabled);
-        console.log('WebAudio context:', this.audioContext ? this.audioContext.state : 'null');
-        console.log('Audio buffers loaded:', this.audioBuffers.size);
-        console.log('Available audio buffers:', Array.from(this.audioBuffers.keys()));
+        // console.log('Audio enabled:', this.audioEnabled);
+        // console.log('Recipe audio enabled:', this.recipeAudioEnabled);
+        // console.log('Asset audio enabled:', this.assetAudioEnabled);
+        // console.log('WebAudio context:', this.audioContext ? this.audioContext.state : 'null');
+        // console.log('Audio buffers loaded:', this.audioBuffers.size);
+        // console.log('Available audio buffers:', Array.from(this.audioBuffers.keys()));
         
         // Vérifier les fichiers dans le cache Phaser
         const audioFiles = [
@@ -1275,7 +1395,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         audioFiles.forEach(key => {
             const exists = this.cache.audio.exists(key);
             const buffer = exists ? this.cache.audio.get(key) : null;
-            console.log(`  ${key}: exists=${exists}, hasBuffer=${buffer && buffer.buffer ? true : false}`);
+            // console.log(`  ${key}: exists=${exists}, hasBuffer=${buffer && buffer.buffer ? true : false}`);
         });
         
         console.groupEnd();
