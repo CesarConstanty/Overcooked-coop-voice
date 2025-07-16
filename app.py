@@ -482,7 +482,33 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : True
             }
-            
+            elif value =="E" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : True,
+            "asset_hud" : True,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : True
+            }
+            elif value =="Ea" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : True,
+            "motion_goal" : False,
+            "asset_sound" : True,
+            "recipe_sound" : False
+            }
+            elif value =="Er" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : True,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : True
+            }
 
     except KeyError:
         return render_template('UID_error.html')
