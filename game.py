@@ -711,10 +711,75 @@ class PlanningGame(OvercookedGame):
         self.agent_interact_count = 0
         self.human_counter_share = 0
         self.infos = []
+        
+        # Initialize trial_id for compatibility
+        self.trial_id = None
+        
+        # Initialize AI slowdown system for PlanningGame only
+        self.base_ticks_per_ai_action = self.config.get("ai_base_speed", 4)
+        self.slow_ticks_per_ai_action = self.config.get("ai_slow_speed", 12) 
+        self.slow_duration_ticks = self.config.get("ai_slow_duration", 20)
+        self.ai_slowdown_enabled = self.config.get("ai_slowdown_enabled", True)
+        self.slow_remaining_ticks = 0
+        self.last_recipe_intention = None
+        
         kwargs.update(
             {"playerZero": self.config["agent"], "gameTime": self.config["gameTime"]})
         super(PlanningGame, self).__init__(
             mdp_params=mdp_params, layouts=self.layouts, *args, **kwargs)
+        
+        # Set initial AI speed after parent initialization
+        self.ticks_per_ai_action = self.base_ticks_per_ai_action
+
+    def _update_ai_speed(self):
+        """Update AI speed based on slowdown state (PlanningGame only)."""
+        if not self.ai_slowdown_enabled:
+            self.ticks_per_ai_action = self.base_ticks_per_ai_action
+            return
+        
+        old_speed = self.ticks_per_ai_action
+        
+        if self.slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.slow_ticks_per_ai_action
+            self.slow_remaining_ticks -= 1
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed changed to SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
+        else:
+            self.ticks_per_ai_action = self.base_ticks_per_ai_action
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed returned to NORMAL: {self.ticks_per_ai_action}")
+
+    def _check_recipe_intention_change(self):
+        """Check if AI recipe intention has changed and trigger slowdown (PlanningGame only)."""
+        if not self.ai_slowdown_enabled:
+            return
+            
+        if hasattr(self, 'planning_agent_id') and self.planning_agent_id in self.npc_policies:
+            intentions = self.get_intentions(self.planning_agent_id)
+            if intentions and 'recipe' in intentions:
+                current_recipe = intentions['recipe']
+                
+                # Log current state for debugging
+                if self.curr_tick % 30 == 0:  # Log every 30 ticks to avoid spam
+                    print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: current_recipe={current_recipe}, last_recipe={self.last_recipe_intention}")
+                
+                # Si l'intention de recette a changé, déclencher le ralentissement
+                if (self.last_recipe_intention is not None and 
+                    current_recipe != self.last_recipe_intention and
+                    current_recipe is not None):
+                    print(f"[AI_SLOWDOWN] Recipe intention changed: {self.last_recipe_intention} -> {current_recipe}")
+                    print(f"[AI_SLOWDOWN] Triggering slowdown for {self.slow_duration_ticks} ticks")
+                    self.slow_remaining_ticks = self.slow_duration_ticks
+                
+                self.last_recipe_intention = current_recipe
+            else:
+                # Log when intentions are not available
+                if self.curr_tick % 60 == 0:  # Log every 60 ticks
+                    print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No recipe intentions available - intentions={intentions}")
+        else:
+            # Log when planning agent is not available
+            if self.curr_tick % 60 == 0:  # Log every 60 ticks
+                print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No planning agent available")
   
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
@@ -757,6 +822,10 @@ class PlanningGame(OvercookedGame):
         """
         Applies pending actions then logs transition data
         """
+        # Check for recipe intention changes and update AI speed (slowdown system)
+        self._check_recipe_intention_change()
+        self._update_ai_speed()
+        
         # Apply MDP logic
         prev_state, joint_action, info = super(
             PlanningGame, self).apply_actions()
@@ -976,7 +1045,7 @@ class OvercookedTutorial(OvercookedGame):
         self.config = kwargs.get("config")
         self.max_time = 0
         self.max_players = 2
-        self.ticks_per_ai_action = 8
+        self.ticks_per_ai_action = 5  # Fixed AI speed for tutorial
         self.curr_phase = 0
         self.participant_uid = kwargs.get('player_uid', '-1')
         self.trial_id = "tutorial" + str(self.curr_phase)
