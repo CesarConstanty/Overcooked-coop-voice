@@ -718,9 +718,11 @@ class PlanningGame(OvercookedGame):
         # Initialize AI slowdown system for PlanningGame only
         self.base_ticks_per_ai_action = self.config.get("ai_base_speed", 4)
         self.slow_ticks_per_ai_action = self.config.get("ai_slow_speed", 12) 
+        self.trial_start_ticks_per_ai_action = self.config.get("ai_trial_start_speed", 20)
         self.slow_duration_ticks = self.config.get("ai_slow_duration", 20)
         self.ai_slowdown_enabled = self.config.get("ai_slowdown_enabled", True)
         self.slow_remaining_ticks = 0
+        self.trial_start_slow_remaining_ticks = 0
         self.last_recipe_intention = None
         
         kwargs.update(
@@ -739,11 +741,17 @@ class PlanningGame(OvercookedGame):
         
         old_speed = self.ticks_per_ai_action
         
-        if self.slow_remaining_ticks > 0:
+        # Priority: trial start slowdown > recipe change slowdown > normal speed
+        if self.trial_start_slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
+            self.trial_start_slow_remaining_ticks -= 1
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed changed to TRIAL START SLOW: {self.ticks_per_ai_action} (remaining: {self.trial_start_slow_remaining_ticks})")
+        elif self.slow_remaining_ticks > 0:
             self.ticks_per_ai_action = self.slow_ticks_per_ai_action
             self.slow_remaining_ticks -= 1
             if old_speed != self.ticks_per_ai_action:
-                print(f"[AI_SLOWDOWN] Speed changed to SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
+                print(f"[AI_SLOWDOWN] Speed changed to RECIPE CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
         else:
             self.ticks_per_ai_action = self.base_ticks_per_ai_action
             if old_speed != self.ticks_per_ai_action:
@@ -807,6 +815,26 @@ class PlanningGame(OvercookedGame):
         self.agent_interact_count = 0
         self.human_counter_share = 0
         self.infos = []
+        
+        # Trigger automatic slowdown at trial start if enabled
+        # Note: curr_trial_in_game will be incremented by super().activate(), so we check current value
+        if self.ai_slowdown_enabled and hasattr(self, 'config'):
+            trial_start_slowdown = self.config.get("ai_trial_start_slowdown", False)
+            trial_start_duration = self.config.get("ai_trial_start_duration", 50)
+            trial_start_first_only = self.config.get("ai_trial_start_first_only", False)
+            
+            # Check if we should trigger slowdown
+            should_slowdown = trial_start_slowdown
+            if trial_start_first_only:
+                # Only slowdown on first trial of each block (curr_trial_in_game == -1 before increment)
+                should_slowdown = should_slowdown and (self.curr_trial_in_game == -1)
+            
+            if should_slowdown:
+                self.trial_start_slow_remaining_ticks = trial_start_duration
+                print(f"[AI_SLOWDOWN] Trial start slowdown triggered for {trial_start_duration} ticks at speed {self.trial_start_ticks_per_ai_action}")
+                if trial_start_first_only and self.curr_trial_in_game == -1:
+                    print(f"[AI_SLOWDOWN] First trial of block {self.step} - extended orientation time")
+        
         super().activate()
         self.trial_id = self.participant_uid + '_' + \
             str(self.step) + "_" + str(self.curr_trial_in_game)

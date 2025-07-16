@@ -5,6 +5,10 @@
     "ai_base_speed": 4,
     "ai_slow_speed": 100,
     "ai_slow_duration": 100,
+    "ai_trial_start_slowdown": true,
+    "ai_trial_start_duration": 20,
+    "ai_trial_start_speed": 100,
+    "ai_trial_start_first_only": false,
     "layouts" : ["cramped_room", "cramped_room_tomato", "asymmetric_advantages", "coordination_ring", "forced_coordination", "counter_circuit", "cramped_corridor", "marshmallow_experiment", "long_cook_time", "forced_coordination_tomato", "asymmetric_advantages_tomato", "marshmallow_experiment_coordination", "pipeline", "you_shall_not_pass", "tutorial_3"],
     "MAX_GAMES" : 10,
     "MAX_GAME_LENGTH" : 500,
@@ -117,7 +121,10 @@
         "ai_slowdown_enabled" : true,
         "ai_base_speed" : 4,
         "ai_slow_speed" : 12,
-        "ai_slow_duration" : 20
+        "ai_slow_duration" : 20,
+        "ai_trial_start_slowdown" : true,
+        "ai_trial_start_duration" : 30,
+        "ai_trial_start_first_only" : false
     },
     "test_voice_intention_layout" : {
         "mechanic" : "recipe",
@@ -173,7 +180,11 @@
         "ai_slowdown_enabled" : true,
         "ai_base_speed" : 4,
         "ai_slow_speed" : 48,
-        "ai_slow_duration" : 40
+        "ai_slow_duration" : 40,
+        "ai_trial_start_slowdown" : true,
+        "ai_trial_start_duration" : 50,
+        "ai_trial_start_first_only" : false,
+        "ai_trial_start_speed": 100
     },
     "test_layout(bug__enlevel)" : {
         "mechanic" : "recipe",
