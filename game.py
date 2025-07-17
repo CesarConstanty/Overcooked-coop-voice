@@ -711,11 +711,143 @@ class PlanningGame(OvercookedGame):
         self.agent_interact_count = 0
         self.human_counter_share = 0
         self.infos = []
+        
+        # Initialize trial_id for compatibility
+        self.trial_id = None
+        
+        # Initialize AI slowdown system for PlanningGame only
+        self.base_ticks_per_ai_action = self.config.get("ai_base_speed", 4)
+        self.slow_ticks_per_ai_action = self.config.get("ai_slow_speed", 12) 
+        self.trial_start_ticks_per_ai_action = self.config.get("ai_trial_start_speed", 20)
+        self.asset_slow_ticks_per_ai_action = self.config.get("ai_asset_slow_speed", 30)
+        self.slow_duration_ticks = self.config.get("ai_slow_duration", 20)
+        self.asset_slow_duration_ticks = self.config.get("ai_asset_slow_duration", 25)
+        self.ai_slowdown_enabled = self.config.get("ai_slowdown_enabled", True)
+        self.ai_asset_slowdown_enabled = self.config.get("ai_asset_slowdown_enabled", True)
+        self.ai_asset_slowdown_intentions = self.config.get("ai_asset_slowdown_intentions", ["O", "T", "D", "S", "P", "X"])
+        self.slow_remaining_ticks = 0
+        self.trial_start_slow_remaining_ticks = 0
+        self.asset_slow_remaining_ticks = 0
+        self.last_recipe_intention = None
+        self.last_asset_intention = None
+        
         kwargs.update(
             {"playerZero": self.config["agent"], "gameTime": self.config["gameTime"]})
         super(PlanningGame, self).__init__(
             mdp_params=mdp_params, layouts=self.layouts, *args, **kwargs)
+        
+        # Set initial AI speed after parent initialization
+        self.ticks_per_ai_action = self.base_ticks_per_ai_action
+
+    def _update_ai_speed(self):
+        """Update AI speed based on slowdown state (PlanningGame only)."""
+        if not self.ai_slowdown_enabled:
+            self.ticks_per_ai_action = self.base_ticks_per_ai_action
+            return
+        
+        old_speed = self.ticks_per_ai_action
+        
+        # Priority: trial start slowdown > asset change slowdown > recipe change slowdown > normal speed
+        if self.trial_start_slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
+            self.trial_start_slow_remaining_ticks -= 1
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed changed to TRIAL START SLOW: {self.ticks_per_ai_action} (remaining: {self.trial_start_slow_remaining_ticks})")
+        elif self.asset_slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.asset_slow_ticks_per_ai_action
+            self.asset_slow_remaining_ticks -= 1
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed changed to ASSET CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.asset_slow_remaining_ticks})")
+        elif self.slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.slow_ticks_per_ai_action
+            self.slow_remaining_ticks -= 1
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed changed to RECIPE CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
+        else:
+            self.ticks_per_ai_action = self.base_ticks_per_ai_action
+            if old_speed != self.ticks_per_ai_action:
+                print(f"[AI_SLOWDOWN] Speed returned to NORMAL: {self.ticks_per_ai_action}")
+
+    def _check_recipe_intention_change(self):
+        """Check if AI recipe intention has changed and trigger slowdown (PlanningGame only)."""
+        if not self.ai_slowdown_enabled:
+            return
+            
+        if hasattr(self, 'planning_agent_id') and self.planning_agent_id in self.npc_policies:
+            intentions = self.get_intentions(self.planning_agent_id)
+            if intentions and 'recipe' in intentions:
+                current_recipe = intentions['recipe']
+                
+                # Log current state for debugging
+                if self.curr_tick % 30 == 0:  # Log every 30 ticks to avoid spam
+                    print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: current_recipe={current_recipe}, last_recipe={self.last_recipe_intention}")
+                
+                # Si l'intention de recette a changé, déclencher le ralentissement
+                if (self.last_recipe_intention is not None and 
+                    current_recipe != self.last_recipe_intention and
+                    current_recipe is not None):
+                    print(f"[AI_SLOWDOWN] Recipe intention changed: {self.last_recipe_intention} -> {current_recipe}")
+                    print(f"[AI_SLOWDOWN] Triggering slowdown for {self.slow_duration_ticks} ticks")
+                    self.slow_remaining_ticks = self.slow_duration_ticks
+                
+                self.last_recipe_intention = current_recipe
+            else:
+                # Log when intentions are not available
+                if self.curr_tick % 60 == 0:  # Log every 60 ticks
+                    print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No recipe intentions available - intentions={intentions}")
+        else:
+            # Log when planning agent is not available
+            if self.curr_tick % 60 == 0:  # Log every 60 ticks
+                print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No planning agent available")
   
+    def _check_asset_intention_change(self):
+        """Check if AI asset/goal intention has changed and trigger slowdown (PlanningGame only)."""
+        if not self.ai_slowdown_enabled or not self.ai_asset_slowdown_enabled:
+            return
+            
+        if hasattr(self, 'planning_agent_id') and self.planning_agent_id in self.npc_policies:
+            intentions = self.get_intentions(self.planning_agent_id)
+            if intentions and 'goal' in intentions:
+                current_asset = intentions['goal']
+                
+                # Log current state for debugging
+                if self.curr_tick % 30 == 0:  # Log every 30 ticks to avoid spam
+                    print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: current_asset={current_asset}, last_asset={self.last_asset_intention}")
+                
+                # Si l'intention d'asset a changé, déclencher le ralentissement
+                if (self.last_asset_intention is not None and 
+                    current_asset != self.last_asset_intention and
+                    current_asset is not None and
+                    current_asset in self.ai_asset_slowdown_intentions):
+                    # Mapping des codes d'asset pour les logs
+                    asset_names = {'D': 'Deliver', 'O': 'Onion', 'T': 'Tomato', 'P': 'Pot', 'S': 'Soup', 'X': 'Other'}
+                    last_name = asset_names.get(self.last_asset_intention, self.last_asset_intention)
+                    current_name = asset_names.get(current_asset, current_asset)
+                    
+                    print(f"[AI_SLOWDOWN] Asset intention changed: {last_name} -> {current_name}")
+                    print(f"[AI_SLOWDOWN] Triggering asset slowdown for {self.asset_slow_duration_ticks} ticks")
+                    self.asset_slow_remaining_ticks = self.asset_slow_duration_ticks
+                elif (self.last_asset_intention is not None and 
+                      current_asset != self.last_asset_intention and
+                      current_asset is not None and
+                      current_asset not in self.ai_asset_slowdown_intentions):
+                    # Log quand l'intention change mais n'est pas dans la liste autorisée
+                    asset_names = {'D': 'Deliver', 'O': 'Onion', 'T': 'Tomato', 'P': 'Pot', 'S': 'Soup', 'X': 'Other'}
+                    last_name = asset_names.get(self.last_asset_intention, self.last_asset_intention)
+                    current_name = asset_names.get(current_asset, current_asset)
+                    print(f"[AI_SLOWDOWN] Asset intention changed: {last_name} -> {current_name} (no slowdown - not in enabled list)")
+                
+                self.last_asset_intention = current_asset
+            else:
+                # Log when intentions are not available
+                if self.curr_tick % 60 == 0:  # Log every 60 ticks
+                    print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No asset intentions available - intentions={intentions}")
+        else:
+            # Log when planning agent is not available
+            if self.curr_tick % 60 == 0:  # Log every 60 ticks
+                print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No planning agent available for asset check")
+                
+
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
             #print(self.state.all_orders)
@@ -742,6 +874,26 @@ class PlanningGame(OvercookedGame):
         self.agent_interact_count = 0
         self.human_counter_share = 0
         self.infos = []
+        
+        # Trigger automatic slowdown at trial start if enabled
+        # Note: curr_trial_in_game will be incremented by super().activate(), so we check current value
+        if self.ai_slowdown_enabled and hasattr(self, 'config'):
+            trial_start_slowdown = self.config.get("ai_trial_start_slowdown", False)
+            trial_start_duration = self.config.get("ai_trial_start_duration", 50)
+            trial_start_first_only = self.config.get("ai_trial_start_first_only", False)
+            
+            # Check if we should trigger slowdown
+            should_slowdown = trial_start_slowdown
+            if trial_start_first_only:
+                # Only slowdown on first trial of each block (curr_trial_in_game == -1 before increment)
+                should_slowdown = should_slowdown and (self.curr_trial_in_game == -1)
+            
+            if should_slowdown:
+                self.trial_start_slow_remaining_ticks = trial_start_duration
+                print(f"[AI_SLOWDOWN] Trial start slowdown triggered for {trial_start_duration} ticks at speed {self.trial_start_ticks_per_ai_action}")
+                if trial_start_first_only and self.curr_trial_in_game == -1:
+                    print(f"[AI_SLOWDOWN] First trial of block {self.step} - extended orientation time")
+        
         super().activate()
         self.trial_id = self.participant_uid + '_' + \
             str(self.step) + "_" + str(self.curr_trial_in_game)
@@ -757,6 +909,11 @@ class PlanningGame(OvercookedGame):
         """
         Applies pending actions then logs transition data
         """
+        # Check for recipe intention changes and update AI speed (slowdown system)
+        self._check_recipe_intention_change()
+        self._check_asset_intention_change()
+        self._update_ai_speed()
+        
         # Apply MDP logic
         prev_state, joint_action, info = super(
             PlanningGame, self).apply_actions()
@@ -976,7 +1133,7 @@ class OvercookedTutorial(OvercookedGame):
         self.config = kwargs.get("config")
         self.max_time = 0
         self.max_players = 2
-        self.ticks_per_ai_action = 8
+        self.ticks_per_ai_action = 5  # Fixed AI speed for tutorial
         self.curr_phase = 0
         self.participant_uid = kwargs.get('player_uid', '-1')
         self.trial_id = "tutorial" + str(self.curr_phase)
