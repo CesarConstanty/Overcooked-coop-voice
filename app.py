@@ -21,6 +21,7 @@ import logging
 import glob
 from time import gmtime, asctime, sleep, time
 from threading import Lock
+from copy import deepcopy
 from utils import ThreadSafeSet, ThreadSafeDict, questionnaire_to_surveyjs
 from flask import Flask, redirect, render_template, jsonify, request, session, url_for
 from flask_socketio import SocketIO, join_room, leave_room, emit
@@ -1279,8 +1280,50 @@ def trial_save_routine(data):
     except TypeError:
         return
     try:
+        # Créer une copie des données pour modification
+        data_copy = deepcopy(data)
+        
+        # Modifier la configuration pour :
+        # 1. Afficher les données de configuration utilisées pour l'essai sous le "bloc_order"
+        # 2. Supprimer les informations relatives au "qpb" et "hoffman"
+        if "config" in data_copy:
+            config = data_copy["config"]
+            
+            # Supprimer les sections qpb et hoffman
+            if "qpb" in config:
+                del config["qpb"]
+            if "hoffman" in config:
+                del config["hoffman"]
+            
+            # Ajouter les données de configuration pour l'essai actuel sous bloc_order
+            if "bloc_order" in config and "step" in data_copy:
+                step = data_copy["step"]
+                bloc_order = config["bloc_order"]
+                
+                # Ajouter les informations de configuration pour l'essai actuel
+                if step < len(bloc_order):
+                    current_bloc_key = bloc_order[step]
+                    
+                    # Créer une structure pour afficher les données de configuration utilisées
+                    config_for_trial = {
+                        "current_bloc": current_bloc_key,
+                        "current_step": step,
+                        "total_blocs": len(bloc_order)
+                    }
+                    
+                    # Ajouter la condition actuelle si elle existe
+                    if "conditions" in config and current_bloc_key in config["conditions"]:
+                        config_for_trial["current_condition"] = config["conditions"][current_bloc_key]
+                    
+                    # Ajouter les trials du bloc actuel si ils existent
+                    if "blocs" in config and current_bloc_key in config["blocs"]:
+                        config_for_trial["current_bloc_trials"] = config["blocs"][current_bloc_key]
+                    
+                    # Placer ces informations juste après bloc_order
+                    config["trial_config_data"] = config_for_trial
+        
         with open('trajectories/'+ data["config"].get("config_id") + "/" + data["uid"] + "/" + data['trial_id']+'.json', 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+            json.dump(data_copy, f, ensure_ascii=False, indent=4)
         f.close()
     except KeyError:
         pass
