@@ -453,7 +453,20 @@ class OvercookedGame(Game):
         return time() - self.start_time >= self.max_time
 
     def needs_reset(self):
-        return self._curr_game_over() and not self.is_finished()
+        """
+        Override needs_reset to handle the case where all_orders is empty.
+        When all orders are completed, the game should reset regardless of whether it's the last trial.
+        """
+        game_over = self._curr_game_over()
+        if not game_over:
+            return False
+        
+        # Si la partie est terminée à cause des commandes vides, on reset même si c'est le dernier essai
+        if self.mechanic == "recipe" and len(self.state.all_orders) == 0:
+            return True
+        
+        # Sinon, on utilise la logique normale (reset seulement si pas terminé)
+        return not self.is_finished()
 
     def add_player(self, player_id, idx=None, buff_size=-1, is_human=True):
         super(OvercookedGame, self).add_player(
@@ -854,6 +867,22 @@ class PlanningGame(OvercookedGame):
             return len(self.state.all_orders) == 0 or time() - self.start_time >= self.max_time
         else :
             return time() - self.start_time >= self.max_time
+    
+    def needs_reset(self):
+        """
+        Override needs_reset to handle the case where all_orders is empty.
+        When all orders are completed, the game should reset regardless of whether it's the last trial.
+        """
+        game_over = self._curr_game_over()
+        if not game_over:
+            return False
+        
+        # Si la partie est terminée à cause des commandes vides, on reset même si c'est le dernier essai
+        if self.mechanic == "recipe" and len(self.state.all_orders) == 0:
+            return True
+        
+        # Sinon, on utilise la logique normale (reset seulement si pas terminé)
+        return not self.is_finished()
     
     def game_timer(self):
         return time() - self.start_time
