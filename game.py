@@ -982,7 +982,7 @@ class PlanningGame(OvercookedGame):
             "agent_action_count": self.agent_action_count,
             "agent_stuck_loop": self.npc_policies[self.planning_agent_id].stuck_frames,
             "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch,
-            "TEST" : "JE RAJOUTE DES DONNES L741"
+            "TEST" : "données jeu via apply action de la class PlanningGame(OvercookedGame)"
 
         }
         transition.update(prev_state.to_dict())
@@ -1128,8 +1128,7 @@ class OvercookedPsiturk(OvercookedGame):
             "player_0_id": self.players[0],
             "player_1_id": self.players[1],
             "player_0_is_human": self.players[0] in self.human_players,
-            "player_1_is_human": self.players[1] in self.human_players,
-            "TEST" : "JE RAJOUTE DES DONNES L893"
+            "player_1_is_human": self.players[1] in self.human_players
         }
 
         self.trajectory.append(transition)
@@ -1249,8 +1248,7 @@ class OvercookedTutorial(OvercookedGame):
             "player_1_id": self.players[1],
             "player_0_is_human": self.players[0] in self.human_players,
             "player_1_is_human": self.players[1] in self.human_players,
-            "all_orders": self.state.all_orders,
-            "TEST" : "JE RAJOUTE DES DONNES L979"
+            "all_orders": self.state.all_orders
         }
         transition.update(prev_state.to_dict())
         self.trajectory.append(transition)
