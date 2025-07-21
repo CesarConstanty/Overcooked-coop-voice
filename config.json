@@ -76,7 +76,7 @@
     "test_voice_intention" : {
         "mechanic" : "recipe",
         "fps" : 10,
-        "layouts_dir" : "./overcooked_ai_py/data/layouts/overcooked2804",
+        "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar",
         "show_counter_drop" : true,
         "show_trial_time" : true,
         "completion_link" : "https://app.prolific.co/submissions/complete?cc=7317FC6A",
@@ -102,8 +102,8 @@
         "agent" : "Greedy",
         "conditions" : {"1" : "EAr", "0":"EA", "2":"EAa","3":"EV", "4":"EVr", "5":"EVa", "6":"U"},
         "blocs" : {
-            "0": ["trial0_0", "trial0_1", "trial0_2"],
-            "1": ["trial1_0", "trial1_1", "trial1_2"],
+            "0": ["layout_cesar_0", "layout_cesar_1", "layout_cesar_2"],
+            "1": ["layout_cesar_3", "layout_cesar_4", "layout_cesar_1"],
             "2": ["trial2_0", "trial2_1", "trial2_2"],
             "3": ["trial3_0", "trial3_1", "trial3_2"],
             "4": ["trial4_0", "trial4_1", "trial4_2"],
@@ -111,7 +111,7 @@
             "6": ["trial1_0", "trial1_1", "trial1_2"]
         },
         "shuffle_trials" : true,
-        "shuffle_blocs" : true,
+        "shuffle_blocs" : false,
         "questionnaire_post_trial" : "agency_en.html",
         "questionnaire_post_bloc":"AAT_L_en.json",
         "questionnaire_hoffman":"hoffman fluency_en.json",

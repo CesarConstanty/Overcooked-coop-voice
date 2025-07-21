@@ -1,7 +1,15 @@
 import numpy as np
 import os
+import sys
 import argparse
 import random, copy
+
+# Ajouter le répertoire parent au path pour permettre les imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from overcooked_ai_py.utils import rnd_int_uniform, rnd_uniform
 from overcooked_ai_py.mdp.actions import Action, Direction
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Recipe
@@ -34,17 +42,24 @@ prop_feats: (min, max) proportion of counters with features on them
 DEFAULT_FEATURE_TYPES = (POT, ONION_DISPENSER, DISH_DISPENSER, SERVING_LOC) # NOTE: TOMATO_DISPENSER is disabled by default
 
 DEFAULT_MDP_GEN_PARAMS = {
-    "inner_shape": (6, 5),
-    "prop_empty": 0.95,
-    "prop_feats": 0.1,
-    "start_all_orders" : [
+    "inner_shape": (10, 10),  # Taille interne du layout (largeur, hauteur)
+    "prop_empty": 0.95, # 95% d'espace vide minimum 
+    "prop_feats": 0.3,  # 10% des comptoirs avec des fonctionnalités
+    "start_all_orders" : [  # Recettes disponibles au début
         { "ingredients" : ["onion", "onion", "onion"]}
     ],
-    "feature_types" : DEFAULT_FEATURE_TYPES,
-    "recipe_values" : [20],
-    "recipe_times" : [20],
-    "display": False,
-    "intentions_sharing" : True
+    "feature_types" : DEFAULT_FEATURE_TYPES,    # Types d'éléments à placer
+    # Nombre minimum de chaque type d'objet
+    "min_pots": 1,              # Nombre minimum de casseroles
+    "min_onion_dispensers": 2,  # Nombre minimum de distributeurs d'oignons
+    "min_tomato_dispensers": 1, # Nombre minimum de distributeurs de tomates
+    "min_dish_dispensers": 2,   # Nombre minimum de distributeurs d'assiettes
+    "min_serving_locations": 1, # Nombre minimum de zones de service
+    "num_layouts_to_generate": 5, # Nombre de layouts à générer
+    "recipe_values" : [20], # Valeurs des recettes
+    "recipe_times" : [20],  # Temps de cuisson
+    "display": False,   # Affichage debug
+    "intentions_sharing" : True # Partage d'intentions entre agents
 }
 
 
@@ -98,12 +113,16 @@ class LayoutGenerator(object):
         outer_shape: outer shape of the environment
         mdp_params_schedule_fn: the schedule for varying mdp params
         """
+        # Mode 1: Layout prédéfini (outer_shape = None)
         # if outer_shape is not defined, we have to be using one of the defualt layout from names bank
         if outer_shape is None:
+            # Charge un layout existant par nom
             assert type(mdp_params) is dict and "layout_name" in mdp_params
             mdp = OvercookedGridworld.from_layout_name(**mdp_params)
             mdp_fn = lambda _ignored: mdp
+        # Mode 2: Génération procédurale (outer_shape spécifié)
         else:
+            # Crée un générateur de layout dynamique
             # there is no schedule, we are using the same set of mdp_params all the time
             if mdp_params_schedule_fn is None:
                 assert mdp_params is not None
@@ -122,7 +141,7 @@ class LayoutGenerator(object):
         Return a PADDED MDP with mdp params specified in self.mdp_params
         """
         mdp_gen_params = self.mdp_params_generator.generate(outside_information)
-
+        # Vérification des paramètres requis
         outer_shape = self.outer_shape
         if "layout_name" in mdp_gen_params.keys() and mdp_gen_params["layout_name"] is not None:
             mdp = OvercookedGridworld.from_layout_name(**mdp_gen_params)
@@ -137,13 +156,14 @@ class LayoutGenerator(object):
                 print("missing keys dict", mdp_gen_params)
             assert len(missing_keys) == 0, "These keys were missing from the mdp_params: {}".format(missing_keys)
             inner_shape = mdp_gen_params["inner_shape"]
+            # Vérification que inner_shape rentre dans outer_shape
             assert inner_shape[0] <= outer_shape[0] and inner_shape[1] <= outer_shape[1], \
                 "inner_shape cannot fit into the outershap"
             layout_generator = LayoutGenerator(self.mdp_params_generator, outer_shape=self.outer_shape)
             
             if "feature_types" not in mdp_gen_params:
                 mdp_gen_params["feature_types"] = DEFAULT_FEATURE_TYPES
-            
+            # Génération du layout
             mdp_generator_fn = lambda: layout_generator.make_new_layout(mdp_gen_params)
         return mdp_generator_fn()
     
@@ -201,21 +221,43 @@ class LayoutGenerator(object):
         return OvercookedGridworld.from_grid(mdp_grid)
 
     def make_new_layout(self, mdp_gen_params):
-        return self.make_disjoint_sets_layout(
-            inner_shape=mdp_gen_params["inner_shape"],
-            prop_empty=mdp_gen_params["prop_empty"],
-            prop_features=mdp_gen_params["prop_feats"],
-            base_param=LayoutGenerator.create_base_params(mdp_gen_params),
-            feature_types=mdp_gen_params["feature_types"],
-            display=mdp_gen_params["display"])      
+        # Extraire tous les paramètres nécessaires
+        layout_params = {
+            'inner_shape': mdp_gen_params["inner_shape"],
+            'prop_empty': mdp_gen_params["prop_empty"],
+            'prop_features': mdp_gen_params["prop_feats"],
+            'base_param': LayoutGenerator.create_base_params(mdp_gen_params),
+            'feature_types': mdp_gen_params["feature_types"],
+            'display': mdp_gen_params["display"],
+            # Nouveaux paramètres pour les nombres minimum
+            'min_pots': mdp_gen_params.get("min_pots", 1),
+            'min_onion_dispensers': mdp_gen_params.get("min_onion_dispensers", 1),
+            'min_tomato_dispensers': mdp_gen_params.get("min_tomato_dispensers", 0),
+            'min_dish_dispensers': mdp_gen_params.get("min_dish_dispensers", 1),
+            'min_serving_locations': mdp_gen_params.get("min_serving_locations", 1)
+        }
+        return self.make_disjoint_sets_layout(**layout_params)      
 
-    def make_disjoint_sets_layout(self, inner_shape, prop_empty, prop_features, base_param, feature_types=DEFAULT_FEATURE_TYPES, display=True):        
+    def make_disjoint_sets_layout(self, inner_shape, prop_empty, prop_features, base_param, feature_types=DEFAULT_FEATURE_TYPES, display=True, **kwargs):        
+        # 1. Créer une grille pleine de comptoirs
         grid = Grid(inner_shape)
+        # 2. Creuser des espaces vides connectés
         self.dig_space_with_disjoint_sets(grid, prop_empty)
-        self.add_features(grid, prop_features, feature_types)
-
+        # 3. Ajouter les fonctionnalités (casseroles, distributeurs, etc.)
+        # Extraire les paramètres de nombre minimum depuis kwargs
+        min_params = {
+            'min_pots': kwargs.get('min_pots', 1),
+            'min_onion_dispensers': kwargs.get('min_onion_dispensers', 1),
+            'min_tomato_dispensers': kwargs.get('min_tomato_dispensers', 0),
+            'min_dish_dispensers': kwargs.get('min_dish_dispensers', 1),
+            'min_serving_locations': kwargs.get('min_serving_locations', 1)
+        }
+        self.add_features(grid, prop_features, feature_types, **min_params)
+        # 4. Emballer dans une grille plus grande
         padded_grid = self.embed_grid(grid)
+        # 5. Placer les positions de départ des joueurs
         start_positions = self.get_random_starting_positions(padded_grid)
+        # 6. Convertir en format OvercookedGridworld
         mdp_grid = self.padded_grid_to_layout_grid(padded_grid, start_positions, display=display)
         return OvercookedGridworld.from_grid(mdp_grid, base_param)
 
@@ -252,19 +294,21 @@ class LayoutGenerator(object):
         return padded_grid
 
     def dig_space_with_disjoint_sets(self, grid, prop_empty):
-        dsets = DisjointSets([])
+        dsets = DisjointSets([])    # Structure de données pour connectivité
+        # Continue jusqu'à avoir assez d'espace vide ET tout connecté
         while not (grid.proportion_empty() > prop_empty and dsets.num_sets == 1):
+            # Trouve un emplacement valide à creuser
             valid_dig_location = False
             while not valid_dig_location:
-                loc = grid.get_random_interior_location()
+                loc = grid.get_random_interior_location()   # Position aléatoire interne
                 valid_dig_location = grid.is_valid_dig_location(loc)
-
+            # Creuse l'emplacement
             grid.dig(loc)
-            dsets.add_singleton(loc)
-
+            dsets.add_singleton(loc)    # Ajoute aux ensembles disjoints
+            # Connecte avec les voisins vides
             for neighbour in grid.get_near_locations(loc):
                 if dsets.contains(neighbour):
-                    dsets.union(neighbour, loc)
+                    dsets.union(neighbour, loc) # Fusionne les ensembles
 
     def make_fringe_expansion_layout(self, shape, prop_empty=0.1):
         grid = Grid(shape)
@@ -285,25 +329,52 @@ class LayoutGenerator(object):
                 if grid.is_valid_dig_location(location):
                     fringe.add(location)
 
-    def add_features(self, grid, prop_features=0, feature_types=DEFAULT_FEATURE_TYPES):
+    def add_features(self, grid, prop_features=0, feature_types=DEFAULT_FEATURE_TYPES, 
+                     min_pots=1, min_onion_dispensers=1, min_tomato_dispensers=0, 
+                     min_dish_dispensers=1, min_serving_locations=1):
         """
-        Places one round of basic features and then adds random features 
-        until prop_features of valid locations are filled"""
+        Places features according to minimum requirements and then adds random features 
+        until prop_features of valid locations are filled
+        """
 
-        valid_locations = grid.valid_feature_locations()
-        np.random.shuffle(valid_locations)
-        assert len(valid_locations) > len(feature_types)
+        valid_locations = grid.valid_feature_locations()    # Emplacements valides
+        np.random.shuffle(valid_locations)  # Mélange aléatoire
+        
+        # Dictionnaire pour mapper les types aux nombres minimum requis
+        min_requirements = {
+            POT: min_pots,
+            ONION_DISPENSER: min_onion_dispensers,
+            TOMATO_DISPENSER: min_tomato_dispensers,
+            DISH_DISPENSER: min_dish_dispensers,
+            SERVING_LOC: min_serving_locations
+        }
+        
+        # Vérifier qu'il y a assez d'emplacements pour satisfaire les exigences minimales
+        total_min_required = sum(min_requirements.values())
+        assert len(valid_locations) >= total_min_required, f"Pas assez d'emplacements valides ({len(valid_locations)}) pour satisfaire les exigences minimales ({total_min_required})"
 
         num_features_placed = 0
-        for location in valid_locations:
+        location_idx = 0
+        
+        # Phase 1: Placer le nombre minimum requis de chaque type
+        for feature_type in [POT, ONION_DISPENSER, TOMATO_DISPENSER, DISH_DISPENSER, SERVING_LOC]:
+            min_count = min_requirements.get(feature_type, 0)
+            for _ in range(min_count):
+                if location_idx < len(valid_locations):
+                    grid.add_feature(valid_locations[location_idx], feature_type)
+                    location_idx += 1
+                    num_features_placed += 1
+        
+        # Phase 2: Ajouter des fonctionnalités aléatoires selon la proportion demandée
+        while location_idx < len(valid_locations):
             current_prop = num_features_placed / len(valid_locations)
-            if num_features_placed < len(feature_types):
-                grid.add_feature(location, feature_types[num_features_placed])
-            elif current_prop >= prop_features:
+            if current_prop >= prop_features:
                 break
-            else:
-                random_feature = np.random.choice(feature_types)
-                grid.add_feature(location, random_feature)
+            
+            # Choisir un type aléatoire parmi les types disponibles
+            random_feature = np.random.choice(feature_types)
+            grid.add_feature(valid_locations[location_idx], random_feature)
+            location_idx += 1
             num_features_placed += 1
 
     def get_random_starting_positions(self, grid, divider_x=None):
@@ -318,8 +389,9 @@ class LayoutGenerator(object):
 class Grid(object):
 
     def __init__(self, shape):
+        # Matrice numpy remplie de comptoirs (code 1)
         assert len(shape) == 2, "Grid must be 2 dimensional"
-        grid = (np.ones(shape) * TYPE_TO_CODE[COUNTER]).astype(np.int)
+        grid = (np.ones(shape) * TYPE_TO_CODE[COUNTER]).astype(int)
         self.mtx = grid
         self.shape = np.array(shape)
         self.width = shape[0]
@@ -353,6 +425,7 @@ class Grid(object):
 
     def proportion_empty(self):
         flattened_grid = self.mtx.flatten()
+        # Exclut les bords (murs obligatoires)
         num_eligible = len(flattened_grid) - 2 * sum(self.shape) + 4
         num_empty = sum([1 for x in flattened_grid if x == TYPE_TO_CODE[EMPTY]])
         return float(num_empty) / num_eligible
@@ -374,10 +447,12 @@ class Grid(object):
         x, y = location
 
         # If already empty
+        # Ne peut pas creuser si déjà vide
         if self.location_is_empty(location):
             return False
 
         # If one of the edges of the map, or outside the map
+        # Ne peut pas creuser sur les bords (garde les murs extérieurs)
         if x <= 0 or y <= 0 or x >= self.shape[0] - 1 or y >= self.shape[1] - 1:
             return False
         return True
@@ -395,6 +470,7 @@ class Grid(object):
         x, y = location
 
         # If is empty or has a feature on it
+        # Doit être un comptoir
         if not self.mtx[x][y] == TYPE_TO_CODE[COUNTER]:
             return False
 
@@ -403,6 +479,7 @@ class Grid(object):
             return False
 
         # If location is next to at least one empty square
+        # Doit être adjacent à au moins un espace vide
         if any([loc for loc in self.get_near_locations(location) if CODE_TO_TYPE[self.terrain_at_loc(loc)] == EMPTY]):
             return True
         else:
@@ -448,16 +525,17 @@ class Grid(object):
 class Fringe(object):
 
     def __init__(self, grid):
-        self.fringe_list = []
-        self.distribution = []
+        self.fringe_list = []   # Liste des emplacements de frange
+        self.distribution = []  # Distribution de probabilités
         self.grid = grid
 
     def add(self, item):
         if item not in self.fringe_list:
             self.fringe_list.append(item)
-            self.update_probs()
+            self.update_probs() # Recalcule les probabilités
 
     def pop(self):
+        # Sélection probabiliste
         assert len(self.fringe_list) > 0
         choice_idx = np.random.choice(len(self.fringe_list), p=self.distribution)
         removed_pos = self.fringe_list.pop(choice_idx)
@@ -479,6 +557,7 @@ class DisjointSets(object):
     def __init__(self, elements):
         self.num_elements = len(elements)
         self.num_sets = len(elements)
+        # Chaque élément est son propre parent
         self.parents = {element: element for element in elements}
 
     def is_connected(self):
@@ -497,15 +576,17 @@ class DisjointSets(object):
         self.parents[element] = element
 
     def find(self, element):
+        # Compression de chemin pour optimisation
         parent = self.parents[element]
         if element == parent:
             return parent
 
         result = self.find(parent)
-        self.parents[element] = result
+        self.parents[element] = result  # Compression
         return result
 
     def union(self, e1, e2):
+        # Fusionne deux ensembles
         p1, p2 = map(self.find, (e1, e2))
         if p1 != p2:
             self.num_sets -= 1
@@ -514,16 +595,27 @@ class DisjointSets(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o","--output_dir", default="./random_layouts")
+    parser.add_argument("-o","--output_dir", default="./overcooked_ai_py/data/layouts")
     parser.add_argument("-p","--mdp_gen_params", default=DEFAULT_MDP_GEN_PARAMS, type=dict)
-    parser.add_argument("-n", "--num_of_layouts", default=1, type=int)
+    parser.add_argument("-n", "--num_of_layouts", default=None, type=int, 
+                        help="Nombre de layouts à générer (remplace num_layouts_to_generate si spécifié)")
     args = parser.parse_args()
+    
+    # Utiliser le paramètre en ligne de commande s'il est fourni, sinon utiliser la valeur par défaut
+    num_layouts = args.num_of_layouts if args.num_of_layouts is not None else args.mdp_gen_params.get("num_layouts_to_generate", 1)
+    
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    for i in range(args.num_of_layouts):
+    
+    print(f"Génération de {num_layouts} layout(s)...")
+    
+    for i in range(num_layouts):
         mdp_param_generator = MDPParamsGenerator(DEFAULT_PARAMS_SCHEDULE_FN)
         layout_generator = LayoutGenerator(mdp_param_generator, args.mdp_gen_params["inner_shape"])
         layout = layout_generator.make_new_layout(args.mdp_gen_params)
-        filepath=os.path.join(args.output_dir+".layout")
+        filepath = os.path.join(args.output_dir+"/generation_cesar", f"layout_cesar_{i}.layout")
         layout.to_layout_file(filepath)
+        print(f"Layout {i+1}/{num_layouts} généré: {filepath}")
+    
+    print(f"Génération terminée: {num_layouts} layout(s) créé(s) dans {args.output_dir}/")
     pass
