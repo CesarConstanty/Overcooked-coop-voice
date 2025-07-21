@@ -53,40 +53,8 @@ socket.on("connect", function () {
             model: qpb_model
         });
 
-        // --- TIMER LOGIC FOR QPB ---
-        qpbSubmitted = false;
-        let qpb_timer_val = parseInt($("#qpb_timer_value").text()) || 30;
-        let timer = qpb_timer_val;
-        // Ajoute un affichage du timer si besoin
-        if ($("#QpbDisplay").find("#qpb_timer_display").length === 0) {
-            $("#QpbDisplay").prepend('<div id="qpb_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
-        }
-        $("#qpb_timer_display").text(timer + " seconds left");
-
-        if (qpbTimerInterval) {
-            clearInterval(qpbTimerInterval);
-            qpbTimerInterval = null;
-        }
-        qpbTimerInterval = setInterval(function () {
-            timer -= 1;
-            $("#qpb_timer_display").text(timer + " seconds left");
-            if (timer <= 0) {
-                clearInterval(qpbTimerInterval);
-                qpbTimerInterval = null;
-                if (!qpbSubmitted) {
-                    // Remplit les questions non répondues avec "nan"
-                    let data = qpb_model.data;
-                    qpb_elements.elements.forEach(function (q) {
-                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
-                            data[q.name] = "nan";
-                        }
-                    });
-                    qpbSubmitted = true;
-                    qpb_model.onComplete.clear(); // Empêche double envoi
-                    socket.emit("post_qpb", { "survey_data": data });
-                }
-            }
-        }, 1000);
+        // Timer QPB sera démarré seulement quand le questionnaire s'affiche
+        window.qpb_model = qpb_model; // Rendre accessible globalement pour l'événement qpb
     }
 
     // -- Hoffman (SurveyJS)
@@ -114,41 +82,8 @@ socket.on("connect", function () {
             model: hoffman_model
         });
 
-        // --- TIMER LOGIC FOR HOFFMAN ---
-        hoffmanSubmitted = false;
-        // Utilise la même valeur que QPB, ou adapte si tu veux une valeur différente
-        let hoffman_timer_val = parseInt($("#hoffman_timer_value").text()) || 30;
-        let timer = hoffman_timer_val;
-        // Ajoute un affichage du timer si besoin
-        if ($("#HoffmanDisplay").find("#hoffman_timer_display").length === 0) {
-            $("#HoffmanDisplay").prepend('<div id="hoffman_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
-        }
-        $("#hoffman_timer_display").text(timer + " seconds left");
-
-        if (hoffmanTimerInterval) {
-            clearInterval(hoffmanTimerInterval);
-            hoffmanTimerInterval = null;
-        }
-        hoffmanTimerInterval = setInterval(function () {
-            timer -= 1;
-            $("#hoffman_timer_display").text(timer + " seconds left");
-            if (timer <= 0) {
-                clearInterval(hoffmanTimerInterval);
-                hoffmanTimerInterval = null;
-                if (!hoffmanSubmitted) {
-                    // Remplit les questions non répondues avec "nan"
-                    let data = hoffman_model.data;
-                    hoffman_elements.elements.forEach(function (q) {
-                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
-                            data[q.name] = "nan";
-                        }
-                    });
-                    hoffmanSubmitted = true;
-                    hoffman_model.onComplete.clear(); // Empêche double envoi
-                    socket.emit("post_hoffman", { "survey_data": data });
-                }
-            }
-        }, 1000);
+        // Timer Hoffman sera démarré seulement quand le questionnaire s'affiche
+        window.hoffman_model = hoffman_model; // Rendre accessible globalement pour l'événement hoffman
     }
 });
 
@@ -255,6 +190,46 @@ socket.on('qpb', function () {
     $("#qpt").hide();
     $("#QpbDisplay").show();
     $("#qpb").show();
+    
+    // Démarre le timer QPB maintenant que le questionnaire est affiché
+    if (window.qpb_model) {
+        qpbSubmitted = false;
+        let qpb_timer_val = parseInt($("#qpb_timer_value").text()) || 30;
+        let timer = qpb_timer_val;
+        
+        // Ajoute un affichage du timer si besoin
+        if ($("#QpbDisplay").find("#qpb_timer_display").length === 0) {
+            $("#QpbDisplay").prepend('<div id="qpb_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
+        }
+        $("#qpb_timer_display").text(timer + " seconds left");
+
+        if (qpbTimerInterval) {
+            clearInterval(qpbTimerInterval);
+            qpbTimerInterval = null;
+        }
+        qpbTimerInterval = setInterval(function () {
+            timer -= 1;
+            $("#qpb_timer_display").text(timer + " seconds left");
+            if (timer <= 0) {
+                clearInterval(qpbTimerInterval);
+                qpbTimerInterval = null;
+                if (!qpbSubmitted) {
+                    // Remplit les questions non répondues avec "nan"
+                    let data = window.qpb_model.data;
+                    let qpb_elements_raw = $('#qpb_elements').text();
+                    let qpb_elements = JSON.parse(qpb_elements_raw);
+                    qpb_elements.elements.forEach(function (q) {
+                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
+                            data[q.name] = "nan";
+                        }
+                    });
+                    qpbSubmitted = true;
+                    window.qpb_model.onComplete.clear(); // Empêche double envoi
+                    socket.emit("post_qpb", { "survey_data": data });
+                }
+            }
+        }, 1000);
+    }
 });
 
 socket.on('hoffman', function () {
@@ -264,5 +239,45 @@ socket.on('hoffman', function () {
     $("#qpb").hide();
     $("#HoffmanDisplay").show();
     $("#hoffman").show();
+    
+    // Démarre le timer Hoffman maintenant que le questionnaire est affiché
+    if (window.hoffman_model) {
+        hoffmanSubmitted = false;
+        let hoffman_timer_val = parseInt($("#hoffman_timer_value").text()) || 30;
+        let timer = hoffman_timer_val;
+        
+        // Ajoute un affichage du timer si besoin
+        if ($("#HoffmanDisplay").find("#hoffman_timer_display").length === 0) {
+            $("#HoffmanDisplay").prepend('<div id="hoffman_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
+        }
+        $("#hoffman_timer_display").text(timer + " seconds left");
+
+        if (hoffmanTimerInterval) {
+            clearInterval(hoffmanTimerInterval);
+            hoffmanTimerInterval = null;
+        }
+        hoffmanTimerInterval = setInterval(function () {
+            timer -= 1;
+            $("#hoffman_timer_display").text(timer + " seconds left");
+            if (timer <= 0) {
+                clearInterval(hoffmanTimerInterval);
+                hoffmanTimerInterval = null;
+                if (!hoffmanSubmitted) {
+                    // Remplit les questions non répondues avec "nan"
+                    let data = window.hoffman_model.data;
+                    let hoffman_elements_raw = $('#hoffman_elements').text();
+                    let hoffman_elements = JSON.parse(hoffman_elements_raw);
+                    hoffman_elements.elements.forEach(function (q) {
+                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
+                            data[q.name] = "nan";
+                        }
+                    });
+                    hoffmanSubmitted = true;
+                    window.hoffman_model.onComplete.clear(); // Empêche double envoi
+                    socket.emit("post_hoffman", { "survey_data": data });
+                }
+            }
+        }, 1000);
+    }
 });
 

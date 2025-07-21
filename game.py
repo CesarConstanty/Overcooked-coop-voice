@@ -1301,10 +1301,10 @@ class OvercookedTutorial(OvercookedGame):
                 "score": self.trajectory[-1]["score"],
                 "trajectory": self.trajectory,
                 "config" : self.config,
-                "show_post_trial_questionnaire": self.should_show_post_trial_questionnaire(),
-                "is_last_trial_in_bloc": self.is_last_trial_in_bloc(),
+                "show_post_trial_questionnaire": self.should_show_post_trial_questionnaire() if hasattr(self, 'should_show_post_trial_questionnaire') else False,
+                "is_last_trial_in_bloc": self.is_last_trial_in_bloc() if hasattr(self, 'is_last_trial_in_bloc') else False,
                 "curr_trial_in_game": self.curr_trial_in_game,
-                "total_trials_in_bloc": self.total_trials_in_bloc}
+                "total_trials_in_bloc": self.total_trials_in_bloc if hasattr(self, 'total_trials_in_bloc') else 1}
         self.trajectory = []
         return data
 

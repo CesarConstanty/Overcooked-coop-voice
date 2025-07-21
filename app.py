@@ -1167,8 +1167,6 @@ def post_qpt(data):
     form = {}
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
-    for key, value in data["survey_data"].items():
-        form["answer"][key] = value
     condition = current_user.config["conditions"][bloc_key]
     form["timeout_bool"] = data["timeout_bool"]
     form["step"] = current_user.step
