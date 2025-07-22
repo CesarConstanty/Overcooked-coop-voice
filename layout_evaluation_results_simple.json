@@ -1,0 +1,134 @@
+{
+  "layout_cesar_0": {
+    "layout_name": "layout_cesar_0",
+    "viable": true,
+    "structure": {
+      "width": 7,
+      "height": 7,
+      "tomato_dispensers": 1,
+      "onion_dispensers": 1,
+      "dish_dispensers": 1,
+      "pots": 1,
+      "serve_areas": 1,
+      "players": 2,
+      "walls": 20,
+      "counters": 0,
+      "viable": true,
+      "complexity_score": 5
+    },
+    "recipes": {
+      "recipes": [
+        {
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "onion_count": 3,
+          "tomato_count": 0,
+          "value": null
+        }
+      ],
+      "num_recipes": 1,
+      "total_orders": 1,
+      "requires_onions": true,
+      "requires_tomatoes": false
+    },
+    "timing": {
+      "total_evaluation_time": 0.0036568641662597656
+    },
+    "games_played": 3,
+    "evaluation_method": "structural_estimation",
+    "scores": {
+      "raw_scores": [
+        20,
+        20,
+        20
+      ],
+      "average_score": 20.0,
+      "max_score": 20,
+      "min_score": 20
+    },
+    "completion": {
+      "raw_lengths": [
+        488,
+        462,
+        467
+      ],
+      "average_length": 472.3333333333333,
+      "completed_games_count": 3,
+      "completion_rate": 1.0,
+      "average_completion_time": 472.3333333333333,
+      "fastest_completion": 462,
+      "slowest_completion": 488
+    },
+    "primary_metric": 472.3333333333333,
+    "primary_metric_name": "Temps de complétion moyen (steps)"
+  },
+  "layout_cesar_1": {
+    "layout_name": "layout_cesar_1",
+    "viable": true,
+    "structure": {
+      "width": 7,
+      "height": 7,
+      "tomato_dispensers": 1,
+      "onion_dispensers": 1,
+      "dish_dispensers": 1,
+      "pots": 1,
+      "serve_areas": 1,
+      "players": 2,
+      "walls": 20,
+      "counters": 0,
+      "viable": true,
+      "complexity_score": 5
+    },
+    "recipes": {
+      "recipes": [
+        {
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "onion_count": 3,
+          "tomato_count": 0,
+          "value": null
+        }
+      ],
+      "num_recipes": 1,
+      "total_orders": 1,
+      "requires_onions": true,
+      "requires_tomatoes": false
+    },
+    "timing": {
+      "total_evaluation_time": 0.0007810592651367188
+    },
+    "games_played": 3,
+    "evaluation_method": "structural_estimation",
+    "scores": {
+      "raw_scores": [
+        20,
+        20,
+        20
+      ],
+      "average_score": 20.0,
+      "max_score": 20,
+      "min_score": 20
+    },
+    "completion": {
+      "raw_lengths": [
+        423,
+        460,
+        456
+      ],
+      "average_length": 446.3333333333333,
+      "completed_games_count": 3,
+      "completion_rate": 1.0,
+      "average_completion_time": 446.3333333333333,
+      "fastest_completion": 423,
+      "slowest_completion": 460
+    },
+    "primary_metric": 446.3333333333333,
+    "primary_metric_name": "Temps de complétion moyen (steps)"
+  }
+}

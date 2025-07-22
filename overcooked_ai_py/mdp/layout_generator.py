@@ -42,20 +42,20 @@ prop_feats: (min, max) proportion of counters with features on them
 DEFAULT_FEATURE_TYPES = (POT, ONION_DISPENSER, DISH_DISPENSER, SERVING_LOC) # NOTE: TOMATO_DISPENSER is disabled by default
 
 DEFAULT_MDP_GEN_PARAMS = {
-    "inner_shape": (10, 10),  # Taille interne du layout (largeur, hauteur)
+    "inner_shape": (7, 7),  # Taille interne du layout (largeur, hauteur)
     "prop_empty": 0.95, # 95% d'espace vide minimum 
-    "prop_feats": 0.3,  # 10% des comptoirs avec des fonctionnalités
+    "prop_feats": 0.1,  # 10% des comptoirs avec des fonctionnalités
     "start_all_orders" : [  # Recettes disponibles au début
         { "ingredients" : ["onion", "onion", "onion"]}
     ],
     "feature_types" : DEFAULT_FEATURE_TYPES,    # Types d'éléments à placer
     # Nombre minimum de chaque type d'objet
     "min_pots": 1,              # Nombre minimum de casseroles
-    "min_onion_dispensers": 2,  # Nombre minimum de distributeurs d'oignons
+    "min_onion_dispensers": 1,  # Nombre minimum de distributeurs d'oignons
     "min_tomato_dispensers": 1, # Nombre minimum de distributeurs de tomates
-    "min_dish_dispensers": 2,   # Nombre minimum de distributeurs d'assiettes
+    "min_dish_dispensers": 1,   # Nombre minimum de distributeurs d'assiettes
     "min_serving_locations": 1, # Nombre minimum de zones de service
-    "num_layouts_to_generate": 5, # Nombre de layouts à générer
+    "num_layouts_to_generate": 20, # Nombre de layouts à générer
     "recipe_values" : [20], # Valeurs des recettes
     "recipe_times" : [20],  # Temps de cuisson
     "display": False,   # Affichage debug

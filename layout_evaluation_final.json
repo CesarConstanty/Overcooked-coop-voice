@@ -1,0 +1,174 @@
+{
+  "layout_cesar_0": {
+    "layout_name": "layout_cesar_0",
+    "viable": true,
+    "structure": {
+      "width": 7,
+      "height": 7,
+      "tomato_dispensers": 1,
+      "onion_dispensers": 1,
+      "dish_dispensers": 1,
+      "pots": 1,
+      "serve_areas": 1,
+      "players": 2,
+      "walls": 20,
+      "counters": 0,
+      "free_spaces": 24,
+      "space_density": 0.4897959183673469,
+      "viable": true,
+      "complexity_score": 5
+    },
+    "recipes": {
+      "recipes": [
+        {
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "onion_count": 3,
+          "tomato_count": 0,
+          "total_ingredients": 3,
+          "value": null
+        }
+      ],
+      "num_recipes": 1,
+      "total_orders": 1,
+      "requires_onions": true,
+      "requires_tomatoes": false,
+      "total_ingredients": 3,
+      "recipe_complexity": 3.0
+    },
+    "timing": {
+      "total_evaluation_time": 0.0037963390350341797
+    },
+    "games_played": 5,
+    "evaluation_method": "greedy_estimation",
+    "scores": {
+      "raw_scores": [
+        34,
+        34,
+        34,
+        34,
+        34
+      ],
+      "average_score": 34.0,
+      "max_score": 34,
+      "min_score": 34,
+      "total_score": 170
+    },
+    "completion": {
+      "raw_lengths": [
+        260,
+        251,
+        267,
+        260,
+        265
+      ],
+      "average_length": 260.6,
+      "completed_games_count": 5,
+      "completion_rate": 1.0,
+      "completion_threshold": 800.0,
+      "average_completion_time": 260.6,
+      "fastest_completion": 251,
+      "slowest_completion": 267,
+      "completion_std": 5.535341001239218
+    },
+    "primary_metric": 260.6,
+    "primary_metric_name": "Temps de complétion moyen (steps)",
+    "estimation_details": {
+      "base_time": 150,
+      "movement_factor": 42,
+      "recipe_complexity": 75,
+      "cooperation_factor": 0.8,
+      "congestion_factor": 1.2551020408163265,
+      "final_estimated_time": 268.0897959183674
+    }
+  },
+  "layout_cesar_1": {
+    "layout_name": "layout_cesar_1",
+    "viable": true,
+    "structure": {
+      "width": 7,
+      "height": 7,
+      "tomato_dispensers": 1,
+      "onion_dispensers": 1,
+      "dish_dispensers": 1,
+      "pots": 1,
+      "serve_areas": 1,
+      "players": 2,
+      "walls": 20,
+      "counters": 0,
+      "free_spaces": 24,
+      "space_density": 0.4897959183673469,
+      "viable": true,
+      "complexity_score": 5
+    },
+    "recipes": {
+      "recipes": [
+        {
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "onion_count": 3,
+          "tomato_count": 0,
+          "total_ingredients": 3,
+          "value": null
+        }
+      ],
+      "num_recipes": 1,
+      "total_orders": 1,
+      "requires_onions": true,
+      "requires_tomatoes": false,
+      "total_ingredients": 3,
+      "recipe_complexity": 3.0
+    },
+    "timing": {
+      "total_evaluation_time": 0.0008256435394287109
+    },
+    "games_played": 5,
+    "evaluation_method": "greedy_estimation",
+    "scores": {
+      "raw_scores": [
+        34,
+        34,
+        35,
+        34,
+        34
+      ],
+      "average_score": 34.2,
+      "max_score": 35,
+      "min_score": 34,
+      "total_score": 171
+    },
+    "completion": {
+      "raw_lengths": [
+        267,
+        285,
+        243,
+        274,
+        255
+      ],
+      "average_length": 264.8,
+      "completed_games_count": 5,
+      "completion_rate": 1.0,
+      "completion_threshold": 800.0,
+      "average_completion_time": 264.8,
+      "fastest_completion": 243,
+      "slowest_completion": 285,
+      "completion_std": 14.620533505997654
+    },
+    "primary_metric": 264.8,
+    "primary_metric_name": "Temps de complétion moyen (steps)",
+    "estimation_details": {
+      "base_time": 150,
+      "movement_factor": 42,
+      "recipe_complexity": 75,
+      "cooperation_factor": 0.8,
+      "congestion_factor": 1.2551020408163265,
+      "final_estimated_time": 268.0897959183674
+    }
+  }
+}

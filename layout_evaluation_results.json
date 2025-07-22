@@ -1,0 +1,14 @@
+{
+  "layout_cesar_0": {
+    "layout_name": "layout_cesar_0",
+    "viable": false,
+    "error": "setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (6,) + inhomogeneous part.",
+    "evaluation_time": 5.796562194824219
+  },
+  "layout_cesar_1": {
+    "layout_name": "layout_cesar_1",
+    "viable": false,
+    "error": "setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (6,) + inhomogeneous part.",
+    "evaluation_time": 6.26041841506958
+  }
+}
