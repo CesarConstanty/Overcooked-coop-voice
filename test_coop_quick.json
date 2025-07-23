@@ -1,0 +1,234 @@
+{
+  "evaluation_config": {
+    "layouts_directory": "./overcooked_ai_py/data/layouts/generation_cesar/",
+    "horizon": 200,
+    "num_games_per_layout": 2,
+    "target_fps": 20.0,
+    "max_stuck_frames": 30,
+    "single_agent_mode": false,
+    "greedy_with_stay_mode": false
+  },
+  "evaluation_timestamp": 1753278937.5161886,
+  "data_type": "layout_aggregated_metrics",
+  "results": {
+    "layout_cesar_0": {
+      "layout_name": "layout_cesar_0",
+      "viable": true,
+      "evaluation_method": "greedy_agent_simulation",
+      "structure": {
+        "width": 7,
+        "height": 7,
+        "area": 49,
+        "initial_orders": 3,
+        "player_count": 2,
+        "tomato_dispensers": 1,
+        "onion_dispensers": 1,
+        "dish_dispensers": 1,
+        "pots": 1,
+        "serve_areas": 1,
+        "counters": 20,
+        "walls": 20
+      },
+      "games_played": 2,
+      "games_completed": 0,
+      "completion_rate": 0.0,
+      "timing": {
+        "total_evaluation_time": 22.175687551498413,
+        "total_simulation_time": 20.16575527191162,
+        "average_game_duration": 10.08287763595581
+      },
+      "agent_metrics": {
+        "agent_0": {
+          "average_actions_per_game": 200.0,
+          "total_actions": 400,
+          "actions_per_step": 1.0
+        },
+        "agent_1": {
+          "average_actions_per_game": 200.0,
+          "total_actions": 400,
+          "actions_per_step": 1.0
+        }
+      },
+      "primary_metric": 300,
+      "primary_metric_name": "Aucune complétion",
+      "performance_metrics": {
+        "average_steps": 200.0,
+        "median_steps": 200.0,
+        "average_reward": 0.0,
+        "total_reward": 0,
+        "actual_fps": {
+          "average": 19.847272210211074,
+          "median": 19.847272210211074,
+          "min": 19.366107902911725,
+          "max": 20.328436517510426
+        },
+        "measured_fps": {
+          "average": 2104.371059700981,
+          "median": 2104.371059700981
+        }
+      },
+      "behavioral_analysis": {
+        "total_games_analyzed": 2,
+        "aggregated_events": {
+          "tomato_pickup": [
+            0,
+            0
+          ],
+          "useful_tomato_pickup": [
+            0,
+            0
+          ],
+          "tomato_drop": [
+            0,
+            0
+          ],
+          "useful_tomato_drop": [
+            0,
+            0
+          ],
+          "potting_tomato": [
+            0,
+            0
+          ],
+          "tomato_exchange": [
+            0,
+            0
+          ],
+          "onion_pickup": [
+            47,
+            47
+          ],
+          "useful_onion_pickup": [
+            47,
+            47
+          ],
+          "onion_drop": [
+            43,
+            43
+          ],
+          "useful_onion_drop": [
+            1,
+            1
+          ],
+          "potting_onion": [
+            3,
+            3
+          ],
+          "onion_exchange": [
+            0,
+            0
+          ],
+          "dish_pickup": [
+            1,
+            1
+          ],
+          "useful_dish_pickup": [
+            1,
+            1
+          ],
+          "dish_drop": [
+            0,
+            0
+          ],
+          "useful_dish_drop": [
+            0,
+            0
+          ],
+          "dish_exchange": [
+            0,
+            0
+          ],
+          "soup_pickup": [
+            0,
+            0
+          ],
+          "soup_delivery": [
+            0,
+            0
+          ],
+          "soup_drop": [
+            0,
+            0
+          ],
+          "soup_exchange": [
+            0,
+            0
+          ],
+          "optimal_onion_potting": [
+            3,
+            3
+          ],
+          "optimal_tomato_potting": [
+            0,
+            0
+          ],
+          "viable_onion_potting": [
+            3,
+            3
+          ],
+          "viable_tomato_potting": [
+            0,
+            0
+          ],
+          "catastrophic_onion_potting": [
+            0,
+            0
+          ],
+          "catastrophic_tomato_potting": [
+            0,
+            0
+          ],
+          "useless_onion_potting": [
+            0,
+            0
+          ],
+          "useless_tomato_potting": [
+            0,
+            0
+          ]
+        },
+        "average_interactions_per_game": [
+          47.5,
+          47.5
+        ],
+        "average_distance_per_game": [
+          107.5,
+          107.5
+        ],
+        "total_collaboration_events": 0,
+        "average_collaboration_per_game": 0.0,
+        "efficiency_analysis": {
+          "agent_0": {
+            "pickup_efficiency": 1.0,
+            "potting_efficiency": 2.0,
+            "actions_per_step": 0.2375,
+            "movement_per_step": 0.5375000000000001
+          },
+          "agent_1": {
+            "pickup_efficiency": 1.0,
+            "potting_efficiency": 2.0,
+            "actions_per_step": 0.2375,
+            "movement_per_step": 0.5375000000000001
+          },
+          "team": {
+            "collaboration_per_delivery": 0.0
+          }
+        },
+        "behavioral_insights": {
+          "agent_activity": {
+            "interaction_ratio_0_to_1": 1.0,
+            "more_active_agent": 1,
+            "activity_balance": 1.0
+          },
+          "action_patterns": {
+            "total_pickups": 96,
+            "total_pottings": 6,
+            "pickups_per_game": 48.0,
+            "pottings_per_game": 3.0,
+            "pickup_to_potting_ratio": 16.0
+          }
+        }
+      }
+    }
+  }
+}

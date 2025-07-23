@@ -1,0 +1,359 @@
+{
+  "evaluation_config": {
+    "layouts_directory": "./overcooked_ai_py/data/layouts/generation_cesar/",
+    "horizon": 600,
+    "num_games_per_layout": 5,
+    "target_fps": 10.0,
+    "max_stuck_frames": 50,
+    "single_agent_mode": false,
+    "greedy_with_stay_mode": true
+  },
+  "evaluation_timestamp": 1753285774.9364028,
+  "data_type": "layout_aggregated_metrics",
+  "results": {
+    "layout_cesar_0": {
+      "layout_name": "layout_cesar_0",
+      "viable": true,
+      "evaluation_method": "greedy_agent_simulation",
+      "structure": {
+        "width": 7,
+        "height": 7,
+        "area": 49,
+        "initial_orders": 3,
+        "player_count": 2,
+        "tomato_dispensers": 1,
+        "onion_dispensers": 1,
+        "dish_dispensers": 1,
+        "pots": 1,
+        "serve_areas": 1,
+        "counters": 20,
+        "walls": 20
+      },
+      "games_played": 5,
+      "games_completed": 5,
+      "completion_rate": 1.0,
+      "timing": {
+        "total_evaluation_time": 98.63595843315125,
+        "total_simulation_time": 96.53595685958862,
+        "average_game_duration": 19.307191371917725
+      },
+      "agent_metrics": {
+        "agent_0": {
+          "average_actions_per_game": 194.6,
+          "total_actions": 973,
+          "actions_per_step": 1.0
+        },
+        "agent_1": {
+          "average_actions_per_game": 194.6,
+          "total_actions": 973,
+          "actions_per_step": 1.0
+        }
+      },
+      "completion_metrics": {
+        "average_completion_steps": 194.6,
+        "median_completion_steps": 195.0,
+        "fastest_completion_steps": 191,
+        "slowest_completion_steps": 197,
+        "std_completion_steps": 2.33238075793812,
+        "average_completion_time_seconds": 19.307191371917725,
+        "median_completion_time_seconds": 19.133702754974365
+      },
+      "primary_metric": 194.6,
+      "primary_metric_name": "Temps de complétion moyen (steps)",
+      "performance_metrics": {
+        "average_steps": 194.6,
+        "median_steps": 195.0,
+        "average_reward": 123.0,
+        "total_reward": 615,
+        "actual_fps": {
+          "average": 10.082551261140273,
+          "median": 10.189812343589814,
+          "min": 9.864312564605337,
+          "max": 10.203028861884745
+        },
+        "measured_fps": {
+          "average": 3106.7464884771034,
+          "median": 3104.8770806453954
+        }
+      },
+      "behavioral_analysis": {
+        "completion_analysis": "successful_completion_found",
+        "total_attempts": 5,
+        "successful_completions": 5,
+        "success_rate": 1.0,
+        "completion_patterns": {
+          "temporal_progression": [
+            {
+              "total_steps": 193,
+              "soup_deliveries": 3,
+              "deliveries_per_step": 0.015544041450777202,
+              "efficiency_score": 1.5544041450777202,
+              "agent_balance": {
+                "balance_type": "specialized_roles",
+                "balance_score": 0.0,
+                "agent_0_contribution": 1.0,
+                "agent_1_contribution": 0.0
+              }
+            },
+            {
+              "total_steps": 191,
+              "soup_deliveries": 3,
+              "deliveries_per_step": 0.015706806282722512,
+              "efficiency_score": 1.5706806282722514,
+              "agent_balance": {
+                "balance_type": "specialized_roles",
+                "balance_score": 0.0,
+                "agent_0_contribution": 1.0,
+                "agent_1_contribution": 0.0
+              },
+              "pattern_identification": "optimal_speed_efficiency_combination"
+            },
+            {
+              "total_steps": 197,
+              "soup_deliveries": 3,
+              "deliveries_per_step": 0.015228426395939087,
+              "efficiency_score": 1.5228426395939088,
+              "agent_balance": {
+                "balance_type": "specialized_roles",
+                "balance_score": 0.0,
+                "agent_0_contribution": 1.0,
+                "agent_1_contribution": 0.0
+              }
+            },
+            {
+              "total_steps": 195,
+              "soup_deliveries": 3,
+              "deliveries_per_step": 0.015384615384615385,
+              "efficiency_score": 1.5384615384615385,
+              "agent_balance": {
+                "balance_type": "specialized_roles",
+                "balance_score": 0.0,
+                "agent_0_contribution": 1.0,
+                "agent_1_contribution": 0.0
+              }
+            },
+            {
+              "total_steps": 197,
+              "soup_deliveries": 3,
+              "deliveries_per_step": 0.015228426395939087,
+              "efficiency_score": 1.5228426395939088,
+              "agent_balance": {
+                "balance_type": "specialized_roles",
+                "balance_score": 0.0,
+                "agent_0_contribution": 1.0,
+                "agent_1_contribution": 0.0
+              }
+            }
+          ],
+          "critical_events_sequence": [
+            {
+              "event_counts": {
+                "pickup_phase": 7,
+                "preparation_phase": 7,
+                "cooking_phase": 3,
+                "delivery_phase": 3
+              },
+              "phase_efficiency": {
+                "pickup_phase": 2.3333333333333335,
+                "preparation_phase": 2.3333333333333335,
+                "cooking_phase": 1.0,
+                "delivery_phase": 1.0
+              },
+              "bottleneck_phase": "cooking_phase"
+            },
+            {
+              "event_counts": {
+                "pickup_phase": 7,
+                "preparation_phase": 7,
+                "cooking_phase": 3,
+                "delivery_phase": 3
+              },
+              "phase_efficiency": {
+                "pickup_phase": 2.3333333333333335,
+                "preparation_phase": 2.3333333333333335,
+                "cooking_phase": 1.0,
+                "delivery_phase": 1.0
+              },
+              "bottleneck_phase": "cooking_phase"
+            },
+            {
+              "event_counts": {
+                "pickup_phase": 7,
+                "preparation_phase": 7,
+                "cooking_phase": 3,
+                "delivery_phase": 3
+              },
+              "phase_efficiency": {
+                "pickup_phase": 2.3333333333333335,
+                "preparation_phase": 2.3333333333333335,
+                "cooking_phase": 1.0,
+                "delivery_phase": 1.0
+              },
+              "bottleneck_phase": "cooking_phase"
+            },
+            {
+              "event_counts": {
+                "pickup_phase": 7,
+                "preparation_phase": 7,
+                "cooking_phase": 3,
+                "delivery_phase": 3
+              },
+              "phase_efficiency": {
+                "pickup_phase": 2.3333333333333335,
+                "preparation_phase": 2.3333333333333335,
+                "cooking_phase": 1.0,
+                "delivery_phase": 1.0
+              },
+              "bottleneck_phase": "cooking_phase"
+            },
+            {
+              "event_counts": {
+                "pickup_phase": 7,
+                "preparation_phase": 7,
+                "cooking_phase": 3,
+                "delivery_phase": 3
+              },
+              "phase_efficiency": {
+                "pickup_phase": 2.3333333333333335,
+                "preparation_phase": 2.3333333333333335,
+                "cooking_phase": 1.0,
+                "delivery_phase": 1.0
+              },
+              "bottleneck_phase": "cooking_phase"
+            }
+          ],
+          "coordination_patterns": [
+            {
+              "coordination_type": "minimal_coordination",
+              "exchanges_per_delivery": 0.0,
+              "total_exchanges": 0,
+              "exchange_breakdown": {
+                "tomato_exchange": 0,
+                "onion_exchange": 0,
+                "dish_exchange": 0,
+                "soup_exchange": 0
+              }
+            },
+            {
+              "coordination_type": "minimal_coordination",
+              "exchanges_per_delivery": 0.0,
+              "total_exchanges": 0,
+              "exchange_breakdown": {
+                "tomato_exchange": 0,
+                "onion_exchange": 0,
+                "dish_exchange": 0,
+                "soup_exchange": 0
+              }
+            },
+            {
+              "coordination_type": "minimal_coordination",
+              "exchanges_per_delivery": 0.0,
+              "total_exchanges": 0,
+              "exchange_breakdown": {
+                "tomato_exchange": 0,
+                "onion_exchange": 0,
+                "dish_exchange": 0,
+                "soup_exchange": 0
+              }
+            },
+            {
+              "coordination_type": "minimal_coordination",
+              "exchanges_per_delivery": 0.0,
+              "total_exchanges": 0,
+              "exchange_breakdown": {
+                "tomato_exchange": 0,
+                "onion_exchange": 0,
+                "dish_exchange": 0,
+                "soup_exchange": 0
+              }
+            },
+            {
+              "coordination_type": "minimal_coordination",
+              "exchanges_per_delivery": 0.0,
+              "total_exchanges": 0,
+              "exchange_breakdown": {
+                "tomato_exchange": 0,
+                "onion_exchange": 0,
+                "dish_exchange": 0,
+                "soup_exchange": 0
+              }
+            }
+          ],
+          "efficiency_progression": [],
+          "dominant_strategy": {
+            "total_steps": 191,
+            "soup_deliveries": 3,
+            "deliveries_per_step": 0.015706806282722512,
+            "efficiency_score": 1.5706806282722514,
+            "agent_balance": {
+              "balance_type": "specialized_roles",
+              "balance_score": 0.0,
+              "agent_0_contribution": 1.0,
+              "agent_1_contribution": 0.0
+            },
+            "pattern_identification": "optimal_speed_efficiency_combination"
+          }
+        },
+        "layout_characteristics": {
+          "layout_difficulty": "easy",
+          "required_coordination_level": "minimal",
+          "bottleneck_identification": [],
+          "optimal_agent_roles": {
+            "agent_0": "primary_deliverer",
+            "agent_1": "support_prep"
+          },
+          "layout_specific_strategies": [
+            "agent_0_specializes_delivery",
+            "agent_0_specializes_preparation",
+            "low_coordination_strategy"
+          ]
+        },
+        "optimal_strategies": {
+          "fastest_completion_strategy": {
+            "completion_time": 191,
+            "total_reward": 123,
+            "agent_balance": {
+              "agent_0_share": 1.0,
+              "agent_1_share": 0.0,
+              "balance_score": 0.0
+            },
+            "coordination_level": 0.0,
+            "efficiency_metrics": {
+              "avg_pickup_efficiency": 0.38461538461538464,
+              "avg_potting_efficiency": 0.7857142857142857
+            }
+          },
+          "most_efficient_strategy": {
+            "completion_time": 191,
+            "total_reward": 123,
+            "agent_balance": {
+              "agent_0_share": 1.0,
+              "agent_1_share": 0.0,
+              "balance_score": 0.0
+            },
+            "coordination_level": 0.0,
+            "efficiency_metrics": {
+              "avg_pickup_efficiency": 0.38461538461538464,
+              "avg_potting_efficiency": 0.7857142857142857
+            }
+          },
+          "most_consistent_strategy": null,
+          "strategy_recommendations": [
+            "Layout solvable with independent agent strategies"
+          ]
+        },
+        "strategy_consistency": {
+          "strategy_variance": 0.00599275631536002,
+          "dominant_pattern_percentage": 1.0,
+          "layout_determinism": "highly_deterministic",
+          "alternative_strategies_count": 1
+        },
+        "completion_variability": {
+          "steps_variability": 0.01198551263072004,
+          "strategy_diversity": 0.005431977874575389,
+          "performance_consistency": 1.0
+        }
+      }
+    }
+  }
+}

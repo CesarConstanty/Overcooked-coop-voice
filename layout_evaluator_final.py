@@ -211,9 +211,23 @@ class LayoutEvaluator:
         fps_measurements = []
         step_times = []
         
+        # Métriques comportementales détaillées (inspirées de game.py)
+        event_infos_history = []
+        behavioral_metrics = {
+            'interactions_count': [0, 0],  # Nombre d'interactions par agent
+            'stuck_loops': [0, 0],         # Nombre de fois bloqué par agent
+            'movement_efficiency': [0, 0],  # Efficacité de mouvement
+            'total_distance_traveled': [0, 0], # Distance totale parcourue
+            'task_completion_order': [],    # Ordre de complétion des tâches
+            'collaboration_events': 0,      # Événements de collaboration
+        }
+        
         try:
             # État initial - adapté selon le mode
             state = mdp.get_standard_start_state()
+            
+            # Stocker une référence au MDP pour les corrections de bugs
+            self._current_mdp = mdp
             
             if self.single_agent:
                 print(f"      🤖 Mode SOLO: Joueur 0 actif en {state.players[0].position}, Joueur 1 inactif en {state.players[1].position}")
@@ -260,6 +274,33 @@ class LayoutEvaluator:
                 # Exécuter l'action avec la logique Overcooked
                 next_state, info = mdp.get_state_transition(state, joint_action)
                 
+                # Collecter les métriques comportementales
+                event_infos = info.get('event_infos', {})
+                
+                # CORRECTION BUG OVERCOOKED AI: Les pickups de tomates ne sont pas loggés
+                # Nous devons détecter manuellement quand un agent ramasse une tomate
+                self._fix_missing_tomato_pickup_events(event_infos, state, next_state)
+                
+                event_infos_history.append(event_infos)
+                
+                # Analyser les interactions
+                for agent_idx, action in enumerate(joint_action):
+                    if action == Action.INTERACT:
+                        behavioral_metrics['interactions_count'][agent_idx] += 1
+                    
+                    # Calculer la distance parcourue
+                    if step > 0:  # Pas de calcul au premier step
+                        prev_pos = state.players[agent_idx].position
+                        new_pos = next_state.players[agent_idx].position
+                        distance = abs(new_pos[0] - prev_pos[0]) + abs(new_pos[1] - prev_pos[1])
+                        behavioral_metrics['total_distance_traveled'][agent_idx] += distance
+                
+                # Détecter les événements de collaboration (transferts d'objets)
+                for event_type in ['tomato_exchange', 'onion_exchange', 'dish_exchange', 'soup_exchange']:
+                    if event_type in event_infos:
+                        if any(event_infos[event_type]):
+                            behavioral_metrics['collaboration_events'] += 1
+                
                 # Calculer la récompense
                 step_reward = sum(info['sparse_reward_by_agent'])
                 total_reward += step_reward
@@ -267,8 +308,9 @@ class LayoutEvaluator:
                 # Vérifier les commandes complétées
                 current_orders = len(next_state.all_orders)
                 if current_orders < len(state.all_orders):
-                    completed_orders += (len(state.all_orders) - current_orders)
-                    print(f"      ✅ Commande complétée! Total: {completed_orders}")
+                    orders_just_completed = len(state.all_orders) - current_orders
+                    completed_orders += orders_just_completed
+                    print(f"      ✅ {orders_just_completed} commande(s) complétée(s)! Total: {completed_orders}")
                 
                 # Vérifier si toutes les commandes sont complétées
                 if len(next_state.all_orders) == 0:
@@ -326,6 +368,11 @@ class LayoutEvaluator:
         if 'completed_orders' not in locals():
             completed_orders = 0
         
+        # Calculer les métriques comportementales agrégées
+        behavioral_summary = self._calculate_behavioral_summary(
+            event_infos_history, behavioral_metrics, step_count
+        )
+        
         # Statistiques FPS
         avg_fps = np.mean(fps_measurements) if fps_measurements else 0
         actual_fps = step_count / max(0.001, total_game_time)
@@ -370,7 +417,8 @@ class LayoutEvaluator:
                 }
             },
             'stuck_frames': stuck_frames,
-            'stuck_forced_stop': stuck_frames >= self.max_stuck_frames
+            'stuck_forced_stop': stuck_frames >= self.max_stuck_frames,
+            'behavioral_metrics': behavioral_summary
         }
         
         mode_info = "SOLO PUR" if self.single_agent else ("GREEDY+STAY" if self.greedy_with_stay else "COOP")
@@ -378,6 +426,823 @@ class LayoutEvaluator:
               f"FPS: {actual_fps:.1f}, temps: {total_game_time:.2f}s")
         
         return game_result
+    
+    def _fix_missing_tomato_pickup_events(self, event_infos: Dict, prev_state, current_state):
+        """
+        CORRECTION BUG OVERCOOKED AI: Les événements tomato_pickup ne sont pas générés
+        quand un agent ramasse une tomate depuis un distributeur.
+        
+        Cette méthode détecte manuellement quand un agent ramasse une tomate
+        en comparant l'état précédent et l'état actuel.
+        """
+        # Initialiser les événements tomate s'ils n'existent pas
+        if 'tomato_pickup' not in event_infos:
+            event_infos['tomato_pickup'] = [False, False]
+        if 'useful_tomato_pickup' not in event_infos:
+            event_infos['useful_tomato_pickup'] = [False, False]
+        
+        # Vérifier chaque agent
+        for agent_idx in range(len(prev_state.players)):
+            prev_player = prev_state.players[agent_idx]
+            current_player = current_state.players[agent_idx]
+            
+            # Détecter si l'agent a ramassé une tomate
+            prev_has_tomato = (prev_player.held_object is not None and 
+                              prev_player.held_object.name == 'tomato')
+            current_has_tomato = (current_player.held_object is not None and 
+                                 current_player.held_object.name == 'tomato')
+            
+            # Si l'agent n'avait pas de tomate avant et en a une maintenant
+            if not prev_has_tomato and current_has_tomato:
+                # Vérifier si l'agent est sur un distributeur de tomates
+                pos = current_player.position
+                terrain_type = None
+                try:
+                    # Accéder au terrain via le MDP (si disponible)
+                    if hasattr(self, '_current_mdp') and self._current_mdp:
+                        terrain_type = self._current_mdp.get_terrain_type(pos)
+                    else:
+                        # Fallback : détecter basé sur la logique (toute acquisition de tomate = pickup)
+                        terrain_type = 'T'  # Assumer distributeur de tomates
+                except:
+                    terrain_type = 'T'  # Fallback sécurisé
+                
+                if terrain_type == 'T' or current_has_tomato:  # Distributeur ou détection générale
+                    # Déclencher l'événement tomato_pickup
+                    event_infos['tomato_pickup'][agent_idx] = True
+                    
+                    # Pour simplifier, considérer tous les pickups de tomates comme utiles
+                    # (dans la vraie logique d'Overcooked, cela dépend de l'état des pots)
+                    event_infos['useful_tomato_pickup'][agent_idx] = True
+    
+    def _calculate_behavioral_summary(self, event_infos_history: List[Dict], 
+                                    behavioral_metrics: Dict, step_count: int) -> Dict:
+        """
+        Calcule un résumé des métriques comportementales basé sur l'historique des événements.
+        Inspiré de la structure des données de game.py et du fichier 2_0_0.json
+        
+        IMPORTANT: En mode solo, tous les événements sont attribués à l'agent 0 uniquement.
+        """
+        # Agréger tous les event_infos comme dans game.py
+        event_summary = {}
+        
+        # Initialiser avec tous les types d'événements
+        from overcooked_ai_py.mdp.overcooked_mdp import EVENT_TYPES
+        for event_type in EVENT_TYPES:
+            event_summary[event_type] = [0, 0]  # [agent_0, agent_1]
+        
+        # Compter les événements pour chaque agent
+        for event_info in event_infos_history:
+            for event_type, agent_bools in event_info.items():
+                if event_type in event_summary:
+                    for agent_idx, occurred in enumerate(agent_bools):
+                        if occurred and agent_idx < 2:
+                            # Attribution normale : chaque agent garde ses propres événements
+                            event_summary[event_type][agent_idx] += 1
+        
+        # Calculer des métriques dérivées
+        efficiency_metrics = self._calculate_efficiency_metrics(event_summary, behavioral_metrics, step_count)
+        
+        return {
+            'event_summary': event_summary,
+            'interactions_count': behavioral_metrics['interactions_count'],
+            'total_distance_traveled': behavioral_metrics['total_distance_traveled'],
+            'collaboration_events': behavioral_metrics['collaboration_events'],
+            'efficiency_metrics': efficiency_metrics
+        }
+    
+    def _calculate_efficiency_metrics(self, event_summary: Dict, 
+                                    behavioral_metrics: Dict, step_count: int) -> Dict:
+        """
+        Calcule des métriques d'efficacité comportementale.
+        """
+        efficiency_metrics = {}
+        
+        for agent_idx in range(2):
+            # Efficacité des pickups (utiles vs totaux)
+            total_pickups = (event_summary.get('tomato_pickup', [0, 0])[agent_idx] + 
+                           event_summary.get('onion_pickup', [0, 0])[agent_idx] + 
+                           event_summary.get('dish_pickup', [0, 0])[agent_idx] + 
+                           event_summary.get('soup_pickup', [0, 0])[agent_idx])
+            
+            useful_pickups = (event_summary.get('useful_tomato_pickup', [0, 0])[agent_idx] + 
+                            event_summary.get('useful_onion_pickup', [0, 0])[agent_idx] + 
+                            event_summary.get('useful_dish_pickup', [0, 0])[agent_idx])
+            
+            pickup_efficiency = useful_pickups / max(1, total_pickups) if total_pickups > 0 else 0
+            
+            # Efficacité de potting (optimal + viable vs total)
+            total_potting = (event_summary.get('potting_tomato', [0, 0])[agent_idx] + 
+                           event_summary.get('potting_onion', [0, 0])[agent_idx])
+            
+            optimal_potting = (event_summary.get('optimal_tomato_potting', [0, 0])[agent_idx] + 
+                             event_summary.get('optimal_onion_potting', [0, 0])[agent_idx])
+            
+            viable_potting = (event_summary.get('viable_tomato_potting', [0, 0])[agent_idx] + 
+                            event_summary.get('viable_onion_potting', [0, 0])[agent_idx])
+            
+            potting_efficiency = (optimal_potting + viable_potting) / max(1, total_potting) if total_potting > 0 else 0
+            
+            # Actions par step
+            actions_per_step = behavioral_metrics['interactions_count'][agent_idx] / max(1, step_count)
+            
+            # Mouvement par step
+            movement_per_step = behavioral_metrics['total_distance_traveled'][agent_idx] / max(1, step_count)
+            
+            efficiency_metrics[f'agent_{agent_idx}'] = {
+                'pickup_efficiency': pickup_efficiency,
+                'potting_efficiency': potting_efficiency,
+                'actions_per_step': actions_per_step,
+                'movement_per_step': movement_per_step,
+                'total_pickups': total_pickups,
+                'useful_pickups': useful_pickups,
+                'total_potting': total_potting,
+                'optimal_potting': optimal_potting,
+                'soup_deliveries': event_summary.get('soup_delivery', [0, 0])[agent_idx]
+            }
+        
+        # Métriques globales d'équipe
+        total_soup_deliveries = sum(event_summary.get('soup_delivery', [0, 0]))
+        total_collaboration = behavioral_metrics['collaboration_events']
+        
+        efficiency_metrics['team'] = {
+            'total_soup_deliveries': total_soup_deliveries,
+            'collaboration_events': total_collaboration,
+            'collaboration_per_delivery': total_collaboration / max(1, total_soup_deliveries)
+        }
+        
+        return efficiency_metrics
+    
+    def _aggregate_behavioral_metrics(self, game_results: List[Dict]) -> Dict:
+        """
+        Caractérise précisément comment les GreedyAgent(s) complètent ce layout spécifique.
+        Focus sur les patterns comportementaux caractéristiques plutôt que sur l'agrégation.
+        """
+        from overcooked_ai_py.mdp.overcooked_mdp import EVENT_TYPES
+        
+        # Analyser seulement les parties complétées pour comprendre les stratégies gagnantes
+        completed_games = [g for g in game_results if g.get('completed', False)]
+        
+        if not completed_games:
+            return {
+                'completion_analysis': 'no_successful_completion',
+                'layout_solvability': 'unsolvable_with_current_agents',
+                'total_attempts': len(game_results)
+            }
+        
+        # ANALYSE DES PATTERNS DE COMPLETION RÉUSSIS
+        completion_patterns = self._analyze_completion_patterns(completed_games)
+        
+        # CARACTÉRISATION DU LAYOUT
+        layout_characteristics = self._characterize_layout_behavior(completed_games)
+        
+        # IDENTIFICATION DES STRATÉGIES OPTIMALES
+        optimal_strategies = self._identify_optimal_strategies(completed_games)
+        
+        # MÉTRIQUES DE COHÉRENCE (toutes les parties complétées utilisent-elles la même stratégie ?)
+        strategy_consistency = self._analyze_strategy_consistency(completed_games)
+        
+        return {
+            'completion_analysis': 'successful_completion_found',
+            'total_attempts': len(game_results),
+            'successful_completions': len(completed_games),
+            'success_rate': len(completed_games) / len(game_results),
+            
+            # Comment ce layout spécifique est résolu
+            'completion_patterns': completion_patterns,
+            'layout_characteristics': layout_characteristics,
+            'optimal_strategies': optimal_strategies,
+            'strategy_consistency': strategy_consistency,
+            
+            # Variabilité entre les tentatives réussies
+            'completion_variability': self._calculate_completion_variability(completed_games)
+        }
+    
+    def _analyze_completion_patterns(self, completed_games: List[Dict]) -> Dict:
+        """
+        Analyse les patterns spécifiques de complétion pour ce layout.
+        Comment les agents résolvent-ils ce niveau particulier ?
+        """
+        patterns = {
+            'temporal_progression': [],  # Progression temporelle des événements clés
+            'critical_events_sequence': [],  # Séquence d'événements critiques
+            'coordination_patterns': [],  # Patterns de coordination entre agents
+            'efficiency_progression': []  # Evolution de l'efficacité au cours du temps
+        }
+        
+        for game in completed_games:
+            if 'behavioral_metrics' not in game:
+                continue
+                
+            bm = game['behavioral_metrics']
+            
+            # Analyser la progression temporelle des livraisons
+            if 'event_summary' in bm:
+                soup_deliveries = sum(bm['event_summary'].get('soup_delivery', [0, 0]))
+                steps = game.get('steps', 1)
+                
+                # Pattern temporel de ce jeu
+                temporal_pattern = {
+                    'total_steps': steps,
+                    'soup_deliveries': soup_deliveries,
+                    'deliveries_per_step': soup_deliveries / steps,
+                    'efficiency_score': soup_deliveries / max(steps / 100, 1),  # Normalised
+                    'agent_balance': self._calculate_agent_balance(bm['event_summary'])
+                }
+                patterns['temporal_progression'].append(temporal_pattern)
+                
+                # Identifier les événements critiques
+                critical_events = self._identify_critical_event_sequence(bm['event_summary'])
+                patterns['critical_events_sequence'].append(critical_events)
+                
+                # Patterns de coordination
+                coordination = self._analyze_coordination_pattern(bm['event_summary'])
+                patterns['coordination_patterns'].append(coordination)
+        
+        # Caractériser le pattern dominant pour ce layout
+        if patterns['temporal_progression']:
+            # Identifier le pattern de complétion le plus représentatif
+            dominant_pattern = self._identify_dominant_completion_pattern(patterns)
+            patterns['dominant_strategy'] = dominant_pattern
+        
+        return patterns
+    
+    def _characterize_layout_behavior(self, completed_games: List[Dict]) -> Dict:
+        """
+        Caractérise les comportements spécifiques à ce layout.
+        Quelles sont les contraintes et opportunités de ce niveau ?
+        """
+        characteristics = {
+            'layout_difficulty': 'unknown',
+            'required_coordination_level': 'unknown', 
+            'bottleneck_identification': [],
+            'optimal_agent_roles': {},
+            'layout_specific_strategies': []
+        }
+        
+        if not completed_games:
+            return characteristics
+        
+        # Analyser la difficulté basée sur les steps nécessaires
+        steps_needed = [g.get('steps', 0) for g in completed_games]
+        avg_steps = np.mean(steps_needed)
+        
+        if avg_steps < 200:
+            characteristics['layout_difficulty'] = 'easy'
+        elif avg_steps < 400:
+            characteristics['layout_difficulty'] = 'moderate' 
+        else:
+            characteristics['layout_difficulty'] = 'hard'
+        
+        # Analyser le niveau de coordination requis
+        coordination_levels = []
+        role_specializations = []
+        
+        for game in completed_games:
+            if 'behavioral_metrics' not in game:
+                continue
+                
+            bm = game['behavioral_metrics']
+            if 'event_summary' not in bm:
+                continue
+                
+            events = bm['event_summary']
+            
+            # Mesurer la coordination par les échanges d'objets
+            exchanges = ['tomato_exchange', 'onion_exchange', 'dish_exchange', 'soup_exchange']
+            total_exchanges = sum(sum(events.get(ex, [0, 0])) for ex in exchanges)
+            coordination_levels.append(total_exchanges)
+            
+            # Analyser la spécialisation des rôles
+            agent_0_soups = events.get('soup_delivery', [0, 0])[0]
+            agent_1_soups = events.get('soup_delivery', [0, 0])[1]
+            total_soups = agent_0_soups + agent_1_soups
+            
+            if total_soups > 0:
+                specialization = abs(agent_0_soups - agent_1_soups) / total_soups
+                role_specializations.append(specialization)
+                
+                # Identifier les rôles spécifiques
+                if agent_0_soups > agent_1_soups * 1.5:
+                    characteristics['optimal_agent_roles']['agent_0'] = 'primary_deliverer'
+                    characteristics['optimal_agent_roles']['agent_1'] = 'support_prep'
+                elif agent_1_soups > agent_0_soups * 1.5:
+                    characteristics['optimal_agent_roles']['agent_0'] = 'support_prep'
+                    characteristics['optimal_agent_roles']['agent_1'] = 'primary_deliverer'
+                else:
+                    characteristics['optimal_agent_roles']['both'] = 'balanced_cooperation'
+        
+        # Déterminer le niveau de coordination requis
+        if coordination_levels:
+            avg_coordination = np.mean(coordination_levels)
+            if avg_coordination < 2:
+                characteristics['required_coordination_level'] = 'minimal'
+            elif avg_coordination < 5:
+                characteristics['required_coordination_level'] = 'moderate'
+            else:
+                characteristics['required_coordination_level'] = 'high'
+        
+        # Identifier les stratégies spécifiques à ce layout
+        characteristics['layout_specific_strategies'] = self._identify_layout_strategies(completed_games)
+        
+        return characteristics
+    
+    def _identify_optimal_strategies(self, completed_games: List[Dict]) -> Dict:
+        """
+        Identifie les stratégies optimales pour compléter ce layout spécifique.
+        """
+        strategies = {
+            'fastest_completion_strategy': None,
+            'most_efficient_strategy': None,
+            'most_consistent_strategy': None,
+            'strategy_recommendations': []
+        }
+        
+        if not completed_games:
+            return strategies
+        
+        # Identifier la stratégie de complétion la plus rapide
+        fastest_game = min(completed_games, key=lambda g: g.get('steps', float('inf')))
+        strategies['fastest_completion_strategy'] = self._extract_strategy_profile(fastest_game)
+        
+        # Identifier la stratégie la plus efficace (meilleur ratio récompense/steps)
+        efficiency_scores = []
+        for game in completed_games:
+            steps = game.get('steps', 1)
+            reward = game.get('total_reward', 0)
+            efficiency_scores.append((reward / steps, game))
+        
+        if efficiency_scores:
+            most_efficient_game = max(efficiency_scores, key=lambda x: x[0])[1]
+            strategies['most_efficient_strategy'] = self._extract_strategy_profile(most_efficient_game)
+        
+        # Générer des recommandations stratégiques
+        strategies['strategy_recommendations'] = self._generate_strategy_recommendations(completed_games)
+        
+        return strategies
+    
+    def _analyze_strategy_consistency(self, completed_games: List[Dict]) -> Dict:
+        """
+        Analyse la cohérence des stratégies utilisées pour ce layout.
+        Les différentes tentatives réussies utilisent-elles des approches similaires ?
+        """
+        consistency = {
+            'strategy_variance': 0,
+            'dominant_pattern_percentage': 0,
+            'layout_determinism': 'unknown',
+            'alternative_strategies_count': 0
+        }
+        
+        if len(completed_games) < 2:
+            consistency['layout_determinism'] = 'insufficient_data'
+            return consistency
+        
+        # Extraire les profils de stratégie de chaque jeu
+        strategy_profiles = []
+        for game in completed_games:
+            profile = self._extract_strategy_profile(game)
+            strategy_profiles.append(profile)
+        
+        # Calculer la variance entre les stratégies
+        consistency['strategy_variance'] = self._calculate_strategy_variance(strategy_profiles)
+        
+        # Identifier les patterns dominants
+        patterns = self._cluster_strategy_patterns(strategy_profiles)
+        if patterns:
+            dominant_pattern_size = max(len(pattern) for pattern in patterns)
+            consistency['dominant_pattern_percentage'] = dominant_pattern_size / len(completed_games)
+            consistency['alternative_strategies_count'] = len(patterns)
+        
+        # Déterminer le déterminisme du layout
+        if consistency['strategy_variance'] < 0.2:
+            consistency['layout_determinism'] = 'highly_deterministic'
+        elif consistency['strategy_variance'] < 0.5:
+            consistency['layout_determinism'] = 'moderately_deterministic'
+        else:
+            consistency['layout_determinism'] = 'multiple_viable_strategies'
+        
+        return consistency
+    
+    def _calculate_completion_variability(self, completed_games: List[Dict]) -> Dict:
+        """
+        Calcule la variabilité entre les différentes tentatives de complétion réussies.
+        """
+        variability = {
+            'steps_variability': 0,
+            'strategy_diversity': 0,
+            'performance_consistency': 0
+        }
+        
+        if len(completed_games) < 2:
+            return variability
+        
+        # Variabilité en nombre de steps
+        steps = [g.get('steps', 0) for g in completed_games]
+        variability['steps_variability'] = np.std(steps) / np.mean(steps) if np.mean(steps) > 0 else 0
+        
+        # Diversité des stratégies
+        strategy_profiles = [self._extract_strategy_profile(g) for g in completed_games]
+        variability['strategy_diversity'] = self._calculate_strategy_diversity(strategy_profiles)
+        
+        # Cohérence des performances
+        rewards = [g.get('total_reward', 0) for g in completed_games]
+        variability['performance_consistency'] = 1 - (np.std(rewards) / np.mean(rewards)) if np.mean(rewards) > 0 else 0
+        
+        return variability
+    
+    def _calculate_agent_balance(self, event_summary: Dict) -> Dict:
+        """Calcule l'équilibre entre les agents pour ce layout."""
+        soup_deliveries = event_summary.get('soup_delivery', [0, 0])
+        total_soups = sum(soup_deliveries)
+        
+        if total_soups == 0:
+            return {'balance_type': 'no_deliveries', 'balance_score': 0}
+        
+        balance_score = min(soup_deliveries) / max(soup_deliveries) if max(soup_deliveries) > 0 else 0
+        
+        if balance_score > 0.8:
+            balance_type = 'highly_balanced'
+        elif balance_score > 0.5:
+            balance_type = 'moderately_balanced'
+        else:
+            balance_type = 'specialized_roles'
+            
+        return {
+            'balance_type': balance_type,
+            'balance_score': balance_score,
+            'agent_0_contribution': soup_deliveries[0] / total_soups,
+            'agent_1_contribution': soup_deliveries[1] / total_soups
+        }
+    
+    def _identify_critical_event_sequence(self, event_summary: Dict) -> Dict:
+        """Identifie la séquence d'événements critiques pour ce layout."""
+        critical_events = {
+            'pickup_phase': sum(event_summary.get('tomato_pickup', [0, 0])) + sum(event_summary.get('onion_pickup', [0, 0])),
+            'preparation_phase': sum(event_summary.get('potting_tomato', [0, 0])) + sum(event_summary.get('potting_onion', [0, 0])),
+            'cooking_phase': sum(event_summary.get('soup_pickup', [0, 0])),
+            'delivery_phase': sum(event_summary.get('soup_delivery', [0, 0]))
+        }
+        
+        # Identifier le goulot d'étranglement
+        phase_ratios = {}
+        total_deliveries = critical_events['delivery_phase']
+        if total_deliveries > 0:
+            for phase, count in critical_events.items():
+                phase_ratios[phase] = count / total_deliveries
+        
+        return {
+            'event_counts': critical_events,
+            'phase_efficiency': phase_ratios,
+            'bottleneck_phase': min(phase_ratios.items(), key=lambda x: x[1])[0] if phase_ratios else 'unknown'
+        }
+    
+    def _analyze_coordination_pattern(self, event_summary: Dict) -> Dict:
+        """Analyse les patterns de coordination spécifiques."""
+        exchanges = ['tomato_exchange', 'onion_exchange', 'dish_exchange', 'soup_exchange']
+        total_exchanges = sum(sum(event_summary.get(ex, [0, 0])) for ex in exchanges)
+        
+        deliveries = sum(event_summary.get('soup_delivery', [0, 0]))
+        
+        if deliveries == 0:
+            return {'coordination_type': 'no_completion', 'exchanges_per_delivery': 0}
+        
+        exchanges_per_delivery = total_exchanges / deliveries
+        
+        if exchanges_per_delivery < 0.5:
+            coordination_type = 'minimal_coordination'
+        elif exchanges_per_delivery < 2:
+            coordination_type = 'moderate_coordination'
+        else:
+            coordination_type = 'high_coordination'
+            
+        return {
+            'coordination_type': coordination_type,
+            'exchanges_per_delivery': exchanges_per_delivery,
+            'total_exchanges': total_exchanges,
+            'exchange_breakdown': {ex: sum(event_summary.get(ex, [0, 0])) for ex in exchanges}
+        }
+    
+    def _identify_dominant_completion_pattern(self, patterns: Dict) -> Dict:
+        """Identifie le pattern de complétion dominant pour ce layout."""
+        if not patterns['temporal_progression']:
+            return {'pattern_type': 'no_pattern_found'}
+        
+        # Analyser les efficacités pour identifier le pattern optimal
+        efficiencies = [tp['efficiency_score'] for tp in patterns['temporal_progression']]
+        steps = [tp['total_steps'] for tp in patterns['temporal_progression']]
+        
+        # Le pattern dominant est celui qui combine rapidité et efficacité
+        best_idx = 0
+        best_score = 0
+        
+        for i, (eff, step) in enumerate(zip(efficiencies, steps)):
+            # Score combiné : efficacité élevée ET steps faibles
+            combined_score = eff * (1000 / max(step, 100))  # Favorise moins de steps
+            if combined_score > best_score:
+                best_score = combined_score
+                best_idx = i
+        
+        dominant = patterns['temporal_progression'][best_idx]
+        dominant['pattern_identification'] = 'optimal_speed_efficiency_combination'
+        
+        return dominant
+    
+    def _identify_layout_strategies(self, completed_games: List[Dict]) -> List[str]:
+        """Identifie les stratégies spécifiques utilisées pour ce layout."""
+        strategies = []
+        
+        for game in completed_games:
+            if 'behavioral_metrics' not in game:
+                continue
+                
+            bm = game['behavioral_metrics']
+            if 'event_summary' not in bm:
+                continue
+                
+            events = bm['event_summary']
+            
+            # Identifier les stratégies basées sur les patterns d'événements
+            agent_0_pickups = events.get('tomato_pickup', [0, 0])[0] + events.get('onion_pickup', [0, 0])[0]
+            agent_1_pickups = events.get('tomato_pickup', [0, 0])[1] + events.get('onion_pickup', [0, 0])[1]
+            
+            agent_0_deliveries = events.get('soup_delivery', [0, 0])[0]
+            agent_1_deliveries = events.get('soup_delivery', [0, 0])[1]
+            
+            # Stratégie de spécialisation
+            if agent_0_deliveries > agent_1_deliveries * 2:
+                strategies.append('agent_0_specializes_delivery')
+            elif agent_1_deliveries > agent_0_deliveries * 2:
+                strategies.append('agent_1_specializes_delivery')
+            else:
+                strategies.append('balanced_delivery_roles')
+            
+            # Stratégie de préparation
+            if agent_0_pickups > agent_1_pickups * 2:
+                strategies.append('agent_0_specializes_preparation')
+            elif agent_1_pickups > agent_0_pickups * 2:
+                strategies.append('agent_1_specializes_preparation')
+            else:
+                strategies.append('shared_preparation_duties')
+            
+            # Niveau de coordination
+            exchanges = sum(sum(events.get(ex, [0, 0])) for ex in ['tomato_exchange', 'onion_exchange', 'dish_exchange', 'soup_exchange'])
+            total_deliveries = sum(events.get('soup_delivery', [0, 0]))
+            
+            if exchanges / max(total_deliveries, 1) > 1:
+                strategies.append('high_coordination_strategy')
+            else:
+                strategies.append('low_coordination_strategy')
+        
+        # Retourner les stratégies dominantes (les plus fréquentes)
+        from collections import Counter
+        strategy_counts = Counter(strategies)
+        dominant_strategies = [strategy for strategy, count in strategy_counts.most_common(3)]
+        
+        return dominant_strategies
+    
+    def _extract_strategy_profile(self, game: Dict) -> Dict:
+        """Extrait un profil de stratégie complet d'un jeu."""
+        profile = {
+            'completion_time': game.get('steps', 0),
+            'total_reward': game.get('total_reward', 0),
+            'agent_balance': {},
+            'coordination_level': 0,
+            'efficiency_metrics': {}
+        }
+        
+        if 'behavioral_metrics' in game and 'event_summary' in game['behavioral_metrics']:
+            events = game['behavioral_metrics']['event_summary']
+            
+            # Balance entre agents
+            soup_deliveries = events.get('soup_delivery', [0, 0])
+            total_soups = sum(soup_deliveries)
+            if total_soups > 0:
+                profile['agent_balance'] = {
+                    'agent_0_share': soup_deliveries[0] / total_soups,
+                    'agent_1_share': soup_deliveries[1] / total_soups,
+                    'balance_score': min(soup_deliveries) / max(soup_deliveries) if max(soup_deliveries) > 0 else 0
+                }
+            
+            # Niveau de coordination
+            exchanges = sum(sum(events.get(ex, [0, 0])) for ex in ['tomato_exchange', 'onion_exchange', 'dish_exchange', 'soup_exchange'])
+            profile['coordination_level'] = exchanges / max(total_soups, 1)
+            
+            # Métriques d'efficacité
+            if 'efficiency_metrics' in game['behavioral_metrics']:
+                em = game['behavioral_metrics']['efficiency_metrics']
+                profile['efficiency_metrics'] = {
+                    'avg_pickup_efficiency': (em.get('agent_0', {}).get('pickup_efficiency', 0) + em.get('agent_1', {}).get('pickup_efficiency', 0)) / 2,
+                    'avg_potting_efficiency': (em.get('agent_0', {}).get('potting_efficiency', 0) + em.get('agent_1', {}).get('potting_efficiency', 0)) / 2
+                }
+        
+        return profile
+    
+    def _calculate_strategy_variance(self, strategy_profiles: List[Dict]) -> float:
+        """Calcule la variance entre différents profils de stratégie."""
+        if len(strategy_profiles) < 2:
+            return 0
+        
+        # Normaliser et comparer les métriques clés
+        completion_times = [p['completion_time'] for p in strategy_profiles]
+        coordination_levels = [p['coordination_level'] for p in strategy_profiles]
+        
+        # Variance normalisée
+        time_variance = np.std(completion_times) / np.mean(completion_times) if np.mean(completion_times) > 0 else 0
+        coord_variance = np.std(coordination_levels) / max(np.mean(coordination_levels), 0.1)
+        
+        return (time_variance + coord_variance) / 2
+    
+    def _cluster_strategy_patterns(self, strategy_profiles: List[Dict]) -> List[List[Dict]]:
+        """Regroupe les profils de stratégie similaires."""
+        if len(strategy_profiles) < 2:
+            return [strategy_profiles] if strategy_profiles else []
+        
+        # Clustering simple basé sur la similarité des métriques
+        clusters = []
+        similarity_threshold = 0.3
+        
+        for profile in strategy_profiles:
+            placed = False
+            for cluster in clusters:
+                # Vérifier la similarité avec le premier élément du cluster
+                if self._calculate_profile_similarity(profile, cluster[0]) > similarity_threshold:
+                    cluster.append(profile)
+                    placed = True
+                    break
+            
+            if not placed:
+                clusters.append([profile])
+        
+        return clusters
+    
+    def _calculate_profile_similarity(self, profile1: Dict, profile2: Dict) -> float:
+        """Calcule la similarité entre deux profils de stratégie."""
+        similarity_score = 0
+        comparisons = 0
+        
+        # Comparer les temps de complétion (normalisé)
+        if profile1['completion_time'] > 0 and profile2['completion_time'] > 0:
+            time_similarity = 1 - abs(profile1['completion_time'] - profile2['completion_time']) / max(profile1['completion_time'], profile2['completion_time'])
+            similarity_score += time_similarity
+            comparisons += 1
+        
+        # Comparer les niveaux de coordination
+        coord_diff = abs(profile1['coordination_level'] - profile2['coordination_level'])
+        coord_similarity = max(0, 1 - coord_diff)
+        similarity_score += coord_similarity
+        comparisons += 1
+        
+        # Comparer la balance des agents
+        if profile1['agent_balance'] and profile2['agent_balance']:
+            balance_diff = abs(profile1['agent_balance'].get('balance_score', 0) - profile2['agent_balance'].get('balance_score', 0))
+            balance_similarity = max(0, 1 - balance_diff)
+            similarity_score += balance_similarity
+            comparisons += 1
+        
+        return similarity_score / max(comparisons, 1)
+    
+    def _calculate_strategy_diversity(self, strategy_profiles: List[Dict]) -> float:
+        """Calcule la diversité des stratégies utilisées."""
+        if len(strategy_profiles) < 2:
+            return 0
+        
+        total_similarity = 0
+        comparisons = 0
+        
+        for i in range(len(strategy_profiles)):
+            for j in range(i + 1, len(strategy_profiles)):
+                similarity = self._calculate_profile_similarity(strategy_profiles[i], strategy_profiles[j])
+                total_similarity += similarity
+                comparisons += 1
+        
+        avg_similarity = total_similarity / max(comparisons, 1)
+        return 1 - avg_similarity  # Diversité = 1 - similarité moyenne
+    
+    def _generate_strategy_recommendations(self, completed_games: List[Dict]) -> List[str]:
+        """Génère des recommandations stratégiques basées sur les parties réussies."""
+        recommendations = []
+        
+        if not completed_games:
+            return ['No successful completions found - layout may be too difficult']
+        
+        # Analyser les patterns de succès
+        fastest_steps = min(g.get('steps', float('inf')) for g in completed_games)
+        avg_steps = np.mean([g.get('steps', 0) for g in completed_games])
+        
+        if fastest_steps < avg_steps * 0.8:
+            recommendations.append(f'Optimal completion possible in {fastest_steps} steps - focus on speed strategies')
+        
+        # Analyser les patterns de coordination
+        high_coord_games = []
+        low_coord_games = []
+        
+        for game in completed_games:
+            if 'behavioral_metrics' in game and 'event_summary' in game['behavioral_metrics']:
+                events = game['behavioral_metrics']['event_summary']
+                exchanges = sum(sum(events.get(ex, [0, 0])) for ex in ['tomato_exchange', 'onion_exchange', 'dish_exchange', 'soup_exchange'])
+                deliveries = sum(events.get('soup_delivery', [0, 0]))
+                
+                if exchanges / max(deliveries, 1) > 1:
+                    high_coord_games.append(game)
+                else:
+                    low_coord_games.append(game)
+        
+        if high_coord_games and low_coord_games:
+            high_coord_avg = np.mean([g.get('steps', 0) for g in high_coord_games])
+            low_coord_avg = np.mean([g.get('steps', 0) for g in low_coord_games])
+            
+            if high_coord_avg < low_coord_avg:
+                recommendations.append('High coordination strategy recommended - agent exchanges improve efficiency')
+            else:
+                recommendations.append('Independent agent strategy recommended - minimal coordination needed')
+        elif high_coord_games:
+            recommendations.append('Layout requires high coordination between agents')
+        elif low_coord_games:
+            recommendations.append('Layout solvable with independent agent strategies')
+        
+        return recommendations
+    
+    def _calculate_average_efficiency(self, game_results: List[Dict]) -> Dict:
+        """
+        Calcule l'efficacité moyenne sur toutes les parties.
+        """
+        efficiency_sums = {
+            'agent_0': {'pickup_efficiency': 0, 'potting_efficiency': 0, 'actions_per_step': 0, 'movement_per_step': 0},
+            'agent_1': {'pickup_efficiency': 0, 'potting_efficiency': 0, 'actions_per_step': 0, 'movement_per_step': 0},
+            'team': {'collaboration_per_delivery': 0}
+        }
+        
+        valid_games = 0
+        
+        for game in game_results:
+            if 'behavioral_metrics' in game and 'efficiency_metrics' in game['behavioral_metrics']:
+                em = game['behavioral_metrics']['efficiency_metrics']
+                valid_games += 1
+                
+                for agent in ['agent_0', 'agent_1']:
+                    if agent in em:
+                        for metric in efficiency_sums[agent]:
+                            efficiency_sums[agent][metric] += em[agent].get(metric, 0)
+                
+                if 'team' in em:
+                    efficiency_sums['team']['collaboration_per_delivery'] += em['team'].get('collaboration_per_delivery', 0)
+        
+        # Calculer les moyennes
+        if valid_games > 0:
+            for agent in ['agent_0', 'agent_1']:
+                for metric in efficiency_sums[agent]:
+                    efficiency_sums[agent][metric] /= valid_games
+            
+            efficiency_sums['team']['collaboration_per_delivery'] /= valid_games
+        
+        return efficiency_sums
+    
+    def _generate_behavioral_insights(self, aggregated_events: Dict, total_interactions: List, 
+                                    total_distance: List, num_games: int) -> Dict:
+        """
+        Génère des insights comportementaux basés sur les données agrégées.
+        """
+        insights = {}
+        
+        # Analyse de la spécialisation des agents
+        agent_0_soups = aggregated_events.get('soup_delivery', [0, 0])[0]
+        agent_1_soups = aggregated_events.get('soup_delivery', [0, 0])[1]
+        total_soups = agent_0_soups + agent_1_soups
+        
+        if total_soups > 0:
+            insights['task_distribution'] = {
+                'agent_0_soup_share': agent_0_soups / total_soups,
+                'agent_1_soup_share': agent_1_soups / total_soups,
+                'specialization_index': abs(agent_0_soups - agent_1_soups) / total_soups
+            }
+        
+        # Analyse de l'efficacité comparative
+        if total_interactions[0] > 0 and total_interactions[1] > 0:
+            interaction_ratio = total_interactions[0] / total_interactions[1]
+            insights['agent_activity'] = {
+                'interaction_ratio_0_to_1': interaction_ratio,
+                'more_active_agent': 0 if interaction_ratio > 1 else 1,
+                'activity_balance': min(interaction_ratio, 1/interaction_ratio)  # Plus proche de 1 = plus équilibré
+            }
+        
+        # Analyse des types d'actions dominantes
+        pickup_events = ['tomato_pickup', 'onion_pickup', 'dish_pickup', 'soup_pickup']
+        potting_events = ['potting_tomato', 'potting_onion']
+        
+        total_pickups = sum(aggregated_events.get(event, [0, 0])[0] + aggregated_events.get(event, [0, 0])[1] 
+                           for event in pickup_events)
+        total_pottings = sum(aggregated_events.get(event, [0, 0])[0] + aggregated_events.get(event, [0, 0])[1] 
+                            for event in potting_events)
+        
+        insights['action_patterns'] = {
+            'total_pickups': total_pickups,
+            'total_pottings': total_pottings,
+            'pickups_per_game': total_pickups / num_games,
+            'pottings_per_game': total_pottings / num_games,
+            'pickup_to_potting_ratio': total_pickups / max(1, total_pottings)
+        }
+        
+        return insights
     
     def evaluate_single_layout(self, layout_name: str) -> Dict:
         """Évalue un seul layout avec plusieurs parties."""
@@ -500,6 +1365,9 @@ class LayoutEvaluator:
         agent_0_actions = [g['agent_statistics']['agent_0']['total_actions'] for g in game_results]
         agent_1_actions = [g['agent_statistics']['agent_1']['total_actions'] for g in game_results]
         
+        # Agrégation des métriques comportementales
+        behavioral_aggregation = self._aggregate_behavioral_metrics(game_results)
+        
         # Préparer les résultats agrégés
         results = {
             'layout_name': layout_name,
@@ -571,8 +1439,11 @@ class LayoutEvaluator:
             }
         }
         
-        # Détails des parties individuelles
-        results['individual_games'] = game_results
+        # Ajouter les métriques comportementales agrégées
+        results['behavioral_analysis'] = behavioral_aggregation
+        
+        # Optionnel: Détails des parties individuelles (pour debug uniquement)
+        # results['individual_games'] = game_results
         
         # Affichage des résultats
         if completed_games:
@@ -588,6 +1459,63 @@ class LayoutEvaluator:
             else:
                 print(f"🤖 Actions/step: Agent0={results['agent_metrics']['agent_0']['actions_per_step']:.2f}, "
                       f"Agent1={results['agent_metrics']['agent_1']['actions_per_step']:.2f}")
+            
+            # Affichage des métriques comportementales spécifiques au layout
+            if 'behavioral_analysis' in results:
+                ba = results['behavioral_analysis']
+                print(f"🎯 Analyse comportementale du layout:")
+                
+                if ba.get('completion_analysis') == 'successful_completion_found':
+                    # Stratégies optimales identifiées
+                    if 'optimal_strategies' in ba and 'strategy_recommendations' in ba['optimal_strategies']:
+                        recs = ba['optimal_strategies']['strategy_recommendations']
+                        if recs:
+                            print(f"   📋 Recommandations: {recs[0]}")
+                    
+                    # Caractéristiques du layout
+                    if 'layout_characteristics' in ba:
+                        lc = ba['layout_characteristics']
+                        print(f"   🎮 Difficulté: {lc.get('layout_difficulty', 'unknown')}")
+                        print(f"   🤝 Coordination requise: {lc.get('required_coordination_level', 'unknown')}")
+                        
+                        if 'optimal_agent_roles' in lc:
+                            roles = lc['optimal_agent_roles']
+                            if 'both' in roles:
+                                print(f"   👥 Rôles optimaux: {roles['both']}")
+                            else:
+                                print(f"   👥 Rôles optimaux: Agent0={roles.get('agent_0', 'unknown')}, Agent1={roles.get('agent_1', 'unknown')}")
+                    
+                    # Patterns de complétion
+                    if 'completion_patterns' in ba and 'dominant_strategy' in ba['completion_patterns']:
+                        ds = ba['completion_patterns']['dominant_strategy']
+                        if 'efficiency_score' in ds:
+                            print(f"   ⚡ Score d'efficacité optimal: {ds['efficiency_score']:.2f}")
+                        if 'agent_balance' in ds:
+                            balance = ds['agent_balance']
+                            print(f"   ⚖️ Équilibre optimal: {balance.get('balance_type', 'unknown')} (score: {balance.get('balance_score', 0):.2f})")
+                    
+                    # Cohérence des stratégies
+                    if 'strategy_consistency' in ba:
+                        sc = ba['strategy_consistency']
+                        print(f"   🎯 Déterminisme du layout: {sc.get('layout_determinism', 'unknown')}")
+                        if sc.get('alternative_strategies_count', 0) > 1:
+                            print(f"   🔀 Stratégies alternatives trouvées: {sc['alternative_strategies_count']}")
+                        else:
+                            print(f"   🎯 Stratégie unique identifiée")
+                
+                else:
+                    print(f"   ❌ Aucune complétion réussie - layout potentiellement trop difficile")
+                
+                # Statistiques de base toujours affichées
+                total_soups = 0
+                if 'completion_patterns' in ba and ba['completion_patterns'].get('temporal_progression'):
+                    tp = ba['completion_patterns']['temporal_progression'][0]  # Premier jeu réussi
+                    total_soups = tp.get('soup_deliveries', 0)
+                    print(f"   🍲 Soupes livrées (exemple réussi): {total_soups}")
+            else:
+                # Fallback vers les anciennes métriques si les nouvelles ne sont pas disponibles
+                print(f"🎯 Métriques comportementales basiques:")
+                print(f"   ⚠️ Analyse comportementale avancée non disponible")
         else:
             print(f"❌ AUCUNE COMPLÉTION réussie sur {len(game_results)} parties")
         
@@ -660,23 +1588,62 @@ class LayoutEvaluator:
         
         print(f"\n💾 Résultats prêts pour sauvegarde")
     
-    def save_results(self, filename: str = "layout_evaluation_final.json"):
-        """Sauvegarde les résultats détaillés."""
+    def save_results(self, filename: str = "layout_evaluation_final.json", include_individual_games: bool = False):
+        """
+        Sauvegarde les résultats détaillés.
+        
+        Args:
+            filename: Nom du fichier de sortie
+            include_individual_games: Si True, inclut les détails de chaque partie (fichier volumineux)
+                                    Si False, ne sauvegarde que les métriques agrégées par layout
+        """
+        # Préparer les données d'output en excluant les parties individuelles si demandé
+        results_to_save = {}
+        
+        for layout_name, layout_data in self.results.items():
+            if layout_data.get('viable', False):
+                # Copier toutes les données sauf individual_games si pas demandé
+                filtered_data = {}
+                for key, value in layout_data.items():
+                    if key == 'individual_games' and not include_individual_games:
+                        continue  # Exclure les détails des parties individuelles
+                    filtered_data[key] = value
+                
+                results_to_save[layout_name] = filtered_data
+            else:
+                # Garder les layouts non viables tels quels (ils n'ont pas d'individual_games)
+                results_to_save[layout_name] = layout_data
+        
         output_data = {
             'evaluation_config': {
                 'layouts_directory': self.layouts_directory,
                 'horizon': self.horizon,
                 'num_games_per_layout': self.num_games_per_layout,
                 'target_fps': self.target_fps,
-                'max_stuck_frames': self.max_stuck_frames
+                'max_stuck_frames': self.max_stuck_frames,
+                'single_agent_mode': self.single_agent,
+                'greedy_with_stay_mode': self.greedy_with_stay
             },
             'evaluation_timestamp': time.time(),
-            'results': self.results
+            'data_type': 'layout_aggregated_metrics' if not include_individual_games else 'detailed_with_individual_games',
+            'results': results_to_save
         }
         
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
-        print(f"💾 Résultats sauvegardés dans {filename}")
+        
+        data_type_desc = "métriques agrégées par layout" if not include_individual_games else "données détaillées avec parties individuelles"
+        print(f"💾 Résultats sauvegardés dans {filename} ({data_type_desc})")
+        
+        # Afficher la taille du fichier
+        import os
+        file_size = os.path.getsize(filename)
+        if file_size > 1024 * 1024:
+            print(f"   📦 Taille: {file_size / (1024 * 1024):.1f} MB")
+        elif file_size > 1024:
+            print(f"   📦 Taille: {file_size / 1024:.1f} KB")
+        else:
+            print(f"   📦 Taille: {file_size} bytes")
 
 
 def main():
@@ -725,17 +1692,25 @@ def main():
     
     # Sauvegarder avec un nom différent selon le mode
     filename = f"layout_evaluation_{filename_suffix}.json"
-    evaluator.save_results(filename)
+    # Sauvegarder seulement les métriques agrégées par layout (pas les parties individuelles)
+    evaluator.save_results(filename, include_individual_games=False)
     
     print(f"\n🎯 ÉVALUATION TERMINÉE!")
     print(f"   📊 Mode: {mode_description}")
-    print(f"   📊 Métriques complètes disponibles")
-    print(f"   💾 Résultats sauvegardés dans {filename}")
+    print(f"   📊 Métriques comportementales complètes par layout")
+    print(f"   💾 Résultats agrégés sauvegardés dans {filename}")
+    
+    # Optionnel: sauvegarder aussi le fichier détaillé pour debug
+    if '--debug' in sys.argv or '--detailed' in sys.argv:
+        detailed_filename = f"layout_evaluation_{filename_suffix}_detailed.json"
+        evaluator.save_results(detailed_filename, include_individual_games=True)
+        print(f"   � Résultats détaillés sauvegardés dans {detailed_filename}")
     
     print(f"\n💡 MODES DISPONIBLES:")
     print(f"   • Mode coopératif (défaut): python {sys.argv[0]}")
     print(f"   • Mode solo pur: python {sys.argv[0]} --solo")
     print(f"   • Mode GreedyAgent + StayAgent: python {sys.argv[0]} --stay")
+    print(f"   • Ajouter --debug pour sauvegarder aussi les détails complets")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,243 @@
+{
+  "evaluation_config": {
+    "layouts_directory": "./overcooked_ai_py/data/layouts/generation_cesar/",
+    "horizon": 300,
+    "num_games_per_layout": 2,
+    "target_fps": 20.0,
+    "max_stuck_frames": 30,
+    "single_agent_mode": true,
+    "greedy_with_stay_mode": false
+  },
+  "evaluation_timestamp": 1753279664.4390795,
+  "data_type": "layout_aggregated_metrics",
+  "results": {
+    "layout_cesar_0": {
+      "layout_name": "layout_cesar_0",
+      "viable": true,
+      "evaluation_method": "greedy_agent_simulation",
+      "structure": {
+        "width": 7,
+        "height": 7,
+        "area": 49,
+        "initial_orders": 3,
+        "player_count": 2,
+        "tomato_dispensers": 1,
+        "onion_dispensers": 1,
+        "dish_dispensers": 1,
+        "pots": 1,
+        "serve_areas": 1,
+        "counters": 20,
+        "walls": 20
+      },
+      "games_played": 2,
+      "games_completed": 2,
+      "completion_rate": 1.0,
+      "timing": {
+        "total_evaluation_time": 20.925015926361084,
+        "total_simulation_time": 19.92414617538452,
+        "average_game_duration": 9.96207308769226
+      },
+      "agent_metrics": {
+        "agent_0": {
+          "average_actions_per_game": 196.5,
+          "total_actions": 393,
+          "actions_per_step": 1.0
+        },
+        "agent_1": {
+          "average_actions_per_game": 196.5,
+          "total_actions": 393,
+          "actions_per_step": 1.0
+        }
+      },
+      "completion_metrics": {
+        "average_completion_steps": 196.5,
+        "median_completion_steps": 196.5,
+        "fastest_completion_steps": 195,
+        "slowest_completion_steps": 198,
+        "std_completion_steps": 1.5,
+        "average_completion_time_seconds": 9.96207308769226,
+        "median_completion_time_seconds": 9.96207308769226
+      },
+      "primary_metric": 196.5,
+      "primary_metric_name": "Temps de complétion moyen (steps)",
+      "performance_metrics": {
+        "average_steps": 196.5,
+        "median_steps": 196.5,
+        "average_reward": 123.0,
+        "total_reward": 246,
+        "actual_fps": {
+          "average": 19.726782796164194,
+          "median": 19.726782796164194,
+          "min": 19.590922463279238,
+          "max": 19.862643129049154
+        },
+        "measured_fps": {
+          "average": 3388.9979245667964,
+          "median": 3388.9979245667964
+        }
+      },
+      "behavioral_analysis": {
+        "total_games_analyzed": 2,
+        "aggregated_events": {
+          "tomato_pickup": [
+            6,
+            0
+          ],
+          "useful_tomato_pickup": [
+            6,
+            0
+          ],
+          "tomato_drop": [
+            0,
+            0
+          ],
+          "useful_tomato_drop": [
+            0,
+            0
+          ],
+          "potting_tomato": [
+            6,
+            0
+          ],
+          "tomato_exchange": [
+            0,
+            0
+          ],
+          "onion_pickup": [
+            8,
+            0
+          ],
+          "useful_onion_pickup": [
+            8,
+            0
+          ],
+          "onion_drop": [
+            0,
+            0
+          ],
+          "useful_onion_drop": [
+            0,
+            0
+          ],
+          "potting_onion": [
+            8,
+            0
+          ],
+          "onion_exchange": [
+            0,
+            0
+          ],
+          "dish_pickup": [
+            6,
+            0
+          ],
+          "useful_dish_pickup": [
+            6,
+            0
+          ],
+          "dish_drop": [
+            0,
+            0
+          ],
+          "useful_dish_drop": [
+            0,
+            0
+          ],
+          "dish_exchange": [
+            0,
+            0
+          ],
+          "soup_pickup": [
+            6,
+            0
+          ],
+          "soup_delivery": [
+            6,
+            0
+          ],
+          "soup_drop": [
+            0,
+            0
+          ],
+          "soup_exchange": [
+            0,
+            0
+          ],
+          "optimal_onion_potting": [
+            8,
+            0
+          ],
+          "optimal_tomato_potting": [
+            2,
+            0
+          ],
+          "viable_onion_potting": [
+            6,
+            0
+          ],
+          "viable_tomato_potting": [
+            6,
+            0
+          ],
+          "catastrophic_onion_potting": [
+            0,
+            0
+          ],
+          "catastrophic_tomato_potting": [
+            0,
+            0
+          ],
+          "useless_onion_potting": [
+            2,
+            0
+          ],
+          "useless_tomato_potting": [
+            4,
+            0
+          ]
+        },
+        "average_interactions_per_game": [
+          41.5,
+          0.0
+        ],
+        "average_distance_per_game": [
+          140.0,
+          0.0
+        ],
+        "total_collaboration_events": 0,
+        "average_collaboration_per_game": 0.0,
+        "efficiency_analysis": {
+          "agent_0": {
+            "pickup_efficiency": 0.7692307692307693,
+            "potting_efficiency": 1.5714285714285714,
+            "actions_per_step": 0.2111888111888112,
+            "movement_per_step": 0.7123931623931623
+          },
+          "agent_1": {
+            "pickup_efficiency": 0.0,
+            "potting_efficiency": 0.0,
+            "actions_per_step": 0.0,
+            "movement_per_step": 0.0
+          },
+          "team": {
+            "collaboration_per_delivery": 0.0
+          }
+        },
+        "behavioral_insights": {
+          "task_distribution": {
+            "agent_0_soup_share": 1.0,
+            "agent_1_soup_share": 0.0,
+            "specialization_index": 1.0
+          },
+          "action_patterns": {
+            "total_pickups": 26,
+            "total_pottings": 14,
+            "pickups_per_game": 13.0,
+            "pottings_per_game": 7.0,
+            "pickup_to_potting_ratio": 1.8571428571428572
+          }
+        }
+      }
+    }
+  }
+}
