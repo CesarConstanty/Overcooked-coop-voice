@@ -42,7 +42,7 @@ prop_feats: (min, max) proportion of counters with features on them
 DEFAULT_FEATURE_TYPES = (POT, ONION_DISPENSER, DISH_DISPENSER, SERVING_LOC) # NOTE: TOMATO_DISPENSER is disabled by default
 
 DEFAULT_MDP_GEN_PARAMS = {
-    "inner_shape": (5, 5),  # Taille interne du layout (largeur, hauteur)
+    "inner_shape": (7, 7),  # Taille interne du layout (largeur, hauteur)
     "prop_empty": 0.95, # 95% d'espace vide minimum 
     "prop_feats": 0.1,  # 10% des comptoirs avec des fonctionnalités
     "start_all_orders" : [  # Recettes disponibles au début

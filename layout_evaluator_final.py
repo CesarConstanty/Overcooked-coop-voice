@@ -23,6 +23,27 @@ from overcooked_ai_py.mdp.actions import Action
 from overcooked_ai_py.planning.planners import NO_COUNTERS_PARAMS
 
 
+class StayAgent:
+    """Agent qui reste immobile (ne fait que STAY) pour les tests."""
+    
+    def __init__(self):
+        self.agent_index = None
+        self.mdp = None
+    
+    def action(self, state):
+        """Retourne toujours l'action STAY."""
+        return Action.STAY, {}
+    
+    def set_agent_index(self, agent_index):
+        self.agent_index = agent_index
+    
+    def set_mdp(self, mdp):
+        self.mdp = mdp
+    
+    def reset(self):
+        pass
+
+
 class LayoutEvaluator:
     """
     Évaluateur de layouts qui fait jouer deux GreedyAgent et mesure leurs performances.
@@ -30,7 +51,8 @@ class LayoutEvaluator:
     
     def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/", 
                  horizon: int = 600, num_games_per_layout: int = 5, 
-                 target_fps: float = 10.0, max_stuck_frames: int = 50, single_agent: bool = False):
+                 target_fps: float = 10.0, max_stuck_frames: int = 50, 
+                 single_agent: bool = False, greedy_with_stay: bool = False):
         """
         Initialise l'évaluateur.
         
@@ -40,7 +62,8 @@ class LayoutEvaluator:
             num_games_per_layout: Nombre de parties à jouer par layout
             target_fps: FPS cible pour la simulation
             max_stuck_frames: Nombre max de frames où les agents peuvent être bloqués
-            single_agent: Si True, fait jouer un seul GreedyAgent au lieu de deux
+            single_agent: Si True, fait jouer un seul GreedyAgent (mode solo pur)
+            greedy_with_stay: Si True, fait jouer un GreedyAgent + un StayAgent
         """
         self.layouts_directory = layouts_directory
         self.horizon = horizon
@@ -49,9 +72,17 @@ class LayoutEvaluator:
         self.step_duration = 1.0 / target_fps
         self.max_stuck_frames = max_stuck_frames
         self.single_agent = single_agent
+        self.greedy_with_stay = greedy_with_stay
         self.results = {}
         
-        agent_mode = "1x GreedyAgent (SOLO)" if single_agent else "2x GreedyAgent (COOP)"
+        # Déterminer le mode
+        if single_agent:
+            agent_mode = "1x GreedyAgent (SOLO PUR)"
+        elif greedy_with_stay:
+            agent_mode = "GreedyAgent + StayAgent"
+        else:
+            agent_mode = "2x GreedyAgent (COOP)"
+            
         print(f"🎮 ÉVALUATEUR DE LAYOUTS OVERCOOKED")
         print(f"🤖 Mode: {agent_mode}")
         print(f"📁 Répertoire: {layouts_directory}")
@@ -69,51 +100,98 @@ class LayoutEvaluator:
         print(f"✅ {len(layout_names)} layouts découverts: {layout_names}")
         return layout_names
     
-    def create_agent_group(self, mdp: OvercookedGridworld) -> Tuple[bool, AgentGroup]:
+    def create_agent_group(self, mdp: OvercookedGridworld) -> Tuple[bool, object]:
         """
-        Crée un groupe de deux GreedyAgent configurés pour le MDP donné.
+        Crée un agent ou groupe d'agents GreedyAgent configurés pour le MDP donné.
+        Returns (success, agent_or_group)
         """
         try:
-            print("🤖 Création des GreedyAgent...")
+            # Déterminer le type d'agents à créer
+            if self.single_agent:
+                agent_desc = "1x GreedyAgent (solo pur)"
+            elif self.greedy_with_stay:
+                agent_desc = "GreedyAgent + StayAgent"
+            else:
+                agent_desc = "2x GreedyAgent (coop)"
+                
+            print(f"🤖 Création: {agent_desc}...")
             
             # S'assurer que le répertoire des planners existe
             planners_dir = f"./overcooked_ai_py/data/planners/generation_cesar/"
             os.makedirs(planners_dir, exist_ok=True)
             
-            # Créer les agents
-            agent_0 = GreedyAgent(auto_unstuck=True)
-            agent_1 = GreedyAgent(auto_unstuck=True)
-            
-            # Créer le groupe d'agents
-            agent_group = AgentGroup(agent_0, agent_1)
-            
-            # Configurer avec le MDP
-            agent_group.set_mdp(mdp)
-            
-            print("✅ GreedyAgent créés et configurés avec succès")
-            return True, agent_group
+            if self.single_agent:
+                # Mode agent seul : un seul GreedyAgent
+                agent = GreedyAgent(auto_unstuck=True)
+                agent.set_mdp(mdp)
+                agent.set_agent_index(0)  # Toujours le premier joueur
+                
+                print("✅ GreedyAgent (solo pur) créé avec succès")
+                return True, agent
+                
+            elif self.greedy_with_stay:
+                # Mode GreedyAgent + StayAgent
+                agent_0 = GreedyAgent(auto_unstuck=True)
+                agent_1 = StayAgent()
+                
+                # Créer le groupe d'agents
+                agent_group = AgentGroup(agent_0, agent_1)
+                agent_group.set_mdp(mdp)
+                
+                print("✅ GreedyAgent + StayAgent créés avec succès")
+                return True, agent_group
+                
+            else:
+                # Mode coopératif : deux GreedyAgent
+                agent_0 = GreedyAgent(auto_unstuck=True)
+                agent_1 = GreedyAgent(auto_unstuck=True)
+                
+                # Créer le groupe d'agents
+                agent_group = AgentGroup(agent_0, agent_1)
+                agent_group.set_mdp(mdp)
+                
+                print("✅ 2x GreedyAgent (coop) créés avec succès")
+                return True, agent_group
             
         except Exception as e:
-            print(f"❌ Échec création GreedyAgent: {e}")
+            print(f"❌ Échec création agents: {e}")
             print(f"   Tentative de fallback avec RandomAgent...")
             
             # Fallback sur RandomAgent si GreedyAgent échoue
             try:
                 from overcooked_ai_py.agents.agent import RandomAgent
-                agent_0 = RandomAgent()
-                agent_1 = RandomAgent()
-                agent_group = AgentGroup(agent_0, agent_1)
-                agent_group.set_mdp(mdp)
-                print("✅ RandomAgent créés en fallback")
-                return True, agent_group
+                
+                if self.single_agent:
+                    agent = RandomAgent()
+                    agent.set_mdp(mdp)
+                    agent.set_agent_index(0)
+                    print("✅ RandomAgent (solo) créé en fallback")
+                    return True, agent
+                    
+                elif self.greedy_with_stay:
+                    agent_0 = RandomAgent()
+                    agent_1 = StayAgent()
+                    agent_group = AgentGroup(agent_0, agent_1)
+                    agent_group.set_mdp(mdp)
+                    print("✅ RandomAgent + StayAgent créés en fallback")
+                    return True, agent_group
+                    
+                else:
+                    agent_0 = RandomAgent()
+                    agent_1 = RandomAgent()
+                    agent_group = AgentGroup(agent_0, agent_1)
+                    agent_group.set_mdp(mdp)
+                    print("✅ 2x RandomAgent créés en fallback")
+                    return True, agent_group
+                    
             except Exception as e2:
                 print(f"❌ Échec total création agents: {e2}")
                 return False, None
     
-    def simulate_single_game(self, mdp: OvercookedGridworld, agent_group: AgentGroup, 
+    def simulate_single_game(self, mdp: OvercookedGridworld, agent_or_group: object, 
                            game_id: int = 1) -> Dict:
         """
-        Simule une seule partie complète entre deux GreedyAgent.
+        Simule une seule partie complète avec un GreedyAgent seul ou deux GreedyAgent.
         
         Returns:
             Dict avec les résultats détaillés de la partie
@@ -134,8 +212,13 @@ class LayoutEvaluator:
         step_times = []
         
         try:
-            # État initial - méthode directe comme dans game.py
+            # État initial - adapté selon le mode
             state = mdp.get_standard_start_state()
+            
+            if self.single_agent:
+                print(f"      🤖 Mode SOLO: Joueur 0 actif en {state.players[0].position}, Joueur 1 inactif en {state.players[1].position}")
+            else:
+                print(f"      🤖 Mode NORMAL: Joueurs en {[p.position for p in state.players]}")
             
             # Nombre initial de commandes
             initial_orders = len(state.all_orders)
@@ -147,13 +230,32 @@ class LayoutEvaluator:
             for step in range(self.horizon):
                 step_start_time = time.time()
                 
-                # Obtenir les actions des agents
-                joint_action_and_infos = agent_group.joint_action(state)
-                joint_action = [action_info[0] for action_info in joint_action_and_infos]
-                
-                # Compter les actions par agent
-                for agent_idx, action in enumerate(joint_action):
-                    agent_actions_count[agent_idx][action] += 1
+                # Obtenir les actions selon le mode
+                if self.single_agent:
+                    # Mode agent seul : une action pour le joueur 0, STAY pour le joueur 1 (hors carte)
+                    action_0, _ = agent_or_group.action(state)
+                    joint_action = [action_0, Action.STAY]  # Le joueur 1 reste toujours STAY
+                    
+                    # Compter les actions (seul l'agent 0 agit vraiment)
+                    agent_actions_count[0][action_0] += 1
+                    agent_actions_count[1][Action.STAY] += 1
+                    
+                elif self.greedy_with_stay:
+                    # Mode GreedyAgent + StayAgent : utiliser AgentGroup
+                    joint_action_and_infos = agent_or_group.joint_action(state)
+                    joint_action = [action_info[0] for action_info in joint_action_and_infos]
+                    
+                    # Compter les actions des deux agents
+                    for agent_idx, action in enumerate(joint_action):
+                        agent_actions_count[agent_idx][action] += 1
+                else:
+                    # Mode coopératif : deux agents actifs
+                    joint_action_and_infos = agent_or_group.joint_action(state)
+                    joint_action = [action_info[0] for action_info in joint_action_and_infos]
+                    
+                    # Compter les actions des deux agents
+                    for agent_idx, action in enumerate(joint_action):
+                        agent_actions_count[agent_idx][action] += 1
                 
                 # Exécuter l'action avec la logique Overcooked
                 next_state, info = mdp.get_state_transition(state, joint_action)
@@ -176,11 +278,17 @@ class LayoutEvaluator:
                     break
                 
                 # Vérifier si les agents sont bloqués
-                current_positions = [player.position for player in next_state.players]
+                if self.single_agent:
+                    # Mode solo : vérifier seulement le joueur 0 (le joueur 1 est hors carte)
+                    current_positions = [next_state.players[0].position]
+                else:
+                    # Mode normal : vérifier tous les joueurs
+                    current_positions = [player.position for player in next_state.players]
+                    
                 if current_positions == last_positions:
                     stuck_frames += 1
                     if stuck_frames >= self.max_stuck_frames:
-                        print(f"      ⚠️ Agents bloqués pendant {stuck_frames} frames, arrêt forcé")
+                        print(f"      ⚠️ Agent{'s' if not self.single_agent else ''} bloqué{'s' if not self.single_agent else ''} pendant {stuck_frames} frames, arrêt forcé")
                         break
                 else:
                     stuck_frames = 0
@@ -235,6 +343,7 @@ class LayoutEvaluator:
             'orders_completed': completed_orders,
             'initial_orders': initial_orders,
             'completion_rate': completed_orders / max(1, initial_orders),
+            'single_agent_mode': self.single_agent,
             'timing': {
                 'total_time_seconds': total_game_time,
                 'simulated_time_seconds': step_count * self.step_duration,
@@ -248,19 +357,24 @@ class LayoutEvaluator:
                 'agent_0': {
                     'total_actions': total_actions_agent_0,
                     'actions_per_step': total_actions_agent_0 / max(1, step_count),
-                    'action_distribution': {str(k): v for k, v in agent_actions_count[0].items()}
+                    'action_distribution': {str(k): v for k, v in agent_actions_count[0].items()},
+                    'active': True,
+                    'agent_type': 'GreedyAgent'
                 },
                 'agent_1': {
                     'total_actions': total_actions_agent_1,
                     'actions_per_step': total_actions_agent_1 / max(1, step_count),
-                    'action_distribution': {str(k): v for k, v in agent_actions_count[1].items()}
+                    'action_distribution': {str(k): v for k, v in agent_actions_count[1].items()},
+                    'active': not self.single_agent,
+                    'agent_type': 'StayAgent' if self.greedy_with_stay else ('GreedyAgent' if not self.single_agent else 'Inactive_OutOfBounds')
                 }
             },
             'stuck_frames': stuck_frames,
             'stuck_forced_stop': stuck_frames >= self.max_stuck_frames
         }
         
-        print(f"      📊 Résultat: {step_count} steps, {completed_orders}/{initial_orders} commandes, "
+        mode_info = "SOLO PUR" if self.single_agent else ("GREEDY+STAY" if self.greedy_with_stay else "COOP")
+        print(f"      📊 Résultat [{mode_info}]: {step_count} steps, {completed_orders}/{initial_orders} commandes, "
               f"FPS: {actual_fps:.1f}, temps: {total_game_time:.2f}s")
         
         return game_result
@@ -284,7 +398,7 @@ class LayoutEvaluator:
                   f"Commandes: {structure['initial_orders']}")
             
             # Créer les agents
-            success, agent_group = self.create_agent_group(mdp)
+            success, agent_or_group = self.create_agent_group(mdp)
             if not success:
                 return {
                     'layout_name': layout_name,
@@ -293,7 +407,10 @@ class LayoutEvaluator:
                     'evaluation_time': time.time() - start_time
                 }
             
-            print(f"🤖 Agents: 2x GreedyAgent configurés")
+            agent_info = ("1x GreedyAgent (solo pur)" if self.single_agent else 
+                         "GreedyAgent + StayAgent" if self.greedy_with_stay else 
+                         "2x GreedyAgent (coop)")
+            print(f"🤖 Agents: {agent_info}")
             
             # Simuler toutes les parties
             game_results = []
@@ -301,10 +418,15 @@ class LayoutEvaluator:
             
             for game_num in range(1, self.num_games_per_layout + 1):
                 # Reset des agents entre les parties
-                agent_group.reset()
-                agent_group.set_mdp(mdp)
+                if self.single_agent:
+                    agent_or_group.reset()
+                    agent_or_group.set_mdp(mdp)
+                    agent_or_group.set_agent_index(0)
+                else:
+                    agent_or_group.reset()
+                    agent_or_group.set_mdp(mdp)
                 
-                game_result = self.simulate_single_game(mdp, agent_group, game_num)
+                game_result = self.simulate_single_game(mdp, agent_or_group, game_num)
                 game_results.append(game_result)
                 total_simulation_time += game_result['timing']['total_time_seconds']
                 
@@ -394,6 +516,20 @@ class LayoutEvaluator:
             }
         }
         
+        # Métriques des agents (toujours deux agents, même si un est inactif)
+        results['agent_metrics'] = {
+            'agent_0': {
+                'average_actions_per_game': np.mean(agent_0_actions),
+                'total_actions': sum(agent_0_actions),
+                'actions_per_step': sum(agent_0_actions) / sum(steps_list)
+            },
+            'agent_1': {
+                'average_actions_per_game': np.mean(agent_1_actions),
+                'total_actions': sum(agent_1_actions),
+                'actions_per_step': sum(agent_1_actions) / sum(steps_list)
+            }
+        }
+        
         # Métriques de complétion (MÉTRIQUE PRINCIPALE)
         if completed_games:
             completed_steps = [g['steps'] for g in completed_games]
@@ -435,20 +571,6 @@ class LayoutEvaluator:
             }
         }
         
-        # Métriques des agents
-        results['agent_metrics'] = {
-            'agent_0': {
-                'average_actions_per_game': np.mean(agent_0_actions),
-                'total_actions': sum(agent_0_actions),
-                'actions_per_step': sum(agent_0_actions) / sum(steps_list)
-            },
-            'agent_1': {
-                'average_actions_per_game': np.mean(agent_1_actions),
-                'total_actions': sum(agent_1_actions),
-                'actions_per_step': sum(agent_1_actions) / sum(steps_list)
-            }
-        }
-        
         # Détails des parties individuelles
         results['individual_games'] = game_results
         
@@ -458,8 +580,14 @@ class LayoutEvaluator:
             print(f"⏱️ Temps moyen: {results['completion_metrics']['average_completion_steps']:.1f} steps")
             print(f"🚀 Plus rapide: {results['completion_metrics']['fastest_completion_steps']} steps")
             print(f"📊 FPS moyen: {results['performance_metrics']['actual_fps']['average']:.1f}")
-            print(f"🤖 Actions/step: Agent0={results['agent_metrics']['agent_0']['actions_per_step']:.2f}, "
-                  f"Agent1={results['agent_metrics']['agent_1']['actions_per_step']:.2f}")
+            
+            # Affichage des actions adapté au mode
+            if self.single_agent:
+                print(f"🤖 Actions/step: Agent0={results['agent_metrics']['agent_0']['actions_per_step']:.2f} (mode SOLO), "
+                      f"Agent1={results['agent_metrics']['agent_1']['actions_per_step']:.2f} (hors carte)")
+            else:
+                print(f"🤖 Actions/step: Agent0={results['agent_metrics']['agent_0']['actions_per_step']:.2f}, "
+                      f"Agent1={results['agent_metrics']['agent_1']['actions_per_step']:.2f}")
         else:
             print(f"❌ AUCUNE COMPLÉTION réussie sur {len(game_results)} parties")
         
@@ -553,8 +681,25 @@ class LayoutEvaluator:
 
 def main():
     """Fonction principale."""
+    import sys
+    
+    # Vérifier les arguments pour les différents modes
+    single_agent_mode = '--solo' in sys.argv or '--single' in sys.argv
+    greedy_with_stay_mode = '--stay' in sys.argv or '--greedy-stay' in sys.argv
+    
+    # Déterminer le mode et la description
+    if single_agent_mode:
+        mode_description = "1x GreedyAgent (SOLO PUR)"
+        filename_suffix = "solo"
+    elif greedy_with_stay_mode:
+        mode_description = "GreedyAgent + StayAgent"
+        filename_suffix = "greedy_stay"
+    else:
+        mode_description = "2x GreedyAgent (COOP)"
+        filename_suffix = "coop"
+    
     print("🎮 ÉVALUATEUR DE LAYOUTS OVERCOOKED")
-    print("🤖 Simulation avec 2x GreedyAgent")
+    print(f"🤖 Mode: {mode_description}")
     print("=" * 60)
     
     # Configuration
@@ -570,18 +715,27 @@ def main():
         horizon=600,  # Horizon raisonnable
         num_games_per_layout=5,  # Plusieurs parties pour moyenner
         target_fps=10.0,  # FPS modéré
-        max_stuck_frames=50  # Éviter les blocages infinis
+        max_stuck_frames=50,  # Éviter les blocages infinis
+        single_agent=single_agent_mode,  # Mode solo pur
+        greedy_with_stay=greedy_with_stay_mode  # Mode GreedyAgent + StayAgent
     )
     
     # Lancer l'évaluation
     results = evaluator.evaluate_all_layouts()
     
-    # Sauvegarder
-    evaluator.save_results("layout_evaluation_final.json")
+    # Sauvegarder avec un nom différent selon le mode
+    filename = f"layout_evaluation_{filename_suffix}.json"
+    evaluator.save_results(filename)
     
     print(f"\n🎯 ÉVALUATION TERMINÉE!")
+    print(f"   📊 Mode: {mode_description}")
     print(f"   📊 Métriques complètes disponibles")
-    print(f"   💾 Résultats sauvegardés")
+    print(f"   💾 Résultats sauvegardés dans {filename}")
+    
+    print(f"\n💡 MODES DISPONIBLES:")
+    print(f"   • Mode coopératif (défaut): python {sys.argv[0]}")
+    print(f"   • Mode solo pur: python {sys.argv[0]} --solo")
+    print(f"   • Mode GreedyAgent + StayAgent: python {sys.argv[0]} --stay")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,305 @@
+{
+  "evaluation_config": {
+    "layouts_directory": "./overcooked_ai_py/data/layouts/generation_cesar/",
+    "horizon": 600,
+    "num_games_per_layout": 5,
+    "target_fps": 10.0,
+    "max_stuck_frames": 50
+  },
+  "evaluation_timestamp": 1753268587.432878,
+  "results": {
+    "layout_cesar_0": {
+      "layout_name": "layout_cesar_0",
+      "viable": true,
+      "evaluation_method": "greedy_agent_simulation",
+      "structure": {
+        "width": 7,
+        "height": 7,
+        "area": 49,
+        "initial_orders": 1,
+        "player_count": 2,
+        "tomato_dispensers": 1,
+        "onion_dispensers": 1,
+        "dish_dispensers": 1,
+        "pots": 1,
+        "serve_areas": 1,
+        "counters": 20,
+        "walls": 20
+      },
+      "games_played": 5,
+      "games_completed": 5,
+      "completion_rate": 1.0,
+      "timing": {
+        "total_evaluation_time": 44.84501528739929,
+        "total_simulation_time": 43.13049793243408,
+        "average_game_duration": 8.626099586486816
+      },
+      "completion_metrics": {
+        "average_completion_steps": 87.0,
+        "median_completion_steps": 87.0,
+        "fastest_completion_steps": 85,
+        "slowest_completion_steps": 88,
+        "std_completion_steps": 1.0954451150103321,
+        "average_completion_time_seconds": 8.626099586486816,
+        "median_completion_time_seconds": 8.631037950515747
+      },
+      "primary_metric": 87.0,
+      "primary_metric_name": "Temps de complétion moyen (steps)",
+      "performance_metrics": {
+        "average_steps": 87.0,
+        "median_steps": 87.0,
+        "average_reward": 63.0,
+        "total_reward": 315,
+        "actual_fps": {
+          "average": 10.085841048900395,
+          "median": 10.094048274245836,
+          "min": 10.050489024248881,
+          "max": 10.104265434543324
+        },
+        "measured_fps": {
+          "average": 4323.297653182303,
+          "median": 4332.190218090159
+        }
+      },
+      "agent_metrics": {
+        "agent_0": {
+          "average_actions_per_game": 87.0,
+          "total_actions": 435,
+          "actions_per_step": 1.0
+        },
+        "agent_1": {
+          "average_actions_per_game": 87.0,
+          "total_actions": 435,
+          "actions_per_step": 1.0
+        }
+      },
+      "individual_games": [
+        {
+          "game_id": 1,
+          "completed": true,
+          "steps": 87,
+          "total_reward": 63,
+          "orders_completed": 1,
+          "initial_orders": 1,
+          "completion_rate": 1.0,
+          "single_agent_mode": false,
+          "timing": {
+            "total_time_seconds": 8.618940353393555,
+            "simulated_time_seconds": 8.700000000000001,
+            "average_step_time": 0.0002725872882576876,
+            "target_fps": 10.0,
+            "measured_avg_fps": 4225.825766124462,
+            "actual_fps": 10.094048274245836,
+            "steps_per_fps": 0.02058769216123844
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 87,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 18,
+                "(1, 0)": 14,
+                "interact": 20,
+                "(0, 1)": 24,
+                "(-1, 0)": 11
+              },
+              "active": true,
+              "agent_type": "GreedyAgent"
+            },
+            "agent_1": {
+              "total_actions": 87,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 0)": 87
+              },
+              "active": true,
+              "agent_type": "StayAgent"
+            }
+          },
+          "stuck_frames": 1,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 2,
+          "completed": true,
+          "steps": 88,
+          "total_reward": 63,
+          "orders_completed": 1,
+          "initial_orders": 1,
+          "completion_rate": 1.0,
+          "single_agent_mode": false,
+          "timing": {
+            "total_time_seconds": 8.75579285621643,
+            "simulated_time_seconds": 8.8,
+            "average_step_time": 0.0002629017007761988,
+            "target_fps": 10.0,
+            "measured_avg_fps": 4370.981318209695,
+            "actual_fps": 10.050489024248881,
+            "steps_per_fps": 0.02013277879577939
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 88,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 18,
+                "(1, 0)": 14,
+                "interact": 20,
+                "(0, 1)": 24,
+                "(-1, 0)": 12
+              },
+              "active": true,
+              "agent_type": "GreedyAgent"
+            },
+            "agent_1": {
+              "total_actions": 88,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 0)": 88
+              },
+              "active": true,
+              "agent_type": "StayAgent"
+            }
+          },
+          "stuck_frames": 1,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 3,
+          "completed": true,
+          "steps": 88,
+          "total_reward": 63,
+          "orders_completed": 1,
+          "initial_orders": 1,
+          "completion_rate": 1.0,
+          "single_agent_mode": false,
+          "timing": {
+            "total_time_seconds": 8.712437868118286,
+            "simulated_time_seconds": 8.8,
+            "average_step_time": 0.0002576153853843952,
+            "target_fps": 10.0,
+            "measured_avg_fps": 4422.793251237698,
+            "actual_fps": 10.100502446281004,
+            "steps_per_fps": 0.019896928253513458
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 88,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 12,
+                "(1, 0)": 18,
+                "interact": 19,
+                "(-1, 0)": 16,
+                "(0, 1)": 23
+              },
+              "active": true,
+              "agent_type": "GreedyAgent"
+            },
+            "agent_1": {
+              "total_actions": 88,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 0)": 88
+              },
+              "active": true,
+              "agent_type": "StayAgent"
+            }
+          },
+          "stuck_frames": 1,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 4,
+          "completed": true,
+          "steps": 85,
+          "total_reward": 63,
+          "orders_completed": 1,
+          "initial_orders": 1,
+          "completion_rate": 1.0,
+          "single_agent_mode": false,
+          "timing": {
+            "total_time_seconds": 8.412288904190063,
+            "simulated_time_seconds": 8.5,
+            "average_step_time": 0.0002644260724385579,
+            "target_fps": 10.0,
+            "measured_avg_fps": 4332.190218090159,
+            "actual_fps": 10.104265434543324,
+            "steps_per_fps": 0.019620560437318968
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 85,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 17,
+                "(1, 0)": 13,
+                "interact": 20,
+                "(-1, 0)": 11,
+                "(0, 1)": 24
+              },
+              "active": true,
+              "agent_type": "GreedyAgent"
+            },
+            "agent_1": {
+              "total_actions": 85,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 0)": 85
+              },
+              "active": true,
+              "agent_type": "StayAgent"
+            }
+          },
+          "stuck_frames": 1,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 5,
+          "completed": true,
+          "steps": 87,
+          "total_reward": 63,
+          "orders_completed": 1,
+          "initial_orders": 1,
+          "completion_rate": 1.0,
+          "single_agent_mode": false,
+          "timing": {
+            "total_time_seconds": 8.631037950515747,
+            "simulated_time_seconds": 8.700000000000001,
+            "average_step_time": 0.00027410096900407657,
+            "target_fps": 10.0,
+            "measured_avg_fps": 4264.697712249505,
+            "actual_fps": 10.079900065182928,
+            "steps_per_fps": 0.020400039081342067
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 87,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 19,
+                "(1, 0)": 12,
+                "interact": 21,
+                "(-1, 0)": 10,
+                "(0, 1)": 25
+              },
+              "active": true,
+              "agent_type": "GreedyAgent"
+            },
+            "agent_1": {
+              "total_actions": 87,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 0)": 87
+              },
+              "active": true,
+              "agent_type": "StayAgent"
+            }
+          },
+          "stuck_frames": 1,
+          "stuck_forced_stop": false
+        }
+      ]
+    }
+  }
+}

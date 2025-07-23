@@ -1,9 +1,11 @@
 {
-	"grid":  """XPXXX
-				X 2 X
-				S  1X
-				O   X
-				XDXTX""",
+	"grid":  """XXXXXXX
+				X    OX
+				T     D
+				X     X
+				X     X
+				X  12 X
+				XXXXPSX""",
 	"start_bonus_order": [],
 	"start_all_orders": [{'ingredients': ['onion', 'onion', 'onion']}],
 	"rew_shaping_params": None,
