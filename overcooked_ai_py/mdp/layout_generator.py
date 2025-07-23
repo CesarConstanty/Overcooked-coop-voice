@@ -55,7 +55,7 @@ DEFAULT_MDP_GEN_PARAMS = {
     "min_tomato_dispensers": 1, # Nombre minimum de distributeurs de tomates
     "min_dish_dispensers": 1,   # Nombre minimum de distributeurs d'assiettes
     "min_serving_locations": 1, # Nombre minimum de zones de service
-    "num_layouts_to_generate": 2, # Nombre de layouts à générer
+    "num_layouts_to_generate": 5, # Nombre de layouts à générer
     "recipe_values" : [20], # Valeurs des recettes
     "recipe_times" : [20],  # Temps de cuisson
     "display": False,   # Affichage debug

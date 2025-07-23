@@ -50,7 +50,7 @@ class LayoutEvaluator:
     """
     
     def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/", 
-                 horizon: int = 600, num_games_per_layout: int = 5, 
+                 horizon: int = 600, num_games_per_layout: int = 2, 
                  target_fps: float = 10.0, max_stuck_frames: int = 50, 
                  single_agent: bool = False, greedy_with_stay: bool = False):
         """
@@ -381,7 +381,10 @@ class LayoutEvaluator:
         total_actions_agent_0 = sum(agent_actions_count[0].values())
         total_actions_agent_1 = sum(agent_actions_count[1].values())
         
-        # Résultats détaillés
+        # Calculer les métriques supplémentaires compatibles avec 2_0_0.json
+        total_interact_actions = behavioral_metrics['interactions_count']
+        
+        # Résultats détaillés avec compatibilité 2_0_0.json
         game_result = {
             'game_id': game_id,
             'completed': completed,
@@ -391,6 +394,18 @@ class LayoutEvaluator:
             'initial_orders': initial_orders,
             'completion_rate': completed_orders / max(1, initial_orders),
             'single_agent_mode': self.single_agent,
+            
+            # Section info_sum compatible avec 2_0_0.json
+            'info_sum': behavioral_summary.get('event_summary', {}),
+            
+            # Métriques d'actions compatibles avec 2_0_0.json
+            'agent_action_count': total_actions_agent_0 if self.single_agent else total_actions_agent_0 + total_actions_agent_1,
+            'human_action_count': 0,  # Dans notre cas, pas d'humains
+            'agent_interact_count': sum(total_interact_actions),
+            'human_interact_count': 0,  # Dans notre cas, pas d'humains
+            'agent_stuck_loop': stuck_frames,
+            'achieved_orders_len': completed_orders,
+            
             'timing': {
                 'total_time_seconds': total_game_time,
                 'simulated_time_seconds': step_count * self.step_duration,
@@ -406,14 +421,18 @@ class LayoutEvaluator:
                     'actions_per_step': total_actions_agent_0 / max(1, step_count),
                     'action_distribution': {str(k): v for k, v in agent_actions_count[0].items()},
                     'active': True,
-                    'agent_type': 'GreedyAgent'
+                    'agent_type': 'GreedyAgent',
+                    'interact_count': total_interact_actions[0],
+                    'distance_traveled': behavioral_metrics['total_distance_traveled'][0]
                 },
                 'agent_1': {
                     'total_actions': total_actions_agent_1,
                     'actions_per_step': total_actions_agent_1 / max(1, step_count),
                     'action_distribution': {str(k): v for k, v in agent_actions_count[1].items()},
                     'active': not self.single_agent,
-                    'agent_type': 'StayAgent' if self.greedy_with_stay else ('GreedyAgent' if not self.single_agent else 'Inactive_OutOfBounds')
+                    'agent_type': 'StayAgent' if self.greedy_with_stay else ('GreedyAgent' if not self.single_agent else 'Inactive_OutOfBounds'),
+                    'interact_count': total_interact_actions[1],
+                    'distance_traveled': behavioral_metrics['total_distance_traveled'][1]
                 }
             },
             'stuck_frames': stuck_frames,
@@ -479,14 +498,14 @@ class LayoutEvaluator:
                                     behavioral_metrics: Dict, step_count: int) -> Dict:
         """
         Calcule un résumé des métriques comportementales basé sur l'historique des événements.
-        Inspiré de la structure des données de game.py et du fichier 2_0_0.json
+        Compatible avec le format 2_0_0.json: retourne 'event_summary' qui correspond à 'info_sum'
         
         IMPORTANT: En mode solo, tous les événements sont attribués à l'agent 0 uniquement.
         """
-        # Agréger tous les event_infos comme dans game.py
+        # Agréger tous les event_infos comme dans game.py et 2_0_0.json
         event_summary = {}
         
-        # Initialiser avec tous les types d'événements
+        # Initialiser avec tous les types d'événements (compatible 2_0_0.json)
         from overcooked_ai_py.mdp.overcooked_mdp import EVENT_TYPES
         for event_type in EVENT_TYPES:
             event_summary[event_type] = [0, 0]  # [agent_0, agent_1]
@@ -504,7 +523,7 @@ class LayoutEvaluator:
         efficiency_metrics = self._calculate_efficiency_metrics(event_summary, behavioral_metrics, step_count)
         
         return {
-            'event_summary': event_summary,
+            'event_summary': event_summary,  # Ce champ sera utilisé pour 'info_sum'
             'interactions_count': behavioral_metrics['interactions_count'],
             'total_distance_traveled': behavioral_metrics['total_distance_traveled'],
             'collaboration_events': behavioral_metrics['collaboration_events'],
@@ -1442,8 +1461,8 @@ class LayoutEvaluator:
         # Ajouter les métriques comportementales agrégées
         results['behavioral_analysis'] = behavioral_aggregation
         
-        # Optionnel: Détails des parties individuelles (pour debug uniquement)
-        # results['individual_games'] = game_results
+        # Détails des parties individuelles (compatible avec 2_0_0.json)
+        results['individual_games'] = game_results
         
         # Affichage des résultats
         if completed_games:

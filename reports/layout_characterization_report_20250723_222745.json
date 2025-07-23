@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "generation_timestamp": "2025-07-23T22:27:45.818544",
+    "total_layouts_analyzed": 2,
+    "generator_version": "2.0.0"
+  },
+  "layouts": {
+    "layout_cesar_0": {
+      "error": "evaluation_failed",
+      "timestamp": "2025-07-23T22:27:26.685409"
+    },
+    "layout_cesar_1": {
+      "error": "evaluation_failed",
+      "timestamp": "2025-07-23T22:27:45.818528"
+    }
+  },
+  "summary": {
+    "total_analyzed": 2,
+    "successful_analyses": 0,
+    "success_rate": 0.0,
+    "key_findings": []
+  }
+}

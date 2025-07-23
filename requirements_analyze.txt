@@ -1,0 +1,16 @@
+# Dépendances pour l'analyse des résultats d'évaluation Overcooked
+# Utilisation: pip install -r requirements_analyze.txt
+
+# Analyse de données
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Visualisation
+matplotlib>=3.6.0
+seaborn>=0.12.0
+
+# Traitement de données
+scipy>=1.10.0
+
+# Utilitaires
+pathlib2>=2.3.0  # Compatibilité avec Python < 3.4 si nécessaire
