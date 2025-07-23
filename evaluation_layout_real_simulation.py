@@ -103,8 +103,7 @@ class RealSimulationEvaluator:
         
         # Initialiser l'environnement
         env_params = {"horizon": self.horizon}
-        mdp_fn = lambda: mdp  # Fonction qui retourne le MDP
-        env = OvercookedEnv(mdp_fn, **env_params)
+        env = OvercookedEnv.from_mdp(mdp, **env_params)
         
         # Configurer les agents avec le MDP
         try:

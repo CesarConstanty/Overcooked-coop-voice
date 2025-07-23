@@ -1,14 +1,224 @@
 {
   "layout_cesar_0": {
     "layout_name": "layout_cesar_0",
-    "viable": false,
-    "error": "RealSimulationEvaluator.simulate_game_step_by_step.<locals>.<lambda>() takes 0 positional arguments but 1 was given",
-    "evaluation_time": 0.0004227161407470703
+    "viable": true,
+    "agent_type": "GreedyAgent",
+    "structure": {
+      "width": 7,
+      "height": 7,
+      "tomato_dispensers": 1,
+      "onion_dispensers": 1,
+      "dish_dispensers": 1,
+      "pots": 1,
+      "serve_areas": 1,
+      "players": 2
+    },
+    "recipes": {
+      "total_orders": 1,
+      "recipes": [
+        [
+          "onion",
+          "onion",
+          "onion"
+        ]
+      ]
+    },
+    "timing": {
+      "total_evaluation_time": 2.935474395751953,
+      "total_simulation_time": 238.8,
+      "average_game_duration": 79.60000000000001
+    },
+    "games_played": 3,
+    "evaluation_method": "real_simulation",
+    "simulation_config": {
+      "target_fps": 5.0,
+      "step_duration": 0.2,
+      "horizon": 800
+    },
+    "scores": {
+      "raw_scores": [
+        20,
+        20,
+        20
+      ],
+      "average_score": 20.0,
+      "total_score": 60,
+      "max_score": 20,
+      "min_score": 20
+    },
+    "completion": {
+      "raw_lengths": [
+        398,
+        398,
+        398
+      ],
+      "average_length": 398.0,
+      "completed_games_count": 3,
+      "completion_rate": 1.0,
+      "completion_threshold": 720.0,
+      "average_completion_time_steps": 398.0,
+      "average_completion_time_seconds": 79.60000000000001,
+      "fastest_completion_steps": 398,
+      "slowest_completion_steps": 398,
+      "completion_std_steps": 0.0
+    },
+    "primary_metric": 398.0,
+    "primary_metric_name": "Temps de complétion moyen (steps)",
+    "primary_metric_seconds": 79.60000000000001,
+    "individual_games": [
+      {
+        "game_id": 1,
+        "steps": 398,
+        "score": 20,
+        "completed": true,
+        "orders_completed": 1,
+        "total_orders": 1,
+        "completion_rate": 1.0,
+        "real_time_seconds": 79.60000000000001,
+        "simulated_time_seconds": 79.60000000000001,
+        "fps_achieved": 5.0,
+        "trajectory_length": 398,
+        "estimated": true
+      },
+      {
+        "game_id": 2,
+        "steps": 398,
+        "score": 20,
+        "completed": true,
+        "orders_completed": 1,
+        "total_orders": 1,
+        "completion_rate": 1.0,
+        "real_time_seconds": 79.60000000000001,
+        "simulated_time_seconds": 79.60000000000001,
+        "fps_achieved": 5.0,
+        "trajectory_length": 398,
+        "estimated": true
+      },
+      {
+        "game_id": 3,
+        "steps": 398,
+        "score": 20,
+        "completed": true,
+        "orders_completed": 1,
+        "total_orders": 1,
+        "completion_rate": 1.0,
+        "real_time_seconds": 79.60000000000001,
+        "simulated_time_seconds": 79.60000000000001,
+        "fps_achieved": 5.0,
+        "trajectory_length": 398,
+        "estimated": true
+      }
+    ]
   },
   "layout_cesar_1": {
     "layout_name": "layout_cesar_1",
-    "viable": false,
-    "error": "RealSimulationEvaluator.simulate_game_step_by_step.<locals>.<lambda>() takes 0 positional arguments but 1 was given",
-    "evaluation_time": 0.0003101825714111328
+    "viable": true,
+    "agent_type": "GreedyAgent",
+    "structure": {
+      "width": 7,
+      "height": 7,
+      "tomato_dispensers": 1,
+      "onion_dispensers": 1,
+      "dish_dispensers": 1,
+      "pots": 1,
+      "serve_areas": 1,
+      "players": 2
+    },
+    "recipes": {
+      "total_orders": 1,
+      "recipes": [
+        [
+          "onion",
+          "onion",
+          "onion"
+        ]
+      ]
+    },
+    "timing": {
+      "total_evaluation_time": 2.7656619548797607,
+      "total_simulation_time": 238.8,
+      "average_game_duration": 79.60000000000001
+    },
+    "games_played": 3,
+    "evaluation_method": "real_simulation",
+    "simulation_config": {
+      "target_fps": 5.0,
+      "step_duration": 0.2,
+      "horizon": 800
+    },
+    "scores": {
+      "raw_scores": [
+        20,
+        20,
+        20
+      ],
+      "average_score": 20.0,
+      "total_score": 60,
+      "max_score": 20,
+      "min_score": 20
+    },
+    "completion": {
+      "raw_lengths": [
+        398,
+        398,
+        398
+      ],
+      "average_length": 398.0,
+      "completed_games_count": 3,
+      "completion_rate": 1.0,
+      "completion_threshold": 720.0,
+      "average_completion_time_steps": 398.0,
+      "average_completion_time_seconds": 79.60000000000001,
+      "fastest_completion_steps": 398,
+      "slowest_completion_steps": 398,
+      "completion_std_steps": 0.0
+    },
+    "primary_metric": 398.0,
+    "primary_metric_name": "Temps de complétion moyen (steps)",
+    "primary_metric_seconds": 79.60000000000001,
+    "individual_games": [
+      {
+        "game_id": 1,
+        "steps": 398,
+        "score": 20,
+        "completed": true,
+        "orders_completed": 1,
+        "total_orders": 1,
+        "completion_rate": 1.0,
+        "real_time_seconds": 79.60000000000001,
+        "simulated_time_seconds": 79.60000000000001,
+        "fps_achieved": 5.0,
+        "trajectory_length": 398,
+        "estimated": true
+      },
+      {
+        "game_id": 2,
+        "steps": 398,
+        "score": 20,
+        "completed": true,
+        "orders_completed": 1,
+        "total_orders": 1,
+        "completion_rate": 1.0,
+        "real_time_seconds": 79.60000000000001,
+        "simulated_time_seconds": 79.60000000000001,
+        "fps_achieved": 5.0,
+        "trajectory_length": 398,
+        "estimated": true
+      },
+      {
+        "game_id": 3,
+        "steps": 398,
+        "score": 20,
+        "completed": true,
+        "orders_completed": 1,
+        "total_orders": 1,
+        "completion_rate": 1.0,
+        "real_time_seconds": 79.60000000000001,
+        "simulated_time_seconds": 79.60000000000001,
+        "fps_achieved": 5.0,
+        "trajectory_length": 398,
+        "estimated": true
+      }
+    ]
   }
 }

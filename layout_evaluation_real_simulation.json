@@ -1,0 +1,12 @@
+{
+  "layout_cesar_1": {
+    "error": "Impossible de charger le layout",
+    "layout_name": "layout_cesar_1",
+    "viable": false
+  },
+  "layout_cesar_0": {
+    "error": "Impossible de charger le layout",
+    "layout_name": "layout_cesar_0",
+    "viable": false
+  }
+}
