@@ -1,174 +1,306 @@
 {
-  "layout_cesar_0": {
-    "layout_name": "layout_cesar_0",
-    "viable": true,
-    "structure": {
-      "width": 7,
-      "height": 7,
-      "tomato_dispensers": 1,
-      "onion_dispensers": 1,
-      "dish_dispensers": 1,
-      "pots": 1,
-      "serve_areas": 1,
-      "players": 2,
-      "walls": 20,
-      "counters": 0,
-      "free_spaces": 24,
-      "space_density": 0.4897959183673469,
-      "viable": true,
-      "complexity_score": 5
-    },
-    "recipes": {
-      "recipes": [
-        {
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "onion_count": 3,
-          "tomato_count": 0,
-          "total_ingredients": 3,
-          "value": null
-        }
-      ],
-      "num_recipes": 1,
-      "total_orders": 1,
-      "requires_onions": true,
-      "requires_tomatoes": false,
-      "total_ingredients": 3,
-      "recipe_complexity": 3.0
-    },
-    "timing": {
-      "total_evaluation_time": 0.0037963390350341797
-    },
-    "games_played": 5,
-    "evaluation_method": "greedy_estimation",
-    "scores": {
-      "raw_scores": [
-        34,
-        34,
-        34,
-        34,
-        34
-      ],
-      "average_score": 34.0,
-      "max_score": 34,
-      "min_score": 34,
-      "total_score": 170
-    },
-    "completion": {
-      "raw_lengths": [
-        260,
-        251,
-        267,
-        260,
-        265
-      ],
-      "average_length": 260.6,
-      "completed_games_count": 5,
-      "completion_rate": 1.0,
-      "completion_threshold": 800.0,
-      "average_completion_time": 260.6,
-      "fastest_completion": 251,
-      "slowest_completion": 267,
-      "completion_std": 5.535341001239218
-    },
-    "primary_metric": 260.6,
-    "primary_metric_name": "Temps de complétion moyen (steps)",
-    "estimation_details": {
-      "base_time": 150,
-      "movement_factor": 42,
-      "recipe_complexity": 75,
-      "cooperation_factor": 0.8,
-      "congestion_factor": 1.2551020408163265,
-      "final_estimated_time": 268.0897959183674
-    }
+  "evaluation_config": {
+    "layouts_directory": "./overcooked_ai_py/data/layouts/generation_cesar/",
+    "horizon": 600,
+    "num_games_per_layout": 5,
+    "target_fps": 10.0,
+    "max_stuck_frames": 50
   },
-  "layout_cesar_1": {
-    "layout_name": "layout_cesar_1",
-    "viable": true,
-    "structure": {
-      "width": 7,
-      "height": 7,
-      "tomato_dispensers": 1,
-      "onion_dispensers": 1,
-      "dish_dispensers": 1,
-      "pots": 1,
-      "serve_areas": 1,
-      "players": 2,
-      "walls": 20,
-      "counters": 0,
-      "free_spaces": 24,
-      "space_density": 0.4897959183673469,
+  "evaluation_timestamp": 1753266307.2385058,
+  "results": {
+    "layout_cesar_0": {
+      "layout_name": "layout_cesar_0",
+      "viable": false,
+      "error": "Ragged grid",
+      "evaluation_time": 0.0001480579376220703
+    },
+    "layout_cesar_1": {
+      "layout_name": "layout_cesar_1",
       "viable": true,
-      "complexity_score": 5
-    },
-    "recipes": {
-      "recipes": [
-        {
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "onion_count": 3,
-          "tomato_count": 0,
-          "total_ingredients": 3,
-          "value": null
-        }
-      ],
-      "num_recipes": 1,
-      "total_orders": 1,
-      "requires_onions": true,
-      "requires_tomatoes": false,
-      "total_ingredients": 3,
-      "recipe_complexity": 3.0
-    },
-    "timing": {
-      "total_evaluation_time": 0.0008256435394287109
-    },
-    "games_played": 5,
-    "evaluation_method": "greedy_estimation",
-    "scores": {
-      "raw_scores": [
-        34,
-        34,
-        35,
-        34,
-        34
-      ],
-      "average_score": 34.2,
-      "max_score": 35,
-      "min_score": 34,
-      "total_score": 171
-    },
-    "completion": {
-      "raw_lengths": [
-        267,
-        285,
-        243,
-        274,
-        255
-      ],
-      "average_length": 264.8,
-      "completed_games_count": 5,
+      "evaluation_method": "greedy_agent_simulation",
+      "structure": {
+        "width": 7,
+        "height": 7,
+        "area": 49,
+        "initial_orders": 6,
+        "player_count": 2,
+        "tomato_dispensers": 1,
+        "onion_dispensers": 1,
+        "dish_dispensers": 1,
+        "pots": 1,
+        "serve_areas": 1,
+        "counters": 20,
+        "walls": 20
+      },
+      "games_played": 5,
+      "games_completed": 5,
       "completion_rate": 1.0,
-      "completion_threshold": 800.0,
-      "average_completion_time": 264.8,
-      "fastest_completion": 243,
-      "slowest_completion": 285,
-      "completion_std": 14.620533505997654
-    },
-    "primary_metric": 264.8,
-    "primary_metric_name": "Temps de complétion moyen (steps)",
-    "estimation_details": {
-      "base_time": 150,
-      "movement_factor": 42,
-      "recipe_complexity": 75,
-      "cooperation_factor": 0.8,
-      "congestion_factor": 1.2551020408163265,
-      "final_estimated_time": 268.0897959183674
+      "timing": {
+        "total_evaluation_time": 167.70574021339417,
+        "total_simulation_time": 164.10850429534912,
+        "average_game_duration": 32.82170085906982
+      },
+      "completion_metrics": {
+        "average_completion_steps": 328.2,
+        "median_completion_steps": 330.0,
+        "fastest_completion_steps": 304,
+        "slowest_completion_steps": 342,
+        "std_completion_steps": 14.119490075778232,
+        "average_completion_time_seconds": 32.82170085906982,
+        "median_completion_time_seconds": 33.01757335662842
+      },
+      "primary_metric": 328.2,
+      "primary_metric_name": "Temps de complétion moyen (steps)",
+      "performance_metrics": {
+        "average_steps": 328.2,
+        "median_steps": 330.0,
+        "average_reward": 238.0,
+        "total_reward": 1190,
+        "actual_fps": {
+          "average": 9.999597824096414,
+          "median": 9.997818862185582,
+          "min": 9.994677574745241,
+          "max": 10.00772505610563
+        },
+        "measured_fps": {
+          "average": 1849.480533432115,
+          "median": 1856.791353532343
+        }
+      },
+      "agent_metrics": {
+        "agent_0": {
+          "average_actions_per_game": 328.2,
+          "total_actions": 1641,
+          "actions_per_step": 1.0
+        },
+        "agent_1": {
+          "average_actions_per_game": 328.2,
+          "total_actions": 1641,
+          "actions_per_step": 1.0
+        }
+      },
+      "individual_games": [
+        {
+          "game_id": 1,
+          "completed": true,
+          "steps": 342,
+          "total_reward": 238,
+          "orders_completed": 6,
+          "initial_orders": 6,
+          "completion_rate": 1.0,
+          "timing": {
+            "total_time_seconds": 34.20746111869812,
+            "simulated_time_seconds": 34.2,
+            "average_step_time": 0.0006845130249202426,
+            "target_fps": 10.0,
+            "measured_avg_fps": 1846.736686410151,
+            "actual_fps": 9.997818862185582,
+            "steps_per_fps": 0.18519153408102249
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 342,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 1)": 63,
+                "(-1, 0)": 78,
+                "interact": 76,
+                "(1, 0)": 75,
+                "(0, -1)": 50
+              }
+            },
+            "agent_1": {
+              "total_actions": 342,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 56,
+                "(-1, 0)": 64,
+                "(0, 1)": 85,
+                "interact": 71,
+                "(1, 0)": 66
+              }
+            }
+          },
+          "stuck_frames": 0,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 2,
+          "completed": true,
+          "steps": 323,
+          "total_reward": 238,
+          "orders_completed": 6,
+          "initial_orders": 6,
+          "completion_rate": 1.0,
+          "timing": {
+            "total_time_seconds": 32.27506732940674,
+            "simulated_time_seconds": 32.300000000000004,
+            "average_step_time": 0.0006681873191217458,
+            "target_fps": 10.0,
+            "measured_avg_fps": 1856.791353532343,
+            "actual_fps": 10.00772505610563,
+            "steps_per_fps": 0.17395600177991336
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 323,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 1)": 65,
+                "(-1, 0)": 59,
+                "interact": 87,
+                "(1, 0)": 70,
+                "(0, -1)": 42
+              }
+            },
+            "agent_1": {
+              "total_actions": 323,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 49,
+                "(-1, 0)": 74,
+                "(1, 0)": 76,
+                "interact": 72,
+                "(0, 1)": 52
+              }
+            }
+          },
+          "stuck_frames": 0,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 3,
+          "completed": true,
+          "steps": 342,
+          "total_reward": 238,
+          "orders_completed": 6,
+          "initial_orders": 6,
+          "completion_rate": 1.0,
+          "timing": {
+            "total_time_seconds": 34.21448469161987,
+            "simulated_time_seconds": 34.2,
+            "average_step_time": 0.0006668078235167563,
+            "target_fps": 10.0,
+            "measured_avg_fps": 1868.5526139545032,
+            "actual_fps": 9.995766503061372,
+            "steps_per_fps": 0.1830293658556447
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 342,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 1)": 63,
+                "(-1, 0)": 80,
+                "interact": 80,
+                "(1, 0)": 78,
+                "(0, -1)": 41
+              }
+            },
+            "agent_1": {
+              "total_actions": 342,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 60,
+                "(-1, 0)": 60,
+                "(0, 1)": 65,
+                "interact": 74,
+                "(1, 0)": 83
+              }
+            }
+          },
+          "stuck_frames": 0,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 4,
+          "completed": true,
+          "steps": 330,
+          "total_reward": 238,
+          "orders_completed": 6,
+          "initial_orders": 6,
+          "completion_rate": 1.0,
+          "timing": {
+            "total_time_seconds": 33.01757335662842,
+            "simulated_time_seconds": 33.0,
+            "average_step_time": 0.0006979903189244604,
+            "target_fps": 10.0,
+            "measured_avg_fps": 1812.799682631814,
+            "actual_fps": 9.994677574745241,
+            "steps_per_fps": 0.18203886682113027
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 330,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 1)": 61,
+                "(-1, 0)": 59,
+                "interact": 70,
+                "(1, 0)": 88,
+                "(0, -1)": 52
+              }
+            },
+            "agent_1": {
+              "total_actions": 330,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 70,
+                "(-1, 0)": 62,
+                "(0, 1)": 68,
+                "interact": 74,
+                "(1, 0)": 56
+              }
+            }
+          },
+          "stuck_frames": 0,
+          "stuck_forced_stop": false
+        },
+        {
+          "game_id": 5,
+          "completed": true,
+          "steps": 304,
+          "total_reward": 238,
+          "orders_completed": 6,
+          "initial_orders": 6,
+          "completion_rate": 1.0,
+          "timing": {
+            "total_time_seconds": 30.39391779899597,
+            "simulated_time_seconds": 30.400000000000002,
+            "average_step_time": 0.0006778775268655406,
+            "target_fps": 10.0,
+            "measured_avg_fps": 1862.5223306317637,
+            "actual_fps": 10.002001124384243,
+            "steps_per_fps": 0.1632195195731607
+          },
+          "agent_statistics": {
+            "agent_0": {
+              "total_actions": 304,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, 1)": 58,
+                "(-1, 0)": 58,
+                "interact": 77,
+                "(1, 0)": 64,
+                "(0, -1)": 47
+              }
+            },
+            "agent_1": {
+              "total_actions": 304,
+              "actions_per_step": 1.0,
+              "action_distribution": {
+                "(0, -1)": 41,
+                "(-1, 0)": 64,
+                "(1, 0)": 62,
+                "interact": 80,
+                "(0, 1)": 57
+              }
+            }
+          },
+          "stuck_frames": 0,
+          "stuck_forced_stop": false
+        }
+      ]
     }
   }
 }
