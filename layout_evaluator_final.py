@@ -30,7 +30,7 @@ class LayoutEvaluator:
     
     def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/", 
                  horizon: int = 600, num_games_per_layout: int = 5, 
-                 target_fps: float = 10.0, max_stuck_frames: int = 50):
+                 target_fps: float = 10.0, max_stuck_frames: int = 50, single_agent: bool = False):
         """
         Initialise l'évaluateur.
         
@@ -40,6 +40,7 @@ class LayoutEvaluator:
             num_games_per_layout: Nombre de parties à jouer par layout
             target_fps: FPS cible pour la simulation
             max_stuck_frames: Nombre max de frames où les agents peuvent être bloqués
+            single_agent: Si True, fait jouer un seul GreedyAgent au lieu de deux
         """
         self.layouts_directory = layouts_directory
         self.horizon = horizon
@@ -47,9 +48,12 @@ class LayoutEvaluator:
         self.target_fps = target_fps
         self.step_duration = 1.0 / target_fps
         self.max_stuck_frames = max_stuck_frames
+        self.single_agent = single_agent
         self.results = {}
         
+        agent_mode = "1x GreedyAgent (SOLO)" if single_agent else "2x GreedyAgent (COOP)"
         print(f"🎮 ÉVALUATEUR DE LAYOUTS OVERCOOKED")
+        print(f"🤖 Mode: {agent_mode}")
         print(f"📁 Répertoire: {layouts_directory}")
         print(f"⏱️ Horizon: {horizon} steps")
         print(f"🎯 Parties par layout: {num_games_per_layout}")
