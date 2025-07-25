@@ -15,6 +15,8 @@ import json
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
 
 from overcooked_ai_py.agents.agent import GreedyAgent, AgentGroup
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
@@ -50,9 +52,10 @@ class LayoutEvaluator:
     """
     
     def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/", 
-                 horizon: int = 600, num_games_per_layout: int = 2, 
+                 horizon: int = 600, num_games_per_layout: int = 5, 
                  target_fps: float = 10.0, max_stuck_frames: int = 50, 
-                 single_agent: bool = False, greedy_with_stay: bool = False):
+                 single_agent: bool = False, greedy_with_stay: bool = False,
+                 parallel_games: bool = False, max_workers: int = None):
         """
         Initialise l'évaluateur.
         
@@ -60,19 +63,23 @@ class LayoutEvaluator:
             layouts_directory: Répertoire contenant les fichiers .layout
             horizon: Nombre maximum de steps par partie
             num_games_per_layout: Nombre de parties à jouer par layout
-            target_fps: FPS cible pour la simulation
+            target_fps: FPS cible pour la simulation (ignoré si parallel_games=True)
             max_stuck_frames: Nombre max de frames où les agents peuvent être bloqués
             single_agent: Si True, fait jouer un seul GreedyAgent (mode solo pur)
             greedy_with_stay: Si True, fait jouer un GreedyAgent + un StayAgent
+            parallel_games: Si True, exécute les parties en parallèle
+            max_workers: Nombre max de processus parallèles (None = auto)
         """
         self.layouts_directory = layouts_directory
         self.horizon = horizon
         self.num_games_per_layout = num_games_per_layout
         self.target_fps = target_fps
-        self.step_duration = 1.0 / target_fps
+        self.step_duration = 1.0 / target_fps if not parallel_games else 0
         self.max_stuck_frames = max_stuck_frames
         self.single_agent = single_agent
         self.greedy_with_stay = greedy_with_stay
+        self.parallel_games = parallel_games
+        self.max_workers = max_workers or min(num_games_per_layout, os.cpu_count() or 1)
         self.results = {}
         
         # Déterminer le mode
@@ -83,12 +90,15 @@ class LayoutEvaluator:
         else:
             agent_mode = "2x GreedyAgent (COOP)"
             
+        parallel_info = f" [PARALLÈLE: {self.max_workers} workers]" if parallel_games else ""
+        speed_info = f"🚀 FPS cible: {target_fps}" if not parallel_games else "🚀 Mode: Parallèle (FPS max)"
+            
         print(f"🎮 ÉVALUATEUR DE LAYOUTS OVERCOOKED")
-        print(f"🤖 Mode: {agent_mode}")
+        print(f"🤖 Mode: {agent_mode}{parallel_info}")
         print(f"📁 Répertoire: {layouts_directory}")
         print(f"⏱️ Horizon: {horizon} steps")
         print(f"🎯 Parties par layout: {num_games_per_layout}")
-        print(f"🚀 FPS cible: {target_fps}")
+        print(f"{speed_info}")
         print(f"🔒 Max stuck frames: {max_stuck_frames}")
     
     def discover_layouts(self) -> List[str]:
@@ -213,6 +223,7 @@ class LayoutEvaluator:
         
         # Métriques comportementales détaillées (inspirées de game.py)
         event_infos_history = []
+        trajectory = []  # Pour stocker la trajectoire complète
         behavioral_metrics = {
             'interactions_count': [0, 0],  # Nombre d'interactions par agent
             'stuck_loops': [0, 0],         # Nombre de fois bloqué par agent
@@ -340,6 +351,23 @@ class LayoutEvaluator:
                 state = next_state
                 step_count = step + 1
                 
+                # Stocker la trajectoire
+                trajectory_step = {
+                    'timestep': step,
+                    'state': {
+                        'players': [
+                            {
+                                'position': list(player.position),
+                                'held_object': str(player.held_object) if player.held_object else None
+                            } for player in state.players
+                        ]
+                    },
+                    'joint_action': [str(action) for action in joint_action],
+                    'reward': step_reward,
+                    'event_infos': event_infos
+                }
+                trajectory.append(trajectory_step)
+                
                 # Mesurer le timing
                 step_end_time = time.time()
                 step_duration = step_end_time - step_start_time
@@ -348,9 +376,9 @@ class LayoutEvaluator:
                 if step_duration > 0:
                     fps_measurements.append(1.0 / step_duration)
                 
-                # Simulation du timing réel (optionnel)
-                if step_duration < self.step_duration:
-                    time.sleep(self.step_duration - step_duration)
+                # Simulation du timing réel désactivée pour optimisation
+                # if step_duration < self.step_duration:
+                #     time.sleep(self.step_duration - step_duration)
         
         except Exception as e:
             print(f"      ❌ Erreur pendant simulation: {e}")
@@ -437,7 +465,16 @@ class LayoutEvaluator:
             },
             'stuck_frames': stuck_frames,
             'stuck_forced_stop': stuck_frames >= self.max_stuck_frames,
-            'behavioral_metrics': behavioral_summary
+            'behavioral_metrics': behavioral_summary,
+            'trajectory': trajectory,  # Ajouter la trajectoire complète
+            'layout_name': mdp.layout_name if hasattr(mdp, 'layout_name') else 'unknown',
+            'mdp_terrain': [[str(cell) for cell in row] for row in mdp.terrain_mtx],  # Grille réellement utilisée
+            'start_player_positions': mdp.start_player_positions,  # Positions de départ réelles
+            'layout_structure': {
+                'width': mdp.width,
+                'height': mdp.height,
+                'player_count': len(mdp.start_player_positions)
+            }
         }
         
         mode_info = "SOLO PUR" if self.single_agent else ("GREEDY+STAY" if self.greedy_with_stay else "COOP")
@@ -1275,6 +1312,13 @@ class LayoutEvaluator:
             full_layout_path = f"generation_cesar/{layout_name}"
             mdp = OvercookedGridworld.from_layout_name(full_layout_path)
             
+            # Vérifier la cohérence de la grille chargée
+            grid_verification = self._verify_layout_grid_consistency(layout_name, mdp)
+            if grid_verification['has_discrepancy']:
+                print(f"⚠️ DIVERGENCE DÉTECTÉE: La grille chargée diffère du fichier .layout pour {layout_name}")
+                for issue in grid_verification['issues']:
+                    print(f"   - {issue}")
+            
             # Analyser la structure
             structure = self._analyze_layout_structure(mdp)
             
@@ -1300,22 +1344,59 @@ class LayoutEvaluator:
             game_results = []
             total_simulation_time = 0
             
-            for game_num in range(1, self.num_games_per_layout + 1):
-                # Reset des agents entre les parties
-                if self.single_agent:
-                    agent_or_group.reset()
-                    agent_or_group.set_mdp(mdp)
-                    agent_or_group.set_agent_index(0)
-                else:
-                    agent_or_group.reset()
-                    agent_or_group.set_mdp(mdp)
+            if self.parallel_games and self.num_games_per_layout > 1:
+                # Exécution en parallèle
+                print(f"🚀 Simulation en parallèle avec {self.max_workers} workers...")
                 
-                game_result = self.simulate_single_game(mdp, agent_or_group, game_num)
-                game_results.append(game_result)
-                total_simulation_time += game_result['timing']['total_time_seconds']
+                # Préparer la configuration pour les workers
+                evaluator_config = {
+                    'layouts_directory': self.layouts_directory,
+                    'horizon': self.horizon,
+                    'num_games_per_layout': 1,  # Chaque worker fait 1 partie
+                    'target_fps': self.target_fps,
+                    'max_stuck_frames': self.max_stuck_frames,
+                    'single_agent': self.single_agent,
+                    'greedy_with_stay': self.greedy_with_stay,
+                    'parallel_games': False  # Désactiver le parallélisme dans les workers
+                }
                 
-                # Petite pause entre les parties
-                time.sleep(0.1)
+                # Exécuter les parties en parallèle
+                with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                    # Soumettre toutes les tâches
+                    future_to_game_id = {
+                        executor.submit(simulate_game_parallel, layout_name, game_num, evaluator_config): game_num
+                        for game_num in range(1, self.num_games_per_layout + 1)
+                    }
+                    
+                    # Collecter les résultats
+                    for future in as_completed(future_to_game_id):
+                        game_id = future_to_game_id[future]
+                        try:
+                            game_result = future.result()
+                            if 'error' not in game_result:
+                                game_results.append(game_result)
+                                total_simulation_time += game_result['timing']['total_time_seconds']
+                                print(f"   ✅ Partie {game_id} terminée: {game_result['steps']} steps")
+                            else:
+                                print(f"   ❌ Partie {game_id} échouée: {game_result['error']}")
+                        except Exception as exc:
+                            print(f"   ❌ Partie {game_id} a généré une exception: {exc}")
+                
+            else:
+                # Exécution séquentielle (mode classique)
+                for game_num in range(1, self.num_games_per_layout + 1):
+                    # Reset des agents entre les parties
+                    if self.single_agent:
+                        agent_or_group.reset()
+                        agent_or_group.set_mdp(mdp)
+                        agent_or_group.set_agent_index(0)
+                    else:
+                        agent_or_group.reset()
+                        agent_or_group.set_mdp(mdp)
+                    
+                    game_result = self.simulate_single_game(mdp, agent_or_group, game_num)
+                    game_results.append(game_result)
+                    total_simulation_time += game_result['timing']['total_time_seconds']
             
             # Analyser les résultats globaux
             eval_time = time.time() - start_time
@@ -1663,6 +1744,560 @@ class LayoutEvaluator:
             print(f"   📦 Taille: {file_size / 1024:.1f} KB")
         else:
             print(f"   📦 Taille: {file_size} bytes")
+    
+    def save_simulation_data_files(self):
+        """
+        Génère des fichiers de données de simulation individuels pour chaque game
+        organisés dans des dossiers par layout.
+        Structure: data_simulation/data_simu_<layoutname>/data_simu_<layoutname>_game_<numéro>.json
+        """
+        if not self.results:
+            print("❌ Aucun résultat à sauvegarder")
+            return
+        
+        # Créer le dossier data_simulation parent
+        data_simulation_dir = "data_simulation"
+        os.makedirs(data_simulation_dir, exist_ok=True)
+        
+        files_created = []
+        total_games = 0
+        
+        for layout_name, layout_data in self.results.items():
+            if not layout_data.get('viable', False):
+                print(f"⚠️ Layout {layout_name} non viable, ignoré")
+                continue
+                
+            # Extraire les données nécessaires
+            individual_games = layout_data.get('individual_games', [])
+            
+            if not individual_games:
+                print(f"⚠️ Pas de données de jeu individuelles pour {layout_name}")
+                continue
+            
+            # Créer le dossier spécifique pour ce layout dans data_simulation
+            layout_dir = os.path.join(data_simulation_dir, f"data_simu_{layout_name}")
+            os.makedirs(layout_dir, exist_ok=True)
+            
+            # Traiter chaque game individuellement
+            for game_idx, game_data in enumerate(individual_games):
+                # Créer info_sum pour ce game spécifique
+                info_sum = self._calculate_single_game_info_sum(game_data, layout_name)
+                
+                # Créer l'historique des positions pour ce game uniquement
+                history_info = self._create_single_game_history_info(game_data, game_idx)
+                
+                # Valider la cohérence des mouvements pour ce game
+                validation_results = self._validate_movement_coherence(history_info)
+                
+                if not validation_results['is_coherent']:
+                    print(f"⚠️ Layout {layout_name}, Game {game_idx}: {validation_results['invalid_movements']} mouvements incohérents détectés")
+                    print(f"   📊 {validation_results['total_movements_checked']} mouvements vérifiés au total")
+                
+                # Structure finale compatible avec data_collecter_simualtion
+                simulation_data = {
+                    "simulation_data": {
+                        "info_sum": info_sum,
+                        "history_info": history_info,
+                        "grid": self._extract_grid_from_game_data(game_data, layout_name)
+                    }
+                }
+                
+                # Nom du fichier pour ce game
+                filename = f"data_simu_{layout_name}_game_{game_idx}.json"
+                filepath = os.path.join(layout_dir, filename)
+                
+                # Sauvegarder
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    json.dump(simulation_data, f, indent=4, ensure_ascii=False)
+                
+                files_created.append(filepath)
+                total_games += 1
+            
+            print(f"✅ Layout {layout_name}: {len(individual_games)} fichiers créés dans {layout_dir}/")
+        
+        print(f"\n📁 {len(files_created)} fichiers de données de simulation créés ({total_games} games total)")
+        return files_created
+    
+    def _extract_grid_from_game_data(self, game_data: Dict, layout_name: str) -> List[List[str]]:
+        """
+        Extrait la grille utilisée pendant la simulation à partir des données du jeu.
+        """
+        try:
+            # Récupérer la grille depuis les données du jeu (maintenant stockée)
+            if 'mdp_terrain' in game_data:
+                return game_data['mdp_terrain']
+            
+            # Si la grille n'est pas dans les données, la recréer depuis le layout
+            # mais signaler que c'est une reconstruction
+            print(f"⚠️ Grille non trouvée dans les données de simulation pour {layout_name}, reconstruction depuis le layout")
+            
+            full_layout_path = f"generation_cesar/{layout_name}"
+            mdp = OvercookedGridworld.from_layout_name(full_layout_path)
+            
+            # Convertir terrain_mtx en format de liste pour JSON
+            grid_as_list = []
+            for row in mdp.terrain_mtx:
+                grid_row = []
+                for cell in row:
+                    grid_row.append(str(cell))
+                grid_as_list.append(grid_row)
+            
+            return grid_as_list
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'extraction de la grille pour {layout_name}: {e}")
+            # Retourner une grille vide en cas d'erreur
+            return []
+    
+    def _verify_layout_grid_consistency(self, layout_name: str, mdp: OvercookedGridworld) -> Dict:
+        """
+        Vérifie la cohérence entre la grille du fichier .layout et celle chargée par OvercookedGridworld.
+        """
+        verification_result = {
+            'has_discrepancy': False,
+            'issues': [],
+            'layout_file_found': False,
+            'grid_comparison': None
+        }
+        
+        try:
+            # Charger la grille depuis le fichier .layout
+            layout_path = f"overcooked_ai_py/data/layouts/generation_cesar/{layout_name}.layout"
+            
+            if not os.path.exists(layout_path):
+                verification_result['issues'].append(f"Fichier .layout non trouvé: {layout_path}")
+                return verification_result
+            
+            verification_result['layout_file_found'] = True
+            
+            with open(layout_path, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            
+            # Extraire la grille avec regex
+            import re
+            pattern = r'"grid":\s*"""(.*?)"""'
+            match = re.search(pattern, content, re.DOTALL)
+            
+            if not match:
+                verification_result['issues'].append("Impossible d'extraire la grille du fichier .layout")
+                return verification_result
+            
+            grid_content = match.group(1)
+            grid_content = grid_content.replace('\t', '').strip()
+            layout_grid_lines = [line.strip() for line in grid_content.split('\n') if line.strip()]
+            
+            # Comparer avec la grille MDP (terrain_mtx)
+            mdp_grid_lines = []
+            for row in mdp.terrain_mtx:
+                mdp_grid_lines.append(''.join(row))
+            
+            # Normaliser les largeurs (padding avec des espaces)
+            if layout_grid_lines and mdp_grid_lines:
+                max_width_layout = max(len(line) for line in layout_grid_lines)
+                max_width_mdp = max(len(line) for line in mdp_grid_lines)
+                
+                layout_grid_normalized = [line + ' ' * (max_width_layout - len(line)) for line in layout_grid_lines]
+                mdp_grid_normalized = [line + ' ' * (max_width_mdp - len(line)) for line in mdp_grid_lines]
+                
+                # Comparer ligne par ligne
+                discrepancies = []
+                max_lines = max(len(layout_grid_normalized), len(mdp_grid_normalized))
+                
+                for i in range(max_lines):
+                    layout_line = layout_grid_normalized[i] if i < len(layout_grid_normalized) else ''
+                    mdp_line = mdp_grid_normalized[i] if i < len(mdp_grid_normalized) else ''
+                    
+                    if layout_line != mdp_line:
+                        discrepancies.append({
+                            'line': i,
+                            'layout': layout_line,
+                            'mdp': mdp_line
+                        })
+                
+                if discrepancies:
+                    verification_result['has_discrepancy'] = True
+                    verification_result['grid_comparison'] = discrepancies
+                    verification_result['issues'].append(f"{len(discrepancies)} lignes diffèrent entre .layout et MDP")
+                    
+                    # Détailler les premières différences
+                    for i, diff in enumerate(discrepancies[:3]):  # Montrer seulement les 3 premières
+                        verification_result['issues'].append(
+                            f"Ligne {diff['line']}: layout='{diff['layout']}' vs mdp='{diff['mdp']}'"
+                        )
+                    
+                    if len(discrepancies) > 3:
+                        verification_result['issues'].append(f"... et {len(discrepancies) - 3} autres différences")
+                
+        except Exception as e:
+            verification_result['issues'].append(f"Erreur lors de la vérification: {e}")
+        
+        return verification_result
+    
+    def _calculate_single_game_info_sum(self, game_data: Dict, layout_name: str) -> Dict:
+        """
+        Calcule les statistiques pour un seul game (pas d'agrégation).
+        """
+        if not game_data:
+            return {}
+        
+        # Extraire les métriques du game individuel
+        info_sum = game_data.get('info_sum', {})
+        
+        # Structure de base
+        single_game_info = {
+            "number_games": 1,  # Un seul game
+            "layout": layout_name,
+            "time_elapsed": game_data.get('timing', {}).get('total_time_seconds', 0),
+            "ai_action_per_step": 1,  # Valeur constante
+            "step": int(game_data.get('steps', 0)),
+            "fps": game_data.get('timing', {}).get('actual_fps', 0),
+            "time": game_data.get('timing', {}).get('simulated_time_seconds', 0),
+            "recipe_completed": int(game_data.get('orders_completed', 0)),
+            "score": int(game_data.get('total_reward', 0)),
+            "min_recipe_complete": int(game_data.get('orders_completed', 0)),
+            "max_recipe_complete": int(game_data.get('orders_completed', 0)),
+        }
+        
+        # Ajouter les métriques d'actions pour chaque agent
+        for agent_key in ['agent_0', 'agent_1']:
+            agent_stats = game_data.get('agent_statistics', {}).get(agent_key, {})
+            action_count = int(agent_stats.get('total_actions', 0))
+            
+            action_key = f'{agent_key}_action_count'
+            single_game_info[action_key] = action_count
+            single_game_info[f'min_{action_key}'] = action_count
+            single_game_info[f'max_{action_key}'] = action_count
+            single_game_info[f'std_{action_key}'] = 0.0  # Pas de variance pour un seul game
+            
+            # Ajouter mouvements et interactions
+            single_game_info[f'{agent_key}_mouvements'] = int(agent_stats.get('distance_traveled', 0))
+            single_game_info[f'{agent_key}_stuck_loop'] = 0  # À calculer si nécessaire
+            single_game_info[f'{agent_key}_interaction'] = int(agent_stats.get('interact_count', 0))
+        
+        # Ajouter toutes les métriques comportementales du info_sum
+        for key, value in info_sum.items():
+            if key not in single_game_info:  # Éviter d'écraser les clés déjà définies
+                single_game_info[key] = value
+        
+        # Ajouter all_orders (structure standard)
+        single_game_info["all_orders"] = [
+            {"ingredients": ["onion"]},
+            {"ingredients": ["onion", "onion", "onion"]},
+            {"ingredients": ["tomato"]},
+            {"ingredients": ["tomato", "tomato", "tomato"]},
+            {"ingredients": ["onion", "tomato"]}
+        ]
+        
+        return single_game_info
+    
+    def _create_single_game_history_info(self, game_data: Dict, game_idx: int) -> Dict:
+        """
+        Crée l'historique des positions des agents pour un seul game.
+        """
+        history_info = {}
+        game_key = f"history_game_0"  # Un seul game, donc toujours game_0
+        
+        # Extraire les trajectoires du jeu (si disponibles)
+        trajectory = game_data.get('trajectory', [])
+        
+        # Créer l'historique des positions pour ce jeu
+        history_entry = {
+            "agent_0_history": {},
+            "agent_1_history": {}
+        }
+        
+        if trajectory and len(trajectory) > 0:
+            # Collecter TOUS les steps de la simulation
+            total_steps = len(trajectory)
+            
+            # Enregistrer tous les steps de la vraie simulation
+            for step_idx in range(total_steps):
+                if step_idx >= len(trajectory):
+                    break
+                    
+                step_key = f"step_{step_idx}_position"
+                step_data = trajectory[step_idx]
+                
+                # Extraire les vraies positions des agents à ce step précis
+                if 'state' in step_data and 'players' in step_data['state']:
+                    players = step_data['state']['players']
+                    agent_0_pos = list(players[0].get('position', [0, 0])) if len(players) > 0 else [0, 0]
+                    agent_1_pos = list(players[1].get('position', [0, 1])) if len(players) > 1 else [0, 1]
+                    
+                    # S'assurer que les positions sont des int Python standards
+                    agent_0_pos = [int(x) for x in agent_0_pos]
+                    agent_1_pos = [int(x) for x in agent_1_pos]
+                else:
+                    # Si pas de données pour ce step, utiliser la position précédente
+                    if step_idx > 0:
+                        prev_key = f"step_{step_idx-1}_position"
+                        agent_0_pos = history_entry["agent_0_history"].get(prev_key, [1, 1])
+                        agent_1_pos = history_entry["agent_1_history"].get(prev_key, [1, 2])
+                    else:
+                        agent_0_pos = [1, 1]
+                        agent_1_pos = [1, 2]
+                
+                history_entry["agent_0_history"][step_key] = agent_0_pos
+                history_entry["agent_1_history"][step_key] = agent_1_pos
+                
+            # Ajouter métadonnées réelles
+            history_entry["_metadata"] = {
+                "total_trajectory_steps": int(len(trajectory)),
+                "recorded_steps": int(total_steps),
+                "sampling_method": "complete_simulation_capture",
+                "data_source": f"actual_simulation_game_{game_idx}"
+            }
+        else:
+            # Aucune trajectoire disponible
+            print(f"⚠️ Aucune trajectoire disponible pour game {game_idx} - aucune donnée de position collectée")
+            history_entry["_metadata"] = {
+                "total_trajectory_steps": 0,
+                "recorded_steps": 0,
+                "sampling_method": "no_data_available",
+                "data_source": f"none_game_{game_idx}"
+            }
+        
+        history_info[game_key] = [history_entry]
+        return history_info
+    
+    def _calculate_aggregated_info_sum(self, individual_games: List[Dict], layout_name: str) -> Dict:
+        """
+        Calcule les statistiques agrégées (moyenne, écart-type, min, max) à partir des jeux individuels.
+        """
+        if not individual_games:
+            return {}
+        
+        # Extraire toutes les métriques de tous les jeux
+        all_metrics = {}
+        for game in individual_games:
+            info_sum = game.get('info_sum', {})
+            for key, value in info_sum.items():
+                if key not in all_metrics:
+                    all_metrics[key] = []
+                
+                # Traiter différents types de valeurs
+                if isinstance(value, list) and len(value) == 2:
+                    # Format [agent_0, agent_1]
+                    all_metrics[key].append(value)
+                elif isinstance(value, (int, float)):
+                    all_metrics[key].append([value, 0])  # Format standardisé [agent_0, agent_1]
+                else:
+                    all_metrics[key].append([0, 0])
+        
+        # Calculer les statistiques agrégées
+        aggregated = {
+            "number_games": len(individual_games),
+            "layout": layout_name,
+            "time_elapsed": np.mean([g.get('timing', {}).get('total_time_seconds', 0) for g in individual_games]),
+            "ai_action_per_step": 1,  # Valeur constante
+            "step": int(np.mean([g.get('steps', 0) for g in individual_games])),
+            "fps": np.mean([g.get('timing', {}).get('actual_fps', 0) for g in individual_games]),
+            "time": np.mean([g.get('timing', {}).get('simulated_time_seconds', 0) for g in individual_games]),
+            "recipe_completed": int(np.mean([g.get('orders_completed', 0) for g in individual_games])),
+            "score": int(np.mean([g.get('total_reward', 0) for g in individual_games])),
+            "min_recipe_complete": int(np.min([g.get('orders_completed', 0) for g in individual_games])),
+            "max_recipe_complete": int(np.max([g.get('orders_completed', 0) for g in individual_games])),
+        }
+        
+        # Ajouter les métriques d'actions avec statistiques
+        for agent_key in ['agent_0', 'agent_1']:
+            values = [g.get('agent_statistics', {}).get(agent_key, {}).get('total_actions', 0) for g in individual_games]
+            action_key = f'{agent_key}_action_count'
+            aggregated[action_key] = int(np.mean(values))
+            aggregated[f'min_{action_key}'] = int(np.min(values))
+            aggregated[f'max_{action_key}'] = int(np.max(values))
+            aggregated[f'std_{action_key}'] = float(np.std(values))
+            
+            # Ajouter mouvements et interactions
+            movement_values = [g.get('agent_statistics', {}).get(agent_key, {}).get('distance_traveled', 0) for g in individual_games]
+            interaction_values = [g.get('agent_statistics', {}).get(agent_key, {}).get('interact_count', 0) for g in individual_games]
+            
+            aggregated[f'{agent_key}_mouvements'] = int(np.mean(movement_values))
+            aggregated[f'{agent_key}_stuck_loop'] = 0  # À calculer si nécessaire
+            aggregated[f'{agent_key}_interaction'] = int(np.mean(interaction_values))
+        
+        # Ajouter les métriques comportementales agrégées
+        for metric_name, values_list in all_metrics.items():
+            if values_list and isinstance(values_list[0], list):
+                # Calculer moyennes pour [agent_0, agent_1]
+                agent_0_values = [v[0] for v in values_list if len(v) > 0]
+                agent_1_values = [v[1] for v in values_list if len(v) > 1]
+                
+                aggregated[metric_name] = [
+                    int(np.mean(agent_0_values)) if agent_0_values else 0,
+                    int(np.mean(agent_1_values)) if agent_1_values else 0
+                ]
+        
+        # Ajouter all_orders (structure standard)
+        aggregated["all_orders"] = [
+            {"ingredients": ["onion"]},
+            {"ingredients": ["onion", "onion", "onion"]},
+            {"ingredients": ["tomato"]},
+            {"ingredients": ["tomato", "tomato", "tomato"]},
+            {"ingredients": ["onion", "tomato"]}
+        ]
+        
+        return aggregated
+    
+    def _create_history_info(self, individual_games: List[Dict]) -> Dict:
+        """
+        Crée l'historique des positions des agents pour chaque jeu.
+        Collecte les vraies données de simulation step-by-step, pas d'échantillonnage.
+        """
+        history_info = {}
+        
+        for game_idx, game in enumerate(individual_games):
+            game_key = f"history_game_{game_idx}"
+            
+            # Extraire les trajectoires du jeu (si disponibles)
+            trajectory = game.get('trajectory', [])
+            
+            # Créer l'historique des positions pour ce jeu
+            history_entry = {
+                "agent_0_history": {},
+                "agent_1_history": {}
+            }
+            
+            if trajectory and len(trajectory) > 0:
+                # Collecter TOUS les steps de la simulation (pas de limitation artificielle)
+                total_steps = len(trajectory)
+                
+                # Enregistrer tous les steps de la vraie simulation
+                for step_idx in range(total_steps):
+                    if step_idx >= len(trajectory):
+                        break
+                        
+                    step_key = f"step_{step_idx}_position"
+                    step_data = trajectory[step_idx]
+                    
+                    # Extraire les vraies positions des agents à ce step précis
+                    if 'state' in step_data and 'players' in step_data['state']:
+                        players = step_data['state']['players']
+                        agent_0_pos = list(players[0].get('position', [0, 0])) if len(players) > 0 else [0, 0]
+                        agent_1_pos = list(players[1].get('position', [0, 1])) if len(players) > 1 else [0, 1]
+                        
+                        # S'assurer que les positions sont des int Python standards
+                        agent_0_pos = [int(x) for x in agent_0_pos]
+                        agent_1_pos = [int(x) for x in agent_1_pos]
+                    else:
+                        # Si pas de données pour ce step, utiliser la position précédente
+                        if step_idx > 0:
+                            prev_key = f"step_{step_idx-1}_position"
+                            agent_0_pos = history_entry["agent_0_history"].get(prev_key, [1, 1])
+                            agent_1_pos = history_entry["agent_1_history"].get(prev_key, [1, 2])
+                        else:
+                            agent_0_pos = [1, 1]
+                            agent_1_pos = [1, 2]
+                    
+                    history_entry["agent_0_history"][step_key] = agent_0_pos
+                    history_entry["agent_1_history"][step_key] = agent_1_pos
+                    
+                # Ajouter métadonnées réelles
+                history_entry["_metadata"] = {
+                    "total_trajectory_steps": int(len(trajectory)),
+                    "recorded_steps": int(total_steps),
+                    "sampling_method": "complete_simulation_capture",
+                    "data_source": "actual_simulation"
+                }
+            else:
+                # Aucune trajectoire disponible - signaler mais ne pas générer de fausses données
+                print(f"⚠️ Aucune trajectoire disponible pour {game_key} - aucune donnée de position collectée")
+                history_entry["_metadata"] = {
+                    "total_trajectory_steps": 0,
+                    "recorded_steps": 0,
+                    "sampling_method": "no_data_available",
+                    "data_source": "none"
+                }
+            
+            history_info[game_key] = [history_entry]
+        
+        return history_info
+    
+    def _validate_movement_coherence(self, history_info: Dict) -> Dict:
+        """
+        Valide que tous les mouvements dans l'historique sont cohérents 
+        (distance max de 1 case entre steps consécutifs).
+        """
+        validation_results = {
+            'total_movements_checked': 0,
+            'invalid_movements': 0,
+            'invalid_movement_details': [],
+            'is_coherent': True
+        }
+        
+        for game_key, game_data in history_info.items():
+            if not game_data or len(game_data) == 0:
+                continue
+                
+            history_entry = game_data[0]
+            
+            for agent_key in ['agent_0_history', 'agent_1_history']:
+                agent_history = history_entry.get(agent_key, {})
+                positions = []
+                
+                # Extraire toutes les positions dans l'ordre
+                step_numbers = []
+                for step_key in agent_history.keys():
+                    if step_key.startswith('step_') and step_key.endswith('_position'):
+                        step_num = int(step_key.split('_')[1])
+                        step_numbers.append(step_num)
+                
+                step_numbers.sort()
+                
+                for step_num in step_numbers:
+                    step_key = f"step_{step_num}_position"
+                    if step_key in agent_history:
+                        positions.append(agent_history[step_key])
+                
+                # Vérifier les distances entre steps consécutifs
+                for i in range(1, len(positions)):
+                    pos_prev = positions[i-1]
+                    pos_curr = positions[i]
+                    
+                    # Calculer la distance de Manhattan
+                    distance = abs(pos_curr[0] - pos_prev[0]) + abs(pos_curr[1] - pos_prev[1])
+                    
+                    validation_results['total_movements_checked'] += 1
+                    
+                    if distance > 1:
+                        validation_results['invalid_movements'] += 1
+                        validation_results['is_coherent'] = False
+                        validation_results['invalid_movement_details'].append({
+                            'game': game_key,
+                            'agent': agent_key,
+                            'step_from': step_numbers[i-1],
+                            'step_to': step_numbers[i],
+                            'position_from': pos_prev,
+                            'position_to': pos_curr,
+                            'distance': distance
+                        })
+        
+        return validation_results
+
+
+def simulate_game_parallel(layout_name: str, game_id: int, evaluator_config: Dict) -> Dict:
+    """
+    Fonction pour simuler une partie en parallèle.
+    Cette fonction est exécutée dans un processus séparé.
+    """
+    # Recréer l'évaluateur dans le processus worker
+    evaluator = LayoutEvaluator(**evaluator_config)
+    
+    # Charger le MDP
+    full_layout_path = f"generation_cesar/{layout_name}"
+    mdp = OvercookedGridworld.from_layout_name(full_layout_path)
+    
+    # Créer les agents
+    success, agent_or_group = evaluator.create_agent_group(mdp)
+    if not success:
+        return {
+            'game_id': game_id,
+            'error': 'Failed to create agents',
+            'completed': False
+        }
+    
+    # Simuler la partie
+    return evaluator.simulate_single_game(mdp, agent_or_group, game_id)
 
 
 def main():
@@ -1672,6 +2307,23 @@ def main():
     # Vérifier les arguments pour les différents modes
     single_agent_mode = '--solo' in sys.argv or '--single' in sys.argv
     greedy_with_stay_mode = '--stay' in sys.argv or '--greedy-stay' in sys.argv
+    
+    # Options d'optimisation
+    parallel_mode = '--parallel' in sys.argv or '--fast' in sys.argv
+    high_fps = '--speed' in sys.argv or '--turbo' in sys.argv
+    
+    # Paramètres d'optimisation
+    target_fps = 100.0 if high_fps else 10.0
+    max_workers = None
+    
+    # Déterminer le nombre de workers pour le parallélisme
+    if parallel_mode:
+        for i, arg in enumerate(sys.argv):
+            if arg in ['--workers', '-w'] and i + 1 < len(sys.argv):
+                try:
+                    max_workers = int(sys.argv[i + 1])
+                except ValueError:
+                    pass
     
     # Déterminer le mode et la description
     if single_agent_mode:
@@ -1683,6 +2335,13 @@ def main():
     else:
         mode_description = "2x GreedyAgent (COOP)"
         filename_suffix = "coop"
+    
+    if parallel_mode:
+        mode_description += " [PARALLÈLE]"
+        filename_suffix += "_parallel"
+    elif high_fps:
+        mode_description += " [HIGH SPEED]"
+        filename_suffix += "_speed"
     
     print("🎮 ÉVALUATEUR DE LAYOUTS OVERCOOKED")
     print(f"🤖 Mode: {mode_description}")
@@ -1699,8 +2358,10 @@ def main():
     evaluator = LayoutEvaluator(
         layouts_directory=layouts_dir,
         horizon=600,  # Horizon raisonnable
-        num_games_per_layout=5,  # Plusieurs parties pour moyenner
-        target_fps=10.0,  # FPS modéré
+        num_games_per_layout=10,  # Plusieurs parties pour moyenner
+        target_fps=target_fps,
+        parallel_games=parallel_mode,
+        max_workers=max_workers,
         max_stuck_frames=50,  # Éviter les blocages infinis
         single_agent=single_agent_mode,  # Mode solo pur
         greedy_with_stay=greedy_with_stay_mode  # Mode GreedyAgent + StayAgent
@@ -1714,10 +2375,15 @@ def main():
     # Sauvegarder seulement les métriques agrégées par layout (pas les parties individuelles)
     evaluator.save_results(filename, include_individual_games=False)
     
+    # Générer les fichiers de données de simulation individuels
+    print(f"\n🔄 GÉNÉRATION DES FICHIERS DE DONNÉES DE SIMULATION...")
+    simulation_files = evaluator.save_simulation_data_files()
+    
     print(f"\n🎯 ÉVALUATION TERMINÉE!")
     print(f"   📊 Mode: {mode_description}")
     print(f"   📊 Métriques comportementales complètes par layout")
     print(f"   💾 Résultats agrégés sauvegardés dans {filename}")
+    print(f"   📁 {len(simulation_files)} fichiers de simulation créés dans dossiers individuels par layout")
     
     # Optionnel: sauvegarder aussi le fichier détaillé pour debug
     if '--debug' in sys.argv or '--detailed' in sys.argv:
@@ -1729,7 +2395,18 @@ def main():
     print(f"   • Mode coopératif (défaut): python {sys.argv[0]}")
     print(f"   • Mode solo pur: python {sys.argv[0]} --solo")
     print(f"   • Mode GreedyAgent + StayAgent: python {sys.argv[0]} --stay")
+    print(f"   • Mode parallèle: python {sys.argv[0]} --parallel [--workers N]")
+    print(f"   • Mode haute vitesse: python {sys.argv[0]} --speed")
     print(f"   • Ajouter --debug pour sauvegarder aussi les détails complets")
+    print(f"\n🚀 OPTIONS D'OPTIMISATION:")
+    print(f"   • --parallel : Exécute les parties en parallèle")
+    print(f"   • --workers N : Nombre de processus parallèles (défaut: auto)")
+    print(f"   • --speed : FPS élevé (100 FPS au lieu de 10)")
+    print(f"   • --fast : Équivalent à --parallel --speed")
+    print(f"\n📂 FICHIERS GÉNÉRÉS:")
+    print(f"   • {filename}: Métriques agrégées par layout")
+    print(f"   • data_simulation/data_simu_<layoutname>/: Dossiers individuels par layout")
+    print(f"   • data_simu_<layoutname>_game_<N>.json: Un fichier par game joué")
 
 
 if __name__ == "__main__":

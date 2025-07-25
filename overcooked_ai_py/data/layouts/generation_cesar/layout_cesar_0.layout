@@ -1,13 +1,13 @@
 {
-	"grid":  """XXXXXTX
-				S   X X
-				X  1  X
-				O     X
-				D     X
-				P  2  X
-				XXXXXXX""",
+	"grid":  """XXXXSXX
+				X     X
+				X 12  X
+				X     X
+				X  D  X
+				X     O
+				XXTXPXX""",
 	"start_bonus_order": [],
-	"start_all_orders": [{'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'onion', 'tomato']}],
+	"start_all_orders": [{'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}],
 	"rew_shaping_params": None,
 	"counter_goals":[],
 	"onion_value":21,

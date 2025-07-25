@@ -1,0 +1,130 @@
+{
+  "metadata": {
+    "onion_value": 1,
+    "tomato_value": 1,
+    "total_combinations": 3,
+    "recipes_per_combination": 6
+  },
+  "recipe_combinations": [
+    [
+      {
+        "ingredients": [
+          "onion",
+          "onion"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "onion",
+          "onion"
+        ]
+      },
+      {
+        "ingredients": [
+          "tomato",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "tomato",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "onion",
+          "tomato"
+        ]
+      }
+    ],
+    [
+      {
+        "ingredients": [
+          "onion",
+          "onion"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "onion",
+          "onion"
+        ]
+      },
+      {
+        "ingredients": [
+          "tomato",
+          "tomato",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "tomato",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "tomato"
+        ]
+      }
+    ],
+    [
+      {
+        "ingredients": [
+          "onion",
+          "onion",
+          "onion"
+        ]
+      },
+      {
+        "ingredients": [
+          "tomato",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "tomato",
+          "tomato",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "tomato"
+        ]
+      },
+      {
+        "ingredients": [
+          "onion",
+          "onion",
+          "tomato"
+        ]
+      }
+    ]
+  ]
+}
