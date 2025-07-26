@@ -1,29 +1,13 @@
 {
-  "default_settings": {
+  "configuration": {
     "combination_size": 6,
-    "target_value": 14,
-    "n_combinations": 5,
-    "onion_value": 1,
-    "tomato_value": 1
-  },
-  "experimental_conditions": {
-    "condition_1": {
-      "combination_size": 6,
-      "target_value": 12,
-      "n_combinations": 3,
-      "description": "Low complexity condition"
-    },
-    "condition_2": {
-      "combination_size": 6,
-      "target_value": 14,
-      "n_combinations": 5,
-      "description": "Medium complexity condition"
-    },
-    "condition_3": {
-      "combination_size": 6,
-      "target_value": 16,
-      "n_combinations": 7,
-      "description": "High complexity condition"
-    }
+    "n_combinations": 10,
+    "onion_value": 3,
+    "tomato_value": 2,
+    "onion_time": 9,
+    "tomato_time": 6,
+    "any_score": true,
+    "description": "Configuration optimisée pour la plus grande variété de recettes quel que soit le score",
+    "note": "Sélection des combinaisons les plus diverses parmi toutes les combinaisons possibles, sans contrainte de score"
   }
 }

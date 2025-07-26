@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import random, copy
+import json
 
 # Ajouter le répertoire parent au path pour permettre les imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +26,160 @@ COUNTER_GOALS = 'Y'
 
 CODE_TO_TYPE = {0: EMPTY, 1: COUNTER, 2: ONION_DISPENSER, 3: TOMATO_DISPENSER, 4: POT, 5: DISH_DISPENSER,
                 6: SERVING_LOC}
+CODE_TO_TYPE = {0: EMPTY, 1: COUNTER, 2: ONION_DISPENSER, 3: TOMATO_DISPENSER, 4: POT, 5: DISH_DISPENSER,
+                6: SERVING_LOC}
 TYPE_TO_CODE = {v: k for k, v in CODE_TO_TYPE.items()}
+
+# Instance globale du gestionnaire de recettes pour maintenir l'état entre les générations
+_global_recipe_manager = None
+
+def get_recipe_manager(recipe_file_path="ensemble_recettes.json"):
+    """
+    Obtient l'instance globale du gestionnaire de recettes
+    
+    Args:
+        recipe_file_path (str): Chemin vers le fichier de recettes
+        
+    Returns:
+        RecipeManager: Instance du gestionnaire de recettes
+    """
+    global _global_recipe_manager
+    
+    if _global_recipe_manager is None or _global_recipe_manager.recipe_file_path != recipe_file_path:
+        _global_recipe_manager = RecipeManager(recipe_file_path)
+    
+    return _global_recipe_manager
+
+
+class RecipeManager:
+    """
+    Gestionnaire des recettes pour l'intégration avec ensemble_recettes.json
+    """
+    
+    def __init__(self, recipe_file_path="ensemble_recettes.json"):
+        """
+        Initialise le gestionnaire de recettes
+        
+        Args:
+            recipe_file_path (str): Chemin vers le fichier ensemble_recettes.json
+        """
+        self.recipe_file_path = recipe_file_path
+        self.recipe_data = None
+        self.available_recipes = []
+        self.used_combinations = []
+        self.config = None
+        self.load_recipes()
+    
+    def load_recipes(self):
+        """Charge les recettes depuis le fichier JSON"""
+        try:
+            with open(self.recipe_file_path, 'r', encoding='utf-8') as f:
+                self.recipe_data = json.load(f)
+            
+            # Extraire la configuration
+            self.config = self.recipe_data.get('configuration', {})
+            
+            # Extraire les combinaisons de recettes
+            combinations = self.recipe_data.get('layout_integration_format', {}).get('combination_indices', [])
+            recipe_list = self.recipe_data.get('layout_integration_format', {}).get('recipe_list', [])
+            
+            # Convertir les indices en recettes réelles
+            self.available_recipes = []
+            for combination_indices in combinations:
+                combination = [recipe_list[i] for i in combination_indices]
+                self.available_recipes.append(combination)
+            
+            print(f"RecipeManager: Chargé {len(self.available_recipes)} combinaisons de recettes depuis {self.recipe_file_path}")
+            
+        except FileNotFoundError:
+            print(f"Attention: Fichier {self.recipe_file_path} non trouvé. Utilisation des recettes par défaut.")
+            self.recipe_data = None
+            self.available_recipes = []
+            self.config = {}
+        except Exception as e:
+            print(f"Erreur lors du chargement des recettes: {e}")
+            self.recipe_data = None
+            self.available_recipes = []
+            self.config = {}
+    
+    def get_random_recipe_combination(self, with_replacement=False):
+        """
+        Sélectionne aléatoirement une combinaison de recettes
+        
+        Args:
+            with_replacement (bool): Si False, tire sans remise (par défaut)
+            
+        Returns:
+            list: Liste de recettes sous forme de dictionnaires {"ingredients": [...]}
+        """
+        if not self.available_recipes:
+            # Retourne une recette par défaut si aucune n'est disponible
+            return [{"ingredients": ["onion", "onion", "onion"]}]
+        
+        if with_replacement or not self.used_combinations:
+            # Tirage avec remise ou premier tirage
+            available_indices = list(range(len(self.available_recipes)))
+        else:
+            # Tirage sans remise
+            available_indices = [i for i in range(len(self.available_recipes)) 
+                               if i not in self.used_combinations]
+            
+            # Si toutes les combinaisons ont été utilisées, recommencer
+            if not available_indices:
+                print("RecipeManager: Toutes les combinaisons ont été utilisées, redémarrage du tirage")
+                self.used_combinations = []
+                available_indices = list(range(len(self.available_recipes)))
+        
+        # Sélection aléatoire
+        selected_index = random.choice(available_indices)
+        
+        if not with_replacement:
+            self.used_combinations.append(selected_index)
+        
+        # Convertir en format attendu par OvercookedGridworld
+        selected_combination = self.available_recipes[selected_index]
+        formatted_recipes = [{"ingredients": recipe} for recipe in selected_combination]
+        
+        print(f"RecipeManager: Sélectionné la combinaison {selected_index + 1} avec {len(formatted_recipes)} recettes")
+        
+        return formatted_recipes
+    
+    def get_recipe_configuration(self):
+        """
+        Retourne la configuration des recettes (valeurs, temps)
+        
+        Returns:
+            dict: Configuration avec onion_value, tomato_value, onion_time, tomato_time
+        """
+        if not self.config:
+            # Configuration par défaut
+            return {
+                'onion_value': 3,
+                'tomato_value': 2,
+                'onion_time': 9,
+                'tomato_time': 6
+            }
+        
+        return {
+            'onion_value': self.config.get('onion_value', 3),
+            'tomato_value': self.config.get('tomato_value', 2),
+            'onion_time': self.config.get('onion_time', 9),
+            'tomato_time': self.config.get('tomato_time', 6)
+        }
+    
+    def get_statistics(self):
+        """Retourne des statistiques sur les recettes chargées"""
+        if not self.recipe_data:
+            return {"status": "Aucune recette chargée"}
+        
+        stats = self.recipe_data.get('statistics', {})
+        return {
+            "total_combinations": len(self.available_recipes),
+            "combinations_used": len(self.used_combinations),
+            "combinations_remaining": len(self.available_recipes) - len(self.used_combinations),
+            "unique_recipes": stats.get('unique_recipes_count', 'Unknown'),
+            "recipes_per_combination": stats.get('recipes_per_combination', 'Unknown')
+        }
 
 
 
@@ -59,7 +213,11 @@ DEFAULT_MDP_GEN_PARAMS = {
     "recipe_values" : [20], # Valeurs des recettes
     "recipe_times" : [20],  # Temps de cuisson
     "display": False,   # Affichage debug
-    "intentions_sharing" : True # Partage d'intentions entre agents
+    "intentions_sharing" : True, # Partage d'intentions entre agents
+    # Nouveaux paramètres pour l'intégration des recettes
+    "use_recipe_file": True,  # Utiliser ensemble_recettes.json
+    "recipe_file_path": "ensemble_recettes.json",  # Chemin vers le fichier de recettes
+    "recipe_sampling": "with_replacement"  # "with_replacement" ou "without_replacement"
 }
 
 
@@ -169,17 +327,82 @@ class LayoutGenerator(object):
     
     @staticmethod
     def create_base_params(mdp_gen_params):
-        assert mdp_gen_params.get("start_all_orders") or mdp_gen_params.get("generate_all_orders")
-        mdp_gen_params = LayoutGenerator.add_generated_mdp_params_orders(mdp_gen_params)
-        recipe_params = {"start_all_orders": mdp_gen_params["start_all_orders"]}
-        if mdp_gen_params.get("start_bonus_orders"):
-            recipe_params["start_bonus_orders"] = mdp_gen_params["start_bonus_orders"]
-        if "recipe_values" in mdp_gen_params:
-            recipe_params["recipe_values"] = mdp_gen_params["recipe_values"]
-        if "recipe_times" in mdp_gen_params:
-            recipe_params["recipe_times"] = mdp_gen_params["recipe_times"]
-        if "intentions_sharing" in mdp_gen_params:
+        assert mdp_gen_params.get("start_all_orders") or mdp_gen_params.get("generate_all_orders") or mdp_gen_params.get("use_recipe_file")
+        
+        # Si on utilise le fichier de recettes
+        if mdp_gen_params.get("use_recipe_file", False):
+            recipe_file_path = mdp_gen_params.get("recipe_file_path", "ensemble_recettes.json")
+            recipe_sampling = mdp_gen_params.get("recipe_sampling", "without_replacement")
+            
+            # Utiliser le gestionnaire global pour maintenir l'état entre les générations
+            recipe_manager = get_recipe_manager(recipe_file_path)
+            
+            # Obtenir une combinaison de recettes
+            with_replacement = (recipe_sampling == "with_replacement")
+            selected_recipes = recipe_manager.get_random_recipe_combination(with_replacement=with_replacement)
+            
+            # Obtenir la configuration des recettes
+            recipe_config = recipe_manager.get_recipe_configuration()
+            
+            # Configurer Recipe avec les bonnes valeurs
+            Recipe.configure({
+                'onion_value': recipe_config['onion_value'],
+                'tomato_value': recipe_config['tomato_value']
+            })
+            
+            # Construire les paramètres de base
+            recipe_params = {"start_all_orders": selected_recipes}
+            
+            # Les valeurs et temps dans le layout sont les valeurs unitaires des ingrédients
+            # Pas les valeurs totales des recettes
+            recipe_params["onion_value"] = recipe_config['onion_value']
+            recipe_params["tomato_value"] = recipe_config['tomato_value']
+            recipe_params["onion_time"] = recipe_config['onion_time']
+            recipe_params["tomato_time"] = recipe_config['tomato_time']
+            
+            # Optionnel: calculer aussi les valeurs totales pour information
+            recipe_values = []
+            recipe_times = []
+            
+            for recipe_dict in selected_recipes:
+                ingredients = recipe_dict["ingredients"]
+                recipe_value = sum(
+                    recipe_config['onion_value'] if ing == 'onion' else recipe_config['tomato_value']
+                    for ing in ingredients
+                )
+                recipe_time = sum(
+                    recipe_config['onion_time'] if ing == 'onion' else recipe_config['tomato_time']
+                    for ing in ingredients
+                )
+                recipe_values.append(recipe_value)
+                recipe_times.append(recipe_time)
+            
+            print(f"LayoutGenerator: Utilisation des recettes du fichier {recipe_file_path}")
+            print(f"  - {len(selected_recipes)} recettes sélectionnées")
+            print(f"  - Valeurs unitaires: oignon={recipe_config['onion_value']}, tomate={recipe_config['tomato_value']}")
+            print(f"  - Temps unitaires: oignon={recipe_config['onion_time']}, tomate={recipe_config['tomato_time']}")
+            print(f"  - Valeurs des recettes: {recipe_values}")
+            print(f"  - Temps des recettes: {recipe_times}")
+            
+            # Afficher les statistiques
+            stats = recipe_manager.get_statistics()
+            print(f"  - Statistiques: {stats}")
+            
+        else:
+            # Utiliser la méthode originale
+            mdp_gen_params = LayoutGenerator.add_generated_mdp_params_orders(mdp_gen_params)
+            recipe_params = {"start_all_orders": mdp_gen_params["start_all_orders"]}
+            if mdp_gen_params.get("start_bonus_orders"):
+                recipe_params["start_bonus_orders"] = mdp_gen_params["start_bonus_orders"]
+            if "recipe_values" in mdp_gen_params:
+                recipe_params["recipe_values"] = mdp_gen_params["recipe_values"]
+            if "recipe_times" in mdp_gen_params:
+                recipe_params["recipe_times"] = mdp_gen_params["recipe_times"]
+        
+        # Paramètres communs
+        if mdp_gen_params.get("intentions_sharing") is not None:
             recipe_params["intentions_sharing"] = mdp_gen_params["intentions_sharing"]
+            
         return recipe_params
         
     @staticmethod
@@ -599,10 +822,26 @@ if __name__ == "__main__":
     parser.add_argument("-p","--mdp_gen_params", default=DEFAULT_MDP_GEN_PARAMS, type=dict)
     parser.add_argument("-n", "--num_of_layouts", default=None, type=int, 
                         help="Nombre de layouts à générer (remplace num_layouts_to_generate si spécifié)")
+    parser.add_argument("--use_recipe_file", action="store_true",
+                        help="Utiliser les recettes du fichier ensemble_recettes.json")
+    parser.add_argument("--recipe_file_path", default="ensemble_recettes.json", type=str,
+                        help="Chemin vers le fichier de recettes (défaut: ensemble_recettes.json)")
+    parser.add_argument("--recipe_sampling", choices=["with_replacement", "without_replacement"], 
+                        default="without_replacement",
+                        help="Mode de tirage des recettes (défaut: without_replacement)")
     args = parser.parse_args()
     
+    # Mettre à jour les paramètres avec les arguments en ligne de commande
+    mdp_gen_params = args.mdp_gen_params.copy()
+    if args.use_recipe_file:
+        mdp_gen_params["use_recipe_file"] = True
+        mdp_gen_params["recipe_file_path"] = args.recipe_file_path
+        mdp_gen_params["recipe_sampling"] = args.recipe_sampling
+        print(f"Configuration: Utilisation des recettes depuis {args.recipe_file_path}")
+        print(f"Mode de tirage: {args.recipe_sampling}")
+    
     # Utiliser le paramètre en ligne de commande s'il est fourni, sinon utiliser la valeur par défaut
-    num_layouts = args.num_of_layouts if args.num_of_layouts is not None else args.mdp_gen_params.get("num_layouts_to_generate", 1)
+    num_layouts = args.num_of_layouts if args.num_of_layouts is not None else mdp_gen_params.get("num_layouts_to_generate", 1)
     
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -610,10 +849,16 @@ if __name__ == "__main__":
     print(f"Génération de {num_layouts} layout(s)...")
     
     for i in range(num_layouts):
-        mdp_param_generator = MDPParamsGenerator(DEFAULT_PARAMS_SCHEDULE_FN)
-        layout_generator = LayoutGenerator(mdp_param_generator, args.mdp_gen_params["inner_shape"])
-        layout = layout_generator.make_new_layout(args.mdp_gen_params)
-        filepath = os.path.join(args.output_dir+"/generation_cesar", f"layout_cesar_{i}.layout")
+        mdp_param_generator = MDPParamsGenerator(lambda _: mdp_gen_params)
+        layout_generator = LayoutGenerator(mdp_param_generator, mdp_gen_params["inner_shape"])
+        layout = layout_generator.make_new_layout(mdp_gen_params)
+        
+        # Créer le dossier de sortie s'il n'existe pas
+        output_subdir = os.path.join(args.output_dir, "generation_cesar")
+        if not os.path.exists(output_subdir):
+            os.makedirs(output_subdir)
+        
+        filepath = os.path.join(output_subdir, f"layout_cesar_{i}.layout")
         layout.to_layout_file(filepath)
         print(f"Layout {i+1}/{num_layouts} généré: {filepath}")
     
