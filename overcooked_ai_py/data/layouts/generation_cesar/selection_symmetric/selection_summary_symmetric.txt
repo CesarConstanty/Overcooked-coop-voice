@@ -2,11 +2,11 @@
 RÉSUMÉ DE LA SÉLECTION DE LAYOUTS SYMMETRIC
 ======================================================================
 
-Date de sélection: 2025-07-30 10:14:46
+Date de sélection: 2025-07-30 15:28:53
 Catégorie de layouts: symmetric
 Nombre total de layouts sélectionnés: 5
-Layouts copiés avec succès: 5
-Échecs de copie: 0
+Layouts copiés avec succès: 0
+Échecs de copie: 5
 
 Critère de sélection: Proximité à la médiane
 Médiane des steps: 341.4

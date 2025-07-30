@@ -2,67 +2,61 @@
 RÉSUMÉ DE LA SÉLECTION DE LAYOUTS SYMMETRIC_COMPLEX_SOLO
 ======================================================================
 
-Date de sélection: 2025-07-30 10:14:51
+Date de sélection: 2025-07-30 15:29:00
 Catégorie de layouts: symmetric_complex_solo
 Note: Mode SOLO - Layouts basés sur symmetric_complex
-Nombre total de layouts sélectionnés: 50
-Layouts copiés avec succès: 50
+Nombre total de layouts sélectionnés: 44
+Layouts copiés avec succès: 44
 Échecs de copie: 0
 
 Critère de sélection: Proximité à la médiane
-Médiane des steps: 335.6
-Range des steps: 277.6 - 519.4
-Moyenne des steps: 354.1
+Médiane des steps: 363.0
+Range des steps: 298.0 - 507.6
+Moyenne des steps: 368.9
 
 LISTE DES LAYOUTS SÉLECTIONNÉS:
 ----------------------------------------
-  1. Layout symmetric_complex_solo_163:  336.6 steps (Score: 34.0)
-  2. Layout symmetric_complex_solo_160:  337.8 steps (Score: 30.0)
-  3. Layout symmetric_complex_solo_183:  334.6 steps (Score: 31.0)
-  4. Layout symmetric_complex_solo_61 :  333.6 steps (Score: 34.0)
-  5. Layout symmetric_complex_solo_51 :  339.6 steps (Score: 31.0)
-  6. Layout symmetric_complex_solo_156:  339.6 steps (Score: 36.0)
-  7. Layout symmetric_complex_solo_159:  332.2 steps (Score: 35.0)
-  8. Layout symmetric_complex_solo_107:  329.4 steps (Score: 34.0)
-  9. Layout symmetric_complex_solo_198:  328.4 steps (Score: 36.0)
- 10. Layout symmetric_complex_solo_28 :  328.2 steps (Score: 35.0)
- 11. Layout symmetric_complex_solo_139:  345.8 steps (Score: 34.0)
- 12. Layout symmetric_complex_solo_68 :  326.2 steps (Score: 39.0)
- 13. Layout symmetric_complex_solo_169:  325.4 steps (Score: 33.0)
- 14. Layout symmetric_complex_solo_126:  323.6 steps (Score: 32.0)
- 15. Layout symmetric_complex_solo_29 :  322.0 steps (Score: 32.0)
- 16. Layout symmetric_complex_solo_74 :  321.2 steps (Score: 34.0)
- 17. Layout symmetric_complex_solo_53 :  352.2 steps (Score: 32.0)
- 18. Layout symmetric_complex_solo_185:  318.4 steps (Score: 35.0)
- 19. Layout symmetric_complex_solo_187:  317.8 steps (Score: 35.0)
- 20. Layout symmetric_complex_solo_71 :  359.0 steps (Score: 33.0)
- 21. Layout symmetric_complex_solo_180:  313.8 steps (Score: 34.0)
- 22. Layout symmetric_complex_solo_67 :  313.2 steps (Score: 33.0)
- 23. Layout symmetric_complex_solo_45 :  310.2 steps (Score: 31.0)
- 24. Layout symmetric_complex_solo_155:  307.0 steps (Score: 37.0)
- 25. Layout symmetric_complex_solo_63 :  306.0 steps (Score: 28.0)
- 26. Layout symmetric_complex_solo_65 :  369.8 steps (Score: 35.0)
- 27. Layout symmetric_complex_solo_22 :  371.6 steps (Score: 34.0)
- 28. Layout symmetric_complex_solo_106:  300.0 steps (Score: 31.0)
- 29. Layout symmetric_complex_solo_174:  299.0 steps (Score: 31.0)
- 30. Layout symmetric_complex_solo_113:  374.4 steps (Score: 39.0)
- 31. Layout symmetric_complex_solo_119:  374.4 steps (Score: 30.0)
- 32. Layout symmetric_complex_solo_131:  376.4 steps (Score: 28.0)
- 33. Layout symmetric_complex_solo_195:  296.6 steps (Score: 30.0)
- 34. Layout symmetric_complex_solo_23 :  377.0 steps (Score: 35.0)
- 35. Layout symmetric_complex_solo_115:  293.8 steps (Score: 34.0)
- 36. Layout symmetric_complex_solo_102:  381.2 steps (Score: 36.0)
- 37. Layout symmetric_complex_solo_39 :  382.0 steps (Score: 34.0)
- 38. Layout symmetric_complex_solo_143:  289.8 steps (Score: 31.0)
- 39. Layout symmetric_complex_solo_73 :  289.0 steps (Score: 30.0)
- 40. Layout symmetric_complex_solo_138:  387.8 steps (Score: 37.0)
- 41. Layout symmetric_complex_solo_141:  392.0 steps (Score: 32.0)
- 42. Layout symmetric_complex_solo_152:  392.8 steps (Score: 32.0)
- 43. Layout symmetric_complex_solo_52 :  277.6 steps (Score: 29.0)
- 44. Layout symmetric_complex_solo_199:  428.2 steps (Score: 38.0)
- 45. Layout symmetric_complex_solo_20 :  448.4 steps (Score: 35.0)
- 46. Layout symmetric_complex_solo_54 :  461.6 steps (Score: 37.0)
- 47. Layout symmetric_complex_solo_101:  465.0 steps (Score: 33.0)
- 48. Layout symmetric_complex_solo_58 :  467.8 steps (Score: 31.0)
- 49. Layout symmetric_complex_solo_149:  486.8 steps (Score: 32.0)
- 50. Layout symmetric_complex_solo_8  :  519.4 steps (Score: 32.0)
+  1. Layout symmetric_complex_solo_10 :  363.0 steps (Score: 38.0)
+  2. Layout symmetric_complex_solo_72 :  363.0 steps (Score: 37.0)
+  3. Layout symmetric_complex_solo_85 :  362.8 steps (Score: 35.0)
+  4. Layout symmetric_complex_solo_16 :  363.2 steps (Score: 34.0)
+  5. Layout symmetric_complex_solo_91 :  365.2 steps (Score: 35.0)
+  6. Layout symmetric_complex_solo_4  :  365.4 steps (Score: 32.0)
+  7. Layout symmetric_complex_solo_19 :  359.6 steps (Score: 36.0)
+  8. Layout symmetric_complex_solo_0  :  366.4 steps (Score: 33.0)
+  9. Layout symmetric_complex_solo_15 :  358.6 steps (Score: 32.0)
+ 10. Layout symmetric_complex_solo_78 :  367.4 steps (Score: 36.0)
+ 11. Layout symmetric_complex_solo_3  :  358.0 steps (Score: 35.0)
+ 12. Layout symmetric_complex_solo_61 :  369.0 steps (Score: 38.0)
+ 13. Layout symmetric_complex_solo_95 :  353.0 steps (Score: 39.0)
+ 14. Layout symmetric_complex_solo_67 :  351.8 steps (Score: 37.0)
+ 15. Layout symmetric_complex_solo_32 :  375.4 steps (Score: 32.0)
+ 16. Layout symmetric_complex_solo_77 :  347.6 steps (Score: 39.0)
+ 17. Layout symmetric_complex_solo_94 :  378.8 steps (Score: 28.0)
+ 18. Layout symmetric_complex_solo_46 :  346.6 steps (Score: 29.0)
+ 19. Layout symmetric_complex_solo_34 :  345.2 steps (Score: 31.0)
+ 20. Layout symmetric_complex_solo_50 :  342.2 steps (Score: 32.0)
+ 21. Layout symmetric_complex_solo_13 :  385.8 steps (Score: 34.0)
+ 22. Layout symmetric_complex_solo_6  :  340.0 steps (Score: 38.0)
+ 23. Layout symmetric_complex_solo_27 :  389.8 steps (Score: 30.0)
+ 24. Layout symmetric_complex_solo_41 :  392.0 steps (Score: 31.0)
+ 25. Layout symmetric_complex_solo_37 :  324.8 steps (Score: 32.0)
+ 26. Layout symmetric_complex_solo_5  :  323.0 steps (Score: 34.0)
+ 27. Layout symmetric_complex_solo_28 :  322.4 steps (Score: 30.0)
+ 28. Layout symmetric_complex_solo_71 :  320.0 steps (Score: 34.0)
+ 29. Layout symmetric_complex_solo_81 :  319.6 steps (Score: 35.0)
+ 30. Layout symmetric_complex_solo_24 :  407.2 steps (Score: 33.0)
+ 31. Layout symmetric_complex_solo_30 :  408.8 steps (Score: 32.0)
+ 32. Layout symmetric_complex_solo_59 :  312.2 steps (Score: 31.0)
+ 33. Layout symmetric_complex_solo_38 :  311.0 steps (Score: 26.0)
+ 34. Layout symmetric_complex_solo_87 :  307.8 steps (Score: 34.0)
+ 35. Layout symmetric_complex_solo_62 :  418.4 steps (Score: 28.0)
+ 36. Layout symmetric_complex_solo_9  :  301.2 steps (Score: 31.0)
+ 37. Layout symmetric_complex_solo_51 :  298.0 steps (Score: 34.0)
+ 38. Layout symmetric_complex_solo_25 :  428.8 steps (Score: 33.0)
+ 39. Layout symmetric_complex_solo_11 :  432.2 steps (Score: 35.0)
+ 40. Layout symmetric_complex_solo_45 :  439.8 steps (Score: 31.0)
+ 41. Layout symmetric_complex_solo_7  :  441.4 steps (Score: 36.0)
+ 42. Layout symmetric_complex_solo_8  :  445.0 steps (Score: 37.0)
+ 43. Layout symmetric_complex_solo_42 :  453.2 steps (Score: 39.0)
+ 44. Layout symmetric_complex_solo_2  :  507.6 steps (Score: 35.0)

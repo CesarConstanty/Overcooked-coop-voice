@@ -2,7 +2,7 @@
 RAPPORT COMPLET D'ANALYSE DES SIMULATIONS OVERCOOKED - SYMMETRIC_SOLO
 ================================================================================
 
-📅 Date d'analyse: 2025-07-30 10:14:55
+📅 Date d'analyse: 2025-07-30 15:29:05
 📁 Catégorie analysée: symmetric_solo
 📂 Dossier source des données: data_simulation/symmetric_solo
 

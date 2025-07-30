@@ -2,12 +2,12 @@
 RÉSUMÉ DE LA SÉLECTION DE LAYOUTS SYMMETRIC_SOLO
 ======================================================================
 
-Date de sélection: 2025-07-30 10:14:54
+Date de sélection: 2025-07-30 15:29:04
 Catégorie de layouts: symmetric_solo
 Note: Mode SOLO - Layouts basés sur symmetric
 Nombre total de layouts sélectionnés: 50
-Layouts copiés avec succès: 50
-Échecs de copie: 0
+Layouts copiés avec succès: 0
+Échecs de copie: 50
 
 Critère de sélection: Proximité à la médiane
 Médiane des steps: 341.2

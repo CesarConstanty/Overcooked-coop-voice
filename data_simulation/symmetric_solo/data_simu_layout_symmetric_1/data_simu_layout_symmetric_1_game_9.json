@@ -3,10 +3,10 @@
         "info_sum": {
             "number_games": 1,
             "layout": "layout_symmetric_1",
-            "time_elapsed": 0.46424436569213867,
+            "time_elapsed": 0.55299973487854,
             "ai_action_per_step": 1,
             "step": 600,
-            "fps": 1292.4227935549939,
+            "fps": 1084.9914785796109,
             "time": 60.0,
             "recipe_completed": 0,
             "score": 0,
@@ -209,8 +209,8 @@
                             3
                         ],
                         "step_15_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_16_position": [
                             4,
@@ -222,11 +222,11 @@
                         ],
                         "step_18_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_19_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_20_position": [
                             4,
@@ -238,11 +238,11 @@
                         ],
                         "step_22_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_23_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_24_position": [
                             4,
@@ -254,11 +254,11 @@
                         ],
                         "step_26_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_27_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_28_position": [
                             4,
@@ -269,12 +269,12 @@
                             3
                         ],
                         "step_30_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_31_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_32_position": [
                             4,
@@ -282,7 +282,7 @@
                         ],
                         "step_33_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_34_position": [
                             4,
@@ -290,14 +290,14 @@
                         ],
                         "step_35_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_36_position": [
                             4,
                             3
                         ],
                         "step_37_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_38_position": [
@@ -306,11 +306,11 @@
                         ],
                         "step_39_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_40_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_41_position": [
                             4,
@@ -321,12 +321,12 @@
                             3
                         ],
                         "step_43_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_44_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_45_position": [
                             4,
@@ -334,7 +334,7 @@
                         ],
                         "step_46_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_47_position": [
                             4,
@@ -342,7 +342,7 @@
                         ],
                         "step_48_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_49_position": [
                             4,
@@ -350,7 +350,7 @@
                         ],
                         "step_50_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_51_position": [
                             4,
@@ -358,14 +358,14 @@
                         ],
                         "step_52_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_53_position": [
                             4,
                             3
                         ],
                         "step_54_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_55_position": [
@@ -373,19 +373,19 @@
                             3
                         ],
                         "step_56_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_57_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_58_position": [
                             4,
                             3
                         ],
                         "step_59_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_60_position": [
@@ -393,12 +393,12 @@
                             3
                         ],
                         "step_61_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_62_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_63_position": [
                             4,
@@ -406,7 +406,7 @@
                         ],
                         "step_64_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_65_position": [
                             4,
@@ -414,7 +414,7 @@
                         ],
                         "step_66_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_67_position": [
                             4,
@@ -422,14 +422,14 @@
                         ],
                         "step_68_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_69_position": [
                             4,
                             3
                         ],
                         "step_70_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_71_position": [
@@ -438,10 +438,10 @@
                         ],
                         "step_72_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_73_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_74_position": [
@@ -469,8 +469,8 @@
                             3
                         ],
                         "step_80_position": [
-                            4,
-                            2
+                            3,
+                            3
                         ],
                         "step_81_position": [
                             4,
@@ -482,10 +482,10 @@
                         ],
                         "step_83_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_84_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_85_position": [
@@ -529,8 +529,8 @@
                             3
                         ],
                         "step_95_position": [
-                            4,
-                            2
+                            3,
+                            3
                         ],
                         "step_96_position": [
                             4,
@@ -541,12 +541,12 @@
                             3
                         ],
                         "step_98_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_99_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_100_position": [
                             4,
@@ -554,14 +554,14 @@
                         ],
                         "step_101_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_102_position": [
                             4,
                             3
                         ],
                         "step_103_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_104_position": [
@@ -570,11 +570,11 @@
                         ],
                         "step_105_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_106_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_107_position": [
                             4,
@@ -585,11 +585,11 @@
                             3
                         ],
                         "step_109_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_110_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_111_position": [
@@ -598,11 +598,11 @@
                         ],
                         "step_112_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_113_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_114_position": [
                             4,
@@ -614,11 +614,11 @@
                         ],
                         "step_116_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_117_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_118_position": [
                             4,
@@ -630,11 +630,11 @@
                         ],
                         "step_120_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_121_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_122_position": [
                             4,
@@ -646,10 +646,10 @@
                         ],
                         "step_124_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_125_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_126_position": [
@@ -661,8 +661,8 @@
                             3
                         ],
                         "step_128_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_129_position": [
                             4,
@@ -674,11 +674,11 @@
                         ],
                         "step_131_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_132_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_133_position": [
                             4,
@@ -689,19 +689,19 @@
                             3
                         ],
                         "step_135_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_136_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_137_position": [
                             4,
                             3
                         ],
                         "step_138_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_139_position": [
@@ -710,11 +710,11 @@
                         ],
                         "step_140_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_141_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_142_position": [
                             4,
@@ -725,19 +725,19 @@
                             3
                         ],
                         "step_144_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_145_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_146_position": [
                             4,
                             3
                         ],
                         "step_147_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_148_position": [
@@ -746,10 +746,10 @@
                         ],
                         "step_149_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_150_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_151_position": [
@@ -761,8 +761,8 @@
                             3
                         ],
                         "step_153_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_154_position": [
                             4,
@@ -774,10 +774,10 @@
                         ],
                         "step_156_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_157_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_158_position": [
@@ -838,7 +838,7 @@
                         ],
                         "step_172_position": [
                             4,
-                            4
+                            2
                         ],
                         "step_173_position": [
                             4,
@@ -853,8 +853,8 @@
                             3
                         ],
                         "step_176_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_177_position": [
                             4,
@@ -866,10 +866,10 @@
                         ],
                         "step_179_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_180_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_181_position": [
@@ -882,7 +882,7 @@
                         ],
                         "step_183_position": [
                             4,
-                            2
+                            4
                         ],
                         "step_184_position": [
                             4,
@@ -898,7 +898,7 @@
                         ],
                         "step_187_position": [
                             4,
-                            2
+                            4
                         ],
                         "step_188_position": [
                             4,
@@ -913,8 +913,8 @@
                             3
                         ],
                         "step_191_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_192_position": [
                             4,
@@ -926,11 +926,11 @@
                         ],
                         "step_194_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_195_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_196_position": [
                             4,
@@ -942,10 +942,10 @@
                         ],
                         "step_198_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_199_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_200_position": [
@@ -958,7 +958,7 @@
                         ],
                         "step_202_position": [
                             4,
-                            4
+                            2
                         ],
                         "step_203_position": [
                             4,
@@ -973,8 +973,8 @@
                             3
                         ],
                         "step_206_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_207_position": [
                             4,
@@ -986,11 +986,11 @@
                         ],
                         "step_209_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_210_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_211_position": [
                             4,
@@ -1001,12 +1001,12 @@
                             3
                         ],
                         "step_213_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_214_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_215_position": [
                             4,
@@ -1014,7 +1014,7 @@
                         ],
                         "step_216_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_217_position": [
                             4,
@@ -1022,7 +1022,7 @@
                         ],
                         "step_218_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_219_position": [
                             4,
@@ -1030,14 +1030,14 @@
                         ],
                         "step_220_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_221_position": [
                             4,
                             3
                         ],
                         "step_222_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_223_position": [
@@ -1046,11 +1046,11 @@
                         ],
                         "step_224_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_225_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_226_position": [
                             4,
@@ -1062,10 +1062,10 @@
                         ],
                         "step_228_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_229_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_230_position": [
@@ -1078,7 +1078,7 @@
                         ],
                         "step_232_position": [
                             4,
-                            2
+                            4
                         ],
                         "step_233_position": [
                             4,
@@ -1093,8 +1093,8 @@
                             3
                         ],
                         "step_236_position": [
-                            4,
-                            2
+                            3,
+                            3
                         ],
                         "step_237_position": [
                             4,
@@ -1106,11 +1106,11 @@
                         ],
                         "step_239_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_240_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_241_position": [
                             4,
@@ -1122,11 +1122,11 @@
                         ],
                         "step_243_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_244_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_245_position": [
                             4,
@@ -1138,11 +1138,11 @@
                         ],
                         "step_247_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_248_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_249_position": [
                             4,
@@ -1154,10 +1154,10 @@
                         ],
                         "step_251_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_252_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_253_position": [
@@ -1186,7 +1186,7 @@
                         ],
                         "step_259_position": [
                             4,
-                            4
+                            2
                         ],
                         "step_260_position": [
                             4,
@@ -1201,8 +1201,8 @@
                             3
                         ],
                         "step_263_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_264_position": [
                             4,
@@ -1214,10 +1214,10 @@
                         ],
                         "step_266_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_267_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_268_position": [
@@ -1269,8 +1269,8 @@
                             3
                         ],
                         "step_280_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_281_position": [
                             4,
@@ -1282,11 +1282,11 @@
                         ],
                         "step_283_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_284_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_285_position": [
                             4,
@@ -1298,11 +1298,11 @@
                         ],
                         "step_287_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_288_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_289_position": [
                             4,
@@ -1314,11 +1314,11 @@
                         ],
                         "step_291_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_292_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_293_position": [
                             4,
@@ -1330,11 +1330,11 @@
                         ],
                         "step_295_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_296_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_297_position": [
                             4,
@@ -1346,11 +1346,11 @@
                         ],
                         "step_299_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_300_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_301_position": [
                             4,
@@ -1361,19 +1361,19 @@
                             3
                         ],
                         "step_303_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_304_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_305_position": [
                             4,
                             3
                         ],
                         "step_306_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_307_position": [
@@ -1382,10 +1382,10 @@
                         ],
                         "step_308_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_309_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_310_position": [
@@ -1397,8 +1397,8 @@
                             3
                         ],
                         "step_312_position": [
-                            4,
-                            2
+                            3,
+                            3
                         ],
                         "step_313_position": [
                             4,
@@ -1410,11 +1410,11 @@
                         ],
                         "step_315_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_316_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_317_position": [
                             4,
@@ -1426,10 +1426,10 @@
                         ],
                         "step_319_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_320_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_321_position": [
@@ -1441,8 +1441,8 @@
                             3
                         ],
                         "step_323_position": [
-                            3,
-                            3
+                            4,
+                            4
                         ],
                         "step_324_position": [
                             4,
@@ -1454,11 +1454,11 @@
                         ],
                         "step_326_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_327_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_328_position": [
                             4,
@@ -1470,11 +1470,11 @@
                         ],
                         "step_330_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_331_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_332_position": [
                             4,
@@ -1486,11 +1486,11 @@
                         ],
                         "step_334_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_335_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_336_position": [
                             4,
@@ -1502,11 +1502,11 @@
                         ],
                         "step_338_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_339_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_340_position": [
                             4,
@@ -1518,11 +1518,11 @@
                         ],
                         "step_342_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_343_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_344_position": [
                             4,
@@ -1534,11 +1534,11 @@
                         ],
                         "step_346_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_347_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_348_position": [
                             4,
@@ -1550,11 +1550,11 @@
                         ],
                         "step_350_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_351_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_352_position": [
                             4,
@@ -1565,19 +1565,19 @@
                             3
                         ],
                         "step_354_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_355_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_356_position": [
                             4,
                             3
                         ],
                         "step_357_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_358_position": [
@@ -1586,11 +1586,11 @@
                         ],
                         "step_359_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_360_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_361_position": [
                             4,
@@ -1602,10 +1602,10 @@
                         ],
                         "step_363_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_364_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_365_position": [
@@ -1617,8 +1617,8 @@
                             3
                         ],
                         "step_367_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_368_position": [
                             4,
@@ -1630,11 +1630,11 @@
                         ],
                         "step_370_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_371_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_372_position": [
                             4,
@@ -1646,11 +1646,11 @@
                         ],
                         "step_374_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_375_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_376_position": [
                             4,
@@ -1662,11 +1662,11 @@
                         ],
                         "step_378_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_379_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_380_position": [
                             4,
@@ -1678,11 +1678,11 @@
                         ],
                         "step_382_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_383_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_384_position": [
                             4,
@@ -1694,10 +1694,10 @@
                         ],
                         "step_386_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_387_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_388_position": [
@@ -1709,8 +1709,8 @@
                             3
                         ],
                         "step_390_position": [
-                            3,
-                            3
+                            4,
+                            4
                         ],
                         "step_391_position": [
                             4,
@@ -1722,11 +1722,11 @@
                         ],
                         "step_393_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_394_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_395_position": [
                             4,
@@ -1738,11 +1738,11 @@
                         ],
                         "step_397_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_398_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_399_position": [
                             4,
@@ -1753,12 +1753,12 @@
                             3
                         ],
                         "step_401_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_402_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_403_position": [
                             4,
@@ -1766,7 +1766,7 @@
                         ],
                         "step_404_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_405_position": [
                             4,
@@ -1774,7 +1774,7 @@
                         ],
                         "step_406_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_407_position": [
                             4,
@@ -1782,14 +1782,14 @@
                         ],
                         "step_408_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_409_position": [
                             4,
                             3
                         ],
                         "step_410_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_411_position": [
@@ -1798,10 +1798,10 @@
                         ],
                         "step_412_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_413_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_414_position": [
@@ -1813,8 +1813,8 @@
                             3
                         ],
                         "step_416_position": [
-                            3,
-                            3
+                            4,
+                            4
                         ],
                         "step_417_position": [
                             4,
@@ -1826,10 +1826,10 @@
                         ],
                         "step_419_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_420_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_421_position": [
@@ -1842,7 +1842,7 @@
                         ],
                         "step_423_position": [
                             4,
-                            4
+                            2
                         ],
                         "step_424_position": [
                             4,
@@ -1857,8 +1857,8 @@
                             3
                         ],
                         "step_427_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_428_position": [
                             4,
@@ -1869,12 +1869,12 @@
                             3
                         ],
                         "step_430_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_431_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_432_position": [
                             4,
@@ -1882,7 +1882,7 @@
                         ],
                         "step_433_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_434_position": [
                             4,
@@ -1890,7 +1890,7 @@
                         ],
                         "step_435_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_436_position": [
                             4,
@@ -1898,7 +1898,7 @@
                         ],
                         "step_437_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_438_position": [
                             4,
@@ -1906,7 +1906,7 @@
                         ],
                         "step_439_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_440_position": [
                             4,
@@ -1914,7 +1914,7 @@
                         ],
                         "step_441_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_442_position": [
                             4,
@@ -1922,14 +1922,14 @@
                         ],
                         "step_443_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_444_position": [
                             4,
                             3
                         ],
                         "step_445_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_446_position": [
@@ -1938,10 +1938,10 @@
                         ],
                         "step_447_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_448_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_449_position": [
@@ -1953,8 +1953,8 @@
                             3
                         ],
                         "step_451_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_452_position": [
                             4,
@@ -1966,11 +1966,11 @@
                         ],
                         "step_454_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_455_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_456_position": [
                             4,
@@ -1982,11 +1982,11 @@
                         ],
                         "step_458_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_459_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_460_position": [
                             4,
@@ -1998,10 +1998,10 @@
                         ],
                         "step_462_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_463_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_464_position": [
@@ -2030,7 +2030,7 @@
                         ],
                         "step_470_position": [
                             4,
-                            2
+                            4
                         ],
                         "step_471_position": [
                             4,
@@ -2045,8 +2045,8 @@
                             3
                         ],
                         "step_474_position": [
-                            4,
-                            2
+                            3,
+                            3
                         ],
                         "step_475_position": [
                             4,
@@ -2057,11 +2057,11 @@
                             3
                         ],
                         "step_477_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_478_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_479_position": [
@@ -2070,11 +2070,11 @@
                         ],
                         "step_480_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_481_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_482_position": [
                             4,
@@ -2086,11 +2086,11 @@
                         ],
                         "step_484_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_485_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_486_position": [
                             4,
@@ -2102,10 +2102,10 @@
                         ],
                         "step_488_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_489_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_490_position": [
@@ -2118,7 +2118,7 @@
                         ],
                         "step_492_position": [
                             4,
-                            2
+                            4
                         ],
                         "step_493_position": [
                             4,
@@ -2133,8 +2133,8 @@
                             3
                         ],
                         "step_496_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_497_position": [
                             4,
@@ -2145,11 +2145,11 @@
                             3
                         ],
                         "step_499_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_500_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_501_position": [
@@ -2157,12 +2157,12 @@
                             3
                         ],
                         "step_502_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_503_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_504_position": [
                             4,
@@ -2170,14 +2170,14 @@
                         ],
                         "step_505_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_506_position": [
                             4,
                             3
                         ],
                         "step_507_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_508_position": [
@@ -2185,12 +2185,12 @@
                             3
                         ],
                         "step_509_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_510_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_511_position": [
                             4,
@@ -2198,7 +2198,7 @@
                         ],
                         "step_512_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_513_position": [
                             4,
@@ -2206,14 +2206,14 @@
                         ],
                         "step_514_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_515_position": [
                             4,
                             3
                         ],
                         "step_516_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_517_position": [
@@ -2221,19 +2221,19 @@
                             3
                         ],
                         "step_518_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_519_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_520_position": [
                             4,
                             3
                         ],
                         "step_521_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_522_position": [
@@ -2242,10 +2242,10 @@
                         ],
                         "step_523_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_524_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_525_position": [
@@ -2258,7 +2258,7 @@
                         ],
                         "step_527_position": [
                             4,
-                            2
+                            4
                         ],
                         "step_528_position": [
                             4,
@@ -2274,7 +2274,7 @@
                         ],
                         "step_531_position": [
                             4,
-                            4
+                            2
                         ],
                         "step_532_position": [
                             4,
@@ -2301,8 +2301,8 @@
                             3
                         ],
                         "step_538_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_539_position": [
                             4,
@@ -2313,11 +2313,11 @@
                             3
                         ],
                         "step_541_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_542_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_543_position": [
@@ -2326,11 +2326,11 @@
                         ],
                         "step_544_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_545_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_546_position": [
                             4,
@@ -2342,10 +2342,10 @@
                         ],
                         "step_548_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_549_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_550_position": [
@@ -2373,8 +2373,8 @@
                             3
                         ],
                         "step_556_position": [
-                            4,
-                            4
+                            3,
+                            3
                         ],
                         "step_557_position": [
                             4,
@@ -2386,11 +2386,11 @@
                         ],
                         "step_559_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_560_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_561_position": [
                             4,
@@ -2402,10 +2402,10 @@
                         ],
                         "step_563_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_564_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_565_position": [
@@ -2417,8 +2417,8 @@
                             3
                         ],
                         "step_567_position": [
-                            3,
-                            3
+                            4,
+                            2
                         ],
                         "step_568_position": [
                             4,
@@ -2429,11 +2429,11 @@
                             3
                         ],
                         "step_570_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_571_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_572_position": [
@@ -2441,12 +2441,12 @@
                             3
                         ],
                         "step_573_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_574_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_575_position": [
                             4,
@@ -2454,7 +2454,7 @@
                         ],
                         "step_576_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_577_position": [
                             4,
@@ -2462,7 +2462,7 @@
                         ],
                         "step_578_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_579_position": [
                             4,
@@ -2470,7 +2470,7 @@
                         ],
                         "step_580_position": [
                             4,
-                            4
+                            3
                         ],
                         "step_581_position": [
                             4,
@@ -2478,14 +2478,14 @@
                         ],
                         "step_582_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_583_position": [
                             4,
                             3
                         ],
                         "step_584_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_585_position": [
@@ -2494,11 +2494,11 @@
                         ],
                         "step_586_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_587_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_588_position": [
                             4,
@@ -2510,11 +2510,11 @@
                         ],
                         "step_590_position": [
                             4,
-                            3
+                            4
                         ],
                         "step_591_position": [
                             4,
-                            2
+                            3
                         ],
                         "step_592_position": [
                             4,
@@ -2525,11 +2525,11 @@
                             3
                         ],
                         "step_594_position": [
-                            4,
+                            3,
                             3
                         ],
                         "step_595_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_596_position": [
@@ -2538,10 +2538,10 @@
                         ],
                         "step_597_position": [
                             4,
-                            3
+                            2
                         ],
                         "step_598_position": [
-                            3,
+                            4,
                             3
                         ],
                         "step_599_position": [
@@ -4953,9 +4953,9 @@
                     },
                     "_metadata": {
                         "layout_name": "layout_symmetric_1",
-                        "game_duration": 0.46424436569213867,
+                        "game_duration": 0.55299973487854,
                         "total_steps": 600,
-                        "simulation_fps": 1292.4227935549939,
+                        "simulation_fps": 1084.9914785796109,
                         "orders_completed": 0,
                         "actual_game_id": 9
                     }

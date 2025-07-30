@@ -1,5 +1,5 @@
 {
-    "mode" : "test",
+    "mode" : "pre_test",
     "logfile" : "app.log",
     "ai_slowdown_enabled": true,
     "ai_base_speed": 4,

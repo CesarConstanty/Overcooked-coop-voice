@@ -130,9 +130,15 @@
 
   <div class="condition-bank" id="conditionBank" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
 
+  <div style="margin-top: 1.5rem;">
+    <h3 style="margin-bottom: 0.5rem; font-size: 1rem;">Placeholder for explanations</h3>
+    <textarea id="explanationText" name="explanation_text" rows="4" cols="80" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: sans-serif;" placeholder="You can add any comments or explanations here (optional)..."></textarea>
+  </div>
+
   <form id="rankingForm" method="POST" action="/submit_qex_ranking">
     <input type="hidden" name="ranking_data" id="rankingDataInput">
     <input type="hidden" name="timeout_bool" id="timeoutBoolInput" value="false">
+    <input type="hidden" name="explanation_text" id="explanationDataInput">
     <button type="submit" id="submitBtn" disabled>Valider</button>
   </form>
 
@@ -166,6 +172,7 @@
       const ranking = collectRankingDataWithNan();
       rankingDataInput.value = JSON.stringify(ranking);
       document.getElementById('timeoutBoolInput').value = "true";
+      document.getElementById('explanationDataInput').value = document.getElementById('explanationText').value;
       submitBtn.disabled = true;
       document.getElementById('rankingForm').submit();
     }
@@ -195,6 +202,7 @@
     const rankingDataInput = document.getElementById('rankingDataInput'); // Get the hidden input
     const rankingForm = document.getElementById('rankingForm'); // Get the form
     const timeoutBoolInput = document.getElementById('timeoutBoolInput'); // Get the timeout input
+    const explanationDataInput = document.getElementById('explanationDataInput'); // Get the explanation input
 
     // Initial population of the bank (shuffled)
     shuffle(conditions).forEach((text, i) => {
@@ -289,6 +297,7 @@
       const ranking = Array.from(document.querySelectorAll('.arrow-slot')).map(slot => slot.textContent.trim());
       rankingDataInput.value = JSON.stringify(ranking);
       timeoutBoolInput.value = "false"; // Ensure manual submission is marked as such
+      explanationDataInput.value = document.getElementById('explanationText').value; // Include explanation text
     });
 
     // Start timer when page loads

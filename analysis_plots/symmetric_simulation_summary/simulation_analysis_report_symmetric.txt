@@ -2,7 +2,7 @@
 RAPPORT COMPLET D'ANALYSE DES SIMULATIONS OVERCOOKED - SYMMETRIC
 ================================================================================
 
-📅 Date d'analyse: 2025-07-30 10:14:46
+📅 Date d'analyse: 2025-07-30 15:28:54
 📁 Catégorie analysée: symmetric
 📂 Dossier source des données: data_simulation/symmetric
 
