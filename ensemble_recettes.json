@@ -4,33 +4,22 @@
     "tomato_value": 2,
     "onion_time": 9,
     "tomato_time": 6,
-    "generation_date": "2025-07-25",
+    "generation_date": "2025-07-28",
     "purpose": "Layout generation for Overcooked cognitive science experiments",
-    "export_type": "all_combinations"
+    "export_type": "selected_combinations"
   },
   "statistics": {
     "total_combinations_exported": 84,
     "recipes_per_combination": 6,
     "unique_recipes_count": 9,
-    "diversity_optimized": false,
+    "diversity_optimized": true,
     "value_range": {
       "min": 26,
       "max": 41,
-      "mean": 33.333333333333336
+      "mean": 33.3
     }
   },
   "all_unique_recipes": [
-    {
-      "ingredients": [
-        "tomato",
-        "tomato"
-      ],
-      "recipe_value": 4,
-      "cooking_time": 12,
-      "ingredient_count": 2,
-      "onion_count": 0,
-      "tomato_count": 2
-    },
     {
       "ingredients": [
         "onion"
@@ -40,29 +29,6 @@
       "ingredient_count": 1,
       "onion_count": 1,
       "tomato_count": 0
-    },
-    {
-      "ingredients": [
-        "tomato",
-        "tomato",
-        "tomato"
-      ],
-      "recipe_value": 6,
-      "cooking_time": 18,
-      "ingredient_count": 3,
-      "onion_count": 0,
-      "tomato_count": 3
-    },
-    {
-      "ingredients": [
-        "onion",
-        "tomato"
-      ],
-      "recipe_value": 5,
-      "cooking_time": 15,
-      "ingredient_count": 2,
-      "onion_count": 1,
-      "tomato_count": 1
     },
     {
       "ingredients": [
@@ -88,14 +54,36 @@
     {
       "ingredients": [
         "onion",
+        "tomato"
+      ],
+      "recipe_value": 5,
+      "cooking_time": 15,
+      "ingredient_count": 2,
+      "onion_count": 1,
+      "tomato_count": 1
+    },
+    {
+      "ingredients": [
         "tomato",
         "tomato"
       ],
-      "recipe_value": 7,
-      "cooking_time": 21,
-      "ingredient_count": 3,
-      "onion_count": 1,
+      "recipe_value": 4,
+      "cooking_time": 12,
+      "ingredient_count": 2,
+      "onion_count": 0,
       "tomato_count": 2
+    },
+    {
+      "ingredients": [
+        "onion",
+        "onion",
+        "onion"
+      ],
+      "recipe_value": 9,
+      "cooking_time": 27,
+      "ingredient_count": 3,
+      "onion_count": 3,
+      "tomato_count": 0
     },
     {
       "ingredients": [
@@ -112,14 +100,26 @@
     {
       "ingredients": [
         "onion",
-        "onion",
-        "onion"
+        "tomato",
+        "tomato"
       ],
-      "recipe_value": 9,
-      "cooking_time": 27,
+      "recipe_value": 7,
+      "cooking_time": 21,
       "ingredient_count": 3,
-      "onion_count": 3,
-      "tomato_count": 0
+      "onion_count": 1,
+      "tomato_count": 2
+    },
+    {
+      "ingredients": [
+        "tomato",
+        "tomato",
+        "tomato"
+      ],
+      "recipe_value": 6,
+      "cooking_time": 18,
+      "ingredient_count": 3,
+      "onion_count": 0,
+      "tomato_count": 3
     }
   ],
   "recipe_combinations": [
@@ -129,26 +129,24 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -165,23 +163,25 @@
         {
           "recipe_id": 5,
           "ingredients": [
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 6,
           "ingredients": [
             "onion",
+            "onion",
             "onion"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 9,
+          "cooking_time": 27
         }
       ],
-      "total_value": 26,
-      "total_cooking_time": 78,
+      "total_value": 29,
+      "total_cooking_time": 87,
       "total_ingredients": 11
     },
     {
@@ -190,26 +190,24 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -226,25 +224,26 @@
         {
           "recipe_id": 5,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 6,
           "ingredients": [
+            "onion",
+            "onion",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 8,
+          "cooking_time": 24
         }
       ],
-      "total_value": 27,
-      "total_cooking_time": 81,
-      "total_ingredients": 12
+      "total_value": 28,
+      "total_cooking_time": 84,
+      "total_ingredients": 11
     },
     {
       "combination_id": 3,
@@ -252,22 +251,30 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "tomato"
@@ -276,7 +283,16 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 5,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 6,
           "ingredients": [
             "onion",
             "tomato",
@@ -284,23 +300,6 @@
           ],
           "recipe_value": 7,
           "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
         }
       ],
       "total_value": 27,
@@ -313,6 +312,40 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -320,7 +353,25 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 26,
+      "total_cooking_time": 78,
+      "total_ingredients": 11
+    },
+    {
+      "combination_id": 5,
+      "recipes": [
+        {
+          "recipe_id": 1,
           "ingredients": [
             "onion"
           ],
@@ -328,11 +379,18 @@
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -351,84 +409,24 @@
           "ingredients": [
             "onion",
             "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
             "tomato"
           ],
           "recipe_value": 8,
           "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
         }
       ],
-      "total_value": 28,
-      "total_cooking_time": 84,
-      "total_ingredients": 12
-    },
-    {
-      "combination_id": 5,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 28,
-      "total_cooking_time": 84,
+      "total_value": 33,
+      "total_cooking_time": 99,
       "total_ingredients": 12
     },
     {
@@ -437,22 +435,30 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "tomato"
@@ -461,51 +467,7 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
           "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 28,
-      "total_cooking_time": 84,
-      "total_ingredients": 11
-    },
-    {
-      "combination_id": 7,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
           "ingredients": [
             "onion",
             "onion",
@@ -515,7 +477,25 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 32,
+      "total_cooking_time": 96,
+      "total_ingredients": 12
+    },
+    {
+      "combination_id": 7,
+      "recipes": [
+        {
+          "recipe_id": 1,
           "ingredients": [
             "onion"
           ],
@@ -523,17 +503,24 @@
           "cooking_time": 9
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
             "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "tomato"
@@ -542,16 +529,28 @@
           "cooking_time": 15
         },
         {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
           "recipe_id": 6,
           "ingredients": [
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 29,
-      "total_cooking_time": 87,
+      "total_value": 31,
+      "total_cooking_time": 93,
       "total_ingredients": 12
     },
     {
@@ -560,29 +559,27 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 4,
@@ -595,58 +592,6 @@
         },
         {
           "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 29,
-      "total_cooking_time": 87,
-      "total_ingredients": 11
-    },
-    {
-      "combination_id": 9,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -656,41 +601,25 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
             "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 29,
-      "total_cooking_time": 87,
-      "total_ingredients": 12
-    },
-    {
-      "combination_id": 10,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
             "tomato",
             "tomato"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 31,
+      "total_cooking_time": 93,
+      "total_ingredients": 12
+    },
+    {
+      "combination_id": 9,
+      "recipes": [
         {
-          "recipe_id": 2,
+          "recipe_id": 1,
           "ingredients": [
             "onion"
           ],
@@ -698,7 +627,24 @@
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "tomato"
@@ -707,7 +653,69 @@
           "cooking_time": 15
         },
         {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 30,
+      "total_cooking_time": 90,
+      "total_ingredients": 12
+    },
+    {
+      "combination_id": 10,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
           "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -717,22 +725,14 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
       "total_value": 29,
@@ -753,52 +753,52 @@
         {
           "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
         }
       ],
-      "total_value": 29,
-      "total_cooking_time": 87,
+      "total_value": 32,
+      "total_cooking_time": 96,
       "total_ingredients": 12
     },
     {
@@ -807,6 +807,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -814,7 +839,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -824,43 +849,18 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 30,
-      "total_cooking_time": 90,
+      "total_value": 31,
+      "total_cooking_time": 93,
       "total_ingredients": 12
     },
     {
@@ -869,6 +869,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -876,7 +901,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -886,39 +911,14 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 6,
           "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
+            "tomato",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
       "total_value": 30,
@@ -931,26 +931,24 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -958,12 +956,11 @@
         {
           "recipe_id": 4,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 5,
@@ -978,15 +975,17 @@
         {
           "recipe_id": 6,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
       "total_value": 30,
       "total_cooking_time": 90,
-      "total_ingredients": 13
+      "total_ingredients": 12
     },
     {
       "combination_id": 15,
@@ -994,6 +993,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -1001,25 +1025,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -1029,25 +1035,18 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 30,
-      "total_cooking_time": 90,
+      "total_value": 29,
+      "total_cooking_time": 87,
       "total_ingredients": 12
     },
     {
@@ -1056,6 +1055,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -1063,26 +1087,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -1092,26 +1097,19 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 30,
-      "total_cooking_time": 90,
-      "total_ingredients": 13
+      "total_value": 28,
+      "total_cooking_time": 84,
+      "total_ingredients": 12
     },
     {
       "combination_id": 17,
@@ -1127,68 +1125,22 @@
         {
           "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
-        }
-      ],
-      "total_value": 30,
-      "total_cooking_time": 90,
-      "total_ingredients": 12
-    },
-    {
-      "combination_id": 18,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -1198,25 +1150,17 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 5,
           "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "tomato",
-            "tomato",
+            "onion",
+            "onion",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 6,
           "ingredients": [
             "onion",
             "tomato",
@@ -1224,18 +1168,73 @@
           ],
           "recipe_value": 7,
           "cooking_time": 21
+        }
+      ],
+      "total_value": 35,
+      "total_cooking_time": 105,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 18,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 2,
           "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 31,
-      "total_cooking_time": 93,
+      "total_value": 34,
+      "total_cooking_time": 102,
       "total_ingredients": 13
     },
     {
@@ -1244,14 +1243,30 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -1261,44 +1276,29 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
           "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 8,
-          "cooking_time": 24
+          "recipe_value": 7,
+          "cooking_time": 21
         },
         {
           "recipe_id": 6,
           "ingredients": [
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 31,
-      "total_cooking_time": 93,
-      "total_ingredients": 12
+      "total_value": 33,
+      "total_cooking_time": 99,
+      "total_ingredients": 13
     },
     {
       "combination_id": 20,
@@ -1306,42 +1306,13 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
+          "recipe_id": 2,
           "ingredients": [
             "tomato"
           ],
@@ -1349,112 +1320,13 @@
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 31,
-      "total_cooking_time": 93,
-      "total_ingredients": 12
-    },
-    {
-      "combination_id": 21,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 31,
-      "total_cooking_time": 93,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 22,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
           "recipe_id": 3,
           "ingredients": [
             "onion",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 5,
-          "cooking_time": 15
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 4,
@@ -1469,30 +1341,67 @@
         {
           "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 32,
+      "total_cooking_time": 96,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 21,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 31,
-      "total_cooking_time": 93,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 23,
-      "recipes": [
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
         {
-          "recipe_id": 1,
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -1502,7 +1411,25 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        }
+      ],
+      "total_value": 31,
+      "total_cooking_time": 93,
+      "total_ingredients": 12
+    },
+    {
+      "combination_id": 22,
+      "recipes": [
+        {
+          "recipe_id": 1,
           "ingredients": [
             "onion"
           ],
@@ -1510,17 +1437,15 @@
           "cooking_time": 9
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "tomato"
@@ -1529,7 +1454,52 @@
           "cooking_time": 15
         },
         {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
           "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 30,
+      "total_cooking_time": 90,
+      "total_ingredients": 12
+    },
+    {
+      "combination_id": 23,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
           "ingredients": [
             "tomato"
           ],
@@ -1537,17 +1507,46 @@
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
             "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 31,
-      "total_cooking_time": 93,
+      "total_value": 29,
+      "total_cooking_time": 87,
       "total_ingredients": 12
     },
     {
@@ -1564,12 +1563,10 @@
         {
           "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 3,
@@ -1583,12 +1580,11 @@
         {
           "recipe_id": 4,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 5,
@@ -1603,15 +1599,17 @@
         {
           "recipe_id": 6,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 31,
-      "total_cooking_time": 93,
-      "total_ingredients": 13
+      "total_value": 29,
+      "total_cooking_time": 87,
+      "total_ingredients": 12
     },
     {
       "combination_id": 25,
@@ -1627,6 +1625,14 @@
         {
           "recipe_id": 2,
           "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
             "onion",
             "tomato"
           ],
@@ -1634,7 +1640,78 @@
           "cooking_time": 15
         },
         {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 28,
+      "total_cooking_time": 84,
+      "total_ingredients": 12
+    },
+    {
+      "combination_id": 26,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
           "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -1644,99 +1721,19 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 31,
-      "total_cooking_time": 93,
+      "total_value": 27,
+      "total_cooking_time": 81,
       "total_ingredients": 12
-    },
-    {
-      "combination_id": 26,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        }
-      ],
-      "total_value": 32,
-      "total_cooking_time": 96,
-      "total_ingredients": 13
     },
     {
       "combination_id": 27,
@@ -1744,42 +1741,13 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
+          "recipe_id": 2,
           "ingredients": [
             "tomato"
           ],
@@ -1787,53 +1755,7 @@
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 32,
-      "total_cooking_time": 96,
-      "total_ingredients": 12
-    },
-    {
-      "combination_id": 28,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
           "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
           "ingredients": [
             "onion",
             "tomato"
@@ -1842,7 +1764,53 @@
           "cooking_time": 15
         },
         {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
           "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 34,
+      "total_cooking_time": 102,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 28,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
           "ingredients": [
             "tomato"
           ],
@@ -1850,17 +1818,47 @@
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
             "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 32,
-      "total_cooking_time": 96,
+      "total_value": 33,
+      "total_cooking_time": 99,
       "total_ingredients": 13
     },
     {
@@ -1869,32 +1867,21 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "tomato"
@@ -1903,20 +1890,31 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 8,
-          "cooking_time": 24
+          "recipe_value": 7,
+          "cooking_time": 21
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -1932,21 +1930,18 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 3,
@@ -1961,16 +1956,6 @@
           "recipe_id": 4,
           "ingredients": [
             "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
             "onion",
             "tomato"
           ],
@@ -1978,17 +1963,29 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 32,
-      "total_cooking_time": 96,
-      "total_ingredients": 14
+      "total_value": 31,
+      "total_cooking_time": 93,
+      "total_ingredients": 13
     },
     {
       "combination_id": 31,
@@ -1996,43 +1993,13 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "tomato"
           ],
@@ -2040,24 +2007,16 @@
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 32,
-      "total_cooking_time": 96,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 32,
-      "recipes": [
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
         {
-          "recipe_id": 1,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -2067,34 +2026,17 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 5,
           "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
+            "onion",
             "onion",
             "tomato"
           ],
-          "recipe_value": 5,
-          "cooking_time": 15
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 6,
           "ingredients": [
             "onion",
             "tomato",
@@ -2102,14 +2044,69 @@
           ],
           "recipe_value": 7,
           "cooking_time": 21
+        }
+      ],
+      "total_value": 33,
+      "total_cooking_time": 99,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 32,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 2,
           "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
       "total_value": 32,
@@ -2122,6 +2119,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "onion",
             "onion",
             "onion"
@@ -2130,24 +2152,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -2157,26 +2162,19 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 32,
-      "total_cooking_time": 96,
-      "total_ingredients": 12
+      "total_value": 31,
+      "total_cooking_time": 93,
+      "total_ingredients": 13
     },
     {
       "combination_id": 34,
@@ -2192,22 +2190,19 @@
         {
           "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 3,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 4,
@@ -2222,23 +2217,26 @@
         {
           "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 32,
-      "total_cooking_time": 96,
+      "total_value": 30,
+      "total_cooking_time": 90,
       "total_ingredients": 13
     },
     {
@@ -2247,14 +2245,21 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion",
@@ -2264,88 +2269,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
           "recipe_id": 4,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 33,
-      "total_cooking_time": 99,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 36,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -2355,16 +2279,91 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 33,
-      "total_cooking_time": 99,
+      "total_value": 35,
+      "total_cooking_time": 105,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 36,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        }
+      ],
+      "total_value": 35,
+      "total_cooking_time": 105,
       "total_ingredients": 13
     },
     {
@@ -2373,6 +2372,32 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -2380,7 +2405,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -2390,26 +2415,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
+          "recipe_id": 6,
           "ingredients": [
             "onion",
             "tomato",
@@ -2417,19 +2423,11 @@
           ],
           "recipe_value": 7,
           "cooking_time": 21
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
         }
       ],
-      "total_value": 33,
-      "total_cooking_time": 99,
-      "total_ingredients": 14
+      "total_value": 34,
+      "total_cooking_time": 102,
+      "total_ingredients": 13
     },
     {
       "combination_id": 38,
@@ -2437,21 +2435,19 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
           "ingredients": [
             "onion",
-            "onion",
             "onion"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 3,
@@ -2465,26 +2461,28 @@
         {
           "recipe_id": 4,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 5,
           "ingredients": [
-            "tomato"
+            "onion",
+            "onion",
+            "onion"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 9,
+          "cooking_time": 27
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -2500,32 +2498,22 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "tomato"
@@ -2534,17 +2522,16 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 4,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -2552,11 +2539,21 @@
           ],
           "recipe_value": 8,
           "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
       "total_value": 33,
       "total_cooking_time": 99,
-      "total_ingredients": 14
+      "total_ingredients": 13
     },
     {
       "combination_id": 40,
@@ -2564,19 +2561,19 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 3,
@@ -2590,12 +2587,11 @@
         {
           "recipe_id": 4,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 5,
@@ -2610,15 +2606,16 @@
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 33,
-      "total_cooking_time": 99,
+      "total_value": 32,
+      "total_cooking_time": 96,
       "total_ingredients": 13
     },
     {
@@ -2627,6 +2624,32 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -2634,17 +2657,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -2654,36 +2667,19 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 33,
-      "total_cooking_time": 99,
-      "total_ingredients": 14
+      "total_value": 31,
+      "total_cooking_time": 93,
+      "total_ingredients": 13
     },
     {
       "combination_id": 42,
@@ -2691,39 +2687,38 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "tomato"
           ],
           "recipe_value": 5,
           "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
         },
         {
           "recipe_id": 5,
@@ -2738,15 +2733,17 @@
         {
           "recipe_id": 6,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 33,
-      "total_cooking_time": 99,
-      "total_ingredients": 13
+      "total_value": 38,
+      "total_cooking_time": 114,
+      "total_ingredients": 14
     },
     {
       "combination_id": 43,
@@ -2754,6 +2751,32 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "onion",
             "onion",
             "onion"
@@ -2762,15 +2785,17 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 5,
           "ingredients": [
-            "onion"
+            "onion",
+            "onion",
+            "tomato"
           ],
-          "recipe_value": 3,
-          "cooking_time": 9
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 6,
           "ingredients": [
             "tomato",
             "tomato",
@@ -2778,9 +2803,53 @@
           ],
           "recipe_value": 6,
           "cooking_time": 18
+        }
+      ],
+      "total_value": 37,
+      "total_cooking_time": 111,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 44,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
         },
         {
           "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -2790,47 +2859,39 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 6,
           "ingredients": [
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 36,
+      "total_cooking_time": 108,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 45,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 2,
           "ingredients": [
             "onion",
             "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
-        }
-      ],
-      "total_value": 33,
-      "total_cooking_time": 99,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 44,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
         },
         {
           "recipe_id": 3,
@@ -2854,87 +2915,26 @@
         {
           "recipe_id": 5,
           "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 33,
-      "total_cooking_time": 99,
-      "total_ingredients": 12
-    },
-    {
-      "combination_id": 45,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
             "onion",
             "tomato",
             "tomato"
           ],
           "recipe_value": 7,
           "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 34,
-      "total_cooking_time": 102,
+      "total_value": 35,
+      "total_cooking_time": 105,
       "total_ingredients": 14
     },
     {
@@ -2943,68 +2943,22 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 6,
+          "recipe_id": 2,
           "ingredients": [
             "onion",
             "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
-        }
-      ],
-      "total_value": 34,
-      "total_cooking_time": 102,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 47,
-      "recipes": [
+        },
         {
-          "recipe_id": 1,
+          "recipe_id": 3,
           "ingredients": [
             "tomato",
             "tomato"
@@ -3013,7 +2967,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -3021,25 +2975,6 @@
           ],
           "recipe_value": 9,
           "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
         },
         {
           "recipe_id": 5,
@@ -3054,14 +2989,80 @@
         {
           "recipe_id": 6,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 34,
-      "total_cooking_time": 102,
+      "total_value": 37,
+      "total_cooking_time": 111,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 47,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 36,
+      "total_cooking_time": 108,
       "total_ingredients": 14
     },
     {
@@ -3070,6 +3071,23 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -3077,7 +3095,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -3087,17 +3105,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -3107,25 +3115,18 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 34,
-      "total_cooking_time": 102,
+      "total_value": 35,
+      "total_cooking_time": 105,
       "total_ingredients": 14
     },
     {
@@ -3134,30 +3135,28 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
           "ingredients": [
             "onion",
-            "onion",
             "onion"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 3,
           "ingredients": [
-            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 5,
-          "cooking_time": 15
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 4,
@@ -3171,58 +3170,6 @@
         },
         {
           "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 34,
-      "total_cooking_time": 102,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 50,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
           "ingredients": [
             "onion",
             "tomato",
@@ -3232,20 +3179,11 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -3256,20 +3194,10 @@
       "total_ingredients": 14
     },
     {
-      "combination_id": 51,
+      "combination_id": 50,
       "recipes": [
         {
           "recipe_id": 1,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
           "ingredients": [
             "onion"
           ],
@@ -3277,14 +3205,23 @@
           "cooking_time": 9
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
         },
         {
           "recipe_id": 4,
@@ -3299,24 +3236,91 @@
         {
           "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 34,
-      "total_cooking_time": 102,
-      "total_ingredients": 13
+      "total_value": 39,
+      "total_cooking_time": 117,
+      "total_ingredients": 15
+    },
+    {
+      "combination_id": 51,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 36,
+      "total_cooking_time": 108,
+      "total_ingredients": 14
     },
     {
       "combination_id": 52,
@@ -3324,6 +3328,32 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "onion",
             "onion",
             "onion"
@@ -3332,33 +3362,6 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
           "recipe_id": 5,
           "ingredients": [
             "onion",
@@ -3370,22 +3373,6 @@
         },
         {
           "recipe_id": 6,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        }
-      ],
-      "total_value": 34,
-      "total_cooking_time": 102,
-      "total_ingredients": 13
-    },
-    {
-      "combination_id": 53,
-      "recipes": [
-        {
-          "recipe_id": 1,
           "ingredients": [
             "tomato",
             "tomato",
@@ -3393,6 +3380,22 @@
           ],
           "recipe_value": 6,
           "cooking_time": 18
+        }
+      ],
+      "total_value": 35,
+      "total_cooking_time": 105,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 53,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
@@ -3406,6 +3409,25 @@
         {
           "recipe_id": 3,
           "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
             "onion",
             "tomato",
             "tomato"
@@ -3414,28 +3436,11 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -3451,42 +3456,13 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
             "onion"
           ],
           "recipe_value": 3,
           "cooking_time": 9
         },
         {
-          "recipe_id": 4,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 5,
+          "recipe_id": 2,
           "ingredients": [
             "onion",
             "tomato"
@@ -3495,7 +3471,16 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -3503,10 +3488,30 @@
           ],
           "recipe_value": 8,
           "cooking_time": 24
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 35,
-      "total_cooking_time": 105,
+      "total_value": 33,
+      "total_cooking_time": 99,
       "total_ingredients": 14
     },
     {
@@ -3515,14 +3520,22 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
+            "onion"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 3,
+          "cooking_time": 9
         },
         {
           "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion",
@@ -3532,22 +3545,14 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
           "recipe_id": 4,
           "ingredients": [
-            "tomato",
-            "tomato",
+            "onion",
+            "onion",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
           "recipe_id": 5,
@@ -3562,16 +3567,17 @@
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 14
+      "total_value": 38,
+      "total_cooking_time": 114,
+      "total_ingredients": 15
     },
     {
       "combination_id": 56,
@@ -3579,6 +3585,14 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -3586,7 +3600,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion",
@@ -3596,24 +3610,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
           "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -3623,18 +3620,29 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 13
+      "total_value": 37,
+      "total_cooking_time": 111,
+      "total_ingredients": 15
     },
     {
       "combination_id": 57,
@@ -3642,85 +3650,19 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 2,
           "ingredients": [
             "onion",
             "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
-        }
-      ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 14
-    },
-    {
-      "combination_id": 58,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
         },
         {
           "recipe_id": 3,
@@ -3734,15 +3676,24 @@
         {
           "recipe_id": 4,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
           "ingredients": [
             "onion",
             "onion",
@@ -3750,19 +3701,74 @@
           ],
           "recipe_value": 8,
           "cooking_time": 24
-        },
+        }
+      ],
+      "total_value": 34,
+      "total_cooking_time": 102,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 58,
+      "recipes": [
         {
-          "recipe_id": 6,
+          "recipe_id": 1,
           "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 14
+      "total_value": 33,
+      "total_cooking_time": 99,
+      "total_ingredients": 13
     },
     {
       "combination_id": 59,
@@ -3770,6 +3776,41 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
             "onion",
             "onion",
             "onion"
@@ -3778,15 +3819,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
+          "recipe_id": 6,
           "ingredients": [
             "tomato",
             "tomato",
@@ -3794,39 +3827,11 @@
           ],
           "recipe_value": 6,
           "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
         }
       ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 14
+      "total_value": 32,
+      "total_cooking_time": 96,
+      "total_ingredients": 13
     },
     {
       "combination_id": 60,
@@ -3834,33 +3839,40 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "onion",
-            "onion",
-            "onion"
+            "tomato"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 2,
           "ingredients": [
+            "onion",
             "onion"
           ],
-          "recipe_value": 3,
-          "cooking_time": 9
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 3,
           "ingredients": [
             "onion",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 5,
+          "cooking_time": 15
         },
         {
           "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -3870,25 +3882,18 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 35,
-      "total_cooking_time": 105,
+      "total_value": 32,
+      "total_cooking_time": 96,
       "total_ingredients": 13
     },
     {
@@ -3897,81 +3902,16 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 2,
           "ingredients": [
             "onion",
             "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 14
-    },
-    {
-      "combination_id": 62,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -3987,43 +3927,6 @@
         },
         {
           "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 35,
-      "total_cooking_time": 105,
-      "total_ingredients": 14
-    },
-    {
-      "combination_id": 63,
-      "recipes": [
-        {
-          "recipe_id": 1,
           "ingredients": [
             "tomato",
             "tomato"
@@ -4032,25 +3935,17 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
-            "onion"
+            "tomato"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 6,
           "ingredients": [
             "tomato",
             "tomato",
@@ -4058,6 +3953,113 @@
           ],
           "recipe_value": 6,
           "cooking_time": 18
+        }
+      ],
+      "total_value": 31,
+      "total_cooking_time": 93,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 62,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 30,
+      "total_cooking_time": 90,
+      "total_ingredients": 13
+    },
+    {
+      "combination_id": 63,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
         },
         {
           "recipe_id": 5,
@@ -4073,14 +4075,15 @@
           "recipe_id": 6,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
-      "total_value": 36,
-      "total_cooking_time": 108,
+      "total_value": 37,
+      "total_cooking_time": 111,
       "total_ingredients": 14
     },
     {
@@ -4089,14 +4092,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -4106,34 +4126,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
           "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 6,
           "ingredients": [
             "onion",
             "onion",
@@ -4141,6 +4134,16 @@
           ],
           "recipe_value": 8,
           "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
       "total_value": 36,
@@ -4153,14 +4156,31 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -4170,17 +4190,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "tomato",
@@ -4190,27 +4200,19 @@
           "cooking_time": 21
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
           "recipe_id": 6,
           "ingredients": [
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 36,
-      "total_cooking_time": 108,
-      "total_ingredients": 15
+      "total_value": 35,
+      "total_cooking_time": 105,
+      "total_ingredients": 14
     },
     {
       "combination_id": 66,
@@ -4218,31 +4220,28 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 2,
           "ingredients": [
             "onion",
-            "onion",
             "onion"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 3,
           "ingredients": [
             "onion",
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 5,
+          "cooking_time": 15
         },
         {
           "recipe_id": 4,
@@ -4257,23 +4256,26 @@
         {
           "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 36,
-      "total_cooking_time": 108,
+      "total_value": 34,
+      "total_cooking_time": 102,
       "total_ingredients": 14
     },
     {
@@ -4282,18 +4284,16 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 2,
           "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -4301,21 +4301,21 @@
         {
           "recipe_id": 3,
           "ingredients": [
-            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 5,
-          "cooking_time": 15
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
           "recipe_id": 4,
           "ingredients": [
             "onion",
-            "tomato",
-            "tomato"
+            "onion",
+            "onion"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 9,
+          "cooking_time": 27
         },
         {
           "recipe_id": 5,
@@ -4331,21 +4331,48 @@
           "recipe_id": 6,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 7,
+          "cooking_time": 21
         }
       ],
       "total_value": 36,
       "total_cooking_time": 108,
-      "total_ingredients": 15
+      "total_ingredients": 14
     },
     {
       "combination_id": 68,
       "recipes": [
         {
           "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -4355,54 +4382,28 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
           "recipe_id": 5,
           "ingredients": [
             "onion",
-            "tomato",
+            "onion",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 36,
-      "total_cooking_time": 108,
+      "total_value": 35,
+      "total_cooking_time": 105,
       "total_ingredients": 14
     },
     {
@@ -4411,6 +4412,32 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "onion",
             "onion",
             "onion"
@@ -4419,54 +4446,28 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
           "recipe_id": 5,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 36,
-      "total_cooking_time": 108,
+      "total_value": 34,
+      "total_cooking_time": 102,
       "total_ingredients": 14
     },
     {
@@ -4475,6 +4476,23 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -4482,32 +4500,14 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
           "recipe_id": 4,
           "ingredients": [
-            "tomato",
-            "tomato",
+            "onion",
+            "onion",
             "tomato"
           ],
-          "recipe_value": 6,
-          "cooking_time": 18
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
           "recipe_id": 5,
@@ -4522,17 +4522,17 @@
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion",
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 8,
-          "cooking_time": 24
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 37,
-      "total_cooking_time": 111,
-      "total_ingredients": 15
+      "total_value": 33,
+      "total_cooking_time": 99,
+      "total_ingredients": 14
     },
     {
       "combination_id": 71,
@@ -4540,14 +4540,22 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
             "tomato"
           ],
-          "recipe_value": 4,
-          "cooking_time": 12
+          "recipe_value": 2,
+          "cooking_time": 6
         },
         {
           "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion",
@@ -4557,25 +4565,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
           "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -4585,18 +4575,29 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 37,
-      "total_cooking_time": 111,
-      "total_ingredients": 14
+      "total_value": 38,
+      "total_cooking_time": 114,
+      "total_ingredients": 15
     },
     {
       "combination_id": 72,
@@ -4604,6 +4605,23 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -4611,7 +4629,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -4619,89 +4637,6 @@
           ],
           "recipe_value": 9,
           "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 37,
-      "total_cooking_time": 111,
-      "total_ingredients": 15
-    },
-    {
-      "combination_id": 73,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
         },
         {
           "recipe_id": 5,
@@ -4717,14 +4652,79 @@
           "recipe_id": 6,
           "ingredients": [
             "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 35,
+      "total_cooking_time": 105,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 73,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
             "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 37,
-      "total_cooking_time": 111,
+      "total_value": 34,
+      "total_cooking_time": 102,
       "total_ingredients": 14
     },
     {
@@ -4733,77 +4733,10 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
             "tomato"
           ],
           "recipe_value": 2,
           "cooking_time": 6
-        }
-      ],
-      "total_value": 37,
-      "total_cooking_time": 111,
-      "total_ingredients": 15
-    },
-    {
-      "combination_id": 75,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
         },
         {
           "recipe_id": 2,
@@ -4816,51 +4749,6 @@
         },
         {
           "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "tomato"
-          ],
-          "recipe_value": 2,
-          "cooking_time": 6
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 37,
-      "total_cooking_time": 111,
-      "total_ingredients": 14
-    },
-    {
-      "combination_id": 76,
-      "recipes": [
-        {
-          "recipe_id": 1,
           "ingredients": [
             "tomato",
             "tomato"
@@ -4869,7 +4757,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -4877,89 +4765,6 @@
           ],
           "recipe_value": 9,
           "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 38,
-      "total_cooking_time": 114,
-      "total_ingredients": 15
-    },
-    {
-      "combination_id": 77,
-      "recipes": [
-        {
-          "recipe_id": 1,
-          "ingredients": [
-            "onion",
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 9,
-          "cooking_time": 27
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
         },
         {
           "recipe_id": 5,
@@ -4974,16 +4779,210 @@
         {
           "recipe_id": 6,
           "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 33,
+      "total_cooking_time": 99,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 75,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
             "onion",
             "onion",
             "tomato"
           ],
           "recipe_value": 8,
           "cooking_time": 24
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 38,
-      "total_cooking_time": 114,
+      "total_value": 32,
+      "total_cooking_time": 96,
+      "total_ingredients": 14
+    },
+    {
+      "combination_id": 76,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 37,
+      "total_cooking_time": 111,
+      "total_ingredients": 15
+    },
+    {
+      "combination_id": 77,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 36,
+      "total_cooking_time": 108,
       "total_ingredients": 15
     },
     {
@@ -4993,22 +4992,13 @@
           "recipe_id": 1,
           "ingredients": [
             "onion",
-            "onion",
             "onion"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
           "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
           "ingredients": [
             "onion",
             "tomato"
@@ -5017,44 +5007,16 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 3,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
-          "recipe_id": 5,
-          "ingredients": [
-            "onion",
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 8,
-          "cooking_time": 24
-        },
-        {
-          "recipe_id": 6,
-          "ingredients": [
-            "onion",
-            "onion"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        }
-      ],
-      "total_value": 38,
-      "total_cooking_time": 114,
-      "total_ingredients": 14
-    },
-    {
-      "combination_id": 79,
-      "recipes": [
-        {
-          "recipe_id": 1,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -5064,27 +5026,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 4,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -5094,18 +5036,76 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 6,
           "ingredients": [
+            "onion",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 2,
-          "cooking_time": 6
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 39,
+      "total_cooking_time": 117,
+      "total_ingredients": 15
+    },
+    {
+      "combination_id": 79,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
         },
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion"
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -5121,6 +5121,24 @@
         {
           "recipe_id": 1,
           "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
             "tomato",
             "tomato"
           ],
@@ -5128,7 +5146,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -5136,25 +5154,6 @@
           ],
           "recipe_value": 9,
           "cooking_time": 27
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
         },
         {
           "recipe_id": 5,
@@ -5169,17 +5168,17 @@
         {
           "recipe_id": 6,
           "ingredients": [
-            "onion",
-            "onion",
+            "tomato",
+            "tomato",
             "tomato"
           ],
-          "recipe_value": 8,
-          "cooking_time": 24
+          "recipe_value": 6,
+          "cooking_time": 18
         }
       ],
-      "total_value": 39,
-      "total_cooking_time": 117,
-      "total_ingredients": 16
+      "total_value": 37,
+      "total_cooking_time": 111,
+      "total_ingredients": 15
     },
     {
       "combination_id": 81,
@@ -5187,24 +5186,14 @@
         {
           "recipe_id": 1,
           "ingredients": [
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 4,
-          "cooking_time": 12
-        },
-        {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion",
             "onion",
             "onion"
           ],
-          "recipe_value": 9,
-          "cooking_time": 27
+          "recipe_value": 6,
+          "cooking_time": 18
         },
         {
-          "recipe_id": 3,
+          "recipe_id": 2,
           "ingredients": [
             "onion",
             "tomato"
@@ -5213,17 +5202,16 @@
           "cooking_time": 15
         },
         {
-          "recipe_id": 4,
+          "recipe_id": 3,
           "ingredients": [
-            "onion",
             "tomato",
             "tomato"
           ],
-          "recipe_value": 7,
-          "cooking_time": 21
+          "recipe_value": 4,
+          "cooking_time": 12
         },
         {
-          "recipe_id": 5,
+          "recipe_id": 4,
           "ingredients": [
             "onion",
             "onion",
@@ -5233,17 +5221,28 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 39,
-      "total_cooking_time": 117,
+      "total_value": 36,
+      "total_cooking_time": 108,
       "total_ingredients": 15
     },
     {
@@ -5253,6 +5252,24 @@
           "recipe_id": 1,
           "ingredients": [
             "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
             "onion",
             "onion"
           ],
@@ -5260,35 +5277,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "onion"
-          ],
-          "recipe_value": 3,
-          "cooking_time": 9
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
           "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -5298,24 +5287,44 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 39,
-      "total_cooking_time": 117,
-      "total_ingredients": 15
+      "total_value": 41,
+      "total_cooking_time": 123,
+      "total_ingredients": 16
     },
     {
       "combination_id": 83,
       "recipes": [
         {
           "recipe_id": 1,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 2,
           "ingredients": [
             "tomato",
             "tomato"
@@ -5324,7 +5333,7 @@
           "cooking_time": 12
         },
         {
-          "recipe_id": 2,
+          "recipe_id": 3,
           "ingredients": [
             "onion",
             "onion",
@@ -5334,27 +5343,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 3,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
           "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -5364,10 +5353,21 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
@@ -5384,6 +5384,24 @@
           "recipe_id": 1,
           "ingredients": [
             "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
             "onion",
             "onion"
           ],
@@ -5391,36 +5409,7 @@
           "cooking_time": 27
         },
         {
-          "recipe_id": 2,
-          "ingredients": [
-            "tomato",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 6,
-          "cooking_time": 18
-        },
-        {
-          "recipe_id": 3,
-          "ingredients": [
-            "onion",
-            "tomato"
-          ],
-          "recipe_value": 5,
-          "cooking_time": 15
-        },
-        {
           "recipe_id": 4,
-          "ingredients": [
-            "onion",
-            "tomato",
-            "tomato"
-          ],
-          "recipe_value": 7,
-          "cooking_time": 21
-        },
-        {
-          "recipe_id": 5,
           "ingredients": [
             "onion",
             "onion",
@@ -5430,37 +5419,35 @@
           "cooking_time": 24
         },
         {
-          "recipe_id": 6,
+          "recipe_id": 5,
           "ingredients": [
             "onion",
-            "onion"
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
           ],
           "recipe_value": 6,
           "cooking_time": 18
         }
       ],
-      "total_value": 41,
-      "total_cooking_time": 123,
+      "total_value": 39,
+      "total_cooking_time": 117,
       "total_ingredients": 16
     }
   ],
   "layout_integration_format": {
     "recipe_list": [
       [
-        "tomato",
-        "tomato"
-      ],
-      [
         "onion"
-      ],
-      [
-        "tomato",
-        "tomato",
-        "tomato"
-      ],
-      [
-        "onion",
-        "tomato"
       ],
       [
         "tomato"
@@ -5471,18 +5458,31 @@
       ],
       [
         "onion",
+        "tomato"
+      ],
+      [
         "tomato",
         "tomato"
       ],
       [
         "onion",
         "onion",
-        "tomato"
+        "onion"
       ],
       [
         "onion",
         "onion",
-        "onion"
+        "tomato"
+      ],
+      [
+        "onion",
+        "tomato",
+        "tomato"
+      ],
+      [
+        "tomato",
+        "tomato",
+        "tomato"
       ]
     ],
     "combination_indices": [
@@ -5499,603 +5499,51 @@
         1,
         2,
         3,
-        6,
-        4
-      ],
-      [
-        0,
-        1,
-        3,
-        6,
         4,
-        5
-      ],
-      [
-        0,
-        1,
-        2,
-        3,
-        7,
-        4
-      ],
-      [
-        0,
-        1,
-        2,
-        6,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        3,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        3,
-        4
-      ],
-      [
-        0,
-        8,
-        1,
-        3,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        2,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        3,
-        6,
-        7,
-        4
-      ],
-      [
-        1,
-        2,
-        3,
-        6,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        3,
-        6,
-        4
-      ],
-      [
-        0,
-        1,
-        2,
-        6,
-        7,
-        4
-      ],
-      [
-        0,
-        1,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        2,
-        3,
-        6,
-        4,
-        5
-      ],
-      [
-        1,
-        2,
-        3,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        6,
-        4
-      ],
-      [
-        0,
-        8,
-        1,
-        3,
-        7,
-        4
-      ],
-      [
-        0,
-        8,
-        1,
-        6,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        2,
-        3,
-        6,
-        5
-      ],
-      [
-        0,
-        2,
-        3,
-        7,
-        4,
-        5
-      ],
-      [
-        8,
-        1,
-        2,
-        3,
-        4,
-        5
-      ],
-      [
-        1,
-        2,
-        3,
-        6,
-        7,
-        4
-      ],
-      [
-        1,
-        3,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        7,
-        4
-      ],
-      [
-        0,
-        8,
-        1,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        2,
-        3,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        2,
-        3,
-        7,
-        5
-      ],
-      [
-        0,
-        2,
-        3,
-        6,
-        7,
-        4
-      ],
-      [
-        0,
-        3,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        8,
-        1,
-        2,
-        3,
-        6,
-        4
-      ],
-      [
-        8,
-        1,
-        3,
-        6,
-        4,
-        5
-      ],
-      [
-        1,
-        2,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        3,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        6,
-        7,
-        4
-      ],
-      [
-        0,
-        8,
-        2,
-        3,
-        6,
-        4
-      ],
-      [
-        0,
-        8,
-        3,
-        6,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        2,
-        3,
-        6,
-        7
-      ],
-      [
-        0,
-        1,
-        3,
-        6,
-        7,
-        5
-      ],
-      [
-        0,
-        2,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        8,
-        1,
-        2,
-        3,
-        7,
-        4
-      ],
-      [
-        8,
-        1,
-        2,
-        6,
-        4,
-        5
-      ],
-      [
-        8,
-        1,
-        3,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        3,
         6
       ],
       [
         0,
-        8,
         1,
-        3,
-        6,
-        5
-      ],
-      [
-        0,
-        8,
         2,
         3,
-        7,
-        4
-      ],
-      [
-        0,
-        8,
-        2,
-        6,
         4,
-        5
-      ],
-      [
-        0,
-        8,
-        3,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        1,
-        2,
-        6,
-        7,
-        5
-      ],
-      [
-        8,
-        1,
-        2,
-        7,
-        4,
-        5
-      ],
-      [
-        8,
-        1,
-        3,
-        6,
-        7,
-        4
-      ],
-      [
-        2,
-        3,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
-        2,
-        3,
         7
       ],
       [
         0,
-        8,
         1,
         2,
-        6,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
         3,
-        7,
-        5
-      ],
-      [
-        0,
-        8,
-        2,
-        7,
         4,
-        5
+        8
       ],
       [
         0,
-        8,
-        3,
-        6,
-        7,
-        4
-      ],
-      [
-        8,
-        1,
-        2,
-        6,
-        7,
-        4
-      ],
-      [
-        8,
-        1,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        8,
-        2,
-        3,
-        6,
-        4,
-        5
-      ],
-      [
         1,
         2,
         3,
-        6,
-        7,
-        5
+        5,
+        6
       ],
       [
         0,
-        8,
         1,
         2,
-        7,
-        5
-      ],
-      [
-        0,
-        8,
-        1,
         3,
-        6,
+        5,
         7
       ],
       [
         0,
-        8,
-        2,
-        6,
-        7,
-        4
-      ],
-      [
-        0,
-        8,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        2,
-        3,
-        6,
-        7,
-        5
-      ],
-      [
-        8,
         1,
         2,
         3,
-        6,
-        5
-      ],
-      [
-        8,
-        2,
-        3,
-        7,
-        4,
-        5
+        5,
+        8
       ],
       [
         0,
-        8,
-        1,
-        2,
-        6,
-        7
-      ],
-      [
-        0,
-        8,
-        1,
-        6,
-        7,
-        5
-      ],
-      [
-        0,
-        8,
-        2,
-        3,
-        6,
-        5
-      ],
-      [
-        8,
-        1,
-        2,
-        3,
-        7,
-        5
-      ],
-      [
-        8,
-        2,
-        3,
-        6,
-        7,
-        4
-      ],
-      [
-        8,
-        3,
-        6,
-        7,
-        4,
-        5
-      ],
-      [
-        0,
-        8,
-        2,
-        3,
-        7,
-        5
-      ],
-      [
-        8,
         1,
         2,
         3,
@@ -6103,60 +5551,612 @@
         7
       ],
       [
-        8,
+        0,
         1,
+        2,
         3,
         6,
-        7,
-        5
-      ],
-      [
-        8,
-        2,
-        6,
-        7,
-        4,
-        5
+        8
       ],
       [
         0,
-        8,
+        1,
         2,
         3,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        5,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        5,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
         6,
         7
       ],
       [
         0,
-        8,
-        3,
+        1,
+        2,
+        4,
         6,
-        7,
-        5
+        8
       ],
       [
-        8,
+        0,
+        1,
+        2,
+        4,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
         1,
         2,
         6,
         7,
-        5
+        8
       ],
       [
         0,
-        8,
-        2,
-        6,
-        7,
-        5
+        1,
+        3,
+        4,
+        5,
+        6
       ],
       [
-        8,
+        0,
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        5,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        3,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        5,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        5,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        6,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
         2,
         3,
         6,
         7,
-        5
+        8
+      ],
+      [
+        0,
+        2,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        2,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        2,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        5,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        6,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        1,
+        2,
+        3,
+        5,
+        6,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        5,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        1,
+        2,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        1,
+        2,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        1,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        2,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        2,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        2,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        2,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        2,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
       ]
     ]
   }

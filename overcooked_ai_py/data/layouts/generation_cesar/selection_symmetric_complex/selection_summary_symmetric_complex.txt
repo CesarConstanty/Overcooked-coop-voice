@@ -1,0 +1,33 @@
+======================================================================
+RÉSUMÉ DE LA SÉLECTION DE LAYOUTS SYMMETRIC_COMPLEX
+======================================================================
+
+Date de sélection: 2025-07-30 09:54:31
+Catégorie de layouts: symmetric_complex
+Nombre total de layouts sélectionnés: 16
+Layouts copiés avec succès: 16
+Échecs de copie: 0
+
+Critère de sélection: Proximité à la médiane
+Médiane des steps: 273.8
+Range des steps: 195.2 - 427.8
+Moyenne des steps: 278.7
+
+LISTE DES LAYOUTS SÉLECTIONNÉS:
+----------------------------------------
+  1. Layout symmetric_complex_48 :  273.6 steps (Score: 36.0)
+  2. Layout symmetric_complex_26 :  274.0 steps (Score: 36.0)
+  3. Layout symmetric_complex_49 :  272.6 steps (Score: 33.0)
+  4. Layout symmetric_complex_127:  277.4 steps (Score: 37.0)
+  5. Layout symmetric_complex_149:  282.8 steps (Score: 35.0)
+  6. Layout symmetric_complex_184:  288.2 steps (Score: 32.0)
+  7. Layout symmetric_complex_129:  253.4 steps (Score: 32.0)
+  8. Layout symmetric_complex_174:  246.6 steps (Score: 34.0)
+  9. Layout symmetric_complex_40 :  303.8 steps (Score: 34.0)
+ 10. Layout symmetric_complex_1  :  229.6 steps (Score: 31.0)
+ 11. Layout symmetric_complex_181:  326.8 steps (Score: 34.0)
+ 12. Layout symmetric_complex_21 :  218.4 steps (Score: 30.0)
+ 13. Layout symmetric_complex_102:  216.2 steps (Score: 27.0)
+ 14. Layout symmetric_complex_44 :  195.2 steps (Score: 28.0)
+ 15. Layout symmetric_complex_22 :  373.4 steps (Score: 29.0)
+ 16. Layout symmetric_complex_192:  427.8 steps (Score: 32.0)

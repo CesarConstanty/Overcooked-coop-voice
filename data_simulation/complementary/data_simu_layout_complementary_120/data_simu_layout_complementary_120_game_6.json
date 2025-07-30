@@ -1,0 +1,239 @@
+{
+    "simulation_data": {
+        "info_sum": {
+            "number_games": 1,
+            "layout": "layout_complementary_120",
+            "time_elapsed": 0.0007307529449462891,
+            "ai_action_per_step": 1,
+            "step": 1,
+            "fps": 1000.0,
+            "time": 0.1,
+            "recipe_completed": 0,
+            "score": 0,
+            "min_recipe_complete": 0,
+            "max_recipe_complete": 0,
+            "agent_0_action_count": 0,
+            "min_agent_0_action_count": 0,
+            "max_agent_0_action_count": 0,
+            "std_agent_0_action_count": 0.0,
+            "agent_0_mouvements": 0,
+            "agent_0_stuck_loop": 0,
+            "agent_0_interaction": 0,
+            "agent_1_action_count": 0,
+            "min_agent_1_action_count": 0,
+            "max_agent_1_action_count": 0,
+            "std_agent_1_action_count": 0.0,
+            "agent_1_mouvements": 0,
+            "agent_1_stuck_loop": 0,
+            "agent_1_interaction": 0,
+            "tomato_pickup": [
+                0,
+                0
+            ],
+            "useful_tomato_pickup": [
+                0,
+                0
+            ],
+            "tomato_drop": [
+                0,
+                0
+            ],
+            "useful_tomato_drop": [
+                0,
+                0
+            ],
+            "potting_tomato": [
+                0,
+                0
+            ],
+            "tomato_exchange": [
+                0,
+                0
+            ],
+            "onion_pickup": [
+                0,
+                0
+            ],
+            "useful_onion_pickup": [
+                0,
+                0
+            ],
+            "onion_drop": [
+                0,
+                0
+            ],
+            "useful_onion_drop": [
+                0,
+                0
+            ],
+            "potting_onion": [
+                0,
+                0
+            ],
+            "onion_exchange": [
+                0,
+                0
+            ],
+            "dish_pickup": [
+                0,
+                0
+            ],
+            "useful_dish_pickup": [
+                0,
+                0
+            ],
+            "dish_drop": [
+                0,
+                0
+            ],
+            "useful_dish_drop": [
+                0,
+                0
+            ],
+            "dish_exchange": [
+                0,
+                0
+            ],
+            "soup_pickup": [
+                0,
+                0
+            ],
+            "soup_delivery": [
+                0,
+                0
+            ],
+            "soup_drop": [
+                0,
+                0
+            ],
+            "soup_exchange": [
+                0,
+                0
+            ],
+            "optimal_onion_potting": [
+                0,
+                0
+            ],
+            "optimal_tomato_potting": [
+                0,
+                0
+            ],
+            "viable_onion_potting": [
+                0,
+                0
+            ],
+            "viable_tomato_potting": [
+                0,
+                0
+            ],
+            "catastrophic_onion_potting": [
+                0,
+                0
+            ],
+            "catastrophic_tomato_potting": [
+                0,
+                0
+            ],
+            "useless_onion_potting": [
+                0,
+                0
+            ],
+            "useless_tomato_potting": [
+                0,
+                0
+            ],
+            "all_orders": []
+        },
+        "history_info": {
+            "history_game_0": [
+                {
+                    "agent_0_history": {
+                        "step_0_position": [
+                            2,
+                            5
+                        ]
+                    },
+                    "agent_1_history": {
+                        "step_0_position": [
+                            5,
+                            5
+                        ]
+                    },
+                    "_metadata": {
+                        "layout_name": "layout_complementary_120",
+                        "game_duration": 0.0007307529449462891,
+                        "total_steps": 1,
+                        "simulation_fps": 1000.0,
+                        "orders_completed": 0,
+                        "actual_game_id": 6
+                    }
+                }
+            ]
+        },
+        "grid": [
+            [
+                "X",
+                "X",
+                "X",
+                "X",
+                "X",
+                "X",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                "P",
+                "X",
+                "X",
+                "X",
+                "X"
+            ],
+            [
+                "X",
+                "T",
+                " ",
+                " ",
+                "O",
+                "X",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                " ",
+                " ",
+                "X",
+                " ",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                " ",
+                "X",
+                "S",
+                " ",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                " ",
+                "X",
+                "X",
+                " ",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                "D",
+                "X",
+                "X",
+                "X",
+                "X"
+            ]
+        ]
+    }
+}

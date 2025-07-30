@@ -1,0 +1,639 @@
+{
+    "simulation_data": {
+        "info_sum": {
+            "number_games": 1,
+            "layout": "layout_symmetric_complex_66",
+            "time_elapsed": 0.09956121444702148,
+            "ai_action_per_step": 1,
+            "step": 50,
+            "fps": 502.203596829426,
+            "time": 5.0,
+            "recipe_completed": 0,
+            "score": 0,
+            "min_recipe_complete": 0,
+            "max_recipe_complete": 0,
+            "agent_0_action_count": 51,
+            "min_agent_0_action_count": 51,
+            "max_agent_0_action_count": 51,
+            "std_agent_0_action_count": 0.0,
+            "agent_0_mouvements": 51,
+            "agent_0_stuck_loop": 0,
+            "agent_0_interaction": 0,
+            "agent_1_action_count": 51,
+            "min_agent_1_action_count": 51,
+            "max_agent_1_action_count": 51,
+            "std_agent_1_action_count": 0.0,
+            "agent_1_mouvements": 51,
+            "agent_1_stuck_loop": 0,
+            "agent_1_interaction": 0,
+            "tomato_pickup": [
+                0,
+                0
+            ],
+            "useful_tomato_pickup": [
+                0,
+                0
+            ],
+            "tomato_drop": [
+                0,
+                0
+            ],
+            "useful_tomato_drop": [
+                0,
+                0
+            ],
+            "potting_tomato": [
+                0,
+                0
+            ],
+            "tomato_exchange": [
+                0,
+                0
+            ],
+            "onion_pickup": [
+                0,
+                0
+            ],
+            "useful_onion_pickup": [
+                0,
+                0
+            ],
+            "onion_drop": [
+                0,
+                0
+            ],
+            "useful_onion_drop": [
+                0,
+                0
+            ],
+            "potting_onion": [
+                0,
+                0
+            ],
+            "onion_exchange": [
+                0,
+                0
+            ],
+            "dish_pickup": [
+                0,
+                0
+            ],
+            "useful_dish_pickup": [
+                0,
+                0
+            ],
+            "dish_drop": [
+                0,
+                0
+            ],
+            "useful_dish_drop": [
+                0,
+                0
+            ],
+            "dish_exchange": [
+                0,
+                0
+            ],
+            "soup_pickup": [
+                0,
+                0
+            ],
+            "soup_delivery": [
+                0,
+                0
+            ],
+            "soup_drop": [
+                0,
+                0
+            ],
+            "soup_exchange": [
+                0,
+                0
+            ],
+            "optimal_onion_potting": [
+                0,
+                0
+            ],
+            "optimal_tomato_potting": [
+                0,
+                0
+            ],
+            "viable_onion_potting": [
+                0,
+                0
+            ],
+            "viable_tomato_potting": [
+                0,
+                0
+            ],
+            "catastrophic_onion_potting": [
+                0,
+                0
+            ],
+            "catastrophic_tomato_potting": [
+                0,
+                0
+            ],
+            "useless_onion_potting": [
+                0,
+                0
+            ],
+            "useless_tomato_potting": [
+                0,
+                0
+            ],
+            "all_orders": []
+        },
+        "history_info": {
+            "history_game_0": [
+                {
+                    "agent_0_history": {
+                        "step_0_position": [
+                            2,
+                            3
+                        ],
+                        "step_1_position": [
+                            2,
+                            3
+                        ],
+                        "step_2_position": [
+                            2,
+                            3
+                        ],
+                        "step_3_position": [
+                            2,
+                            3
+                        ],
+                        "step_4_position": [
+                            2,
+                            3
+                        ],
+                        "step_5_position": [
+                            2,
+                            3
+                        ],
+                        "step_6_position": [
+                            2,
+                            3
+                        ],
+                        "step_7_position": [
+                            2,
+                            3
+                        ],
+                        "step_8_position": [
+                            2,
+                            3
+                        ],
+                        "step_9_position": [
+                            2,
+                            3
+                        ],
+                        "step_10_position": [
+                            2,
+                            3
+                        ],
+                        "step_11_position": [
+                            2,
+                            3
+                        ],
+                        "step_12_position": [
+                            2,
+                            3
+                        ],
+                        "step_13_position": [
+                            2,
+                            3
+                        ],
+                        "step_14_position": [
+                            2,
+                            3
+                        ],
+                        "step_15_position": [
+                            2,
+                            3
+                        ],
+                        "step_16_position": [
+                            2,
+                            3
+                        ],
+                        "step_17_position": [
+                            2,
+                            3
+                        ],
+                        "step_18_position": [
+                            2,
+                            3
+                        ],
+                        "step_19_position": [
+                            2,
+                            3
+                        ],
+                        "step_20_position": [
+                            2,
+                            3
+                        ],
+                        "step_21_position": [
+                            2,
+                            3
+                        ],
+                        "step_22_position": [
+                            2,
+                            3
+                        ],
+                        "step_23_position": [
+                            2,
+                            3
+                        ],
+                        "step_24_position": [
+                            2,
+                            3
+                        ],
+                        "step_25_position": [
+                            2,
+                            3
+                        ],
+                        "step_26_position": [
+                            2,
+                            3
+                        ],
+                        "step_27_position": [
+                            2,
+                            3
+                        ],
+                        "step_28_position": [
+                            2,
+                            3
+                        ],
+                        "step_29_position": [
+                            2,
+                            3
+                        ],
+                        "step_30_position": [
+                            2,
+                            3
+                        ],
+                        "step_31_position": [
+                            2,
+                            3
+                        ],
+                        "step_32_position": [
+                            2,
+                            3
+                        ],
+                        "step_33_position": [
+                            2,
+                            3
+                        ],
+                        "step_34_position": [
+                            2,
+                            3
+                        ],
+                        "step_35_position": [
+                            2,
+                            3
+                        ],
+                        "step_36_position": [
+                            2,
+                            3
+                        ],
+                        "step_37_position": [
+                            2,
+                            3
+                        ],
+                        "step_38_position": [
+                            2,
+                            3
+                        ],
+                        "step_39_position": [
+                            2,
+                            3
+                        ],
+                        "step_40_position": [
+                            2,
+                            3
+                        ],
+                        "step_41_position": [
+                            2,
+                            3
+                        ],
+                        "step_42_position": [
+                            2,
+                            3
+                        ],
+                        "step_43_position": [
+                            2,
+                            3
+                        ],
+                        "step_44_position": [
+                            2,
+                            3
+                        ],
+                        "step_45_position": [
+                            2,
+                            3
+                        ],
+                        "step_46_position": [
+                            2,
+                            3
+                        ],
+                        "step_47_position": [
+                            2,
+                            3
+                        ],
+                        "step_48_position": [
+                            2,
+                            3
+                        ],
+                        "step_49_position": [
+                            2,
+                            3
+                        ],
+                        "step_50_position": [
+                            2,
+                            3
+                        ]
+                    },
+                    "agent_1_history": {
+                        "step_0_position": [
+                            1,
+                            3
+                        ],
+                        "step_1_position": [
+                            1,
+                            3
+                        ],
+                        "step_2_position": [
+                            1,
+                            3
+                        ],
+                        "step_3_position": [
+                            1,
+                            3
+                        ],
+                        "step_4_position": [
+                            1,
+                            3
+                        ],
+                        "step_5_position": [
+                            1,
+                            3
+                        ],
+                        "step_6_position": [
+                            1,
+                            3
+                        ],
+                        "step_7_position": [
+                            1,
+                            3
+                        ],
+                        "step_8_position": [
+                            1,
+                            3
+                        ],
+                        "step_9_position": [
+                            1,
+                            3
+                        ],
+                        "step_10_position": [
+                            1,
+                            3
+                        ],
+                        "step_11_position": [
+                            1,
+                            3
+                        ],
+                        "step_12_position": [
+                            1,
+                            3
+                        ],
+                        "step_13_position": [
+                            1,
+                            3
+                        ],
+                        "step_14_position": [
+                            1,
+                            3
+                        ],
+                        "step_15_position": [
+                            1,
+                            3
+                        ],
+                        "step_16_position": [
+                            1,
+                            3
+                        ],
+                        "step_17_position": [
+                            1,
+                            3
+                        ],
+                        "step_18_position": [
+                            1,
+                            3
+                        ],
+                        "step_19_position": [
+                            1,
+                            3
+                        ],
+                        "step_20_position": [
+                            1,
+                            3
+                        ],
+                        "step_21_position": [
+                            1,
+                            3
+                        ],
+                        "step_22_position": [
+                            1,
+                            3
+                        ],
+                        "step_23_position": [
+                            1,
+                            3
+                        ],
+                        "step_24_position": [
+                            1,
+                            3
+                        ],
+                        "step_25_position": [
+                            1,
+                            3
+                        ],
+                        "step_26_position": [
+                            1,
+                            3
+                        ],
+                        "step_27_position": [
+                            1,
+                            3
+                        ],
+                        "step_28_position": [
+                            1,
+                            3
+                        ],
+                        "step_29_position": [
+                            1,
+                            3
+                        ],
+                        "step_30_position": [
+                            1,
+                            3
+                        ],
+                        "step_31_position": [
+                            1,
+                            3
+                        ],
+                        "step_32_position": [
+                            1,
+                            3
+                        ],
+                        "step_33_position": [
+                            1,
+                            3
+                        ],
+                        "step_34_position": [
+                            1,
+                            3
+                        ],
+                        "step_35_position": [
+                            1,
+                            3
+                        ],
+                        "step_36_position": [
+                            1,
+                            3
+                        ],
+                        "step_37_position": [
+                            1,
+                            3
+                        ],
+                        "step_38_position": [
+                            1,
+                            3
+                        ],
+                        "step_39_position": [
+                            1,
+                            3
+                        ],
+                        "step_40_position": [
+                            1,
+                            3
+                        ],
+                        "step_41_position": [
+                            1,
+                            3
+                        ],
+                        "step_42_position": [
+                            1,
+                            3
+                        ],
+                        "step_43_position": [
+                            1,
+                            3
+                        ],
+                        "step_44_position": [
+                            1,
+                            3
+                        ],
+                        "step_45_position": [
+                            1,
+                            3
+                        ],
+                        "step_46_position": [
+                            1,
+                            3
+                        ],
+                        "step_47_position": [
+                            1,
+                            3
+                        ],
+                        "step_48_position": [
+                            1,
+                            3
+                        ],
+                        "step_49_position": [
+                            1,
+                            3
+                        ],
+                        "step_50_position": [
+                            1,
+                            3
+                        ]
+                    },
+                    "_metadata": {
+                        "layout_name": "layout_symmetric_complex_66",
+                        "game_duration": 0.09956121444702148,
+                        "total_steps": 50,
+                        "simulation_fps": 502.203596829426,
+                        "orders_completed": 0,
+                        "actual_game_id": 2
+                    }
+                }
+            ]
+        },
+        "grid": [
+            [
+                "X",
+                "T",
+                "X",
+                "X",
+                "X",
+                "X",
+                "X"
+            ],
+            [
+                "X",
+                " ",
+                " ",
+                " ",
+                "X",
+                " ",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                "X",
+                " ",
+                " ",
+                " ",
+                "X"
+            ],
+            [
+                "D",
+                " ",
+                " ",
+                "X",
+                "X",
+                " ",
+                "X"
+            ],
+            [
+                "X",
+                " ",
+                "X",
+                " ",
+                " ",
+                " ",
+                "S"
+            ],
+            [
+                "X",
+                " ",
+                " ",
+                " ",
+                "O",
+                " ",
+                "X"
+            ],
+            [
+                "X",
+                "X",
+                "X",
+                "P",
+                "X",
+                "X",
+                "X"
+            ]
+        ]
+    }
+}

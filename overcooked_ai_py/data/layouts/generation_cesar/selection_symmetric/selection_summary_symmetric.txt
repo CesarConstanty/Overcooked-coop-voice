@@ -1,0 +1,22 @@
+======================================================================
+RÉSUMÉ DE LA SÉLECTION DE LAYOUTS SYMMETRIC
+======================================================================
+
+Date de sélection: 2025-07-30 09:54:35
+Catégorie de layouts: symmetric
+Nombre total de layouts sélectionnés: 5
+Layouts copiés avec succès: 5
+Échecs de copie: 0
+
+Critère de sélection: Proximité à la médiane
+Médiane des steps: 341.4
+Range des steps: 316.0 - 411.5
+Moyenne des steps: 355.1
+
+LISTE DES LAYOUTS SÉLECTIONNÉS:
+----------------------------------------
+  1. Layout symmetric_9  :  341.4 steps (Score: 34.5)
+  2. Layout symmetric_19 :  323.9 steps (Score: 31.6)
+  3. Layout symmetric_59 :  316.0 steps (Score: 30.5)
+  4. Layout symmetric_61 :  382.5 steps (Score: 37.9)
+  5. Layout symmetric_11 :  411.5 steps (Score: 31.8)

@@ -1,0 +1,48 @@
+================================================================================
+RAPPORT COMPLET D'ANALYSE DES SIMULATIONS OVERCOOKED - SYMMETRIC_COMPLEX
+================================================================================
+
+📅 Date d'analyse: 2025-07-30 09:54:32
+📁 Catégorie analysée: symmetric_complex
+📂 Dossier source des données: data_simulation/symmetric_complex
+
+📊 STATISTIQUES GLOBALES
+----------------------------------------
+Nombre total de layouts analysés: 144
+Layouts à 0% completion: 71 (49.3%)
+Layouts partiels (0%<x<100%): 57 (39.6%)
+Layouts parfaits (100%): 16 (11.1%)
+
+🏆 ANALYSE DES LAYOUTS PARFAITS (100% COMPLETION)
+--------------------------------------------------
+Nombre de layouts parfaits: 16
+Nombre de steps - Minimum: 195.2
+Nombre de steps - Maximum: 427.8
+Nombre de steps - Moyenne: 278.7
+Nombre de steps - Médiane: 273.8
+Nombre de steps - Écart-type: 59.4
+
+🎯 SÉLECTION DES LAYOUTS POUR SYMMETRIC_COMPLEX
+---------------------------------------------
+Nombre de layouts sélectionnés: 16
+Critère de sélection: Proximité à la médiane des steps
+Range des steps sélectionnés: 195.2 - 427.8
+Moyenne des steps sélectionnés: 278.7
+Layouts avec steps = médiane (±0.1): 0
+
+🥇 TOP 10 DES LAYOUTS SÉLECTIONNÉS
+-----------------------------------
+ 1. Layout symmetric_complex_48 :  273.6 steps (distance médiane:   0.2, score:  36.0)
+ 2. Layout symmetric_complex_26 :  274.0 steps (distance médiane:   0.2, score:  36.0)
+ 3. Layout symmetric_complex_49 :  272.6 steps (distance médiane:   1.2, score:  33.0)
+ 4. Layout symmetric_complex_127:  277.4 steps (distance médiane:   3.6, score:  37.0)
+ 5. Layout symmetric_complex_149:  282.8 steps (distance médiane:   9.0, score:  35.0)
+ 6. Layout symmetric_complex_184:  288.2 steps (distance médiane:  14.4, score:  32.0)
+ 7. Layout symmetric_complex_129:  253.4 steps (distance médiane:  20.4, score:  32.0)
+ 8. Layout symmetric_complex_174:  246.6 steps (distance médiane:  27.2, score:  34.0)
+ 9. Layout symmetric_complex_40 :  303.8 steps (distance médiane:  30.0, score:  34.0)
+10. Layout symmetric_complex_1  :  229.6 steps (distance médiane:  44.2, score:  31.0)
+... et 6 autres layouts
+
+💾 Dossier de destination: overcooked_ai_py/data/layouts/generation_cesar/selection_symmetric_complex
+📊 Fichiers de visualisation générés dans: analysis_plots/symmetric_complex_simulation_summary
