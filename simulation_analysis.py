@@ -49,15 +49,21 @@ class SimulationAnalyzer:
             print(f"❌ Directory not found: {self.data_simulation_dir}")
             return []
         
-        # Chercher les dossiers avec le bon préfixe selon la catégorie
-        layout_pattern = f"data_simu_layout_{self.category}_"
+        # Déterminer le préfixe de recherche selon la catégorie
+        # Pour les catégories solo, on cherche les noms de base sans le suffixe _solo
+        base_category = self.category
+        if self.category.endswith("_solo"):
+            base_category = self.category.replace("_solo", "")
+        
+        layout_pattern = f"data_simu_layout_{base_category}_"
+        
         layout_dirs = [d for d in os.listdir(self.data_simulation_dir) 
                       if d.startswith(layout_pattern) and 
                       os.path.isdir(os.path.join(self.data_simulation_dir, d))]
         
         layout_names = []
         for dir_name in layout_dirs:
-            # Extraire le numéro du layout : data_simu_layout_{category}_X -> X
+            # Extraire le numéro du layout : data_simu_layout_{base_category}_X -> X
             try:
                 layout_num = dir_name.replace(layout_pattern, "")
                 layout_names.append(layout_num)
@@ -70,13 +76,19 @@ class SimulationAnalyzer:
     
     def load_layout_simulation_data(self, layout_number: str) -> Dict:
         """Charge les données de simulation pour un layout spécifique"""
-        layout_dir = f"{self.data_simulation_dir}/data_simu_layout_{self.category}_{layout_number}"
+        # Déterminer le préfixe de recherche selon la catégorie
+        # Pour les catégories solo, on cherche les noms de base sans le suffixe _solo
+        base_category = self.category
+        if self.category.endswith("_solo"):
+            base_category = self.category.replace("_solo", "")
+        
+        layout_dir = f"{self.data_simulation_dir}/data_simu_layout_{base_category}_{layout_number}"
         
         if not os.path.exists(layout_dir):
             return {}
         
         # Rechercher tous les fichiers JSON de simulation
-        json_pattern = f"data_simu_layout_{self.category}_{layout_number}_game_*.json"
+        json_pattern = f"data_simu_layout_{base_category}_{layout_number}_game_*.json"
         json_files = glob.glob(os.path.join(layout_dir, json_pattern))
         
         all_recipes_completed = []
@@ -366,9 +378,16 @@ class SimulationAnalyzer:
         
         print(f"\n📁 Copie des layouts vers {self.layouts_output_dir}:")
         
+        # Déterminer le préfixe de source selon la catégorie
+        # Pour les catégories solo, on cherche les layouts de base sans le suffixe _solo
+        base_category = self.category
+        if self.category.endswith("_solo"):
+            base_category = self.category.replace("_solo", "")
+        
         for layout_num, avg_steps, data in selected_layouts:
-            # Adapter le nom des fichiers selon la catégorie
-            source_file = f"{self.layouts_source_dir}/layout_{self.category}_{layout_num}.layout"
+            # Le fichier source utilise le nom de base
+            source_file = f"{self.layouts_source_dir.replace(self.category, base_category)}/layout_{base_category}_{layout_num}.layout"
+            # Le fichier de destination garde le nom de la catégorie complète
             dest_file = f"{self.layouts_output_dir}/layout_{self.category}_{layout_num}.layout"
             
             try:
@@ -378,7 +397,7 @@ class SimulationAnalyzer:
                     print(f"   ✅ Copié layout_{self.category}_{layout_num} ({avg_steps:.1f} steps)")
                 else:
                     failed_count += 1
-                    print(f"   ❌ Source non trouvée: layout_{self.category}_{layout_num}")
+                    print(f"   ❌ Source non trouvée: layout_{base_category}_{layout_num} -> {source_file}")
                     
             except Exception as e:
                 failed_count += 1
@@ -392,6 +411,8 @@ class SimulationAnalyzer:
             f.write("="*70 + "\n\n")
             f.write(f"Date de sélection: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"Catégorie de layouts: {self.category}\n")
+            if self.category.endswith("_solo"):
+                f.write(f"Note: Mode SOLO - Layouts basés sur {base_category}\n")
             f.write(f"Nombre total de layouts sélectionnés: {len(selected_layouts)}\n")
             f.write(f"Layouts copiés avec succès: {copied_count}\n")
             f.write(f"Échecs de copie: {failed_count}\n\n")
@@ -644,7 +665,7 @@ class SimulationEvaluator:
     
     @staticmethod
     def analyze_all_categories(target_selection_count: int = 75):
-        """Analyse toutes les catégories disponibles"""
+        """Analyse toutes les catégories disponibles dans data_simulation"""
         
         # Détecter les catégories disponibles
         base_dir = "data_simulation"
@@ -659,17 +680,148 @@ class SimulationEvaluator:
             print(f"❌ Aucune catégorie trouvée dans {base_dir}")
             return
         
-        print(f"🔍 Catégories détectées: {available_categories}")
+        # Trier les catégories pour un affichage cohérent
+        available_categories.sort()
         
-        for category in available_categories:
+        print(f"🔍 Catégories détectées: {available_categories}")
+        print(f"📊 Total: {len(available_categories)} catégories à analyser")
+        
+        # Statistiques globales
+        total_layouts = 0
+        total_perfect_layouts = 0
+        total_selected_layouts = 0
+        
+        for i, category in enumerate(available_categories, 1):
             print(f"\n{'='*80}")
-            print(f"🚀 DÉBUT DE L'ANALYSE POUR LA CATÉGORIE: {category.upper()}")
+            print(f"🚀 ANALYSE {i}/{len(available_categories)}: {category.upper()}")
             print(f"{'='*80}")
             
-            evaluator = SimulationEvaluator(category)
-            evaluator.run_complete_analysis(target_selection_count)
+            try:
+                evaluator = SimulationEvaluator(category)
+                
+                # Analyser avec un nombre adapté selon la catégorie
+                # Pour les catégories solo, on peut sélectionner moins de layouts
+                adjusted_target = target_selection_count
+                if "_solo" in category:
+                    adjusted_target = min(target_selection_count, 50)  # Limiter pour les modes solo
+                    print(f"🎯 Mode solo détecté - Sélection ajustée à {adjusted_target} layouts max")
+                
+                result_summary = evaluator.run_complete_analysis_with_summary(adjusted_target)
+                
+                # Accumuler les statistiques
+                total_layouts += result_summary.get('total_layouts', 0)
+                total_perfect_layouts += result_summary.get('perfect_layouts', 0)
+                total_selected_layouts += result_summary.get('selected_layouts', 0)
+                
+                print(f"✅ ANALYSE TERMINÉE POUR {category.upper()}")
+                print(f"   📊 {result_summary.get('total_layouts', 0)} layouts analysés")
+                print(f"   🏆 {result_summary.get('perfect_layouts', 0)} layouts parfaits")
+                print(f"   🎯 {result_summary.get('selected_layouts', 0)} layouts sélectionnés")
+                
+            except Exception as e:
+                print(f"❌ ERREUR lors de l'analyse de {category}: {e}")
+                print(f"   Passage à la catégorie suivante...")
+                continue
+        
+        # Résumé global final
+        print(f"\n{'='*80}")
+        print(f"🎊 ANALYSE GLOBALE TERMINÉE - TOUTES CATÉGORIES")
+        print(f"{'='*80}")
+        print(f"📈 STATISTIQUES GLOBALES:")
+        print(f"   🗂️ Catégories analysées: {len(available_categories)}")
+        print(f"   📊 Total layouts analysés: {total_layouts}")
+        print(f"   🏆 Total layouts parfaits: {total_perfect_layouts}")
+        print(f"   🎯 Total layouts sélectionnés: {total_selected_layouts}")
+        
+        if total_layouts > 0:
+            perfect_rate = (total_perfect_layouts / total_layouts) * 100
+            print(f"   📊 Taux de layouts parfaits: {perfect_rate:.1f}%")
+        
+        print(f"\n📁 Résultats disponibles dans:")
+        for category in available_categories:
+            print(f"   • analysis_plots/{category}_simulation_summary/")
+            print(f"   • overcooked_ai_py/data/layouts/generation_cesar/selection_{category}/")
+    
+    def run_complete_analysis_with_summary(self, target_selection_count: int = 75) -> dict:
+        """Version de run_complete_analysis qui retourne un résumé pour les statistiques globales"""
+        
+        print(f"🚀 SIMULATION ANALYSIS - ANALYSE COMPLÈTE POUR {self.category.upper()}")
+        print("=" * 70)
+        
+        # 1. Analyser tous les layouts
+        print(f"\n📊 ÉTAPE 1: Analyse de tous les layouts {self.category}...")
+        layout_data = self.analyzer.analyze_all_layouts()
+        
+        if not layout_data:
+            print(f"❌ Aucune donnée de layout trouvée pour {self.category}!")
+            return {'total_layouts': 0, 'perfect_layouts': 0, 'selected_layouts': 0}
+        
+        # 2. Catégoriser par taux de completion
+        print("\n📈 ÉTAPE 2: Catégorisation par taux de completion...")
+        categories = self.analyzer.categorize_layouts_by_completion(layout_data)
+        
+        print(f"   - Layouts à 0%: {len(categories['0_percent'])}")
+        print(f"   - Layouts partiels: {len(categories['partial'])}")
+        print(f"   - Layouts parfaits: {len(categories['100_percent'])}")
+        
+        # 3. Créer le graphique de distribution
+        print("\n📊 ÉTAPE 3: Création du graphique de distribution...")
+        dist_chart_path = self.analyzer.create_completion_distribution_chart(categories)
+        print(f"   ✅ Graphique sauvegardé: {dist_chart_path}")
+        
+        selected_layouts = []
+        
+        # 4. Analyser les layouts parfaits
+        if categories['100_percent']:
+            print("\n🏆 ÉTAPE 4: Analyse des layouts parfaits...")
+            steps_analysis = self.analyzer.analyze_perfect_layouts_steps(categories['100_percent'])
             
-            print(f"\n✅ ANALYSE TERMINÉE POUR {category.upper()}")
+            print(f"   📊 Médiane des steps: {steps_analysis['median_steps']:.1f}")
+            print(f"   📊 Moyenne des steps: {steps_analysis['mean_steps']:.1f}")
+            print(f"   📊 Range: {steps_analysis['min_steps']:.1f} - {steps_analysis['max_steps']:.1f}")
+            
+            # 5. Créer le graphique des steps
+            print("\n📈 ÉTAPE 5: Création du graphique des steps...")
+            steps_chart_path = self.analyzer.create_perfect_layouts_steps_chart(steps_analysis)
+            print(f"   ✅ Graphique sauvegardé: {steps_chart_path}")
+            
+            # 6. Sélectionner les layouts autour de la médiane
+            print(f"\n🎯 ÉTAPE 6: Sélection des {target_selection_count} meilleurs layouts...")
+            selected_layouts = self.analyzer.select_median_layouts(steps_analysis, target_count=target_selection_count)
+            
+            # 7. Copier les layouts sélectionnés
+            print("\n📁 ÉTAPE 7: Copie des layouts sélectionnés...")
+            output_dir = self.analyzer.copy_selected_layouts(selected_layouts)
+            
+            # 8. Créer la visualisation de la sélection
+            print("\n🎨 ÉTAPE 8: Création de la visualisation de sélection...")
+            selection_viz_path = self.analyzer.create_selection_visualization(selected_layouts, steps_analysis)
+            print(f"   ✅ Visualisation sauvegardée: {selection_viz_path}")
+            
+            # 9. Générer le rapport complet
+            print("\n📋 ÉTAPE 9: Génération du rapport complet...")
+            report_path = self.analyzer.generate_comprehensive_report(
+                layout_data, categories, steps_analysis, selected_layouts)
+            print(f"   ✅ Rapport sauvegardé: {report_path}")
+            
+        else:
+            print("❌ Aucun layout parfait trouvé!")
+            steps_analysis = {}
+        
+        # Résumé final
+        print(f"\n🎉 ANALYSE TERMINÉE POUR {self.category.upper()}!")
+        print("=" * 50)
+        print(f"📊 {len(layout_data)} layouts analysés")
+        print(f"🏆 {len(categories['100_percent'])} layouts parfaits trouvés")
+        print(f"🎯 {len(selected_layouts)} layouts sélectionnés pour {self.category}")
+        print(f"📁 Layouts copiés dans: {self.analyzer.layouts_output_dir}")
+        print(f"📈 Graphiques dans: {self.analyzer.output_dir}")
+        
+        return {
+            'total_layouts': len(layout_data),
+            'perfect_layouts': len(categories['100_percent']),
+            'selected_layouts': len(selected_layouts)
+        }
 
 def main():
     """Fonction principale avec support de paramètres"""
@@ -686,14 +838,13 @@ def main():
             evaluator = SimulationEvaluator(category)
             evaluator.run_complete_analysis()
     else:
-        # Par défaut, analyser symmetric
+        # Par défaut, analyser toutes les catégories disponibles
         print("💡 Usage: python simulation_analysis.py [category|all]")
-        print("   Catégories possibles: symmetric, complementary, symmetric_complex")
-        print("   'all' pour analyser toutes les catégories disponibles")
-        print("\n🎯 Analyse par défaut: symmetric")
+        print("   Exemples de catégories: symmetric, complementary, symmetric_complex, symmetric_solo...")
+        print("   'all' ou sans argument pour analyser toutes les catégories disponibles")
+        print("\n🎯 Analyse par défaut: TOUTES LES CATÉGORIES DISPONIBLES")
         
-        evaluator = SimulationEvaluator("symmetric")
-        evaluator.run_complete_analysis()
+        SimulationEvaluator.analyze_all_categories()
 
 if __name__ == "__main__":
     main()

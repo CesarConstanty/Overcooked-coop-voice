@@ -1,0 +1,48 @@
+================================================================================
+RAPPORT COMPLET D'ANALYSE DES SIMULATIONS OVERCOOKED - SYMMETRIC_SOLO
+================================================================================
+
+📅 Date d'analyse: 2025-07-30 10:14:55
+📁 Catégorie analysée: symmetric_solo
+📂 Dossier source des données: data_simulation/symmetric_solo
+
+📊 STATISTIQUES GLOBALES
+----------------------------------------
+Nombre total de layouts analysés: 195
+Layouts à 0% completion: 60 (30.8%)
+Layouts partiels (0%<x<100%): 22 (11.3%)
+Layouts parfaits (100%): 113 (57.9%)
+
+🏆 ANALYSE DES LAYOUTS PARFAITS (100% COMPLETION)
+--------------------------------------------------
+Nombre de layouts parfaits: 113
+Nombre de steps - Minimum: 232.0
+Nombre de steps - Maximum: 553.4
+Nombre de steps - Moyenne: 348.4
+Nombre de steps - Médiane: 342.6
+Nombre de steps - Écart-type: 56.5
+
+🎯 SÉLECTION DES LAYOUTS POUR SYMMETRIC_SOLO
+---------------------------------------------
+Nombre de layouts sélectionnés: 50
+Critère de sélection: Proximité à la médiane des steps
+Range des steps sélectionnés: 314.4 - 368.2
+Moyenne des steps sélectionnés: 339.9
+Layouts avec steps = médiane (±0.1): 1
+
+🥇 TOP 10 DES LAYOUTS SÉLECTIONNÉS
+-----------------------------------
+ 1. Layout symmetric_solo_88 :  342.6 steps (distance médiane:   0.0, score:  36.0)
+ 2. Layout symmetric_solo_48 :  342.8 steps (distance médiane:   0.2, score:  33.0)
+ 3. Layout symmetric_solo_174:  343.0 steps (distance médiane:   0.4, score:  41.0)
+ 4. Layout symmetric_solo_57 :  344.0 steps (distance médiane:   1.4, score:  37.0)
+ 5. Layout symmetric_solo_190:  339.8 steps (distance médiane:   2.8, score:  34.0)
+ 6. Layout symmetric_solo_22 :  345.8 steps (distance médiane:   3.2, score:  35.0)
+ 7. Layout symmetric_solo_82 :  339.4 steps (distance médiane:   3.2, score:  34.0)
+ 8. Layout symmetric_solo_9  :  346.0 steps (distance médiane:   3.4, score:  34.0)
+ 9. Layout symmetric_solo_183:  347.2 steps (distance médiane:   4.6, score:  37.0)
+10. Layout symmetric_solo_84 :  337.8 steps (distance médiane:   4.8, score:  30.0)
+... et 40 autres layouts
+
+💾 Dossier de destination: overcooked_ai_py/data/layouts/generation_cesar/selection_symmetric_solo
+📊 Fichiers de visualisation générés dans: analysis_plots/symmetric_solo_simulation_summary
