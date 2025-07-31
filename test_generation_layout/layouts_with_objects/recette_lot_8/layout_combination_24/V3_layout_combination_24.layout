@@ -1,11 +1,11 @@
 {
-    "grid":  """XXXTXXX
+    "grid":  """XXXXXXX
+                O X 2 X
                 X X   X
-                O X   X
-                X  2XXX
-                X XXX S
-                X  1  X
-                XXXDXXX""",
+                X   XXX
+                X1DXS X
+                P     X
+                XXXTXXX""",
     "start_all_orders": [{"ingredients": ["onion"]},{"ingredients": ["tomato"]},{"ingredients": ["onion","tomato"]},{"ingredients": ["tomato","tomato"]},{"ingredients": ["onion","onion","tomato"]},{"ingredients": ["onion","tomato","tomato"]}],
     "counter_goals":[],
     "onion_value" : 3,

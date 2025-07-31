@@ -33,190 +33,159 @@
     tr:nth-child(even) {
       background-color: #f2f2f2;
     }
-
-    /* Responsive header */
-    @media (max-width: 768px) {
-      header .d-flex {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 1rem;
-      }
-
-      header h1 {
-        font-size: 1.5rem;
-      }
-    }
   </style>
 
   <title>Instructions</title>
   <link rel="Favicon" href="static/favicon.ico" />
+
+  <script src="static/lib/jquery-min.js" type="text/javascript"> </script>
+  <script type="module" src="static/lib/js.cookie.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
 </head>
 
 <body>
-  <!-- Header corrected and inside body -->
-<header style="padding: 30px 0; border-bottom: 1px solid #ccc;">
-  <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-    
-    <!-- Logo gauche -->
-    <img src="static/images/logo_airudit.png" alt="Airudit" style="height: 90px; max-width: 200px;">
-
-    <!-- Titre centré -->
-    <h1 style="margin: 0 auto; font-size: 1.8rem; text-align: center; flex: 1;">
-      Overcooked Experiment
-    </h1>
-
-    <!-- Logo droit -->
-    <img src="static/images/ONERA.png" alt="ONERA" style="height: 90px; max-width: 250px;">
-  </div>
-</header>
-
-
   <div class="col-lg-8 mx-auto p-3 py-md-5">
+    <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+      <div class="container">
+        <div class="row">
+          <div class="col-md">
+            <img src="static/images/logo_airudit.png" class="custom-logo" alt="Laboratoire Parole et Langage" height="90">
+          </div>
+          <div class="col-md">
+            <span class="fs-2">Overcooked Experiment</span>
+          </div>
+          <div class="col-md">
+            <img src="static/images/ONERA.png" class="custom-logo" alt="ONERA, the French Aerospace Lab" , height=90>
+          </div>
+        </div>
+      </div>
+    </header>
     <div class="container">
-      <p> 
-		<div style="justify-content">
-
-			Hello! Welcome to this video game where it's all about... cooking ! In this experiment you will play a chief in a restaurant specialised in soups !
-		</div>
-	  </p>
+      <p>
+        Hello! In this task, you will be playing a
+        cooking game. You will play one of two chefs
+        in a restaurant that serves various soups.
+      </p>
 
       <br>
       <hr>
       <br>
 
       <h3 class="text-center">Layouts</h3>
-
-      <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; text-align: center;">
-
-        <div>
-          <p>This is what your kitchen (one level of the game) looks like:</p>
-          <img src="static/images/training0_recipe.png" style="width: 100%; max-width: 400px;">
-        </div>
-
-        <div>
-          <p>Here you will interact with several objects:</p>
-          <img src="static/images/training0-annotated_recipe.png" style="width: 100%; max-width: 600px;">
-        </div>
-
-      </div>
-  <meta charset="UTF-8">
-
-
-<h3 class="text-center">Vocales intentions</h3>
-
-<div class="container">
-  <div style="display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
-
-	<!-- Première image : titre de la colonne -->
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/ingredients_icon.png" alt="Ingrédients" style="width: 100px;">
-	  <span style="font-weight: bold;">Ingrédients</span>
-	</div>
-
-	<!-- Liste des images avec sons -->
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio1').play()">🔊 recette_0o_1t</button>
-	  <audio id="audio1" src="static/audio/recette_0o_1t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/2tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio2').play()">🔊 recette_0o_2t</button>
-	  <audio id="audio2" src="static/audio/recette_0o_2t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/3tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio3').play()">🔊 recette_0o_3t</button>
-	  <audio id="audio3" src="static/audio/recette_0o_3t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1onion.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio4').play()">🔊 recette_1o_0t</button>
-	  <audio id="audio4" src="static/audio/recette_1o_0t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1onion1tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio5').play()">🔊 recette_1o_1t</button>
-	  <audio id="audio5" src="static/audio/recette_1o_1t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1onion2tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio6').play()">🔊 recette_1o_2t</button>
-	  <audio id="audio6" src="static/audio/recette_1o_2t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/2onion.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio7').play()">🔊 recette_2o_0t</button>
-	  <audio id="audio7" src="static/audio/recette_2o_0t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/2onion1tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio8').play()">🔊 recette_2o_1t</button>
-	  <audio id="audio8" src="static/audio/recette_2o_1t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/3onion.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio9').play()">🔊 recette_3o_0t</button>
-	  <audio id="audio9" src="static/audio/recette_3o_0t.mp3"></audio>
-	</div>
-
-  </div>
-</div>
+      <p>
+        This is what one level of the game looks like:
+      </p>
+      <img class="center" src="static/images/training0_recipe.png" style="width:500px">
+      <p>
+        There are a number of objects in the game, labeled here:
+      </p>
+      <img class="center" src="static/images/training0-annotated_recipe.png" style="width:800px">
 
       <br>
       <hr>
       <br>
 
-      <h3 class="text-center">Gameplay Basics</h3>
+      <h3 class="text-center">Movement and interactions</h3>
+      <img class="center" src="static/images/space-arrows.png" style="width:250px">
+      <p>
+        You can move up, down, left, and right using
+        the <b>arrow keys</b>, and interact with objects
+        using the <b>spacebar</b>.
+      </p>
+      <p>
+        You can interact with objects by facing them and pressing
+        <b>spacebar</b>. Here are some examples:
+      <ul>
+        <li>You can pick up ingredients (onions or tomatoes) by facing
+          the ingredient area and pressing <b>spacebar</b>.</li>
+        <li>If you are holding an ingredient, are facing an empty counter,
+          and press <b>spacebar</b>, you put the ingredient on the counter.</li>
+        <li>If you are holding an ingredient, are facing a pot that is not full,
+          and press <b>spacebar</b>, you will put the ingredient in the pot.</li>
+        <li>If you are facing a pot that is non-empty, are currently holding nothing, and
+          and press <b>spacebar</b>, you will begin cooking a soup.</li>
+      </ul>
+      </p>
 
-      <div style="display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;">
+      <br>
+      <br>
+      <p>
+        Note that as you and your partner are moving around the kitchen
+        you <u><b>cannot occupy the same location</b></u>.
+      </p>
+      <br>
+      <hr>
+      <br>
 
-        <!-- Movement and interactions -->
-        <div style="flex: 1; max-width: 500px;">
-          <h4>Movement and interactions</h4>
-          <img src="static/images/space-arrows.png" style="width:250px; display: block; margin: 0 auto;">
-          <p>
-            You can move up, down, left, and right using the <b>arrow keys</b>, and interact with objects
-            using the <b>spacebar</b>.
-          </p>
-          <p>
-            You can interact with objects by facing them and pressing <b>spacebar</b>. Here are some examples:
-          </p>
-          <ul>
-            <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <b>spacebar</b>.</li>
-            <li>If you're holding an ingredient and face an empty counter, pressing <b>spacebar</b> puts the item down.</li>
-            <li>Face a pot and press <b>spacebar</b> to add an ingredient (if it's not full).</li>
-            <li>Face a non-empty pot while holding nothing and press <b>spacebar</b> to begin cooking.</li>
-          </ul>
-          <p>
-            <u><b>You cannot occupy the same location as your partner.</b></u>
-          </p>
-        </div>
+      <h3 class="text-center">Cooking</h3>
+      <img class="center" src="static/images/soup.png" style="width:250px">
+      <p>
+        Once an ingredient is in the pot, you can begin cooking a soup by pressing
+        <b>spacebar</b> as noted above. You can place up to 3 ingredients in a pot
+        before cooking.
+      </p>
+      <p>
+        When a soup begins cooking, you'll notice a red number appear over the pot to
+        denote the cook time. This number counts upward until the soup is done. Soup
+        cook time is determined its ingredients; every onion adds {{ current_user.config["onion_time"]}} and
+        every tomato adds {{ current_user.config["tomato_time"] }} to the cook time.
+      </p>
 
-        <!-- Cooking -->
-        <div style="flex: 1; max-width: 500px;">
-          <h4>Cooking</h4>
-          <img src="static/images/soup.png" style="width:250px; display: block; margin: 0 auto;">
-          <p>
-            Once an ingredient is in the pot, press <b>spacebar</b> to start cooking. A pot can hold up to 3 ingredients.
-          </p>
-          <p>
-            A red number appears over the pot to indicate cook time. It counts upward until the soup is done.
-            Each onion adds {{ current_user.config["onion_time"] }} and each tomato adds {{ current_user.config["tomato_time"] }} to the cook time. Remember that onions 
-            grant more points than tomatoes but take longer to be cooked !
-          </p>
-        </div>
+      <br>
+      <hr>
+      <br>
 
-      </div>
+      <h3 class="text-center">Serving</h3>
+      <img class="center" src="static/images/serving-counter_recipe.png" style="width:800px">
+      <p>
+        Once the soup is in a bowl, you can serve it by bringing it to
+        a grey serving counter.
+      </p>
+
+      <br>
+      <hr>
+      <br>
+      <h3 class="text-center">Exchanging assets with your partner</h3>
+      <img class="center" src="static/images/counter_goals.png" style="width:800px">
+      <p>
+        As it is a collaborative game, you may want/have to exchange assets (tomato, onion, dish, soups) with your partner.
+        Your partner will only consider to take the assets on the counter tiles with the blue arrows.
+        If you want to keep something for yourself, you may drop it on a counter tile without arrows.
+      </p>
+
+      <br>
+      <hr>
+      <br>
+      <h3 class="text-center">Soups</h3>
+      <p>
+        There are 9 possible soup recipes that can be created from combinations of tomatoes
+        and onions, each with its own icon. The recipe icons and the corresponding ingredients are
+        listed below
+      </p>
+      <table>
+        <tr>
+          <th>Ingredients</th>
+          <th>Icon</th>
+          <th>Cook Time</th>
+        </tr>
+        {% for num_tomatoes in range(current_user.config["max_num_ingredients"] ) %}
+        {% for num_onions in range(current_user.config["max_num_ingredients"] ) %}
+        {% if num_tomatoes + num_onions > 0 and num_onions + num_tomatoes <= current_user.config["max_num_ingredients"] %} <tr>
+          <td>{{ num_onions ~ " Onion" if num_onions }} {{ num_tomatoes ~ " Tomato" if num_tomatoes }}</td>
+          <td><img src="{{ " static/assets/new_sprites/soup_done_tomato_" ~ num_tomatoes ~ "_onion_" ~ num_onions
+              ~ ".png" }}" style="width:75px;background-color: #e6b453;"></td>
+          <td>{{ current_user.config["onion_time"] * num_onions + current_user.config["tomato_time"] * num_tomatoes }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+          {% endfor %}
+
+      </table>
 
       <br>
       <hr>
@@ -224,115 +193,42 @@
 
       <h3 class="text-center">Your Goal</h3>
       <p>
-        For each game, you will have a list of recipes to make.
+
+        For each mission, you will have a list of recipes to make.
         The goal of the game is to achieve all these recipes in the shortest possible time.
-        Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.
-        The <b>All Orders</b> list shows which recipes you have to realize for the game.
+
+        The <b>All Orders</b> list shows which recipes you have to realize for the mission.
         This is important because any soup served that is not on this list will not
         be counted and will just waste your time.
+
       </p>
 
-      <p>
-        When a soup is served at the serving counter, it is automatically validated, and disapear from the
-        <b>All Orders</b> list of the recipes you have to realize during the game.
-      </p>
 
-      <p>
-        <b>Your goal</b> is to make all the recipes in the "All Orders" list <b>AS FAST AS POSSIBLE</b>.
-      </p>
+      When a soup is served at the serving counter, it is automatically validated, and disapear from the
+      <b>All Orders</b> list of the recipes you have to realize during the mission.
+
+      <b>Your goal</b> is to make all the recipes in the "All Orders" list <b>AS FAST AS POSSIBLE</b>.
 
       <img class="center" src="static/images/info-panel_recipe.png" style="width:400px">
 
-      <p> For example, here you have to make 3 soups:
-        <ul>
-          <li>tomato + tomato + tomato</li>
-          <li>tomato + onion</li>
-          <li>onion + onion + tomato</li>
-        </ul>
-      </p>
-
       <br>
       <hr>
       <br>
-
       {% if is_explained %}
       <h3 class="text-center">Layouts</h3>
       <p>
-        During the experiment, you will interact with an agent who shares with you informations about its
-        actions. It is really important for you now to understand which information the agent will provide you:
+        During the experiment, you will sometimes have to interact with agents sharing with you informations about their
+        actions.
+        Here are precised the supplementary informations you have with these agents:
       </p>
-      <p>1. Which recipe the agent is performing</p>
-      <p>2. What the agent is going to look for</p>
-
-      <img class="center" src="static/images/intentions_recipehead_assethud.png" style="width:800px">
+      <img class="center" src="static/images/explained_legend_recipe.png" style="width:800px">
       <br>
       <hr>
       <br>
+      <p>
       {% endif %}
 
-      <h4 class="text-center">Please pay VERY close attention to this part. It is AS IMPORTANT AS the game itself. </h4>
-
-      <br>
-      <br>
-
-      <h3 class="text-center">Questions</h3>
-      <br>
-      <br>
-
-      <h5 class="text-left">After each GAME</h5>
-      <p>
-        At the end of each game, you will be asked questions, it is very important that you understand what is asked :
-      </p>
-		
-	  <p>
-	  1) <b> "How much control did you use ? "</b> : This refers to the actual influence you exerted on what happened. 
-	  Think about how much of the outcome resulted from your direct actions or commands.
-	  </p>
-      <p>
-        2) <b> "How much control did you feel ? " </b> : This measures your subjective experience of control, how much it felt like you were the one guiding what happened.
-      </p>
-
-      <p>
-        3) <b> "Who is accountable for this result ? " </b> : Accountability is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent involved.
-      </p>
-	  <p>
-	  Your goal is to complete the requested recipes as quickly as possible.
-        Once the game is complete, you will see how long it took. Then, you'll evaluate how responsible you feel for that outcome.
-	  </p>
-      <br>
-
-      <h5 class="text-left">After each BLOCK of games</h5>
-      <p>
-        At the end of each assignment block, you will be asked to complete a questionnaire about the
-        games you have just completed.
-      </p>
-
-      <h4 class="text-center">It is VERY IMPORTANT to answer the questions SERIOUSLY for the experiment to be valid.</h4>
-
-      <br>
-      <hr>
-      <br>
-
-      <h3 class="text-center">Course of the experiment</h3>
-      <p>You will start by performing a tutorial to familiarize yourself with the interface.</p>
-      <p>Then you will have a training block (containing 4 games) to learn how to play with the agent.</p>
-      <p>Then you will start the experiment where you will complete 7 blocks containing 5 games each.</p>
-      <p>You will be able to take a small break between each block if you wish.</p>
-	  <p>Keep in mind that every survey is to mean to be completed in a certain amount of time</p>
-
-      <br>
-      <hr>
-      <br>
-
-      <h3 class="text-center">PLEASE READ THIS BEFORE STARTING THE EXPERIMENT</h3>
-      <p>
-        It is possible that, for some reason, you have the impression that the page is loading incorrectly.
-      </p>
-      <p>1. RELOAD the page immediately — this usually solves the problem.</p>
-      <p>2. REPORT the problem at the end of the experiment during the final questionnaire.</p>
-      <p>3. CONTACT the experimenter through the Prolific platform.</p>
-
-      <h4 class="text-center"><a href="./experience_video_games_survey.html">Next</a></h4>
+      <h4 class="text-center"><a href="./experience_video_games_survey">Next</a></h4>
       <br>
       <hr>
       <br>

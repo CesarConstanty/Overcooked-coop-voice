@@ -10,7 +10,7 @@ INPUT_DIR = "test_generation_layout/layouts_split"
 OUTPUT_BASE_DIR = "test_generation_layout/layouts_with_objects"
 DISTANCE_OBJETS = 16  # Distance totale souhaitée entre tous les objets
 NUM_VARIATIONS = 10   # Nombre de variations par layout
-OBJECTS = ['1', '2', 'O', 'T', 'S', 'D']  # Objets à placer
+OBJECTS = ['1', '2', 'O', 'T', 'S', 'D', 'P']  # Objets à placer
 
 def parse_grid_from_layout(layout_content):
     """Extrait la grille du contenu du fichier .layout"""

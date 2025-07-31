@@ -118,7 +118,7 @@ game._configure(MAX_GAME_LENGTH, AGENT_DIR)
 # Random #
 #######################
 
-random.seed(114101072025)
+#random.seed(114101072025)
 
 #######################
 # Flask Configuration #
