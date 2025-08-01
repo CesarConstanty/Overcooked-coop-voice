@@ -51,7 +51,7 @@ class LayoutEvaluator:
     Évaluateur de layouts qui fait jouer deux GreedyAgent et mesure leurs performances.
     """
     
-    def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/", 
+    def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/demo", 
                  horizon: int = 600, num_games_per_layout: int = 5, 
                  target_fps: float = 10.0, max_stuck_frames: int = 50, 
                  single_agent: bool = False, greedy_with_stay: bool = False,
@@ -390,12 +390,18 @@ class LayoutEvaluator:
                 
             self._print(f"🤖 Création: {agent_desc}...")
             
-            # S'assurer que le répertoire des planners existe avec le bon chemin de sous-dossier
+            # S'assurer que tous les répertoires des planners existent
+            # Créer la structure complète pour éviter les erreurs
+            base_planners = "./overcooked_ai_py/data/planners/"
+            os.makedirs(base_planners, exist_ok=True)
+            os.makedirs(f"{base_planners}generation_cesar/", exist_ok=True)
+            
             if self.subfolder:
-                planners_dir = f"./overcooked_ai_py/data/planners/generation_cesar/{self.subfolder}/"
+                planners_dir = f"{base_planners}generation_cesar/{self.subfolder}/"
+                os.makedirs(planners_dir, exist_ok=True)
             else:
-                planners_dir = f"./overcooked_ai_py/data/planners/generation_cesar/"
-            os.makedirs(planners_dir, exist_ok=True)
+                # Créer aussi le répertoire demo par défaut
+                os.makedirs(f"{base_planners}generation_cesar/demo/", exist_ok=True)
             
             if self.single_agent:
                 # Mode agent seul : un seul GreedyAgent
@@ -1598,11 +1604,22 @@ class LayoutEvaluator:
         start_time = time.time()
         
         try:
-            # Charger le MDP avec le bon chemin de sous-dossier
-            if self.subfolder:
-                full_layout_path = f"generation_cesar/{self.subfolder}/{layout_name}"
+            # Charger le MDP avec le chemin correct basé sur layouts_directory
+            # Extraire le chemin relatif depuis overcooked_ai_py/data/layouts/
+            layouts_base = "./overcooked_ai_py/data/layouts/"
+            if self.layouts_directory.startswith(layouts_base):
+                # Utiliser le chemin relatif depuis layouts_directory
+                relative_path = self.layouts_directory[len(layouts_base):]
+                if self.subfolder:
+                    full_layout_path = f"{relative_path}/{self.subfolder}/{layout_name}"
+                else:
+                    full_layout_path = f"{relative_path}/{layout_name}"
             else:
-                full_layout_path = f"generation_cesar/{layout_name}"
+                # Fallback pour compatibilité : construire le chemin à partir du layouts_directory
+                if self.subfolder:
+                    full_layout_path = f"generation_cesar/{self.subfolder}/{layout_name}"
+                else:
+                    full_layout_path = f"generation_cesar/{layout_name}"
             mdp = OvercookedGridworld.from_layout_name(full_layout_path)
             
             # Vérifier la cohérence de la grille chargée
@@ -2669,7 +2686,7 @@ def main():
     print("=" * 60)
     
     # Configuration
-    layouts_dir = "./overcooked_ai_py/data/layouts/generation_cesar/"
+    layouts_dir = "./overcooked_ai_py/data/layouts/generation_cesar/demo"
     
     if not os.path.exists(layouts_dir):
         print(f"❌ Répertoire {layouts_dir} non trouvé")

@@ -51,7 +51,7 @@ class LayoutEvaluator:
     Évaluateur de layouts qui fait jouer deux GreedyAgent et mesure leurs performances.
     """
     
-    def __init__(self, layouts_directory: str = "./test_generation_layout/layouts_with_objects", 
+    def __init__(self, layouts_directory: str = "./overcooked_ai_py/data/layouts/generation_cesar/demo", 
                  horizon: int = 600, num_games_per_layout: int = 5, 
                  target_fps: float = 10.0, max_stuck_frames: int = 50, 
                  single_agent: bool = False, greedy_with_stay: bool = False,

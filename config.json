@@ -1,5 +1,5 @@
 {
-    "mode" : "pre_test",
+    "mode" : "test",
     "logfile" : "app.log",
     "ai_slowdown_enabled": true,
     "ai_base_speed": 4,
@@ -43,12 +43,12 @@
         "hoffman_length": 180,
         "qpb_length" : 180,
         "qpt_length" : 60,
-        "qvg_length" : 240,
-        "ptta_length" : 240,
+        "qvg_length" : 1,
+        "ptta_length" : 1,
         "preference_length" : 240,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "EAr", "0":"EA", "2":"EAa","3":"EV", "4":"EVr", "5":"EVa", "6":"U"},
+        "conditions" : {"1" : "EAr", "0":"EV", "2":"EAa","3":"EA", "4":"EVr", "5":"EVa", "6":"U"},
         "blocs" : {
             "0": ["V1_layout_combination_01", "V1_layout_combination_02", "V1_layout_combination_03"],
             "1": ["V1_layout_combination_04", "V1_layout_combination_05", "V1_layout_combination_06"],
@@ -59,7 +59,7 @@
             "6": ["V1_layout_combination_19", "V1_layout_combination_20", "V1_layout_combination_21"]
         },
         "shuffle_trials" : true,
-        "shuffle_blocs" : true,
+        "shuffle_blocs" : false,
         "questionnaire_post_trial" : "agency_en.html",
         "questionnaire_post_bloc":"AAT_L_en.json",
         "questionnaire_hoffman":"hoffman fluency_en.json",

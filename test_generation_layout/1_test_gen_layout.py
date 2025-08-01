@@ -3,7 +3,7 @@ from copy import deepcopy
 from collections import deque
 import os
 
-SIZE = 7  # Taille de la grille (modifiable)
+SIZE = 8  # Taille de la grille (modifiable)
 OUTPUT_TEMPLATE = "layouts_{}.json"
 filepath = "test_generation_layout/raw_layouts/"
 
@@ -121,7 +121,7 @@ def generate_layouts_backtracking(size, n_empty, output_file):
 
 # ------------------ POINT D'ENTRÉE ------------------
 if __name__ == "__main__":
-    for N_EMPTY in range(10, 30):
+    for N_EMPTY in range(17, 37):
         os.makedirs(filepath, exist_ok=True)
         filename = filepath + OUTPUT_TEMPLATE.format(N_EMPTY)
         generate_layouts_backtracking(SIZE, N_EMPTY, filename)

@@ -1,0 +1,117 @@
+{
+  "evaluation_config": {
+    "layouts_directory": "./overcooked_ai_py/data/layouts/generation_cesar/demo",
+    "horizon": 600,
+    "num_games_per_layout": 10,
+    "target_fps": 10.0,
+    "max_stuck_frames": 50,
+    "single_agent_mode": true,
+    "greedy_with_stay_mode": false
+  },
+  "evaluation_timestamp": 1754037409.2774842,
+  "data_type": "layout_aggregated_metrics",
+  "results": {
+    "V1_layout_combination_01": {
+      "layout_name": "V1_layout_combination_01",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.6851470470428467
+    },
+    "V1_layout_combination_02": {
+      "layout_name": "V1_layout_combination_02",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5412168502807617
+    },
+    "V1_layout_combination_03": {
+      "layout_name": "V1_layout_combination_03",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.6177272796630859
+    },
+    "V1_layout_combination_04": {
+      "layout_name": "V1_layout_combination_04",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.6035635471343994
+    },
+    "V1_layout_combination_05": {
+      "layout_name": "V1_layout_combination_05",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5617914199829102
+    },
+    "V1_layout_combination_06": {
+      "layout_name": "V1_layout_combination_06",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5517897605895996
+    },
+    "V1_layout_combination_07": {
+      "layout_name": "V1_layout_combination_07",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.700751781463623
+    },
+    "V1_layout_combination_08": {
+      "layout_name": "V1_layout_combination_08",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.47881460189819336
+    },
+    "V1_layout_combination_09": {
+      "layout_name": "V1_layout_combination_09",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.6764845848083496
+    },
+    "V1_layout_combination_10": {
+      "layout_name": "V1_layout_combination_10",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.4324171543121338
+    },
+    "V1_layout_combination_11": {
+      "layout_name": "V1_layout_combination_11",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5697546005249023
+    },
+    "V1_layout_combination_12": {
+      "layout_name": "V1_layout_combination_12",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5621402263641357
+    },
+    "V1_layout_combination_13": {
+      "layout_name": "V1_layout_combination_13",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.6437716484069824
+    },
+    "V1_layout_combination_14": {
+      "layout_name": "V1_layout_combination_14",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5805718898773193
+    },
+    "V1_layout_combination_15": {
+      "layout_name": "V1_layout_combination_15",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5894339084625244
+    },
+    "V1_layout_combination_16": {
+      "layout_name": "V1_layout_combination_16",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5439736843109131
+    },
+    "V1_layout_combination_17": {
+      "layout_name": "V1_layout_combination_17",
+      "viable": false,
+      "error": "division by zero",
+      "evaluation_time": 0.5498764514923096
+    }
+  }
+}

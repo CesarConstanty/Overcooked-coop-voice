@@ -1,0 +1,99 @@
+======================================================================
+LAYOUTS SÉLECTIONNÉS - LOT GAGNANT 9
+======================================================================
+
+Date de sélection: 2025-08-01 14:48:22
+Critère: Lot avec la plus grande différence moyenne Solo-Duo
+
+STATISTIQUES DU LOT GAGNANT:
+Différence moyenne: 167.1 steps
+Nombre de combinations: 84
+Layouts copiés avec succès: 84
+Échecs de copie: 0
+
+LAYOUTS SÉLECTIONNÉS:
+--------------------------------------------------
+ 1. V5_layout_combination_01.layout          - combination_01  - Version: V5  - Différence: 130 steps
+ 2. V5_layout_combination_02.layout          - combination_02  - Version: V5  - Différence: 145 steps
+ 3. V9_layout_combination_03.layout          - combination_03  - Version: V9  - Différence: 162 steps
+ 4. V2_layout_combination_04.layout          - combination_04  - Version: V2  - Différence: 154 steps
+ 5. V5_layout_combination_05.layout          - combination_05  - Version: V5  - Différence:  99 steps
+ 6. V6_layout_combination_06.layout          - combination_06  - Version: V6  - Différence: 121 steps
+ 7. V6_layout_combination_07.layout          - combination_07  - Version: V6  - Différence: 153 steps
+ 8. V6_layout_combination_08.layout          - combination_08  - Version: V6  - Différence: 220 steps
+ 9. V3_layout_combination_09.layout          - combination_09  - Version: V3  - Différence: 149 steps
+10. V5_layout_combination_10.layout          - combination_10  - Version: V5  - Différence: 230 steps
+11. V3_layout_combination_11.layout          - combination_11  - Version: V3  - Différence: 253 steps
+12. V10_layout_combination_12.layout         - combination_12  - Version: V10 - Différence: 116 steps
+13. V1_layout_combination_13.layout          - combination_13  - Version: V1  - Différence: 181 steps
+14. V3_layout_combination_14.layout          - combination_14  - Version: V3  - Différence: 128 steps
+15. V1_layout_combination_15.layout          - combination_15  - Version: V1  - Différence: 130 steps
+16. V9_layout_combination_16.layout          - combination_16  - Version: V9  - Différence: 126 steps
+17. V2_layout_combination_17.layout          - combination_17  - Version: V2  - Différence: 140 steps
+18. V1_layout_combination_18.layout          - combination_18  - Version: V1  - Différence: 148 steps
+19. V6_layout_combination_19.layout          - combination_19  - Version: V6  - Différence: 153 steps
+20. V5_layout_combination_20.layout          - combination_20  - Version: V5  - Différence: 131 steps
+21. V6_layout_combination_21.layout          - combination_21  - Version: V6  - Différence: 121 steps
+22. V10_layout_combination_22.layout         - combination_22  - Version: V10 - Différence: 223 steps
+23. V10_layout_combination_23.layout         - combination_23  - Version: V10 - Différence: 111 steps
+24. V9_layout_combination_24.layout          - combination_24  - Version: V9  - Différence: 199 steps
+25. V3_layout_combination_25.layout          - combination_25  - Version: V3  - Différence: 167 steps
+26. V3_layout_combination_26.layout          - combination_26  - Version: V3  - Différence: 150 steps
+27. V4_layout_combination_27.layout          - combination_27  - Version: V4  - Différence: 157 steps
+28. V1_layout_combination_28.layout          - combination_28  - Version: V1  - Différence: 151 steps
+29. V1_layout_combination_29.layout          - combination_29  - Version: V1  - Différence: 165 steps
+30. V7_layout_combination_30.layout          - combination_30  - Version: V7  - Différence: 175 steps
+31. V4_layout_combination_31.layout          - combination_31  - Version: V4  - Différence: 167 steps
+32. V8_layout_combination_32.layout          - combination_32  - Version: V8  - Différence: 149 steps
+33. V1_layout_combination_33.layout          - combination_33  - Version: V1  - Différence: 184 steps
+34. V3_layout_combination_34.layout          - combination_34  - Version: V3  - Différence: 159 steps
+35. V4_layout_combination_35.layout          - combination_35  - Version: V4  - Différence: 144 steps
+36. V1_layout_combination_36.layout          - combination_36  - Version: V1  - Différence: 199 steps
+37. V8_layout_combination_37.layout          - combination_37  - Version: V8  - Différence: 229 steps
+38. V7_layout_combination_38.layout          - combination_38  - Version: V7  - Différence: 276 steps
+39. V6_layout_combination_39.layout          - combination_39  - Version: V6  - Différence: 197 steps
+40. V3_layout_combination_40.layout          - combination_40  - Version: V3  - Différence: 137 steps
+41. V9_layout_combination_41.layout          - combination_41  - Version: V9  - Différence: 239 steps
+42. V6_layout_combination_42.layout          - combination_42  - Version: V6  - Différence: 155 steps
+43. V8_layout_combination_43.layout          - combination_43  - Version: V8  - Différence: 177 steps
+44. V8_layout_combination_44.layout          - combination_44  - Version: V8  - Différence: 144 steps
+45. V8_layout_combination_45.layout          - combination_45  - Version: V8  - Différence: 155 steps
+46. V5_layout_combination_46.layout          - combination_46  - Version: V5  - Différence: 190 steps
+47. V4_layout_combination_47.layout          - combination_47  - Version: V4  - Différence: 153 steps
+48. V9_layout_combination_48.layout          - combination_48  - Version: V9  - Différence: 156 steps
+49. V6_layout_combination_49.layout          - combination_49  - Version: V6  - Différence: 209 steps
+50. V4_layout_combination_50.layout          - combination_50  - Version: V4  - Différence: 172 steps
+51. V6_layout_combination_51.layout          - combination_51  - Version: V6  - Différence: 148 steps
+52. V3_layout_combination_52.layout          - combination_52  - Version: V3  - Différence: 176 steps
+53. V9_layout_combination_53.layout          - combination_53  - Version: V9  - Différence: 175 steps
+54. V8_layout_combination_54.layout          - combination_54  - Version: V8  - Différence: 172 steps
+55. V5_layout_combination_55.layout          - combination_55  - Version: V5  - Différence: 143 steps
+56. V8_layout_combination_56.layout          - combination_56  - Version: V8  - Différence: 150 steps
+57. V6_layout_combination_57.layout          - combination_57  - Version: V6  - Différence: 218 steps
+58. V2_layout_combination_58.layout          - combination_58  - Version: V2  - Différence: 144 steps
+59. V9_layout_combination_59.layout          - combination_59  - Version: V9  - Différence: 167 steps
+60. V9_layout_combination_60.layout          - combination_60  - Version: V9  - Différence: 118 steps
+61. V4_layout_combination_61.layout          - combination_61  - Version: V4  - Différence: 207 steps
+62. V1_layout_combination_62.layout          - combination_62  - Version: V1  - Différence: 141 steps
+63. V4_layout_combination_63.layout          - combination_63  - Version: V4  - Différence: 214 steps
+64. V9_layout_combination_64.layout          - combination_64  - Version: V9  - Différence: 175 steps
+65. V4_layout_combination_65.layout          - combination_65  - Version: V4  - Différence: 155 steps
+66. V7_layout_combination_66.layout          - combination_66  - Version: V7  - Différence: 196 steps
+67. V5_layout_combination_67.layout          - combination_67  - Version: V5  - Différence: 136 steps
+68. V1_layout_combination_68.layout          - combination_68  - Version: V1  - Différence: 145 steps
+69. V5_layout_combination_69.layout          - combination_69  - Version: V5  - Différence: 144 steps
+70. V5_layout_combination_70.layout          - combination_70  - Version: V5  - Différence: 180 steps
+71. V2_layout_combination_71.layout          - combination_71  - Version: V2  - Différence: 171 steps
+72. V8_layout_combination_72.layout          - combination_72  - Version: V8  - Différence: 180 steps
+73. V10_layout_combination_73.layout         - combination_73  - Version: V10 - Différence: 150 steps
+74. V1_layout_combination_74.layout          - combination_74  - Version: V1  - Différence: 165 steps
+75. V10_layout_combination_75.layout         - combination_75  - Version: V10 - Différence: 183 steps
+76. V10_layout_combination_76.layout         - combination_76  - Version: V10 - Différence: 154 steps
+77. V2_layout_combination_77.layout          - combination_77  - Version: V2  - Différence: 190 steps
+78. V8_layout_combination_78.layout          - combination_78  - Version: V8  - Différence: 180 steps
+79. V6_layout_combination_79.layout          - combination_79  - Version: V6  - Différence: 154 steps
+80. V9_layout_combination_80.layout          - combination_80  - Version: V9  - Différence: 192 steps
+81. V3_layout_combination_81.layout          - combination_81  - Version: V3  - Différence: 138 steps
+82. V5_layout_combination_82.layout          - combination_82  - Version: V5  - Différence: 203 steps
+83. V3_layout_combination_83.layout          - combination_83  - Version: V3  - Différence: 183 steps
+84. V1_layout_combination_84.layout          - combination_84  - Version: V1  - Différence: 211 steps
