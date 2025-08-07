@@ -1,16 +1,20 @@
 import os
-import json
 import random
 import itertools
 from pathlib import Path
-import shutil
+import multiprocessing
+from multiprocessing import Pool, cpu_count
+import time
 
 # Paramètres configurables
 INPUT_DIR = "test_generation_layout/layouts_split"
 OUTPUT_BASE_DIR = "test_generation_layout/layouts_with_objects"
-DISTANCE_OBJETS = 16  # Distance totale souhaitée entre tous les objets
+DISTANCE_OBJETS = 16  # Distance totale souhaitée entre tous les objets 7*7 : 16 ; 8*8 : 24
 NUM_VARIATIONS = 10   # Nombre de variations par layout
 OBJECTS = ['1', '2', 'O', 'T', 'S', 'D', 'P']  # Objets à placer
+MAX_PROCESSES = None  # Nombre max de processus (None = auto-détection)
+MAX_LAYOUTS = None    # Limite le nombre de layouts à traiter (None = tous)
+random.seed("07082025")
 
 def parse_grid_from_layout(layout_content):
     """Extrait la grille du contenu du fichier .layout"""
@@ -127,7 +131,11 @@ def is_position_valid_for_placement(pos, grid, obj):
     if obj in ['1', '2'] and is_edge_position(pos, grid):
         return False
     
-    # Vérification 2: L'objet ne doit pas être bloqué (doit avoir au moins un espace vide adjacent)
+    # Vérification 2: L'objet 'S' doit obligatoirement être sur une extrémité
+    if obj == 'S' and not is_edge_position(pos, grid):
+        return False
+    
+    # Vérification 3: L'objet ne doit pas être bloqué (doit avoir au moins un espace vide adjacent)
     if not has_adjacent_empty_space(pos, grid):
         return False
     
@@ -137,14 +145,20 @@ def place_objects_with_distance_constraint(grid, target_distance, max_attempts=1
     """
     Place les objets de manière à respecter la contrainte de distance.
     Les objets '1' et '2' ne peuvent pas être placés sur les extrémités.
+    L'objet 'S' doit obligatoirement être placé sur une extrémité.
     Retourne une nouvelle grille avec les objets placés.
     """
     # Vérifier qu'il y a assez de positions pour chaque type d'objet
     all_x_positions = find_valid_x_positions(grid)
     positions_for_1_2 = [pos for pos in all_x_positions if not is_edge_position(pos, grid)]
+    edge_positions = [pos for pos in all_x_positions if is_edge_position(pos, grid)]
     
     if len(positions_for_1_2) < 2:  # Besoin d'au moins 2 positions intérieures pour '1' et '2'
         print(f"Pas assez de positions intérieures pour '1' et '2'. Disponible: {len(positions_for_1_2)}")
+        return None
+    
+    if len(edge_positions) < 1:  # Besoin d'au moins 1 position d'extrémité pour 'S'
+        print(f"Pas assez de positions d'extrémité pour 'S'. Disponible: {len(edge_positions)}")
         return None
     
     if len(all_x_positions) < len(OBJECTS):
@@ -228,87 +242,214 @@ def create_layout_file(original_content, new_grid, output_path):
     with open(output_path, 'w') as f:
         f.write('\n'.join(new_lines))
 
+def check_existing_variations(layout_file, output_base_path):
+    """Vérifie quelles variations existent déjà pour un layout donné"""
+    # Extraire les informations du nom de fichier
+    filename_parts = layout_file.stem.split('_')
+    if len(filename_parts) < 4:
+        return []
+    
+    layout_num = filename_parts[1]  # X
+    recipe_id = filename_parts[3]   # YY
+    
+    # Créer le dossier de sortie pour ce fichier layout spécifique
+    layout_name = layout_file.stem
+    output_layout_dir = output_base_path / layout_name
+    
+    if not output_layout_dir.exists():
+        return []
+    
+    # Vérifier quelles variations existent déjà
+    existing_variations = []
+    for variation_num in range(1, NUM_VARIATIONS + 1):
+        variation_name = f"L{layout_num}_R{recipe_id}_V{variation_num:02d}.layout"
+        variation_file = output_layout_dir / variation_name
+        if variation_file.exists():
+            existing_variations.append(variation_num)
+    
+    return existing_variations
+
+def generate_single_variation(args):
+    """Génère une seule variation pour un layout donné (fonction pour multiprocessing)"""
+    layout_file, output_base_path, variation_num = args
+    
+    # Extraire les informations du nom de fichier
+    filename_parts = layout_file.stem.split('_')
+    if len(filename_parts) >= 4:
+        layout_num = filename_parts[1]  # X
+        recipe_id = filename_parts[3]   # YY
+    else:
+        return f"Format de nom de fichier non reconnu: {layout_file.name}", False
+    
+    # Créer le dossier de sortie pour ce fichier layout spécifique
+    layout_name = layout_file.stem
+    output_layout_dir = output_base_path / layout_name
+    output_layout_dir.mkdir(exist_ok=True)
+    
+    # Vérifier si cette variation existe déjà
+    variation_name = f"L{layout_num}_R{recipe_id}_V{variation_num:02d}.layout"
+    output_file = output_layout_dir / variation_name
+    
+    if output_file.exists():
+        return f"Existe déjà: {variation_name} (PID: {os.getpid()})", True
+    
+    # Seed unique pour chaque processus
+    random.seed(int(time.time() * 1000000) % 2**32 + variation_num + os.getpid())
+    
+    try:
+        # Lire le contenu du fichier
+        with open(layout_file, 'r') as f:
+            original_content = f.read()
+        
+        # Extraire la grille
+        grid = parse_grid_from_layout(original_content)
+        if not grid:
+            return f"Impossible d'extraire la grille de {layout_file.name}", False
+        
+        # Générer une variation
+        max_attempts = 1000
+        new_grid = place_objects_with_distance_constraint(grid, DISTANCE_OBJETS, max_attempts)
+        
+        if new_grid is not None:
+            # Créer le fichier de layout modifié immédiatement
+            create_layout_file(original_content, new_grid, output_file)
+            return f"Créé: {variation_name} (PID: {os.getpid()})", True
+        else:
+            return f"Échec génération variation {variation_num} pour {layout_file.name}", False
+            
+    except Exception as e:
+        return f"Erreur lors du traitement de {layout_file.name}, variation {variation_num}: {e}", False
+
 def process_layouts():
-    """Traite tous les layouts dans le dossier d'entrée"""
+    """Traite tous les layouts dans le dossier d'entrée en parallèle"""
     input_path = Path(INPUT_DIR)
     output_path = Path(OUTPUT_BASE_DIR)
     
     # Créer le dossier de sortie s'il n'existe pas
     output_path.mkdir(exist_ok=True)
     
-    # Parcourir tous les dossiers de lots (recette_lot_1, recette_lot_2, etc.)
-    lot_dirs = sorted([d for d in input_path.iterdir() if d.is_dir() and d.name.startswith('recette_lot_')])
+    # Parcourir tous les dossiers de layouts (layout_1, layout_2, etc.)
+    layout_dirs = sorted([d for d in input_path.iterdir() if d.is_dir() and d.name.startswith('layout_')])
     
-    for lot_dir in lot_dirs:
-        print(f"Traitement du dossier: {lot_dir.name}")
+    # Collecter toutes les tâches de variation à traiter (seulement celles manquantes)
+    all_variation_tasks = []
+    total_existing = 0
+    total_to_generate = 0
+    
+    for layout_dir in layout_dirs:
+        print(f"Scan du dossier: {layout_dir.name}")
+        layout_files = sorted(layout_dir.glob("*.layout"))
         
-        # Créer le dossier de sortie pour ce lot de recettes
-        output_lot_dir = output_path / lot_dir.name
-        output_lot_dir.mkdir(exist_ok=True)
-        
-        # Parcourir tous les fichiers .layout dans ce dossier
-        layout_files = sorted(lot_dir.glob("*.layout"))
+        # Appliquer la limite si spécifiée
+        if MAX_LAYOUTS is not None:
+            layout_files = layout_files[:MAX_LAYOUTS]
         
         for layout_file in layout_files:
-            print(f"  Traitement du layout: {layout_file.name}")
+            # Vérifier quelles variations existent déjà
+            existing_variations = check_existing_variations(layout_file, output_path)
+            total_existing += len(existing_variations)
             
-            # Lire le contenu du fichier
-            with open(layout_file, 'r') as f:
-                original_content = f.read()
+            # Créer des tâches uniquement pour les variations manquantes
+            for variation_num in range(1, NUM_VARIATIONS + 1):
+                if variation_num not in existing_variations:
+                    all_variation_tasks.append((layout_file, output_path, variation_num))
+                    total_to_generate += 1
             
-            # Extraire la grille
-            grid = parse_grid_from_layout(original_content)
-            if not grid:
-                print(f"    Impossible d'extraire la grille de {layout_file.name}")
-                continue
-            
-            # Créer le dossier de sortie pour ce layout dans le lot correspondant
-            layout_name = layout_file.stem  # nom sans extension
-            output_layout_dir = output_lot_dir / layout_name
-            output_layout_dir.mkdir(exist_ok=True)
-            
-            # Générer les variations
-            successful_variations = 0
-            attempts = 0
-            max_total_attempts = NUM_VARIATIONS * 20  # Plus d'essais à cause des contraintes
-            
-            while successful_variations < NUM_VARIATIONS and attempts < max_total_attempts:
-                attempts += 1
-                
-                # Placer les objets avec la contrainte de distance
-                new_grid = place_objects_with_distance_constraint(grid, DISTANCE_OBJETS)
-                
-                if new_grid is not None:
-                    successful_variations += 1
-                    variation_name = f"V{successful_variations}_{layout_name}.layout"
-                    output_file = output_layout_dir / variation_name
-                    
-                    # Créer le fichier de layout modifié
-                    create_layout_file(original_content, new_grid, output_file)
-                    print(f"    Créé: {variation_name}")
-            
-            if successful_variations < NUM_VARIATIONS:
-                print(f"    Attention: seulement {successful_variations}/{NUM_VARIATIONS} variations créées pour {layout_file.name}")
+            # Afficher le statut pour ce layout
+            if existing_variations:
+                missing_count = NUM_VARIATIONS - len(existing_variations)
+                if missing_count == 0:
+                    print(f"  {layout_file.name}: ✓ Complet ({NUM_VARIATIONS}/{NUM_VARIATIONS} variations)")
+                else:
+                    print(f"  {layout_file.name}: ⚠ Partiel ({len(existing_variations)}/{NUM_VARIATIONS} variations, {missing_count} manquantes)")
+            else:
+                print(f"  {layout_file.name}: ○ Nouveau ({NUM_VARIATIONS} variations à créer)")
+    
+    print(f"\n=== ÉTAT DU TRAITEMENT ===")
+    print(f"- Variations déjà existantes: {total_existing}")
+    print(f"- Variations à générer: {total_to_generate}")
+    print(f"- Total final attendu: {total_existing + total_to_generate}")
+    
+    if not all_variation_tasks:
+        print("\n🎉 Toutes les variations sont déjà générées !")
+        print("Aucun traitement nécessaire.")
+        return
+    
+    print(f"\nTrouvé {len(all_variation_tasks)} tâches de variation à traiter")
+    num_processes = min(len(all_variation_tasks), MAX_PROCESSES or cpu_count())
+    print(f"Utilisation de {num_processes} processus")
+    print("-" * 50)
+    
+    start_time = time.time()
+    
+    # Traiter toutes les variations manquantes en parallèle
+    with Pool(processes=num_processes) as pool:
+        results = pool.map(generate_single_variation, all_variation_tasks)
+    
+    end_time = time.time()
+    
+    # Analyser les résultats
+    successful_variations = 0
+    failed_variations = 0
+    skipped_variations = 0
+    
+    for message, success in results:
+        if success:
+            if "Existe déjà" in message:
+                skipped_variations += 1
+                print(f"  ⏭ {message}")
+            else:
+                successful_variations += 1
+                print(f"  ✓ {message}")
+        else:
+            failed_variations += 1
+            print(f"  ✗ {message}")
+    
+    print(f"\nRésumé:")
+    print(f"- Tâches traitées: {len(all_variation_tasks)}")
+    print(f"- Variations créées avec succès: {successful_variations}")
+    print(f"- Variations déjà existantes (ignorées): {skipped_variations}")
+    print(f"- Variations échouées: {failed_variations}")
+    print(f"- Variations pré-existantes: {total_existing}")
+    print(f"- Total final: {total_existing + successful_variations} variations")
+    print(f"- Temps d'exécution: {end_time - start_time:.2f} secondes")
+    if len(all_variation_tasks) > 0:
+        print(f"- Vitesse moyenne: {len(all_variation_tasks) / (end_time - start_time):.1f} tâches/seconde")
     
     print(f"\nStructure créée dans '{OUTPUT_BASE_DIR}':")
-    print("├── recette_lot_1/")
-    print("│   ├── layout_combination_01/")
-    print("│   │   ├── V1_layout_combination_01.layout")
-    print("│   │   ├── V2_layout_combination_01.layout")
-    print("│   │   └── ... (jusqu'à V10)")
-    print("│   ├── layout_combination_02/")
-    print("│   │   └── ...")
+    print("├── layout_1_combination_01/")
+    print("│   ├── L1_R01_V01.layout")
+    print("│   ├── L1_R01_V02.layout")
+    print("│   └── ... (jusqu'à V10)")
+    print("├── layout_1_combination_02/")
+    print("│   ├── L1_R02_V01.layout")
     print("│   └── ...")
-    print("├── recette_lot_2/")
+    print("├── layout_2_combination_01/")
+    print("│   ├── L2_R01_V01.layout")
     print("│   └── ...")
     print("└── ...")
 
 def main():
     """Fonction principale"""
+    import sys
+    
+    # Permettre de spécifier une limite via les arguments de ligne de commande
+    if len(sys.argv) > 1:
+        try:
+            global MAX_LAYOUTS
+            MAX_LAYOUTS = int(sys.argv[1])
+            print(f"Mode test activé: traitement limité à {MAX_LAYOUTS} layouts par dossier")
+        except ValueError:
+            print("Argument invalide pour la limite de layouts. Utilisation de tous les layouts.")
+    
     print(f"Démarrage du traitement des layouts...")
     print(f"Distance cible entre objets: {DISTANCE_OBJETS}")
     print(f"Nombre de variations par layout: {NUM_VARIATIONS}")
     print(f"Objets à placer: {OBJECTS}")
+    print(f"Processeurs disponibles: {cpu_count()}")
+    print(f"Processeurs utilisés: {MAX_PROCESSES or cpu_count()}")
+    if MAX_LAYOUTS:
+        print(f"Limite de layouts par dossier: {MAX_LAYOUTS}")
     print("-" * 50)
     
     process_layouts()
@@ -317,4 +458,6 @@ def main():
     print("Traitement terminé!")
 
 if __name__ == "__main__":
+    # Protection nécessaire pour multiprocessing sur certains systèmes
+    multiprocessing.freeze_support()
     main()

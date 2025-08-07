@@ -13,6 +13,9 @@ import heapq
 import re
 from collections import deque
 from typing import List, Tuple, Dict, Optional, Set
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+from multiprocessing import cpu_count
 from dataclasses import dataclass
 import time
 
@@ -812,7 +815,36 @@ def evaluate_single_layout(layout_path: str) -> Dict:
         }
 
 
-def evaluate_all_layouts(base_path: str) -> None:
+def process_single_layout_file(args):
+    """
+    Traite un seul fichier layout de manière thread-safe
+    Args: tuple (layout_full_path, layout_folder, layout_base_num, recipe_num, layout_file)
+    Returns: tuple (result_dict, success_flag)
+    """
+    layout_full_path, layout_folder, layout_base_num, recipe_num, layout_file = args
+    
+    result = evaluate_single_layout(layout_full_path)
+    success = 'error' not in result
+    
+    if success:
+        # Ajouter des métadonnées au résultat
+        result['layout_folder'] = layout_folder
+        result['layout_base_num'] = int(layout_base_num)
+        result['recipe_num'] = int(recipe_num)
+        result['layout_file'] = layout_file
+        
+        # Extraire numéro de variation depuis le nom de fichier (LX_RYY_VZZ.layout)
+        variation_match = re.match(r'L\d+_R\d+_V(\d+)\.layout', layout_file)
+        if variation_match:
+            result['variation_num'] = int(variation_match.group(1))
+    else:
+        result['layout_folder'] = layout_folder
+        result['layout_file'] = layout_file
+    
+    return result, success
+
+
+def evaluate_all_layouts(base_path: str, max_workers: Optional[int] = None) -> None:
     """Évalue tous les layouts dans le dossier layouts_with_objects"""
     layouts_dir = os.path.join(base_path, 'layouts_with_objects')
     results_dir = os.path.join(base_path, 'path_evaluation_results')
@@ -822,54 +854,114 @@ def evaluate_all_layouts(base_path: str) -> None:
     
     total_layouts = 0
     successful_evaluations = 0
+    failed_evaluations = 0
     
     print("🚀 Début de l'évaluation des layouts...")
+    print(f"📂 Dossier source: {layouts_dir}")
+    print(f"📂 Dossier résultats: {results_dir}")
     
-    # Parcourir tous les lots de recettes
-    for recette_lot in sorted(os.listdir(layouts_dir)):
-        lot_path = os.path.join(layouts_dir, recette_lot)
-        if not os.path.isdir(lot_path):
+    # Obtenir tous les dossiers de layouts (format: layout_X_combination_YY)
+    layout_folders = [d for d in os.listdir(layouts_dir) 
+                     if os.path.isdir(os.path.join(layouts_dir, d)) 
+                     and d.startswith('layout_')]
+    
+    if not layout_folders:
+        print("❌ Aucun dossier de layout trouvé!")
+        return
+    
+    print(f"� Trouvé {len(layout_folders)} dossiers de layouts")
+    
+    # Regrouper les résultats par layout de base (X) pour organisation
+    layout_groups = {}
+    
+    # Parcourir tous les dossiers de layouts
+    for layout_folder in sorted(layout_folders):
+        layout_path = os.path.join(layouts_dir, layout_folder)
+        
+        # Extraire le numéro de layout de base depuis le nom du dossier
+        # Format: layout_X_R_YY
+        layout_match = re.match(r'layout_(\d+)_R_(\d+)', layout_folder)
+        if not layout_match:
+            print(f"⚠️  Format de dossier non reconnu: {layout_folder}")
             continue
         
-        print(f"\n📁 Traitement du {recette_lot}...")
-        lot_results = []
+        layout_base_num = layout_match.group(1)
+        recipe_num = layout_match.group(2)
         
-        # Parcourir toutes les combinaisons de layouts
-        for combination in sorted(os.listdir(lot_path)):
-            combination_path = os.path.join(lot_path, combination)
-            if not os.path.isdir(combination_path):
-                continue
+        if layout_base_num not in layout_groups:
+            layout_groups[layout_base_num] = []
+        
+        print(f"\n📁 Traitement: {layout_folder}")
+        
+        # Obtenir tous les fichiers .layout dans ce dossier
+        layout_files = [f for f in os.listdir(layout_path) if f.endswith('.layout')]
+        
+        if not layout_files:
+            print(f"  ⚠️  Aucun fichier .layout trouvé dans {layout_folder}")
+            continue
+        
+        print(f"  📄 Trouvé {len(layout_files)} fichiers layout")
+        
+        # Traiter chaque fichier layout
+        folder_results = []
+        for layout_file in sorted(layout_files):
+            layout_full_path = os.path.join(layout_path, layout_file)
+            total_layouts += 1
             
-            print(f"  🎯 {combination}...")
+            print(f"    � {layout_file}...", end=' ')
             
-            # Parcourir toutes les versions
-            for layout_file in sorted(os.listdir(combination_path)):
-                if layout_file.endswith('.layout'):
-                    layout_full_path = os.path.join(combination_path, layout_file)
-                    total_layouts += 1
-                    
-                    print(f"    📊 {layout_file}...", end=' ')
-                    
-                    result = evaluate_single_layout(layout_full_path)
-                    if 'error' not in result:
-                        successful_evaluations += 1
-                        print(f"✅ Solo: {result['solo_distance']}, Coop: {result['coop_distance']}")
-                    else:
-                        print(f"❌ {result['error']}")
-                    
-                    lot_results.append(result)
+            result = evaluate_single_layout(layout_full_path)
+            
+            if 'error' not in result:
+                successful_evaluations += 1
+                # Ajouter des métadonnées au résultat
+                result['layout_folder'] = layout_folder
+                result['layout_base_num'] = int(layout_base_num)
+                result['recipe_num'] = int(recipe_num)
+                result['layout_file'] = layout_file
+                
+                # Extraire numéro de variation depuis le nom de fichier (LX_RYY_VZZ.layout)
+                variation_match = re.match(r'L\d+_R\d+_V(\d+)\.layout', layout_file)
+                if variation_match:
+                    result['variation_num'] = int(variation_match.group(1))
+                
+                print(f"✅ Solo: {result['solo_distance']}, Coop: {result['coop_distance']}, Amélioration: {result['improvement_ratio']*100:.1f}%")
+            else:
+                failed_evaluations += 1
+                result['layout_folder'] = layout_folder
+                result['layout_file'] = layout_file
+                print(f"❌ {result['error']}")
+            
+            folder_results.append(result)
         
-        # Sauvegarder les résultats du lot
-        lot_results_file = os.path.join(results_dir, f'{recette_lot}_results.json')
-        with open(lot_results_file, 'w', encoding='utf-8') as f:
-            json.dump(lot_results, f, indent=2, ensure_ascii=False)
+        # Ajouter les résultats du dossier au groupe
+        layout_groups[layout_base_num].extend(folder_results)
         
-        print(f"  💾 Résultats sauvegardés: {lot_results_file}")
+        # Sauvegarder les résultats de ce dossier spécifique
+        folder_results_file = os.path.join(results_dir, f'{layout_folder}_results.json')
+        with open(folder_results_file, 'w', encoding='utf-8') as f:
+            json.dump(folder_results, f, indent=2, ensure_ascii=False)
+        
+        print(f"  💾 Résultats sauvegardés: {folder_results_file}")
+    
+    # Sauvegarder un fichier de résultats global
+    all_results = []
+    for group_results in layout_groups.values():
+        all_results.extend(group_results)
+    
+    global_results_file = os.path.join(results_dir, 'all_layouts_results.json')
+    with open(global_results_file, 'w', encoding='utf-8') as f:
+        json.dump(all_results, f, indent=2, ensure_ascii=False)
     
     # Résumé global
     print(f"\n🎉 Évaluation terminée!")
-    print(f"   📈 Layouts évalués: {successful_evaluations}/{total_layouts}")
+    print(f"   📈 Layouts traités: {total_layouts}")
+    print(f"   ✅ Évaluations réussies: {successful_evaluations}")
+    print(f"   ❌ Évaluations échouées: {failed_evaluations}")
+    if total_layouts > 0:
+        print(f"   📊 Taux de succès: {successful_evaluations/total_layouts*100:.1f}%")
     print(f"   📂 Résultats dans: {results_dir}")
+    print(f"   📄 Résultats globaux: {global_results_file}")
 
 
 def analyze_results(results_dir: str) -> None:

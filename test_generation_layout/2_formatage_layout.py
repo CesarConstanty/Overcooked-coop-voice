@@ -22,46 +22,58 @@ with open(RECIPE_SOURCE_FILE, 'r') as f:
 with open(INPUT_FILE, 'r') as infile:
     layouts = [json.loads(line) for line in infile]
 
-# Génération : chaque lot contient autant de layouts que de combinaisons de recettes (84)
+# Génération : créer 84 versions de chaque layout avec chacune une combinaison de recettes différente
 total_combinations = len(recipe_combinations)
 num_layouts = len(layouts)
+files_created = 0
+files_skipped = 0
 
-for idx, layout_entry in enumerate(layouts):
-    # Calculer le numéro de lot et l'index de la combinaison dans ce lot
-    lot_id = idx // total_combinations + 1
-    combination_index = idx % total_combinations
+for layout_idx, layout_entry in enumerate(layouts):
+    # Créer un dossier pour ce layout spécifique
+    layout_dir = Path(OUTPUT_BASE_DIR) / f"layout_{layout_idx + 1}"
+    os.makedirs(layout_dir, exist_ok=True)
     
-    # Récupérer la combinaison de recettes correspondante
-    current_combination = recipe_combinations[combination_index]
-    combination_id = current_combination['combination_id']
-    raw_recipes = current_combination['recipes']
-
-    # Reformater les recettes au format attendu (liste de dicts avec seulement "ingredients")
-    formatted_recipes = [
-        {"ingredients": recipe["ingredients"]} if isinstance(recipe, dict) and "ingredients" in recipe else recipe
-        for recipe in raw_recipes
-    ]
-
-    lot_dir = Path(OUTPUT_BASE_DIR) / f"recette_lot_{lot_id}"
-    os.makedirs(lot_dir, exist_ok=True)
-
+    # Préparer les éléments communs du layout
     grid_list = layout_entry['layout']
     grid_lines = [''.join(row).replace('.', ' ') for row in grid_list]
-
-    # Construction du contenu du fichier .layout avec le format spécial pour grid
     grid_indented = '\n                '.join(grid_lines)
     
-    out_path = lot_dir / f"layout_combination_{combination_id:02d}.layout"
-    with open(out_path, 'w') as out_file:
-        out_file.write("{\n")
-        out_file.write(f'    "grid":  """{grid_indented}""",\n')
-        out_file.write(f'    "start_all_orders": {json.dumps(formatted_recipes, separators=(",", ": "))},\n')
-        out_file.write('    "counter_goals":[],\n')
-        out_file.write(f'    "onion_value" : {onion_value},\n')
-        out_file.write(f'    "tomato_value" : {tomato_value},\n')
-        out_file.write(f'    "onion_time" : {onion_time},\n')
-        out_file.write(f'    "tomato_time" : {tomato_time}\n')
-        out_file.write("}")
+    # Créer 84 versions de ce layout, une pour chaque combinaison de recettes
+    for combination_index, current_combination in enumerate(recipe_combinations):
+        combination_id = current_combination['combination_id']
+        
+        # Vérifier si le fichier existe déjà
+        out_path = layout_dir / f"layout_{layout_idx + 1}_R_{combination_id:02d}.layout"
+        if out_path.exists():
+            files_skipped += 1
+            print(f"Fichier déjà existant ignoré: {out_path}")
+            continue
+        
+        raw_recipes = current_combination['recipes']
 
-print(f"Layouts exportés : {num_layouts} fichiers répartis dans {(num_layouts - 1) // total_combinations + 1} dossiers.")
-print(f"Chaque lot contient {total_combinations} layouts avec des combinaisons de recettes différentes (combination_id 1-{total_combinations}).")
+        # Reformater les recettes au format attendu (liste de dicts avec seulement "ingredients")
+        formatted_recipes = [
+            {"ingredients": recipe["ingredients"]} if isinstance(recipe, dict) and "ingredients" in recipe else recipe
+            for recipe in raw_recipes
+        ]
+
+        # Construction du contenu du fichier .layout avec le format spécial pour grid
+        with open(out_path, 'w') as out_file:
+            out_file.write("{\n")
+            out_file.write(f'    "grid":  """{grid_indented}""",\n')
+            out_file.write(f'    "start_all_orders": {json.dumps(formatted_recipes, separators=(",", ": "))},\n')
+            out_file.write('    "counter_goals":[],\n')
+            out_file.write(f'    "onion_value" : {onion_value},\n')
+            out_file.write(f'    "tomato_value" : {tomato_value},\n')
+            out_file.write(f'    "onion_time" : {onion_time},\n')
+            out_file.write(f'    "tomato_time" : {tomato_time}\n')
+            out_file.write("}")
+        
+        files_created += 1
+        print(f"Fichier créé: {out_path}")
+
+print(f"Traitement terminé :")
+print(f"- Fichiers créés : {files_created}")
+print(f"- Fichiers ignorés (déjà existants) : {files_skipped}")
+print(f"- Total de fichiers attendus : {num_layouts * total_combinations}")
+print(f"Organisation : {num_layouts} dossiers (layout_1 à layout_{num_layouts}), chacun contenant jusqu'à {total_combinations} fichiers .layout")

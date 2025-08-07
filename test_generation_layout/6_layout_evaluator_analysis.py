@@ -1,850 +1,452 @@
 #!/usr/bin/env python3
 """
-Simulation Analysis - Analyseur des données de simulation Overcooked
+Layout Evaluator Analysis - Analyseur des résultats d'évaluation des layouts
 
-Ce module analyse les données de simulation pour:
-1. Visualiser la distribution des taux de completion des recettes (0%, x%<100%, 100%)
-2. Analyser les layouts parfaits (100%) en fonction du nombre de steps
-3. Sélectionner les 75 meilleurs layouts autour de la médiane de steps
-4. Copier ces layouts dans un dossier de sélection
+Ce module analyse les résultats d'évaluation des layouts pour:
+1. Charger tous les fichiers JSON de résultats d'évaluation
+2. Pour chaque layout, trouver la combinaison recette/version qui maximise (distance_solo - distance_coop)
+3. Classer les layouts par cette différence maximale
+4. Sélectionner un ensemble diversifié de layouts (pas deux fois la même recette)
+5. Générer une visualisation et un fichier CSV des résultats
 
 Author: Assistant
-Date: 2025
+Date: 2025-08-06
 """
 
 import os
 import json
 import glob
-import shutil
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import defaultdict, Counter
+from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
-from datetime import datetime
-import statistics
+import re
 
-class SimulationAnalyzer:
-    """Analyseur des données de simulation Overcooked"""
+class LayoutEvaluationAnalyzer:
+    """Analyseur des résultats d'évaluation des layouts"""
     
-    def __init__(self, category: str = "symmetric"):
+    def __init__(self, results_dir: str = "test_generation_layout/path_evaluation_results"):
         """
-        Initialise l'analyseur pour une catégorie spécifique.
+        Initialise l'analyseur.
         
         Args:
-            category: Catégorie de layouts à analyser ("symmetric", "complementary", "symmetric_complex")
+            results_dir: Répertoire contenant les fichiers de résultats JSON
         """
-        self.category = category
-        self.data_simulation_dir = f"data_simulation/{category}"
-        self.layouts_source_dir = f"overcooked_ai_py/data/layouts/generation_cesar/{category}"
-        self.layouts_output_dir = f"overcooked_ai_py/data/layouts/generation_cesar/selection_{category}"
-        self.output_dir = f"analysis_plots/{category}_simulation_summary"
+        self.results_dir = results_dir
+        self.layout_scores = {}  # {layout_id: {max_diff, best_recipe, best_version, solo_dist, coop_dist}}
+        self.recipe_mapping = {}  # Mapping des numéros de recettes vers leurs noms
         
-        # Créer les dossiers de sortie s'ils n'existent pas
+        # Créer le dossier de sortie
+        self.output_dir = "layout_analysis_results"
         os.makedirs(self.output_dir, exist_ok=True)
         
-    def discover_layout_folders(self) -> List[str]:
-        """Découvre tous les dossiers de layouts dans data_simulation pour la catégorie"""
-        if not os.path.exists(self.data_simulation_dir):
-            print(f"❌ Directory not found: {self.data_simulation_dir}")
-            return []
-        
-        # Déterminer le préfixe de recherche selon la catégorie
-        # Pour les catégories solo, on cherche les noms de base sans le suffixe _solo
-        base_category = self.category
-        if self.category.endswith("_solo"):
-            base_category = self.category.replace("_solo", "")
-        
-        layout_pattern = f"data_simu_layout_{base_category}_"
-        
-        layout_dirs = [d for d in os.listdir(self.data_simulation_dir) 
-                      if d.startswith(layout_pattern) and 
-                      os.path.isdir(os.path.join(self.data_simulation_dir, d))]
-        
-        layout_names = []
-        for dir_name in layout_dirs:
-            # Extraire le numéro du layout : data_simu_layout_{base_category}_X -> X
-            try:
-                layout_num = dir_name.replace(layout_pattern, "")
-                layout_names.append(layout_num)
-            except:
-                continue
-        
-        # Trier par numéro de layout
-        layout_names.sort(key=lambda x: int(x) if x.isdigit() else float('inf'))
-        return layout_names
+  #  def load_recipe_mapping(self, recipe_config_file: str = "recipe_config.json"):
+  #      """Charge le mapping des recettes depuis le fichier de configuration"""
+  #      with open(recipe_config_file, 'r') as f:
+  #          config = json.load(f)
+  #          # Essayer différentes structures possibles
+  #          if 'recipes' in config:
+  #              self.recipe_mapping = {i+1: recipe.get('name', f'Recipe_{i+1:02d}') for i, recipe in enumerate(config['recipes'])}
+  #          elif isinstance(config, list):
+  #              self.recipe_mapping = {i+1: recipe.get('name', f'Recipe_{i+1:02d}') for i, recipe in enumerate(config)}
+  #          else:
+  #              # Si la structure est différente, créer des noms par défaut
+  #              for i in range(1, 85):
+  #                  self.recipe_mapping[i] = f"Recipe_{i:02d}"
+  #          print(f"✅ Chargé {len(self.recipe_mapping)} recettes depuis {recipe_config_file}")
     
-    def load_layout_simulation_data(self, layout_number: str) -> Dict:
-        """Charge les données de simulation pour un layout spécifique"""
-        # Déterminer le préfixe de recherche selon la catégorie
-        # Pour les catégories solo, on cherche les noms de base sans le suffixe _solo
-        base_category = self.category
-        if self.category.endswith("_solo"):
-            base_category = self.category.replace("_solo", "")
+    def parse_filename(self, filename: str) -> Tuple[Optional[str], Optional[int]]:
+        """
+        Parse le nom de fichier pour extraire l'ID du layout et le numéro de recette.
         
-        layout_dir = f"{self.data_simulation_dir}/data_simu_layout_{base_category}_{layout_number}"
+        Format attendu: layout_X_R_YY_results.json
         
-        if not os.path.exists(layout_dir):
-            return {}
+        Args:
+            filename: Nom du fichier
+            
+        Returns:
+            Tuple (layout_id, recipe_number) ou (None, None) si parsing échoue
+        """
+        match = re.match(r'layout_(\d+)_R_(\d+)_results\.json', filename)
+        if match:
+            layout_id = match.group(1)
+            recipe_num = int(match.group(2))
+            return layout_id, recipe_num
+        return None, None
+    
+    def calculate_max_difference(self, data: List[Dict]) -> Tuple[float, int, int, int]:
+        """
+        Calcule la différence maximale en pourcentage ((solo - coop) / solo * 100) pour toutes les versions.
         
-        # Rechercher tous les fichiers JSON de simulation
-        json_pattern = f"data_simu_layout_{base_category}_{layout_number}_game_*.json"
-        json_files = glob.glob(os.path.join(layout_dir, json_pattern))
+        Args:
+            data: Liste des versions du layout
+            
+        Returns:
+            Tuple (max_percentage_diff, best_version, solo_distance, coop_distance)
+        """
+        max_percentage_diff = -float('inf')
+        best_version = 1
+        best_solo = 0
+        best_coop = 0
         
-        all_recipes_completed = []
-        all_steps = []
-        all_scores = []
-        layout_info = None
+        for version_data in data:
+            if 'solo_distance' in version_data and 'coop_distance' in version_data:
+                solo_dist = version_data['solo_distance']
+                coop_dist = version_data['coop_distance']
+                
+                # Éviter la division par zéro
+                if solo_dist > 0:
+                    # Calcul de la différence en pourcentage: (solo - coop) / solo * 100
+                    percentage_diff = ((solo_dist - coop_dist) / solo_dist) * 100
+                    
+                    if percentage_diff > max_percentage_diff:
+                        max_percentage_diff = percentage_diff
+                        best_version = version_data.get('variation_num', 1)
+                        best_solo = solo_dist
+                        best_coop = coop_dist
         
+        return max_percentage_diff, best_version, best_solo, best_coop
+    
+    def analyze_all_layouts(self):
+        """Analyse tous les layouts et trouve le score maximum pour chacun"""
+        
+        if not os.path.exists(self.results_dir):
+            print(f"❌ Répertoire {self.results_dir} non trouvé!")
+            return
+        
+        # Rechercher tous les fichiers JSON
+        json_pattern = os.path.join(self.results_dir, "layout_*_R_*_results.json")
+        json_files = glob.glob(json_pattern)
+        
+        if not json_files:
+            print(f"❌ Aucun fichier JSON trouvé dans {self.results_dir}")
+            return
+        
+        print(f"📁 Trouvé {len(json_files)} fichiers JSON à analyser")
+        
+        layout_data = defaultdict(dict)  # {layout_id: {recipe_num: (data, filename)}}
+        file_recipe_map = {}  # (layout_id, recipe_num) -> filename
+        # Charger tous les fichiers
         for json_file in json_files:
+            filename = os.path.basename(json_file)
+            layout_id, recipe_num = self.parse_filename(filename)
+            if layout_id is None or recipe_num is None:
+                print(f"⚠️  Nom de fichier non reconnu: {filename}")
+                continue
             try:
                 with open(json_file, 'r') as f:
                     data = json.load(f)
-                    
-                    if 'simulation_data' in data and 'info_sum' in data['simulation_data']:
-                        info_sum = data['simulation_data']['info_sum']
-                        
-                        recipes_completed = info_sum.get('recipe_completed', 0)
-                        steps = info_sum.get('step', 0)
-                        score = info_sum.get('score', 0)
-                        
-                        all_recipes_completed.append(recipes_completed)
-                        all_steps.append(steps)
-                        all_scores.append(score)
-                        
-                        # Stocker les infos du layout (même pour tous les games)
-                        if layout_info is None:
-                            layout_info = {
-                                'layout_name': info_sum.get('layout', f'layout_{self.category}_{layout_number}'),
-                                'max_possible_recipes': self._estimate_max_recipes(info_sum)
-                            }
-                        
+                    layout_data[layout_id][recipe_num] = data
+                    file_recipe_map[(layout_id, recipe_num)] = filename
             except Exception as e:
-                print(f"❌ Error loading {json_file}: {e}")
+                print(f"❌ Erreur lors du chargement de {json_file}: {e}")
                 continue
-        
-        if not all_recipes_completed:
-            return {}
-        
-        # Calculer les statistiques
-        avg_recipes = np.mean(all_recipes_completed)
-        max_recipes = layout_info['max_possible_recipes'] if layout_info else 6  # Fallback à 6
-        completion_percentage = (avg_recipes / max_recipes) * 100 if max_recipes > 0 else 0
-        
-        avg_steps = np.mean(all_steps)
-        avg_score = np.mean(all_scores)
-        
-        return {
-            'layout_number': layout_number,
-            'layout_name': layout_info['layout_name'] if layout_info else f'layout_{self.category}_{layout_number}',
-            'completion_percentage': completion_percentage,
-            'avg_recipes_completed': avg_recipes,
-            'max_possible_recipes': max_recipes,
-            'avg_steps': avg_steps,
-            'avg_score': avg_score,
-            'num_simulations': len(all_recipes_completed),
-            'all_recipes': all_recipes_completed,
-            'all_steps': all_steps,
-            'all_scores': all_scores
-        }
+        print(f"✅ Données chargées pour {len(layout_data)} layouts")
+        # Analyser chaque layout
+        for layout_id, recipes in layout_data.items():
+            max_diff_overall = -float('inf')
+            best_recipe = None
+            best_version = 1
+            best_solo = 0
+            best_coop = 0
+            # Parcourir toutes les recettes de ce layout
+            for recipe_num, recipe_data in recipes.items():
+                if isinstance(recipe_data, list) and len(recipe_data) > 0:
+                    max_percentage_diff, version, solo_dist, coop_dist = self.calculate_max_difference(recipe_data)
+                    if max_percentage_diff > max_diff_overall:
+                        max_diff_overall = max_percentage_diff
+                        best_recipe = recipe_num
+                        best_version = version
+                        best_solo = solo_dist
+                        best_coop = coop_dist
+            # Enregistrer le meilleur score pour ce layout
+            if best_recipe is not None:
+                # Utiliser le numéro de recette extrait du nom de fichier
+                self.layout_scores[layout_id] = {
+                    'max_difference': max_diff_overall,
+                    'best_recipe': best_recipe,  # toujours celui du nom de fichier
+                    'best_version': best_version,
+                    'solo_distance': best_solo,
+                    'coop_distance': best_coop,
+                    'recipe_name': self.recipe_mapping.get(best_recipe, f"Recipe_{best_recipe:02d}"),
+                    'file_recipe_num': best_recipe  # pour usage explicite si besoin
+                }
+        print(f"✅ Analyse terminée pour {len(self.layout_scores)} layouts")
     
-    def _estimate_max_recipes(self, info_sum: Dict) -> int:
-        """Estime le nombre maximum de recettes possible basé sur les données"""
-        # Chercher des indices dans les données
-        all_orders = info_sum.get('all_orders', [])
-        if all_orders:
-            return len(all_orders)
-        
-        # Heuristique basée sur les observations des données existantes
-        return 6  # Valeur par défaut observée dans les données
-    
-    def analyze_all_layouts(self) -> Dict[str, Dict]:
-        """Analyse tous les layouts et compile les statistiques"""
-        layout_numbers = self.discover_layout_folders()
-        
-        print(f"🔍 Found {len(layout_numbers)} layouts to analyze")
-        
-        all_layout_data = {}
-        successful_analyses = 0
-        
-        for layout_num in layout_numbers:
-            print(f"📊 Analyzing layout {layout_num}...", end=" ")
-            
-            layout_data = self.load_layout_simulation_data(layout_num)
-            
-            if layout_data:
-                all_layout_data[layout_num] = layout_data
-                successful_analyses += 1
-                print(f"✅ {layout_data['completion_percentage']:.1f}% completion")
-            else:
-                print("❌ No data")
-        
-        print(f"\n✅ Successfully analyzed {successful_analyses}/{len(layout_numbers)} layouts")
-        return all_layout_data
-    
-    def categorize_layouts_by_completion(self, layout_data: Dict[str, Dict]) -> Dict[str, List]:
-        """Catégorise les layouts selon leur taux de completion"""
-        categories = {
-            '0_percent': [],      # 0% de completion
-            'partial': [],        # Entre 0% et 100%
-            '100_percent': []     # 100% de completion
-        }
-        
-        for layout_num, data in layout_data.items():
-            completion = data['completion_percentage']
-            
-            if completion == 0:
-                categories['0_percent'].append((layout_num, data))
-            elif completion == 100:
-                categories['100_percent'].append((layout_num, data))
-            else:
-                categories['partial'].append((layout_num, data))
-        
-        # Trier par layout number
-        for category in categories.values():
-            category.sort(key=lambda x: int(x[0]))
-        
-        return categories
-    
-    def create_completion_distribution_chart(self, categories: Dict[str, List]) -> str:
-        """Crée un graphique en barres de la distribution des completions"""
-        
-        counts = {
-            '0% Completion': len(categories['0_percent']),
-            'Partial (0%<x<100%)': len(categories['partial']),
-            '100% Completion': len(categories['100_percent'])
-        }
-        
-        # Créer le graphique
-        plt.figure(figsize=(12, 8))
-        
-        # Couleurs pour chaque catégorie
-        colors = ['red', 'orange', 'green']
-        bars = plt.bar(counts.keys(), counts.values(), color=colors, alpha=0.7, edgecolor='black', linewidth=2)
-        
-        # Ajouter les valeurs sur les barres
-        for bar, count in zip(bars, counts.values()):
-            height = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width()/2., height + 0.5,
-                    f'{count}\nlayouts', ha='center', va='bottom', fontsize=12, fontweight='bold')
-        
-        # Configuration du graphique
-        total_layouts = sum(counts.values())
-        plt.title(f'Distribution des Layouts {self.category.upper()} selon le Taux de Completion des Recettes\n'
-                 f'Total: {total_layouts} layouts analysés', fontsize=14, fontweight='bold')
-        plt.ylabel('Nombre de Layouts', fontsize=12)
-        plt.xlabel('Catégorie de Completion', fontsize=12)
-        
-        # Ajouter les pourcentages
-        for i, (category, count) in enumerate(counts.items()):
-            percentage = (count / total_layouts) * 100
-            plt.text(i, count/2, f'{percentage:.1f}%', ha='center', va='center', 
-                    fontsize=14, fontweight='bold', color='white')
-        
-        plt.grid(axis='y', alpha=0.3)
-        plt.tight_layout()
-        
-        # Sauvegarder
-        output_path = f"{self.output_dir}/completion_distribution_{self.category}.png"
-        os.makedirs(self.output_dir, exist_ok=True)
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        return output_path
-    
-    def analyze_perfect_layouts_steps(self, perfect_layouts: List[Tuple[str, Dict]]) -> Dict:
-        """Analyse les layouts parfaits en fonction du nombre de steps"""
-        
-        steps_data = []
-        layout_steps_info = []
-        
-        for layout_num, data in perfect_layouts:
-            avg_steps = data['avg_steps']
-            steps_data.append(avg_steps)
-            layout_steps_info.append((layout_num, avg_steps, data))
-        
-        if not steps_data:
-            return {}
-        
-        # Calculer les statistiques
-        median_steps = statistics.median(steps_data)
-        mean_steps = statistics.mean(steps_data)
-        std_steps = statistics.stdev(steps_data) if len(steps_data) > 1 else 0
-        min_steps = min(steps_data)
-        max_steps = max(steps_data)
-        
-        # Trier par nombre de steps
-        layout_steps_info.sort(key=lambda x: x[1])
-        
-        return {
-            'steps_data': steps_data,
-            'layout_steps_info': layout_steps_info,
-            'median_steps': median_steps,
-            'mean_steps': mean_steps,
-            'std_steps': std_steps,
-            'min_steps': min_steps,
-            'max_steps': max_steps,
-            'total_perfect_layouts': len(perfect_layouts)
-        }
-    
-    def create_perfect_layouts_steps_chart(self, steps_analysis: Dict) -> str:
-        """Crée un histogramme des layouts parfaits en fonction du nombre de steps"""
-        
-        steps_data = steps_analysis['steps_data']
-        median_steps = steps_analysis['median_steps']
-        mean_steps = steps_analysis['mean_steps']
-        
-        plt.figure(figsize=(14, 10))
-        
-        # Créer l'histogramme
-        n_bins = min(30, len(set(steps_data)))  # Maximum 30 bins
-        counts, bins, patches = plt.hist(steps_data, bins=n_bins, alpha=0.7, color='green', 
-                                        edgecolor='black', linewidth=1)
-        
-        # Ajouter les lignes de médiane et moyenne
-        plt.axvline(median_steps, color='red', linestyle='--', linewidth=3, 
-                   label=f'Médiane: {median_steps:.1f} steps')
-        plt.axvline(mean_steps, color='blue', linestyle='--', linewidth=3, 
-                   label=f'Moyenne: {mean_steps:.1f} steps')
-        
-        # Configuration du graphique
-        plt.title(f'Distribution des Layouts {self.category.upper()} Parfaits (100% completion) par Nombre de Steps\n'
-                 f'Total: {len(steps_data)} layouts analysés', fontsize=14, fontweight='bold')
-        plt.xlabel('Nombre de Steps Moyen', fontsize=12)
-        plt.ylabel('Nombre de Layouts', fontsize=12)
-        plt.legend(fontsize=12)
-        plt.grid(True, alpha=0.3)
-        
-        # Ajouter des statistiques textuelles
-        stats_text = (f'Statistiques:\n'
-                     f'Min: {steps_analysis["min_steps"]:.1f} steps\n'
-                     f'Max: {steps_analysis["max_steps"]:.1f} steps\n'
-                     f'Écart-type: {steps_analysis["std_steps"]:.1f} steps')
-        
-        plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes, 
-                fontsize=10, verticalalignment='top',
-                bbox=dict(boxstyle="round,pad=0.4", facecolor="lightblue", alpha=0.8))
-        
-        plt.tight_layout()
-        
-        # Sauvegarder
-        output_path = f"{self.output_dir}/perfect_layouts_steps_distribution_{self.category}.png"
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        return output_path
-    
-    def select_median_layouts(self, steps_analysis: Dict, target_count: int = 75) -> List[Tuple[str, float, Dict]]:
-        """Sélectionne les layouts les plus proches de la médiane"""
-        
-        layout_steps_info = steps_analysis['layout_steps_info']
-        median_steps = steps_analysis['median_steps']
-        
-        # Calculer la distance à la médiane pour chaque layout
-        layouts_with_distance = []
-        for layout_num, avg_steps, data in layout_steps_info:
-            distance_to_median = abs(avg_steps - median_steps)
-            layouts_with_distance.append((layout_num, avg_steps, data, distance_to_median))
-        
-        # Trier par distance à la médiane (plus proche en premier)
-        # En cas d'égalité, privilégier les layouts avec steps == médiane
-        layouts_with_distance.sort(key=lambda x: (x[3], abs(x[1] - median_steps)))
-        
-        # Sélectionner les target_count premiers
-        selected_layouts = layouts_with_distance[:target_count]
-        
-        print(f"\n🎯 Sélection des {len(selected_layouts)} layouts les plus proches de la médiane ({median_steps:.1f} steps):")
-        
-        # Afficher quelques statistiques sur la sélection
-        selected_steps = [x[1] for x in selected_layouts]
-        min_selected = min(selected_steps)
-        max_selected = max(selected_steps)
-        avg_selected = statistics.mean(selected_steps)
-        
-        print(f"   📊 Range des steps sélectionnés: {min_selected:.1f} - {max_selected:.1f}")
-        print(f"   📊 Moyenne des steps sélectionnés: {avg_selected:.1f}")
-        print(f"   📊 Layouts avec steps exactement égaux à la médiane: {sum(1 for x in selected_layouts if abs(x[1] - median_steps) < 0.1)}")
-        
-        return [(x[0], x[1], x[2]) for x in selected_layouts]
-    
-    def copy_selected_layouts(self, selected_layouts: List[Tuple[str, float, Dict]]) -> str:
-        """Copie les layouts sélectionnés dans le dossier de destination"""
-        
-        # Créer le dossier de destination s'il n'existe pas
-        os.makedirs(self.layouts_output_dir, exist_ok=True)
-        
-        copied_count = 0
-        failed_count = 0
-        
-        print(f"\n📁 Copie des layouts vers {self.layouts_output_dir}:")
-        
-        # Déterminer le préfixe de source selon la catégorie
-        # Pour les catégories solo, on cherche les layouts de base sans le suffixe _solo
-        base_category = self.category
-        if self.category.endswith("_solo"):
-            base_category = self.category.replace("_solo", "")
-        
-        for layout_num, avg_steps, data in selected_layouts:
-            # Le fichier source utilise le nom de base
-            source_file = f"{self.layouts_source_dir.replace(self.category, base_category)}/layout_{base_category}_{layout_num}.layout"
-            # Le fichier de destination garde le nom de la catégorie complète
-            dest_file = f"{self.layouts_output_dir}/layout_{self.category}_{layout_num}.layout"
-            
-            try:
-                if os.path.exists(source_file):
-                    shutil.copy2(source_file, dest_file)
-                    copied_count += 1
-                    print(f"   ✅ Copié layout_{self.category}_{layout_num} ({avg_steps:.1f} steps)")
-                else:
-                    failed_count += 1
-                    print(f"   ❌ Source non trouvée: layout_{base_category}_{layout_num} -> {source_file}")
-                    
-            except Exception as e:
-                failed_count += 1
-                print(f"   ❌ Erreur lors de la copie de layout_{self.category}_{layout_num}: {e}")
-        
-        # Créer un fichier de résumé de la sélection
-        summary_file = f"{self.layouts_output_dir}/selection_summary_{self.category}.txt"
-        with open(summary_file, 'w', encoding='utf-8') as f:
-            f.write("="*70 + "\n")
-            f.write(f"RÉSUMÉ DE LA SÉLECTION DE LAYOUTS {self.category.upper()}\n")
-            f.write("="*70 + "\n\n")
-            f.write(f"Date de sélection: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Catégorie de layouts: {self.category}\n")
-            if self.category.endswith("_solo"):
-                f.write(f"Note: Mode SOLO - Layouts basés sur {base_category}\n")
-            f.write(f"Nombre total de layouts sélectionnés: {len(selected_layouts)}\n")
-            f.write(f"Layouts copiés avec succès: {copied_count}\n")
-            f.write(f"Échecs de copie: {failed_count}\n\n")
-            
-            if selected_layouts:
-                selected_steps = [x[1] for x in selected_layouts]
-                median_steps = statistics.median(selected_steps)
-                f.write(f"Critère de sélection: Proximité à la médiane\n")
-                f.write(f"Médiane des steps: {median_steps:.1f}\n")
-                f.write(f"Range des steps: {min(selected_steps):.1f} - {max(selected_steps):.1f}\n")
-                f.write(f"Moyenne des steps: {statistics.mean(selected_steps):.1f}\n\n")
-            
-            f.write("LISTE DES LAYOUTS SÉLECTIONNÉS:\n")
-            f.write("-" * 40 + "\n")
-            for i, (layout_num, avg_steps, data) in enumerate(selected_layouts, 1):
-                f.write(f"{i:3d}. Layout {self.category}_{layout_num:3s}: {avg_steps:6.1f} steps (Score: {data['avg_score']:.1f})\n")
-        
-        print(f"\n✅ Copie terminée: {copied_count}/{len(selected_layouts)} layouts copiés")
-        print(f"📄 Résumé sauvegardé: {summary_file}")
-        
-        return self.layouts_output_dir
-    
-    def create_selection_visualization(self, selected_layouts: List[Tuple[str, float, Dict]], 
-                                     steps_analysis: Dict) -> str:
-        """Crée une visualisation des layouts sélectionnés"""
-        
-        all_steps = steps_analysis['steps_data']
-        selected_steps = [x[1] for x in selected_layouts]
-        median_steps = steps_analysis['median_steps']
-        
-        plt.figure(figsize=(16, 10))
-        
-        # Subplot 1: Histogramme de tous les layouts avec sélection mise en évidence
-        plt.subplot(2, 1, 1)
-        
-        # Histogramme de tous les layouts parfaits
-        n_bins = min(30, len(set(all_steps)))
-        plt.hist(all_steps, bins=n_bins, alpha=0.5, color='lightblue', 
-                label=f'Tous les layouts parfaits ({len(all_steps)})', edgecolor='black')
-        
-        # Histogramme des layouts sélectionnés
-        plt.hist(selected_steps, bins=n_bins, alpha=0.8, color='red', 
-                label=f'Layouts sélectionnés ({len(selected_steps)})', edgecolor='darkred')
-        
-        # Ligne de médiane
-        plt.axvline(median_steps, color='green', linestyle='--', linewidth=3, 
-                   label=f'Médiane: {median_steps:.1f} steps')
-        
-        plt.title(f'Sélection des Layouts {self.category.upper()} Proches de la Médiane', fontsize=14, fontweight='bold')
-        plt.xlabel('Nombre de Steps Moyen', fontsize=12)
-        plt.ylabel('Nombre de Layouts', fontsize=12)
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        # Subplot 2: Scatter plot des layouts sélectionnés
-        plt.subplot(2, 1, 2)
-        
-        layout_numbers = [int(x[0]) if x[0].isdigit() else 0 for x in selected_layouts]
-        steps_values = [x[1] for x in selected_layouts]
-        scores = [x[2]['avg_score'] for x in selected_layouts]
-        
-        # Utiliser la score comme taille des points
-        sizes = [max(20, min(200, score * 5)) for score in scores]
-        
-        scatter = plt.scatter(layout_numbers, steps_values, c=scores, s=sizes, 
-                            alpha=0.7, cmap='viridis', edgecolors='black')
-        
-        # Ligne de médiane
-        plt.axhline(median_steps, color='red', linestyle='--', linewidth=2, 
-                   label=f'Médiane: {median_steps:.1f} steps')
-        
-        plt.title(f'Layouts {self.category.upper()} Sélectionnés: Numéro vs Steps (taille = score)', fontsize=14, fontweight='bold')
-        plt.xlabel('Numéro de Layout', fontsize=12)
-        plt.ylabel('Nombre de Steps Moyen', fontsize=12)
-        plt.colorbar(scatter, label='Score Moyen')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        
-        # Sauvegarder
-        output_path = f"{self.output_dir}/selected_layouts_visualization_{self.category}.png"
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        return output_path
-    
-    def generate_comprehensive_report(self, layout_data: Dict[str, Dict], 
-                                    categories: Dict[str, List],
-                                    steps_analysis: Dict,
-                                    selected_layouts: List[Tuple[str, float, Dict]]) -> str:
-        """Génère un rapport complet de l'analyse"""
-        
-        report_path = f"{self.output_dir}/simulation_analysis_report_{self.category}.txt"
-        
-        with open(report_path, 'w', encoding='utf-8') as f:
-            f.write("="*80 + "\n")
-            f.write(f"RAPPORT COMPLET D'ANALYSE DES SIMULATIONS OVERCOOKED - {self.category.upper()}\n")
-            f.write("="*80 + "\n\n")
-            
-            f.write(f"📅 Date d'analyse: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"📁 Catégorie analysée: {self.category}\n")
-            f.write(f"📂 Dossier source des données: {self.data_simulation_dir}\n\n")
-            
-            # 1. Statistiques globales
-            f.write("📊 STATISTIQUES GLOBALES\n")
-            f.write("-" * 40 + "\n")
-            total_layouts = len(layout_data)
-            f.write(f"Nombre total de layouts analysés: {total_layouts}\n")
-            
-            # Distribution par catégorie
-            zero_count = len(categories['0_percent'])
-            partial_count = len(categories['partial'])
-            perfect_count = len(categories['100_percent'])
-            
-            f.write(f"Layouts à 0% completion: {zero_count} ({zero_count/total_layouts*100:.1f}%)\n")
-            f.write(f"Layouts partiels (0%<x<100%): {partial_count} ({partial_count/total_layouts*100:.1f}%)\n")
-            f.write(f"Layouts parfaits (100%): {perfect_count} ({perfect_count/total_layouts*100:.1f}%)\n\n")
-            
-            # 2. Analyse des layouts parfaits
-            if steps_analysis:
-                f.write("🏆 ANALYSE DES LAYOUTS PARFAITS (100% COMPLETION)\n")
-                f.write("-" * 50 + "\n")
-                f.write(f"Nombre de layouts parfaits: {steps_analysis['total_perfect_layouts']}\n")
-                f.write(f"Nombre de steps - Minimum: {steps_analysis['min_steps']:.1f}\n")
-                f.write(f"Nombre de steps - Maximum: {steps_analysis['max_steps']:.1f}\n")
-                f.write(f"Nombre de steps - Moyenne: {steps_analysis['mean_steps']:.1f}\n")
-                f.write(f"Nombre de steps - Médiane: {steps_analysis['median_steps']:.1f}\n")
-                f.write(f"Nombre de steps - Écart-type: {steps_analysis['std_steps']:.1f}\n\n")
-            
-            # 3. Sélection des layouts
-            f.write(f"🎯 SÉLECTION DES LAYOUTS POUR {self.category.upper()}\n")
-            f.write("-" * 45 + "\n")
-            f.write(f"Nombre de layouts sélectionnés: {len(selected_layouts)}\n")
-            f.write(f"Critère de sélection: Proximité à la médiane des steps\n")
-            
-            if selected_layouts:
-                selected_steps = [x[1] for x in selected_layouts]
-                f.write(f"Range des steps sélectionnés: {min(selected_steps):.1f} - {max(selected_steps):.1f}\n")
-                f.write(f"Moyenne des steps sélectionnés: {statistics.mean(selected_steps):.1f}\n")
-                
-                # Compter les layouts exactement à la médiane
-                if steps_analysis:
-                    median_exact_count = sum(1 for x in selected_layouts 
-                                           if abs(x[1] - steps_analysis['median_steps']) < 0.1)
-                    f.write(f"Layouts avec steps = médiane (±0.1): {median_exact_count}\n\n")
-            
-            # 4. Top 10 des layouts sélectionnés
-            f.write("🥇 TOP 10 DES LAYOUTS SÉLECTIONNÉS\n")
-            f.write("-" * 35 + "\n")
-            for i, (layout_num, avg_steps, data) in enumerate(selected_layouts[:10], 1):
-                distance = abs(avg_steps - steps_analysis['median_steps']) if steps_analysis else 0
-                f.write(f"{i:2d}. Layout {self.category}_{layout_num:3s}: {avg_steps:6.1f} steps "
-                       f"(distance médiane: {distance:5.1f}, score: {data['avg_score']:5.1f})\n")
-            
-            if len(selected_layouts) > 10:
-                f.write(f"... et {len(selected_layouts) - 10} autres layouts\n")
-            
-            f.write(f"\n💾 Dossier de destination: {self.layouts_output_dir}\n")
-            f.write(f"📊 Fichiers de visualisation générés dans: {self.output_dir}\n")
-        
-        return report_path
-
-class SimulationEvaluator:
-    """Évaluateur principal pour l'analyse complète des simulations"""
-    
-    def __init__(self, category: str = "symmetric"):
+    def select_diverse_layouts(self, max_layouts: int = 780) -> List[str]:
         """
-        Initialise l'évaluateur pour une catégorie spécifique.
+        Sélectionne un ensemble de layouts diversifiés (pas deux fois la même recette).
         
         Args:
-            category: Catégorie de layouts à analyser ("symmetric", "complementary", "symmetric_complex")
+            max_layouts: Nombre maximum de layouts à sélectionner
+            
+        Returns:
+            Liste des IDs des layouts sélectionnés
         """
-        self.category = category
-        self.analyzer = SimulationAnalyzer(category)
-    
-    def run_complete_analysis(self, target_selection_count: int = 75):
-        """Lance l'analyse complète des simulations pour la catégorie"""
+        if not self.layout_scores:
+            return []
         
-        print(f"🚀 SIMULATION ANALYSIS - ANALYSE COMPLÈTE POUR {self.category.upper()}")
-        print("=" * 70)
-        
-        # 1. Analyser tous les layouts
-        print(f"\n📊 ÉTAPE 1: Analyse de tous les layouts {self.category}...")
-        layout_data = self.analyzer.analyze_all_layouts()
-        
-        if not layout_data:
-            print(f"❌ Aucune donnée de layout trouvée pour {self.category}!")
-            return
-        
-        # 2. Catégoriser par taux de completion
-        print("\n📈 ÉTAPE 2: Catégorisation par taux de completion...")
-        categories = self.analyzer.categorize_layouts_by_completion(layout_data)
-        
-        print(f"   - Layouts à 0%: {len(categories['0_percent'])}")
-        print(f"   - Layouts partiels: {len(categories['partial'])}")
-        print(f"   - Layouts parfaits: {len(categories['100_percent'])}")
-        
-        # 3. Créer le graphique de distribution
-        print("\n📊 ÉTAPE 3: Création du graphique de distribution...")
-        dist_chart_path = self.analyzer.create_completion_distribution_chart(categories)
-        print(f"   ✅ Graphique sauvegardé: {dist_chart_path}")
-        
-        # 4. Analyser les layouts parfaits
-        if categories['100_percent']:
-            print("\n🏆 ÉTAPE 4: Analyse des layouts parfaits...")
-            steps_analysis = self.analyzer.analyze_perfect_layouts_steps(categories['100_percent'])
-            
-            print(f"   📊 Médiane des steps: {steps_analysis['median_steps']:.1f}")
-            print(f"   📊 Moyenne des steps: {steps_analysis['mean_steps']:.1f}")
-            print(f"   📊 Range: {steps_analysis['min_steps']:.1f} - {steps_analysis['max_steps']:.1f}")
-            
-            # 5. Créer le graphique des steps
-            print("\n📈 ÉTAPE 5: Création du graphique des steps...")
-            steps_chart_path = self.analyzer.create_perfect_layouts_steps_chart(steps_analysis)
-            print(f"   ✅ Graphique sauvegardé: {steps_chart_path}")
-            
-            # 6. Sélectionner les layouts autour de la médiane
-            print(f"\n🎯 ÉTAPE 6: Sélection des {target_selection_count} meilleurs layouts...")
-            selected_layouts = self.analyzer.select_median_layouts(steps_analysis, target_count=target_selection_count)
-            
-            # 7. Copier les layouts sélectionnés
-            print("\n📁 ÉTAPE 7: Copie des layouts sélectionnés...")
-            output_dir = self.analyzer.copy_selected_layouts(selected_layouts)
-            
-            # 8. Créer la visualisation de la sélection
-            print("\n🎨 ÉTAPE 8: Création de la visualisation de sélection...")
-            selection_viz_path = self.analyzer.create_selection_visualization(selected_layouts, steps_analysis)
-            print(f"   ✅ Visualisation sauvegardée: {selection_viz_path}")
-            
-            # 9. Générer le rapport complet
-            print("\n📋 ÉTAPE 9: Génération du rapport complet...")
-            report_path = self.analyzer.generate_comprehensive_report(
-                layout_data, categories, steps_analysis, selected_layouts)
-            print(f"   ✅ Rapport sauvegardé: {report_path}")
-            
-        else:
-            print("❌ Aucun layout parfait trouvé!")
-            steps_analysis = {}
-            selected_layouts = []
-        
-        # Résumé final
-        print(f"\n🎉 ANALYSE TERMINÉE POUR {self.category.upper()}!")
-        print("=" * 50)
-        print(f"📊 {len(layout_data)} layouts analysés")
-        print(f"🏆 {len(categories['100_percent'])} layouts parfaits trouvés")
-        print(f"🎯 {len(selected_layouts)} layouts sélectionnés pour {self.category}")
-        print(f"📁 Layouts copiés dans: {self.analyzer.layouts_output_dir}")
-        print(f"📈 Graphiques dans: {self.analyzer.output_dir}")
-    
-    @staticmethod
-    def analyze_all_categories(target_selection_count: int = 75):
-        """Analyse toutes les catégories disponibles dans data_simulation"""
-        
-        # Détecter les catégories disponibles
-        base_dir = "data_simulation"
-        if not os.path.exists(base_dir):
-            print(f"❌ Dossier {base_dir} non trouvé!")
-            return
-        
-        available_categories = [d for d in os.listdir(base_dir) 
-                              if os.path.isdir(os.path.join(base_dir, d))]
-        
-        if not available_categories:
-            print(f"❌ Aucune catégorie trouvée dans {base_dir}")
-            return
-        
-        # Trier les catégories pour un affichage cohérent
-        available_categories.sort()
-        
-        print(f"🔍 Catégories détectées: {available_categories}")
-        print(f"📊 Total: {len(available_categories)} catégories à analyser")
-        
-        # Statistiques globales
-        total_layouts = 0
-        total_perfect_layouts = 0
-        total_selected_layouts = 0
-        
-        for i, category in enumerate(available_categories, 1):
-            print(f"\n{'='*80}")
-            print(f"🚀 ANALYSE {i}/{len(available_categories)}: {category.upper()}")
-            print(f"{'='*80}")
-            
-            try:
-                evaluator = SimulationEvaluator(category)
-                
-                # Analyser avec un nombre adapté selon la catégorie
-                # Pour les catégories solo, on peut sélectionner moins de layouts
-                adjusted_target = target_selection_count
-                if "_solo" in category:
-                    adjusted_target = min(target_selection_count, 50)  # Limiter pour les modes solo
-                    print(f"🎯 Mode solo détecté - Sélection ajustée à {adjusted_target} layouts max")
-                
-                result_summary = evaluator.run_complete_analysis_with_summary(adjusted_target)
-                
-                # Accumuler les statistiques
-                total_layouts += result_summary.get('total_layouts', 0)
-                total_perfect_layouts += result_summary.get('perfect_layouts', 0)
-                total_selected_layouts += result_summary.get('selected_layouts', 0)
-                
-                print(f"✅ ANALYSE TERMINÉE POUR {category.upper()}")
-                print(f"   📊 {result_summary.get('total_layouts', 0)} layouts analysés")
-                print(f"   🏆 {result_summary.get('perfect_layouts', 0)} layouts parfaits")
-                print(f"   🎯 {result_summary.get('selected_layouts', 0)} layouts sélectionnés")
-                
-            except Exception as e:
-                print(f"❌ ERREUR lors de l'analyse de {category}: {e}")
-                print(f"   Passage à la catégorie suivante...")
-                continue
-        
-        # Résumé global final
-        print(f"\n{'='*80}")
-        print(f"🎊 ANALYSE GLOBALE TERMINÉE - TOUTES CATÉGORIES")
-        print(f"{'='*80}")
-        print(f"📈 STATISTIQUES GLOBALES:")
-        print(f"   🗂️ Catégories analysées: {len(available_categories)}")
-        print(f"   📊 Total layouts analysés: {total_layouts}")
-        print(f"   🏆 Total layouts parfaits: {total_perfect_layouts}")
-        print(f"   🎯 Total layouts sélectionnés: {total_selected_layouts}")
-        
-        if total_layouts > 0:
-            perfect_rate = (total_perfect_layouts / total_layouts) * 100
-            print(f"   📊 Taux de layouts parfaits: {perfect_rate:.1f}%")
-        
-        print(f"\n📁 Résultats disponibles dans:")
-        for category in available_categories:
-            print(f"   • analysis_plots/{category}_simulation_summary/")
-            print(f"   • overcooked_ai_py/data/layouts/generation_cesar/selection_{category}/")
-    
-    def run_complete_analysis_with_summary(self, target_selection_count: int = 75) -> dict:
-        """Version de run_complete_analysis qui retourne un résumé pour les statistiques globales"""
-        
-        print(f"🚀 SIMULATION ANALYSIS - ANALYSE COMPLÈTE POUR {self.category.upper()}")
-        print("=" * 70)
-        
-        # 1. Analyser tous les layouts
-        print(f"\n📊 ÉTAPE 1: Analyse de tous les layouts {self.category}...")
-        layout_data = self.analyzer.analyze_all_layouts()
-        
-        if not layout_data:
-            print(f"❌ Aucune donnée de layout trouvée pour {self.category}!")
-            return {'total_layouts': 0, 'perfect_layouts': 0, 'selected_layouts': 0}
-        
-        # 2. Catégoriser par taux de completion
-        print("\n📈 ÉTAPE 2: Catégorisation par taux de completion...")
-        categories = self.analyzer.categorize_layouts_by_completion(layout_data)
-        
-        print(f"   - Layouts à 0%: {len(categories['0_percent'])}")
-        print(f"   - Layouts partiels: {len(categories['partial'])}")
-        print(f"   - Layouts parfaits: {len(categories['100_percent'])}")
-        
-        # 3. Créer le graphique de distribution
-        print("\n📊 ÉTAPE 3: Création du graphique de distribution...")
-        dist_chart_path = self.analyzer.create_completion_distribution_chart(categories)
-        print(f"   ✅ Graphique sauvegardé: {dist_chart_path}")
+        # Trier les layouts par différence décroissante
+        sorted_layouts = sorted(
+            self.layout_scores.items(),
+            key=lambda x: x[1]['max_difference'],
+            reverse=True
+        )
         
         selected_layouts = []
+        used_recipes = set()
         
-        # 4. Analyser les layouts parfaits
-        if categories['100_percent']:
-            print("\n🏆 ÉTAPE 4: Analyse des layouts parfaits...")
-            steps_analysis = self.analyzer.analyze_perfect_layouts_steps(categories['100_percent'])
+        for layout_id, data in sorted_layouts:
+            recipe = data['best_recipe']
             
-            print(f"   📊 Médiane des steps: {steps_analysis['median_steps']:.1f}")
-            print(f"   📊 Moyenne des steps: {steps_analysis['mean_steps']:.1f}")
-            print(f"   📊 Range: {steps_analysis['min_steps']:.1f} - {steps_analysis['max_steps']:.1f}")
-            
-            # 5. Créer le graphique des steps
-            print("\n📈 ÉTAPE 5: Création du graphique des steps...")
-            steps_chart_path = self.analyzer.create_perfect_layouts_steps_chart(steps_analysis)
-            print(f"   ✅ Graphique sauvegardé: {steps_chart_path}")
-            
-            # 6. Sélectionner les layouts autour de la médiane
-            print(f"\n🎯 ÉTAPE 6: Sélection des {target_selection_count} meilleurs layouts...")
-            selected_layouts = self.analyzer.select_median_layouts(steps_analysis, target_count=target_selection_count)
-            
-            # 7. Copier les layouts sélectionnés
-            print("\n📁 ÉTAPE 7: Copie des layouts sélectionnés...")
-            output_dir = self.analyzer.copy_selected_layouts(selected_layouts)
-            
-            # 8. Créer la visualisation de la sélection
-            print("\n🎨 ÉTAPE 8: Création de la visualisation de sélection...")
-            selection_viz_path = self.analyzer.create_selection_visualization(selected_layouts, steps_analysis)
-            print(f"   ✅ Visualisation sauvegardée: {selection_viz_path}")
-            
-            # 9. Générer le rapport complet
-            print("\n📋 ÉTAPE 9: Génération du rapport complet...")
-            report_path = self.analyzer.generate_comprehensive_report(
-                layout_data, categories, steps_analysis, selected_layouts)
-            print(f"   ✅ Rapport sauvegardé: {report_path}")
-            
+            # Si cette recette n'a pas encore été utilisée, sélectionner ce layout
+            if recipe not in used_recipes and len(selected_layouts) < max_layouts:
+                selected_layouts.append(layout_id)
+                used_recipes.add(recipe)
+        
+        print(f"✅ Sélectionné {len(selected_layouts)} layouts diversifiés")
+        return selected_layouts
+    
+    def generate_csv_report(self, selected_layouts: List[str]):
+        """Génère un rapport CSV des layouts sélectionnés, trié par Coop_Distance et avec Layout_name (utilise le numéro de recette du nom de fichier)"""
+        if not selected_layouts:
+            print("⚠️  Aucun layout sélectionné pour le rapport CSV")
+            return
+
+        csv_data = []
+        for layout_id in selected_layouts:
+            if layout_id in self.layout_scores:
+                data = self.layout_scores[layout_id]
+                recipe_num = data['best_recipe']  # toujours celui du nom de fichier
+                layout_name = f"L{layout_id}_R{recipe_num}_V{data['best_version']}.layout"
+                csv_data.append({
+                    'Layout_ID': layout_id,
+                    'Recipe_Number': recipe_num,
+                    'Recipe_Name': data['recipe_name'],
+                    'Version': data['best_version'],
+                    'Solo_Distance': data['solo_distance'],
+                    'Coop_Distance': data['coop_distance'],
+                    'Difference_Percentage': data['max_difference'],
+                    'Improvement_Ratio': round(data['max_difference'], 2),
+                    'Layout_name': layout_name
+                })
+        # Créer un DataFrame, trier par Coop_Distance et sauvegarder
+        df = pd.DataFrame(csv_data)
+        df = df.sort_values(by='Coop_Distance', ascending=True)
+        csv_file = os.path.join(self.output_dir, "best_layouts_analysis.csv")
+        df.to_csv(csv_file, index=False, encoding='utf-8')
+        print(f"✅ Rapport CSV généré: {csv_file}")
+        return csv_file
+    
+    def create_visualization(self, selected_layouts: List[str]):
+        """Crée une visualisation graphique des layouts sélectionnés avec distance duo en abscisse et différence pourcentage en ordonnée (PNG uniquement)"""
+        if not selected_layouts:
+            print("⚠️  Aucun layout sélectionné pour la visualisation")
+            return
+
+        # Préparer les données pour le graphique
+        coop_distances = []
+        percentage_differences = []
+        layout_labels = []
+        recipe_names = []
+        colors = []
+
+        # Créer une palette de couleurs
+        color_palette = plt.cm.Set3(np.linspace(0, 1, len(selected_layouts)))
+
+        for i, layout_id in enumerate(selected_layouts):
+            if layout_id in self.layout_scores:
+                data = self.layout_scores[layout_id]
+                coop_distances.append(data['coop_distance'])
+                percentage_differences.append(data['max_difference'])
+                layout_labels.append(f"L{layout_id}")
+                recipe_names.append(data['recipe_name'])
+                colors.append(color_palette[i])
+
+        # Créer le graphique scatter
+        plt.figure(figsize=(14, 10))
+
+        # Graphique en nuage de points
+        scatter = plt.scatter(coop_distances, percentage_differences, 
+                            c=colors, s=100, alpha=0.7, edgecolors='black', linewidth=1.5)
+
+        # Ajouter les labels des layouts
+        for i, (x, y, label, recipe) in enumerate(zip(coop_distances, percentage_differences, layout_labels, recipe_names)):
+            plt.annotate(f'{label}\n{recipe}', (x, y), 
+                        xytext=(5, 5), textcoords='offset points', 
+                        fontsize=8, ha='left', va='bottom',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor=colors[i], alpha=0.3))
+
+        # Personnaliser le graphique
+        plt.title('Layouts Sélectionnés - Relation Distance Coopération vs Amélioration', 
+                 fontsize=16, fontweight='bold', pad=20)
+        plt.xlabel('Distance Coopération (Duo)', fontsize=12, fontweight='bold')
+        plt.ylabel('Amélioration par rapport au Solo (%)', fontsize=12, fontweight='bold')
+
+        # Ajouter une grille
+        plt.grid(True, alpha=0.3)
+
+        # Ajouter des lignes de référence
+        if percentage_differences:
+            plt.axhline(y=np.mean(percentage_differences), color='red', linestyle='--', alpha=0.5, 
+                       label=f'Moyenne: {np.mean(percentage_differences):.1f}%')
+
+        # Ajuster la mise en page
+        plt.tight_layout()
+        plt.legend()
+
+        # Sauvegarder le graphique (PNG uniquement)
+        plot_file = os.path.join(self.output_dir, "layouts_coop_vs_improvement.png")
+        plt.savefig(plot_file, dpi=300, bbox_inches='tight', facecolor='white')
+
+        # Créer aussi un graphique en barres pour la différence en pourcentage
+        plt.figure(figsize=(16, 10))
+
+        # Trier par différence décroissante pour le graphique en barres
+        sorted_data = sorted(zip(layout_labels, percentage_differences, recipe_names, colors), 
+                            key=lambda x: x[1], reverse=True)
+
+        sorted_labels, sorted_diffs, sorted_recipes, sorted_colors = zip(*sorted_data)
+
+        # Diagramme en barres
+        bars = plt.bar(range(len(sorted_labels)), sorted_diffs, color=sorted_colors, 
+                      alpha=0.8, edgecolor='black', linewidth=0.5)
+
+        # Personnaliser le graphique en barres
+        plt.title('Layouts Sélectionnés - Amélioration en Pourcentage (Solo vs Duo)', 
+                 fontsize=16, fontweight='bold', pad=20)
+        plt.xlabel('Layouts', fontsize=12, fontweight='bold')
+        plt.ylabel('Amélioration (%)', fontsize=12, fontweight='bold')
+
+        # Configurer l'axe X
+        plt.xticks(range(len(sorted_labels)), sorted_labels, rotation=45, ha='right')
+
+        # Ajouter les noms des recettes et les pourcentages sur les barres
+        for i, (bar, recipe_name, diff) in enumerate(zip(bars, sorted_recipes, sorted_diffs)):
+            height = bar.get_height()
+            # Nom de recette au-dessus de la barre
+            plt.text(bar.get_x() + bar.get_width()/2., height + max(sorted_diffs) * 0.01,
+                    recipe_name, ha='center', va='bottom', fontsize=8, rotation=0)
+
+            # Pourcentage au milieu de la barre
+            plt.text(bar.get_x() + bar.get_width()/2., height/2,
+                    f'{diff:.1f}%', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+
+        # Ajuster la mise en page
+        plt.tight_layout()
+        plt.grid(axis='y', alpha=0.3)
+
+        # Sauvegarder le graphique en barres (PNG uniquement)
+        bar_plot_file = os.path.join(self.output_dir, "layouts_percentage_improvement_bars.png")
+        plt.savefig(bar_plot_file, dpi=300, bbox_inches='tight', facecolor='white')
+
+        print(f"✅ Visualisations générées:")
+        print(f"   📊 Graphique scatter: {plot_file}")
+        print(f"   📊 Graphique en barres: {bar_plot_file}")
+
+        # Afficher les graphiques
+        plt.show()
+
+        return plot_file, bar_plot_file
+    
+    def print_summary_statistics(self):
+        """Affiche des statistiques de résumé"""
+        
+        if not self.layout_scores:
+            print("⚠️  Aucune donnée à analyser")
+            return
+        
+        differences = [data['max_difference'] for data in self.layout_scores.values()]
+        
+        print("\n" + "="*60)
+        print("📊 STATISTIQUES DE RÉSUMÉ")
+        print("="*60)
+        print(f"Nombre total de layouts analysés: {len(self.layout_scores)}")
+        print(f"Amélioration moyenne (% Solo -> Duo): {np.mean(differences):.2f}%")
+        print(f"Amélioration médiane: {np.median(differences):.2f}%")
+        print(f"Amélioration minimale: {np.min(differences):.2f}%")
+        print(f"Amélioration maximale: {np.max(differences):.2f}%")
+        print(f"Écart-type: {np.std(differences):.2f}%")
+        
+        # Top 10 des layouts
+        top_layouts = sorted(
+            self.layout_scores.items(),
+            key=lambda x: x[1]['max_difference'],
+            reverse=True
+        )[:10]
+        
+        print(f"\n🏆 TOP 10 DES LAYOUTS:")
+        print("-" * 80)
+        print(f"{'Rang':<4} {'Layout':<10} {'Recette':<15} {'Version':<8} {'Amélioration %':<12} {'Recipe Name'}")
+        print("-" * 80)
+        
+        for i, (layout_id, data) in enumerate(top_layouts, 1):
+            print(f"{i:<4} {layout_id:<10} {data['best_recipe']:<15} {data['best_version']:<8} {data['max_difference']:<12.1f} {data['recipe_name']}")
+    
+    def run_full_analysis(self, max_layouts: int = 780):
+        """Exécute l'analyse complète"""
+        
+        print("🚀 DÉMARRAGE DE L'ANALYSE DES LAYOUTS")
+        print("="*60)
+        
+        # 1. Charger le mapping des recettes : Mapping présent dans nom fichier
+        #self.load_recipe_mapping()
+        
+        # 2. Analyser tous les layouts
+        print("\n📊 Analyse de tous les layouts...")
+        self.analyze_all_layouts()
+        
+        if not self.layout_scores:
+            print("❌ Aucune donnée analysée. Vérifiez le format des fichiers JSON.")
+            return
+        
+        # 3. Afficher les statistiques
+        self.print_summary_statistics()
+        
+        # 4. Sélectionner des layouts diversifiés selon l'amélioration apportée par coopération
+        print(f"\n🎯 Sélection de {max_layouts} layouts diversifiés...")
+        selected_layouts = self.select_diverse_layouts(max_layouts)
+        
+        if not selected_layouts:
+            print("❌ Aucun layout sélectionné.")
+            return
+        
+        # 5. Générer le rapport CSV
+        print(f"\n📄 Génération du rapport CSV...")
+        csv_file = self.generate_csv_report(selected_layouts)
+        
+        # 6. Créer la visualisation
+        print(f"\n📈 Création de la visualisation...")
+        plot_files = self.create_visualization(selected_layouts)
+        
+        print("\n" + "="*60)
+        print("✅ ANALYSE TERMINÉE AVEC SUCCÈS!")
+        print("="*60)
+        print(f"📁 Résultats sauvegardés dans: {self.output_dir}/")
+        print(f"📄 Rapport CSV: {csv_file}")
+        if isinstance(plot_files, tuple):
+            print(f"📈 Graphique scatter: {plot_files[0]}")
+            print(f"📈 Graphique barres: {plot_files[1]}")
         else:
-            print("❌ Aucun layout parfait trouvé!")
-            steps_analysis = {}
-        
-        # Résumé final
-        print(f"\n🎉 ANALYSE TERMINÉE POUR {self.category.upper()}!")
-        print("=" * 50)
-        print(f"📊 {len(layout_data)} layouts analysés")
-        print(f"🏆 {len(categories['100_percent'])} layouts parfaits trouvés")
-        print(f"🎯 {len(selected_layouts)} layouts sélectionnés pour {self.category}")
-        print(f"📁 Layouts copiés dans: {self.analyzer.layouts_output_dir}")
-        print(f"📈 Graphiques dans: {self.analyzer.output_dir}")
-        
-        return {
-            'total_layouts': len(layout_data),
-            'perfect_layouts': len(categories['100_percent']),
-            'selected_layouts': len(selected_layouts)
-        }
+            print(f"📈 Graphique: {plot_files}")
+
 
 def main():
-    """Fonction principale avec support de paramètres"""
-    import sys
+    """Fonction principale"""
     
-    # Déterminer la catégorie à analyser
-    if len(sys.argv) > 1:
-        category = sys.argv[1]
-        if category == "all":
-            # Analyser toutes les catégories
-            SimulationEvaluator.analyze_all_categories()
-        else:
-            # Analyser une catégorie spécifique
-            evaluator = SimulationEvaluator(category)
-            evaluator.run_complete_analysis()
-    else:
-        # Par défaut, analyser toutes les catégories disponibles
-        print("💡 Usage: python simulation_analysis.py [category|all]")
-        print("   Exemples de catégories: symmetric, complementary, symmetric_complex, symmetric_solo...")
-        print("   'all' ou sans argument pour analyser toutes les catégories disponibles")
-        print("\n🎯 Analyse par défaut: TOUTES LES CATÉGORIES DISPONIBLES")
-        
-        SimulationEvaluator.analyze_all_categories()
+    # Vérifier que le répertoire existe
+    results_dir = "test_generation_layout/path_evaluation_results"
+    if not os.path.exists(results_dir):
+        print(f"❌ Répertoire '{results_dir}' non trouvé!")
+        print("Veuillez vous assurer que le répertoire contient les fichiers de résultats.")
+        return
+    
+    # Créer l'analyseur et lancer l'analyse
+    analyzer = LayoutEvaluationAnalyzer(results_dir)
+    analyzer.run_full_analysis(max_layouts=780)
+
 
 if __name__ == "__main__":
     main()
