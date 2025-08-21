@@ -1071,6 +1071,7 @@ def condition_tutorial():
         return redirect(url_for('qex_ranking'))
     
     # Récupérer la condition du bloc courant
+    # TO DO : Modifier pour ajouter les autres conditions si nécessaire
     try:
         bloc_key = current_user.config["bloc_order"][current_user.step]
         # Récupérer le label de condition depuis condition_labels (préservé depuis /index)
