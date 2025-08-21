@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    
+    <title>Tutoriel - Condition U</title>
+    <link rel="Favicon" href="static/favicon.ico" />
+    
+    <link rel="stylesheet" href="static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="static/css/style.css" type="text/css" />
+    
+    <style>
+        .tutorial-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.1);
+        }
+        
+        .tutorial-title {
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .tutorial-content {
+            color: #495057;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        
+        .start-button {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .highlight-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Variables cachées pour les scripts -->
+    <div id="uid" style="display:none;">{{uid}}</div>
+    <div id="condition" style="display:none;">U</div>
+    <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
+    
+    <div class="tutorial-container">
+        <h1 class="tutorial-title">Tutoriel - Condition U (Sans Explicabilité)</h1>
+        
+        <div class="tutorial-content">
+            <p><strong>Bienvenue dans ce bloc d'expérimentation !</strong></p>
+            
+            <p>Dans cette condition, vous allez collaborer avec un agent intelligent qui vous aidera à cuisiner. 
+            L'agent agira de manière autonome sans fournir d'indices supplémentaires sur ses intentions.</p>
+            
+            <div class="highlight-box">
+                <h5>Particularités de cette condition :</h5>
+                <ul>
+                    <li><strong>Collaboration simple :</strong> L'agent effectuera ses tâches sans signalement particulier</li>
+                    <li><strong>Observation directe :</strong> Vous devrez observer les actions de l'agent pour comprendre ses intentions</li>
+                    <li><strong>Coordination naturelle :</strong> Basez-vous uniquement sur les actions visibles pour vous coordonner</li>
+                </ul>
+            </div>
+            
+            <p><strong>Objectif :</strong> Collaborez efficacement avec l'agent en observant ses actions et en adaptant votre stratégie pour maximiser votre score.</p>
+            
+            <p><em>Note : Dans cette condition, concentrez-vous sur l'observation des actions de l'agent et votre adaptation en temps réel.</em></p>
+        </div>
+        
+        <button id="start-bloc" class="btn btn-secondary start-button">
+            Commencer le bloc U
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="static/lib/jquery-min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" 
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    
+    <script>
+        // Script pour gérer le bouton de démarrage du bloc
+        $(document).ready(function() {
+            $('#start-bloc').click(function() {
+                // Redirection vers la route planning avec paramètre pour éviter la boucle de redirection
+                window.location.href = '/planning?from_condition_tutorial=true';
+            });
+        });
+    </script>
+</body>
+</html>

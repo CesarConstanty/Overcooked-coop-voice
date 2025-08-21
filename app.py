@@ -419,6 +419,10 @@ def index():
         config_id = request.args.get('CONFIG', default=None)
         config = CONFIG[config_id]
         config["config_id"] = config_id
+        
+        # NOUVEAU: Préserver les labels de condition originaux pour les tutoriels
+        config["condition_labels"] = dict(config["conditions"])  # Copie des labels originaux
+        
         for bloc, value in config["conditions"].items():
             if value == "U":
                 config["conditions"][bloc]={
@@ -642,15 +646,59 @@ def instructions_explained():
 @login_required
 def planning():
     uid = current_user.uid
-    bloc_order = current_user.config["bloc_order"]
+    bloc_order = current_user.config.get("bloc_order", [])
+    
     if current_user.step >= len(bloc_order):
+        print(f"Utilisateur {uid} terminé tous les blocs (step {current_user.step}), redirection vers qex_ranking")
         return redirect(url_for('qex_ranking'))
+    
+    # --- GESTION DES TUTORIELS DE CONDITION ---
+    # Vérifier si l'utilisateur doit voir le tutoriel de condition avant de commencer le bloc
+    from_tutorial = request.args.get('from_condition_tutorial', False)
+    should_show_tutorial = (
+        current_user.trial == 0 and  # Début d'un nouveau bloc
+        not from_tutorial and  # Pas déjà venu du tutoriel
+        current_user.config.get("condition_tutorials")  # Tutoriels configurés
+    )
+    
+    if should_show_tutorial:
+        try:
+            bloc_key = current_user.config["bloc_order"][current_user.step]
+            # Utiliser condition_labels au lieu de conditions pour obtenir le label simple
+            condition_label = current_user.config.get("condition_labels", {}).get(bloc_key)
+            if not condition_label:
+                # Fallback pour compatibilité si condition_labels n'existe pas
+                condition_config = current_user.config["conditions"][bloc_key]
+                if isinstance(condition_config, str):
+                    condition_label = condition_config
+                else:
+                    print(f"Condition {bloc_key} est un dict, impossible de déterminer le label pour le tutoriel")
+                    condition_label = None
+            
+            condition_tutorials = current_user.config.get("condition_tutorials", {})
+            
+            # Si un tutoriel existe pour cette condition, y rediriger
+            if condition_label and condition_label in condition_tutorials:
+                print(f"Redirection vers tutoriel de condition {condition_label} pour bloc {bloc_key} (step {current_user.step})")
+                return redirect(url_for('condition_tutorial'))
+            else:
+                print(f"Aucun tutoriel configuré pour condition {condition_label}")
+        except (KeyError, IndexError) as e:
+            print(f"Erreur lors de la vérification tutoriel pour utilisateur {uid}: {e}")
+            # Continuer vers planning normal en cas d'erreur
+    
+    # --- LOGIQUE PLANNING NORMALE ---
     try:
         bloc_key = current_user.config["bloc_order"][current_user.step]
+        # Pour l'affichage, utiliser les conditions transformées (dictionnaires)
         condition = current_user.config["conditions"][bloc_key]
-        print ("CONDITION random bloc : ", condition)
-    except KeyError:
-        condition = request.args.get('CONDITION')
+        # Pour le logging, utiliser le label simple
+        condition_label = current_user.config.get("condition_labels", {}).get(bloc_key, "inconnu")
+        print(f"Planning - Utilisateur {uid}, bloc {bloc_key}, condition {condition_label}, trial {current_user.trial}")
+    except (KeyError, IndexError) as e:
+        print(f"Erreur configuration bloc pour utilisateur {uid}: {e}")
+        condition = request.args.get('CONDITION', 'U')  # Fallback
+    
     agent_names = get_agent_names()
 
     post_trial = current_user.config.get("questionnaire_post_trial", "")
@@ -680,7 +728,7 @@ def planning():
             hoffman_elements.append(value)
     hoffman = {"elements": hoffman_elements}
 
-    # --- MODIFICATION ICI ---
+    # --- RENDU TEMPLATE ---
     # On ne retourne JAMAIS qex_ranking ici, même si on est au dernier bloc.
     # Le JS s'occupe de rediriger après le dernier questionnaire.
     return render_template(
@@ -977,6 +1025,71 @@ def tutorial():
         return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
     else :
         return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+
+
+@app.route('/condition_tutorial')
+@login_required
+def condition_tutorial():
+    """
+    Route pour afficher le tutoriel spécifique à une condition expérimentale.
+    Cette route est appelée avant chaque bloc pour présenter le tutoriel correspondant 
+    à la condition (EA, U, EV) qui va être jouée.
+    
+    La logique :
+    1. Récupère la condition du bloc courant en fonction de current_user.step
+    2. Utilise le mapping condition_tutorials de la config pour trouver le bon template
+    3. Affiche le tutoriel correspondant avec les bonnes variables
+    """
+    uid = current_user.uid
+    bloc_order = current_user.config.get("bloc_order", [])
+    
+    # Vérifier qu'on n'est pas au-delà du nombre de blocs
+    if current_user.step >= len(bloc_order):
+        print(f"Utilisateur {uid} au step {current_user.step} >= nombre de blocs {len(bloc_order)}, redirection vers qex_ranking")
+        return redirect(url_for('qex_ranking'))
+    
+    # Récupérer la condition du bloc courant
+    try:
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        # Utiliser condition_labels au lieu de conditions pour obtenir le label simple
+        condition_label = current_user.config.get("condition_labels", {}).get(bloc_key)
+        if not condition_label:
+            # Fallback pour compatibilité si condition_labels n'existe pas
+            condition_config = current_user.config["conditions"][bloc_key]
+            if isinstance(condition_config, str):
+                condition_label = condition_config
+            else:
+                print(f"Condition {bloc_key} est un dict, impossible de déterminer le label pour le tutoriel")
+                return redirect(url_for('planning'))
+    except (KeyError, IndexError) as e:
+        print(f"Erreur récupération condition pour utilisateur {uid} step {current_user.step}: {e}")
+        return redirect(url_for('planning'))
+    
+    # Récupérer le template de tutoriel correspondant à cette condition
+    condition_tutorials = current_user.config.get("condition_tutorials", {})
+    tutorial_template = condition_tutorials.get(condition_label)
+    
+    # Si pas de tutoriel spécifique trouvé, rediriger vers planning
+    if not tutorial_template:
+        print(f"Aucun tutoriel trouvé pour la condition {condition_label}, redirection vers planning")
+        return redirect(url_for('planning'))
+    
+    # Vérifier que le template existe
+    template_path = f"static/templates/{tutorial_template}"
+    if not os.path.exists(template_path):
+        print(f"Template {template_path} introuvable, redirection vers planning")
+        return redirect(url_for('planning'))
+    
+    print(f"Affichage du tutoriel {tutorial_template} pour la condition {condition_label} (bloc {bloc_key}, step {current_user.step})")
+    
+    # Retourner le template correspondant avec les variables nécessaires
+    return render_template(
+        tutorial_template, 
+        uid=uid, 
+        condition=condition_label,
+        bloc_id=bloc_key,
+        step=current_user.step
+    )
 
 
 @app.route('/debug')

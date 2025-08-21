@@ -182,7 +182,9 @@ socket.on('next_step', function () {
     if (step + 1 > total_blocs) {
         window.location.href = "/qex_ranking";
     } else {
-        location.reload();
+        // MODIFICATION: Rediriger vers /planning au lieu de recharger la page
+        // Cela déclenchera la logique de vérification des tutoriels de condition
+        window.location.href = "/planning";
     }
 });
 

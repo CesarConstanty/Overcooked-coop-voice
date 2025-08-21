@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    
+    <title>Tutoriel - Condition EA</title>
+    <link rel="Favicon" href="static/favicon.ico" />
+    
+    <link rel="stylesheet" href="static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="static/css/style.css" type="text/css" />
+    
+    <style>
+        .tutorial-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.1);
+        }
+        
+        .tutorial-title {
+            color: #007bff;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .tutorial-content {
+            color: #495057;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .highlight-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .example-box {
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .example-box img {
+            max-width: 120px;
+            margin-bottom: 10px;
+        }
+
+        .sound-btn {
+            border: none;
+            background: #007bff;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .sound-btn:hover {
+            background: #0056b3;
+        }
+
+        .start-button {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Variables cachées pour les scripts -->
+    <div id="uid" style="display:none;">{{uid}}</div>
+    <div id="condition" style="display:none;">EA</div>
+    <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
+    
+    <div class="tutorial-container">
+        <h1 class="tutorial-title">Tutoriel - Condition EA (Explicabilité Auditive)</h1>
+        
+        <div class="tutorial-content">
+            <p><strong>Bienvenue dans ce bloc d'expérimentation !</strong></p>
+            
+            <p>
+                Dans cette condition, vous allez collaborer avec un agent intelligent qui vous aidera à cuisiner.  
+                La communication des intentions se fera exclusivement par des <strong>messages vocaux</strong>.  
+                Vous devez écouter attentivement ces annonces pour coordonner vos actions.
+            </p>
+            
+            <div class="highlight-box">
+                <h5>Particularités de cette condition :</h5>
+                <ul>
+                    <li><strong>Sons d'ingrédients :</strong> Chaque ingrédient sera annoncé par une voix distincte.</li>
+                    <li><strong>Sons de recette :</strong> Chaque recette à préparer sera également annoncée.</li>
+                    <li><strong>Communication auditive :</strong> Votre performance dépendra de votre attention aux signaux sonores.</li>
+                </ul>
+            </div>
+
+            <!-- Exemple recette -->
+            <div class="example-box">
+                <h5>Exemple de recette annoncée :</h5>
+                <img src="static/images/tutorial/example_recipe.png" alt="Exemple recette">
+                <br>
+                <button class="sound-btn" onclick="document.getElementById('recipeAudio').play()">Écouter l'annonce</button>
+                <audio id="recipeAudio" src="static/audio/example_recipe.mp3"></audio>
+            </div>
+
+            <!-- Exemple ingrédient -->
+            <div class="example-box">
+                <h5>Exemple d'ingrédient annoncé :</h5>
+                <img src="static/images/tutorial/example_ingredient.png" alt="Exemple ingrédient">
+                <br>
+                <button class="sound-btn" onclick="document.getElementById('ingredientAudio').play()">Écouter l'annonce</button>
+                <audio id="ingredientAudio" src="static/audio/example_ingredient.mp3"></audio>
+            </div>
+
+            <p>
+                <strong>Liste complète :</strong> Vous trouverez ci-dessous la liste exhaustive des sons (ingrédients et recettes).  
+                Prenez le temps de les écouter pour vous familiariser avant de commencer.
+            </p>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Ingrédients</h6>
+                    <ul>
+                        <li>
+                            <img src="static/images/tutorial/onion.png" style="height:40px;">
+                            <button class="sound-btn" onclick="document.getElementById('onionSound').play()">Oignon</button>
+                            <audio id="onionSound" src="static/audio/onion.mp3"></audio>
+                        </li>
+                        <li>
+                            <img src="static/images/tutorial/tomato.png" style="height:40px;">
+                            <button class="sound-btn" onclick="document.getElementById('tomatoSound').play()">Tomate</button>
+                            <audio id="tomatoSound" src="static/audio/tomato.mp3"></audio>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="col-md-6">
+                    <h6>Recettes</h6>
+                    <ul>
+                        <li>
+                            <img src="static/images/tutorial/recipe1.png" style="height:40px;">
+                            <button class="sound-btn" onclick="document.getElementById('recipe1').play()">Recette 1</button>
+                            <audio id="recipe1" src="static/audio/recipe1.mp3"></audio>
+                        </li>
+                        <li>
+                            <img src="static/images/tutorial/recipe2.png" style="height:40px;">
+                            <button class="sound-btn" onclick="document.getElementById('recipe2').play()">Recette 2</button>
+                            <audio id="recipe2" src="static/audio/recipe2.mp3"></audio>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <p class="mt-4"><em>Note : Vérifiez que le volume de votre navigateur est activé pour profiter pleinement de cette expérience.</em></p>
+        </div>
+        
+        <button id="start-bloc" class="btn btn-primary start-button">
+            Commencer le bloc EA
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="static/lib/jquery-min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" 
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    
+    <script>
+        // Script pour gérer le bouton de démarrage du bloc
+        $(document).ready(function() {
+            $('#start-bloc').click(function() {
+                window.location.href = '/planning?from_condition_tutorial=true';
+            });
+        });
+    </script>
+</body>
+</html>
