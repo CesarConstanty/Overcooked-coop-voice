@@ -661,28 +661,50 @@ def planning():
         current_user.config.get("condition_tutorials")  # Tutoriels configurés
     )
     
+    print(f"DEBUG TUTORIEL - Utilisateur {uid}: trial={current_user.trial}, from_tutorial={from_tutorial}, condition_tutorials présent={bool(current_user.config.get('condition_tutorials'))}")
+    print(f"DEBUG TUTORIEL - should_show_tutorial={should_show_tutorial}")
+    
     if should_show_tutorial:
         try:
             bloc_key = current_user.config["bloc_order"][current_user.step]
-            # Utiliser condition_labels au lieu de conditions pour obtenir le label simple
+            
+            # Récupérer le label de condition depuis condition_labels (préservé depuis /index)
             condition_label = current_user.config.get("condition_labels", {}).get(bloc_key)
-            if not condition_label:
-                # Fallback pour compatibilité si condition_labels n'existe pas
+            
+            # Si condition_labels n'existe pas, est vide, ou contient un dict, déduire depuis la configuration
+            if not condition_label or isinstance(condition_label, dict):
                 condition_config = current_user.config["conditions"][bloc_key]
-                if isinstance(condition_config, str):
-                    condition_label = condition_config
+                if isinstance(condition_config, dict):
+                    # Logique inverse : déterminer le label depuis la configuration
+                    if (condition_config.get("recipe_hud") == False and 
+                        condition_config.get("asset_hud") == False and
+                        condition_config.get("asset_sound") == False and
+                        condition_config.get("recipe_sound") == False):
+                        condition_label = "U"
+                    elif (condition_config.get("recipe_hud") == True and 
+                          condition_config.get("asset_hud") == True and
+                          condition_config.get("asset_sound") == False):
+                        condition_label = "EV"
+                    elif (condition_config.get("asset_sound") == True and 
+                          condition_config.get("recipe_sound") == True):
+                        condition_label = "EA"
+                    else:
+                        condition_label = None
+                        print(f"ERREUR: Configuration inconnue pour bloc {bloc_key}: {condition_config}")
                 else:
-                    print(f"Condition {bloc_key} est un dict, impossible de déterminer le label pour le tutoriel")
-                    condition_label = None
+                    condition_label = condition_config
+            
+            print(f"DEBUG TUTORIEL - bloc_key={bloc_key}, condition_label={condition_label} (type: {type(condition_label)})")
             
             condition_tutorials = current_user.config.get("condition_tutorials", {})
+            print(f"DEBUG TUTORIEL - condition_tutorials={condition_tutorials}")
             
             # Si un tutoriel existe pour cette condition, y rediriger
-            if condition_label and condition_label in condition_tutorials:
+            if condition_label and isinstance(condition_label, str) and condition_label in condition_tutorials:
                 print(f"Redirection vers tutoriel de condition {condition_label} pour bloc {bloc_key} (step {current_user.step})")
                 return redirect(url_for('condition_tutorial'))
             else:
-                print(f"Aucun tutoriel configuré pour condition {condition_label}")
+                print(f"Aucun tutoriel configuré pour condition {condition_label} ou type incorrect: {type(condition_label)}")
         except (KeyError, IndexError) as e:
             print(f"Erreur lors de la vérification tutoriel pour utilisateur {uid}: {e}")
             # Continuer vers planning normal en cas d'erreur
@@ -1051,16 +1073,39 @@ def condition_tutorial():
     # Récupérer la condition du bloc courant
     try:
         bloc_key = current_user.config["bloc_order"][current_user.step]
-        # Utiliser condition_labels au lieu de conditions pour obtenir le label simple
+        # Récupérer le label de condition depuis condition_labels (préservé depuis /index)
         condition_label = current_user.config.get("condition_labels", {}).get(bloc_key)
-        if not condition_label:
-            # Fallback pour compatibilité si condition_labels n'existe pas
+        
+        # Si condition_labels n'existe pas, est vide, ou contient un dict, déduire depuis la configuration
+        if not condition_label or isinstance(condition_label, dict):
             condition_config = current_user.config["conditions"][bloc_key]
-            if isinstance(condition_config, str):
-                condition_label = condition_config
+            if isinstance(condition_config, dict):
+                # Logique inverse : déterminer le label depuis la configuration
+                if (condition_config.get("recipe_hud") == False and 
+                    condition_config.get("asset_hud") == False and
+                    condition_config.get("asset_sound") == False and
+                    condition_config.get("recipe_sound") == False):
+                    condition_label = "U"
+                elif (condition_config.get("recipe_hud") == True and 
+                      condition_config.get("asset_hud") == True and
+                      condition_config.get("asset_sound") == False):
+                    condition_label = "EV"
+                elif (condition_config.get("asset_sound") == True and 
+                      condition_config.get("recipe_sound") == True):
+                    condition_label = "EA"
+                else:
+                    condition_label = None
+                    print(f"ERREUR: Configuration inconnue pour bloc {bloc_key}: {condition_config}")
             else:
-                print(f"Condition {bloc_key} est un dict, impossible de déterminer le label pour le tutoriel")
-                return redirect(url_for('planning'))
+                condition_label = condition_config
+        
+        print(f"DEBUG CONDITION_TUTORIAL - bloc_key={bloc_key}, condition_label={condition_label} (type: {type(condition_label)})")
+        
+        # Vérifier que c'est une chaîne
+        if not isinstance(condition_label, str):
+            print(f"Condition label n'est pas une chaîne: {condition_label} (type: {type(condition_label)})")
+            return redirect(url_for('planning'))
+            
     except (KeyError, IndexError) as e:
         print(f"Erreur récupération condition pour utilisateur {uid} step {current_user.step}: {e}")
         return redirect(url_for('planning'))

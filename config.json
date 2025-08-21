@@ -48,7 +48,7 @@
         "preference_length" : 240,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1" : "EA", "0":"U", "2":"EV"},
+        "conditions" : {"1" : "EV", "0":"U", "2":"EA"},
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html"},
         "blocs" : {
             "0": ["V1_layout_combination_01", "V1_layout_combination_02", "V1_layout_combination_03","V1_layout_combination_10", "V1_layout_combination_11", "V1_layout_combination_12","V1_layout_combination_19"],

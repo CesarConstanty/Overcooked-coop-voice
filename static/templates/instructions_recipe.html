@@ -84,7 +84,6 @@
     <div class="container">
       <p> 
 		<div style="justify-content">
-
 			Hello! Welcome to this video game where it's all about... cooking ! In this experiment you will play a chief in a restaurant specialised in soups !
 		</div>
 	  </p>
@@ -110,105 +109,35 @@
       </div>
   <meta charset="UTF-8">
 
-
-<h3 class="text-center">Intentions</h3>
-
-<div class="container">
-  <div style="display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
-
-	<!-- Première image : titre de la colonne -->
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/ingredients_icon.png" alt="Ingrédients" style="width: 100px;">
-	  <span style="font-weight: bold;">Ingrédients</span>
-	</div>
-
-	<!-- Liste des images avec sons -->
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio1').play()">🔊 recette_0o_1t</button>
-	  <audio id="audio1" src="static/audio/recette_0o_1t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/2tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio2').play()">🔊 recette_0o_2t</button>
-	  <audio id="audio2" src="static/audio/recette_0o_2t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/3tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio3').play()">🔊 recette_0o_3t</button>
-	  <audio id="audio3" src="static/audio/recette_0o_3t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1onion.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio4').play()">🔊 recette_1o_0t</button>
-	  <audio id="audio4" src="static/audio/recette_1o_0t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1onion1tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio5').play()">🔊 recette_1o_1t</button>
-	  <audio id="audio5" src="static/audio/recette_1o_1t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/1onion2tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio6').play()">🔊 recette_1o_2t</button>
-	  <audio id="audio6" src="static/audio/recette_1o_2t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/2onion.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio7').play()">🔊 recette_2o_0t</button>
-	  <audio id="audio7" src="static/audio/recette_2o_0t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/2onion1tomato.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio8').play()">🔊 recette_2o_1t</button>
-	  <audio id="audio8" src="static/audio/recette_2o_1t.mp3"></audio>
-	</div>
-
-	<div style="display: flex; align-items: center; gap: 20px;">
-	  <img src="static/images/tutorial/3onion.png" style="width: 100px;">
-	  <button onclick="document.getElementById('audio9').play()">🔊 recette_3o_0t</button>
-	  <audio id="audio9" src="static/audio/recette_3o_0t.mp3"></audio>
-	</div>
-
-  </div>
-</div>
-
       <br>
       <hr>
       <br>
 
-      <h3 class="text-center">Gameplay Basics</h3>
+  <h3 class="text-center">Gameplay Basics</h3>
 
-      <div style="display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;">
+  <div style="display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;">
 
-        <!-- Movement and interactions -->
-        <div style="flex: 1; max-width: 500px;">
-          <h4>Movement and interactions</h4>
-          <img src="static/images/space-arrows.png" style="width:250px; display: block; margin: 0 auto;">
-          <p>
-            You can move up, down, left, and right using the <b>arrow keys</b>, and interact with objects
-            using the <b>spacebar</b>.
-          </p>
-          <p>
-            You can interact with objects by facing them and pressing <b>spacebar</b>. Here are some examples:
-          </p>
-          <ul>
-            <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <b>spacebar</b>.</li>
-            <li>If you're holding an ingredient and face an empty counter, pressing <b>spacebar</b> puts the item down.</li>
-            <li>Face a pot and press <b>spacebar</b> to add an ingredient (if it's not full).</li>
-            <li>Face a non-empty pot while holding nothing and press <b>spacebar</b> to begin cooking.</li>
-          </ul>
-          <p>
-            <u><b>You cannot occupy the same location as your partner.</b></u>
-          </p>
-        </div>
+    <!-- Movement and interactions -->
+    <div style="flex: 1; max-width: 500px;">
+      <h4>Movement and interactions</h4>
+      <img src="static/images/space-arrows.png" style="width:250px; display: block; margin: 0 auto;">
+      <p>
+        You can move up, down, left, and right using the <b>arrow keys</b>, and interact with objects
+        using the <b>spacebar</b>.
+      </p>
+      <p>
+        You can interact with objects by facing them and pressing <b>spacebar</b>. Here are some examples:
+      </p>
+      <ul>
+        <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <b>spacebar</b>.</li>
+        <li>If you're holding an ingredient and face an empty counter, pressing <b>spacebar</b> puts the item down.</li>
+        <li>Face a pot and press <b>spacebar</b> to add an ingredient (if it's not full).</li>
+        <li>Face a non-empty pot while holding nothing and press <b>spacebar</b> to begin cooking.</li>
+      </ul>
+      <p>
+        <u><b>You cannot occupy the same location as your partner.</b></u>
+      </p>
+    </div>
 
         <!-- Cooking -->
         <div style="flex: 1; max-width: 500px;">
@@ -263,21 +192,6 @@
       <hr>
       <br>
 
-      {% if is_explained %}
-      <h3 class="text-center">Layouts</h3>
-      <p>
-        During the experiment, you will interact with an agent who shares with you informations about its
-        actions. It is really important for you now to understand which information the agent will provide you:
-      </p>
-      <p>1. Which recipe the agent is performing</p>
-      <p>2. What the agent is going to look for</p>
-
-      <img class="center" src="static/images/intentions_recipehead_assethud.png" style="width:800px">
-      <br>
-      <hr>
-      <br>
-      {% endif %}
-
       <h4 class="text-center">Please pay VERY close attention to this part. It is AS IMPORTANT AS the game itself. </h4>
 
       <br>
@@ -311,7 +225,7 @@
 
       <h5 class="text-left">After each BLOCK of games</h5>
       <p>
-        At the end of each assignment block, you will be asked to complete a questionnaire about the
+        At the end of each assignment block, you will be asked to complete two questionnaires about the
         games you have just completed.
       </p>
 
@@ -323,8 +237,9 @@
 
       <h3 class="text-center">Course of the experiment</h3>
       <p>You will start by performing a tutorial to familiarize yourself with the interface.</p>
-      <p>Then you will have a training block (containing 4 games) to learn how to play with the agent.</p>
-      <p>Then you will start the experiment where you will complete 7 blocks containing 5 games each.</p>
+      <p>You will start each block with a practice trial to learn how to play with the agent.
+        This trial will look like other trials but we wont use the data collected.</p>
+      <p>Then you will start the experiment where you will complete 3 blocks containing 11 games each.</p>
       <p>You will be able to take a small break between each block if you wish.</p>
 	  <p>Keep in mind that every survey is to mean to be completed in a certain amount of time</p>
 
