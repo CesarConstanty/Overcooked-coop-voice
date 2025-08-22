@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutoriel - Condition EVH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .bubble-example {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #007bff;
+            background-color: white;
+            margin: 10px;
+            position: relative;
+            vertical-align: middle;
+        }
+        .sequence-arrow {
+            font-size: 24px;
+            color: #007bff;
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+        .tutorial-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        ul {
+            text-align: left;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="tutorial-container">
+        <h1>Tutoriel - Condition EVH</h1>
+        
+        <div class="section">
+            <h2>Communication visuelle des intentions</h2>
+            <p>Dans cette condition expérimentale, l'IA communique ses intentions via des bulles visuelles qui apparaissent au-dessus de sa tête.</p>
+        </div>
+
+        <div class="section">
+            <h2>Séquence d'affichage</h2>
+            <p>Les intentions sont communiquées dans l'ordre suivant :</p>
+            
+            <div style="margin: 20px 0;">
+                <div class="bubble-example" style="border-color: #007bff;">
+                    <span style="font-size: 12px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">Recette</span>
+                </div>
+                <span class="sequence-arrow">→</span>
+                <div class="bubble-example" style="border-color: #28a745;">
+                    <span style="font-size: 12px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">Asset</span>
+                </div>
+                <span class="sequence-arrow">→</span>
+                <div class="bubble-example" style="border-color: #28a745;">
+                    <span style="font-size: 12px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">Asset +1</span>
+                </div>
+                <span class="sequence-arrow">→</span>
+                <div class="bubble-example" style="border-color: #6c757d;">
+                    <span style="font-size: 12px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">Recette +1</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Types d'intentions</h2>
+            <ul>
+                <li><strong>Recette :</strong> L'image de la recette que l'IA souhaite préparer (bordure bleue)</li>
+                <li><strong>Assets :</strong> Les objets que l'IA cherche à atteindre (O=Oignon, T=Tomate, D=Assiette, S=Service) (bordure verte)</li>
+                <li><strong>Recette suivante :</strong> La prochaine recette prévue (bordure grise)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Durées d'affichage</h2>
+            <p>Chaque type d'intention a une durée d'affichage différente :</p>
+            <ul style="max-width: 400px;">
+                <li>Recette : 2 secondes</li>
+                <li>Asset : 1.5 secondes</li>
+                <li>Recette suivante : 1 seconde</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Points importants</h2>
+            <ul>
+                <li>Les bulles suivent automatiquement le déplacement de l'IA</li>
+                <li>Elles apparaissent directement au-dessus de la tête du personnage</li>
+                <li>La séquence se répète quand les intentions changent</li>
+                <li>Seuls les assets O, T, D, S sont communiqués visuellement</li>
+            </ul>
+        </div>
+
+        <div class="button-container">
+            <button id="start-game" class="btn">Commencer l'expérience</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('start-game').addEventListener('click', function() {
+            window.location.href = '/planning?from_condition_tutorial=true';
+        });
+    </script>
+</body>
+</html>

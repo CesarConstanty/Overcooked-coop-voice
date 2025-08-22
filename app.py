@@ -514,6 +514,19 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : True
             }
+            elif value =="EVH" :
+                config["conditions"][bloc]={
+            "recipe_head": True,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000)
+            }
 
     except KeyError:
         return render_template('UID_error.html')
@@ -533,15 +546,25 @@ def index():
             new_user = User(uid=uid, config=config, step=0, trial=0)
             # gère la randomisation des blocs
             if new_user.config.get("shuffle_blocs", False):
+                # SHUFFLE_BLOCS = TRUE : Ordre aléatoire
                 bloc_keys = list(new_user.config["blocs"].keys())
                 random.shuffle(bloc_keys)
-                print ("ordre des essais :" , bloc_keys)
                 new_user.config["bloc_order"] = bloc_keys
+                print(f"🎲 SHUFFLE_BLOCS=TRUE - Ordre randomisé: {bloc_keys}")
                 bloc_key = new_user.config["bloc_order"][new_user.step]
-                print("premier bloc :", bloc_key)
-                print ("liste des essais : ",new_user.config["blocs"][bloc_key] )
+                print(f"🎲 Premier bloc sélectionné: {bloc_key}")
+                print(f"🎲 Liste des essais du premier bloc: {new_user.config['blocs'][bloc_key]}")
             else:
-                new_user.config["bloc_order"] = list(new_user.config["blocs"].keys())
+                # SHUFFLE_BLOCS = FALSE : Ordre croissant strict (0, 1, 2, ...)
+                bloc_keys = sorted(new_user.config["blocs"].keys(), key=lambda x: int(x))
+                new_user.config["bloc_order"] = bloc_keys
+                print(f"📋 SHUFFLE_BLOCS=FALSE - Ordre croissant: {bloc_keys}")
+                if bloc_keys:
+                    premier_bloc = bloc_keys[0]
+                    print(f"📋 Premier bloc sélectionné (step 0): {premier_bloc}")
+                    print(f"📋 Condition du premier bloc: {new_user.config.get('conditions', {}).get(premier_bloc, 'Non définie')}")
+                else:
+                    print("⚠️  Aucun bloc défini dans la configuration")
             if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
@@ -661,6 +684,19 @@ def planning():
         current_user.config.get("condition_tutorials")  # Tutoriels configurés
     )
     
+    # Debug des informations de bloc
+    bloc_order = current_user.config.get("bloc_order", [])
+    print(f"🎯 SÉLECTION BLOC - Utilisateur {uid}:")
+    print(f"   Step actuel: {current_user.step}")
+    print(f"   Ordre des blocs: {bloc_order}")
+    if current_user.step < len(bloc_order):
+        bloc_actuel = bloc_order[current_user.step]
+        condition_actuelle = current_user.config.get("conditions", {}).get(bloc_actuel, "Non définie")
+        print(f"   Bloc actuel (step {current_user.step}): {bloc_actuel}")
+        print(f"   Condition actuelle: {condition_actuelle}")
+    else:
+        print(f"   ⚠️  Step {current_user.step} dépasse la longueur des blocs ({len(bloc_order)})")
+    
     print(f"DEBUG TUTORIEL - Utilisateur {uid}: trial={current_user.trial}, from_tutorial={from_tutorial}, condition_tutorials présent={bool(current_user.config.get('condition_tutorials'))}")
     print(f"DEBUG TUTORIEL - should_show_tutorial={should_show_tutorial}")
     
@@ -676,10 +712,15 @@ def planning():
                 condition_config = current_user.config["conditions"][bloc_key]
                 if isinstance(condition_config, dict):
                     # Logique inverse : déterminer le label depuis la configuration
-                    if (condition_config.get("recipe_hud") == False and 
+                    # Vérifier d'abord EVH (nouvelle condition avec visual_bubbles)
+                    if (condition_config.get("visual_bubbles") == True and 
+                        condition_config.get("recipe_head") == True):
+                        condition_label = "EVH"
+                    elif (condition_config.get("recipe_hud") == False and 
                         condition_config.get("asset_hud") == False and
                         condition_config.get("asset_sound") == False and
-                        condition_config.get("recipe_sound") == False):
+                        condition_config.get("recipe_sound") == False and
+                        condition_config.get("visual_bubbles") != True):
                         condition_label = "U"
                     elif (condition_config.get("recipe_hud") == True and 
                           condition_config.get("asset_hud") == True and
@@ -1082,10 +1123,15 @@ def condition_tutorial():
             condition_config = current_user.config["conditions"][bloc_key]
             if isinstance(condition_config, dict):
                 # Logique inverse : déterminer le label depuis la configuration
-                if (condition_config.get("recipe_hud") == False and 
+                # Vérifier d'abord EVH (nouvelle condition avec visual_bubbles)
+                if (condition_config.get("visual_bubbles") == True and 
+                    condition_config.get("recipe_head") == True):
+                    condition_label = "EVH"
+                elif (condition_config.get("recipe_hud") == False and 
                     condition_config.get("asset_hud") == False and
                     condition_config.get("asset_sound") == False and
-                    condition_config.get("recipe_sound") == False):
+                    condition_config.get("recipe_sound") == False and
+                    condition_config.get("visual_bubbles") != True):
                     condition_label = "U"
                 elif (condition_config.get("recipe_hud") == True and 
                       condition_config.get("asset_hud") == True and

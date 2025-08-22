@@ -676,17 +676,23 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                     sprites['recipe_goal'].destroy();
                 }
                 if(this.condition.recipe_head){
-                    let spriteFrame = this._ingredientsToSpriteFrame(chef.intentions.recipe, "done");
-                    let order_goalSprite = this.add.sprite(
-                        this.tileSize*x,
-                        this.tileSize*y - 40,
-                        "soups",
-                        spriteFrame
-                    );
-                    order_goalSprite.depth = 2
-                    order_goalSprite.setDisplaySize(this.tileSize, this.tileSize)
-                    order_goalSprite.setOrigin(0);
-                    sprites['recipe_goal'] = order_goalSprite
+                    if(this.condition.visual_bubbles && this.hud_data) {
+                        // Mode EVH : bulles visuelles avec durées (seulement si hud_data disponible)
+                        this._displayVisualBubbles(chef, sprites, x, y, this.hud_data);
+                    } else if (!this.condition.visual_bubbles) {
+                        // Mode recipe_head classique permanent
+                        let spriteFrame = this._ingredientsToSpriteFrame(chef.intentions.recipe, "done");
+                        let order_goalSprite = this.add.sprite(
+                            this.tileSize*x,
+                            this.tileSize*y - 40,
+                            "soups",
+                            spriteFrame
+                        );
+                        order_goalSprite.depth = 2
+                        order_goalSprite.setDisplaySize(this.tileSize, this.tileSize)
+                        order_goalSprite.setOrigin(0);
+                        sprites['recipe_goal'] = order_goalSprite
+                    }
                 }              
             };
             if (typeof(sprites['chefs'][pi]) === 'undefined') {
@@ -1399,5 +1405,217 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         });
         
         console.groupEnd();
+    }
+
+    /**
+     * Display visual bubbles for EVH condition
+     */
+    _displayVisualBubbles(chef, sprites, x, y, hud_data) {
+        // Vérifications de sécurité
+        if (!chef || !chef.intentions || !hud_data || !this.condition) {
+            return;
+        }
+        
+        // Initialiser les variables de bulle si nécessaire
+        if (!this.bubbleSequence) {
+            this.bubbleSequence = [];
+            this.currentBubbleIndex = 0;
+            this.bubbleTimer = null;
+            this.currentBubbleSprite = null;
+            this.lastRecipe = null;        // Séparer le tracking de la recette
+            this.lastAssets = null;        // Séparer le tracking des assets
+        }
+
+        // Récupérer les intentions actuelles avec vérifications
+        let currentRecipe = (chef.intentions && chef.intentions.recipe) ? chef.intentions.recipe : [];
+        let currentAssets = (hud_data.intentions && hud_data.intentions.goal) ? [...hud_data.intentions.goal] : [];
+        
+        // Créer des identifiants séparés pour recette et assets
+        let recipeId = JSON.stringify(currentRecipe);
+        let assetsId = JSON.stringify(currentAssets);
+        
+        // Vérifier si la recette a changé (début ou changement de recette)
+        let recipeChanged = (this.lastRecipe !== recipeId);
+        // Vérifier si les assets ont changé
+        let assetsChanged = (this.lastAssets !== assetsId);
+        
+        // Logic de déclenchement selon les consignes :
+        // 1. Recette au début de partie OU quand elle change
+        // 2. Assets quand ils changent (mais PAS redéclencher la recette)
+        
+        if (recipeChanged || (assetsChanged && !recipeChanged)) {
+            // Mettre à jour les trackers
+            if (recipeChanged) this.lastRecipe = recipeId;
+            if (assetsChanged) this.lastAssets = assetsId;
+            
+            // Construire la nouvelle séquence selon le cas
+            let newSequence = [];
+            
+            if (recipeChanged && currentRecipe && currentRecipe.length > 0) {
+                // CAS 1: Recette a changé -> afficher recette PUIS assets
+                newSequence.push({
+                    type: 'recipe',
+                    data: currentRecipe,
+                    duration: (this.condition.visual_intention_recipe_duration || 2000)
+                });
+                
+                // Puis ajouter les assets après la recette
+                if (currentAssets && currentAssets.length > 0) {
+                    currentAssets.forEach(asset => {
+                        newSequence.push({
+                            type: 'asset',
+                            data: asset,
+                            duration: (this.condition.visual_intention_asset_duration || 1500)
+                        });
+                    });
+                }
+            } else if (assetsChanged && !recipeChanged && currentAssets && currentAssets.length > 0) {
+                // CAS 2: Seuls les assets ont changé -> afficher SEULEMENT les nouveaux assets
+                currentAssets.forEach(asset => {
+                    newSequence.push({
+                        type: 'asset',
+                        data: asset,
+                        duration: (this.condition.visual_intention_asset_duration || 1500)
+                    });
+                });
+            }
+            
+            // Démarrer la nouvelle séquence
+            if (newSequence.length > 0) {
+                this._startBubbleSequence(newSequence, sprites, x, y);
+            } else {
+                this._clearBubbleSequence();
+            }
+        } else {
+            // Aucun changement -> juste mettre à jour la position si une bulle est affichée
+            this._updateBubblePosition(x, y);
+        }
+    }
+
+    /**
+     * Start the visual bubble sequence
+     */
+    _startBubbleSequence(sequence, sprites, x, y) {
+        // Vérifications de sécurité
+        if (!sequence || sequence.length === 0 || !sprites) {
+            return;
+        }
+        
+        // Arrêter la séquence précédente
+        this._clearBubbleSequence();
+
+        // Stocker la nouvelle séquence
+        this.bubbleSequence = sequence;
+        this.currentBubbleIndex = 0;
+
+        // Démarrer l'affichage
+        this._showNextBubble(sprites, x, y);
+    }
+
+    /**
+     * Show the next bubble in sequence
+     */
+    _showNextBubble(sprites, x, y) {
+        if (this.currentBubbleIndex >= this.bubbleSequence.length) {
+            this._clearBubbleSequence();
+            return;
+        }
+
+        let currentBubble = this.bubbleSequence[this.currentBubbleIndex];
+        
+        // Créer le sprite approprié
+        if (currentBubble.type === 'recipe' || currentBubble.type === 'next_recipe') {
+            this._createRecipeBubble(currentBubble.data, sprites, x, y);
+        } else if (currentBubble.type === 'asset') {
+            this._createAssetBubble(currentBubble.data, sprites, x, y);
+        }
+
+        // Programmer la bulle suivante
+        this.bubbleTimer = setTimeout(() => {
+            this.currentBubbleIndex++;
+            this._showNextBubble(sprites, x, y);
+        }, currentBubble.duration);
+    }
+
+    /**
+     * Create a recipe bubble sprite
+     */
+    _createRecipeBubble(recipeData, sprites, x, y) {
+        this._clearCurrentBubble();
+        
+        let spriteFrame = this._ingredientsToSpriteFrame(recipeData, "done");
+        this.currentBubbleSprite = this.add.sprite(
+            this.tileSize * x + this.tileSize/2,
+            this.tileSize * y - 40,
+            "soups",
+            spriteFrame
+        );
+        this.currentBubbleSprite.depth = 10;
+        this.currentBubbleSprite.setDisplaySize(this.tileSize, this.tileSize);
+        this.currentBubbleSprite.setOrigin(0.5);
+    }
+
+    /**
+     * Create an asset bubble sprite - EXACTEMENT comme les recettes
+     */
+    _createAssetBubble(assetData, sprites, x, y) {
+        this._clearCurrentBubble();
+        
+        // Mapping direct vers les frames de l'atlas "objects" (même système que les recettes)
+        const assetToFrame = {
+            'O': 'onion.png',      // Frame onion.png dans objects.json
+            'T': 'tomato.png',     // Frame tomato.png dans objects.json  
+            'D': 'dish.png',       // Frame dish.png dans objects.json
+            'S': 'soup-onion-cooked.png'  // Frame soup pour les soupes
+        };
+        
+        let spriteFrame = assetToFrame[assetData];
+        if (spriteFrame) {
+            // EXACTEMENT la même structure que _createRecipeBubble
+            this.currentBubbleSprite = this.add.sprite(
+                this.tileSize * x + this.tileSize/2,
+                this.tileSize * y - 40,
+                "objects",  // Utiliser l'atlas objects (comme recettes utilisent "soups")
+                spriteFrame
+            );
+            this.currentBubbleSprite.depth = 10;
+            this.currentBubbleSprite.setDisplaySize(this.tileSize, this.tileSize);  // MÊME taille que recettes
+            this.currentBubbleSprite.setOrigin(0.5);
+        }
+        // PAS de fallback - si le sprite n'existe pas, on n'affiche rien (comme les recettes)
+    }
+
+    /**
+     * Update bubble position when player moves
+     */
+    _updateBubblePosition(x, y) {
+        if (this.currentBubbleSprite) {
+            this.currentBubbleSprite.setPosition(
+                this.tileSize * x + this.tileSize/2,
+                this.tileSize * y - 40
+            );
+        }
+    }
+
+    /**
+     * Clear current bubble sprite
+     */
+    _clearCurrentBubble() {
+        if (this.currentBubbleSprite) {
+            this.currentBubbleSprite.destroy();
+            this.currentBubbleSprite = null;
+        }
+    }
+
+    /**
+     * Clear entire bubble sequence
+     */
+    _clearBubbleSequence() {
+        if (this.bubbleTimer) {
+            clearTimeout(this.bubbleTimer);
+            this.bubbleTimer = null;
+        }
+        this._clearCurrentBubble();
+        this.currentBubbleIndex = 0;
     }
 }
