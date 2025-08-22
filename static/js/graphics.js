@@ -1422,6 +1422,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this.currentBubbleIndex = 0;
             this.bubbleTimer = null;
             this.currentBubbleSprite = null;
+            this.currentBubbleBackground = null;  // Pour le fond blanc des assets
             this.lastRecipe = null;        // Séparer le tracking de la recette
             this.lastAssets = null;        // Séparer le tracking des assets
         }
@@ -1556,33 +1557,44 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
 
     /**
-     * Create an asset bubble sprite - EXACTEMENT comme les recettes
+     * Create an asset bubble sprite avec fond blanc circulaire pour lisibilité
      */
     _createAssetBubble(assetData, sprites, x, y) {
         this._clearCurrentBubble();
         
-        // Mapping direct vers les frames de l'atlas "objects" (même système que les recettes)
-        const assetToFrame = {
-            'O': 'onion.png',      // Frame onion.png dans objects.json
-            'T': 'tomato.png',     // Frame tomato.png dans objects.json  
-            'D': 'dish.png',       // Frame dish.png dans objects.json
-            'S': 'soup-onion-cooked.png'  // Frame soup pour les soupes
+        // Mapping vers les bonnes frames et atlas
+        const assetToSprite = {
+            'O': { atlas: 'objects', frame: 'onion.png' },
+            'T': { atlas: 'objects', frame: 'tomato.png' },  
+            'D': { atlas: 'objects', frame: 'dish.png' },
+            'S': { atlas: 'terrain', frame: 'serve.png' }    // Zone de service depuis terrain
         };
         
-        let spriteFrame = assetToFrame[assetData];
-        if (spriteFrame) {
-            // EXACTEMENT la même structure que _createRecipeBubble
+        let spriteInfo = assetToSprite[assetData];
+        if (spriteInfo) {
+            // Position de la bulle
+            let bubbleX = this.tileSize * x + this.tileSize/2;
+            let bubbleY = this.tileSize * y - 40;
+            
+            // 1. Créer le fond blanc circulaire pour lisibilité
+            this.currentBubbleBackground = this.add.graphics();
+            this.currentBubbleBackground.fillStyle(0xFFFFFF, 0.9);  // Blanc avec légère transparence
+            this.currentBubbleBackground.lineStyle(2, 0x000000, 0.3); // Bordure noire légère
+            this.currentBubbleBackground.fillCircle(bubbleX, bubbleY, this.tileSize/4);
+            this.currentBubbleBackground.strokeCircle(bubbleX, bubbleY, this.tileSize/4);
+            this.currentBubbleBackground.depth = 9; // Derrière le sprite principal
+            
+            // 2. Créer le sprite de l'asset par-dessus le fond
             this.currentBubbleSprite = this.add.sprite(
-                this.tileSize * x + this.tileSize/2,
-                this.tileSize * y - 40,
-                "objects",  // Utiliser l'atlas objects (comme recettes utilisent "soups")
-                spriteFrame
+                bubbleX,
+                bubbleY,
+                spriteInfo.atlas,
+                spriteInfo.frame
             );
             this.currentBubbleSprite.depth = 10;
-            this.currentBubbleSprite.setDisplaySize(this.tileSize, this.tileSize);  // MÊME taille que recettes
+            this.currentBubbleSprite.setDisplaySize(this.tileSize * 0.7, this.tileSize * 0.7); // Légèrement plus petit que le fond
             this.currentBubbleSprite.setOrigin(0.5);
         }
-        // PAS de fallback - si le sprite n'existe pas, on n'affiche rien (comme les recettes)
     }
 
     /**
@@ -1590,10 +1602,20 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      */
     _updateBubblePosition(x, y) {
         if (this.currentBubbleSprite) {
-            this.currentBubbleSprite.setPosition(
-                this.tileSize * x + this.tileSize/2,
-                this.tileSize * y - 40
-            );
+            let newX = this.tileSize * x + this.tileSize/2;
+            let newY = this.tileSize * y - 40;
+            
+            // Déplacer le sprite principal
+            this.currentBubbleSprite.setPosition(newX, newY);
+            
+            // Déplacer aussi le fond s'il existe
+            if (this.currentBubbleBackground) {
+                this.currentBubbleBackground.clear();
+                this.currentBubbleBackground.fillStyle(0xFFFFFF, 0.9);
+                this.currentBubbleBackground.lineStyle(2, 0x000000, 0.3);
+                this.currentBubbleBackground.fillCircle(newX, newY, this.tileSize/4);
+                this.currentBubbleBackground.strokeCircle(newX, newY, this.tileSize/4);
+            }
         }
     }
 
@@ -1601,9 +1623,16 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      * Clear current bubble sprite
      */
     _clearCurrentBubble() {
+        // Nettoyer le sprite principal
         if (this.currentBubbleSprite) {
             this.currentBubbleSprite.destroy();
             this.currentBubbleSprite = null;
+        }
+        
+        // Nettoyer le fond s'il existe
+        if (this.currentBubbleBackground) {
+            this.currentBubbleBackground.destroy();
+            this.currentBubbleBackground = null;
         }
     }
 
