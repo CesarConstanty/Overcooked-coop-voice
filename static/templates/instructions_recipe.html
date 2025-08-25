@@ -1,275 +1,186 @@
-<!DOCTYPE html>
-<html>
-
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-  <!-- Bootstrap CSS -->
-  <link href="static/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    img.center {
-      display: block;
-      margin: 0 auto;
-    }
-
-    table,
-    td,
-    th {
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    th,
-    td {
-      padding: 15px;
-    }
-
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
-    }
-
-    /* Responsive header */
-    @media (max-width: 768px) {
-      header .d-flex {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 1rem;
-      }
-
-      header h1 {
-        font-size: 1.5rem;
-      }
-    }
-  </style>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Instructions</title>
   <link rel="Favicon" href="static/favicon.ico" />
-  <script src="static/lib/jquery-min.js" type="text/javascript"> </script>
-  <script type="module" src="static/lib/js.cookie.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-    crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-    crossorigin="anonymous"></script>
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .card h3{margin:0 0 12px;font-size:24px;color:var(--accent);text-align:center}
+    .card h4{margin:0 0 8px;font-size:18px;color:var(--accent)}
+    .card h5{margin:0 0 6px;font-size:16px;color:var(--accent)}
+    .muted{color:var(--muted)}
+    .center{text-align:center}
+    figure{margin:20px 0}
+    figure img{width:100%;max-width:600px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    .flex-container{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;align-items:flex-start}
+    .flex-item{flex:1;max-width:500px;min-width:300px}
+    .start-button{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:16px 32px;border-radius:12px;cursor:pointer;font-size:18px;margin:32px auto;display:block;text-decoration:none;text-align:center}
+    .start-button:hover{filter:brightness(1.05);color:#0f172a;text-decoration:none}
+    .header{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .header.white-bg{background:white;color:#0f172a}
+    .header.white-bg h1{color:#0f172a}
+    .header img{height:60px;max-width:200px}
+    .header h1{margin:0;font-size:1.8rem;text-align:center;flex:1;color:var(--accent)}
+    .warning{background:rgba(255,193,7,.1);border:1px solid #ffc107;border-radius:12px;padding:16px;margin:16px 0;color:#ffc107}
+    .important{background:rgba(220,53,69,.1);border:1px solid #dc3545;border-radius:12px;padding:16px;margin:16px 0;color:#dc3545}
+    @media (max-width: 768px) {
+      .header{flex-direction:column;text-align:center;gap:16px}
+      .flex-container{flex-direction:column;gap:20px}
+    }
+  </style>
 </head>
 
 <body>
-  <!-- Header corrected and inside body -->
-<header style="padding: 30px 0; border-bottom: 1px solid #ccc;">
-  <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
-    
-    <!-- Logo gauche -->
-    <img src="static/images/logo_airudit.png" alt="Airudit" style="height: 90px; max-width: 200px;">
+  <div class="wrap">
+    <div class="crumbs">Instructions · Game Tutorial</div>
+    <div class="title">Overcooked <span style="color:var(--accent)">Experiment</span></div>
 
-    <!-- Titre centré -->
-    <h1 style="margin: 0 auto; font-size: 1.8rem; text-align: center; flex: 1;">
-      Overcooked Experiment
-    </h1>
-
-    <!-- Logo droit -->
-    <img src="static/images/ONERA.png" alt="ONERA" style="height: 90px; max-width: 250px;">
-  </div>
-</header>
-
-
-  <div class="col-lg-8 mx-auto p-3 py-md-5">
-    <div class="container">
-      <p> 
-		<div style="justify-content">
-			Hello! Welcome to this video game where it's all about... cooking ! In this experiment you will play a chief in a restaurant specialised in soups !
-		</div>
-	  </p>
-
-      <br>
-      <hr>
-      <br>
-
-      <h3 class="text-center">Layouts</h3>
-
-      <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; text-align: center;">
-
-        <div>
-          <p>This is what your kitchen (one level of the game) looks like:</p>
-          <img src="static/images/basic_map_exchange_V2.png" style="width: 100%; max-width: 600px;">
-        </div>
-
-        <div>
-          <p>Here you will interact with several objects:</p>
-          <img src="static/images/basic_map_exchange_V2_legend.png" style="width: 100%; max-width: 1000px;">
-        </div>
-
-      </div>
-  <meta charset="UTF-8">
-
-      <br>
-      <hr>
-      <br>
-
-  <h3 class="text-center">Gameplay Basics</h3>
-
-  <div style="display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;">
-
-    <!-- Movement and interactions -->
-    <div style="flex: 1; max-width: 500px;">
-      <h4>Movement and interactions</h4>
-      <img src="static/images/space-arrows.png" style="width:250px; display: block; margin: 0 auto;">
-      <p>
-        You can move up, down, left, and right using the <b>arrow keys</b>, and interact with objects
-        using the <b>spacebar</b>.
-      </p>
-      <p>
-        You can interact with objects by facing them and pressing <b>spacebar</b>. Here are some examples:
-      </p>
-      <ul>
-        <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <b>spacebar</b>.</li>
-        <li>If you're holding an ingredient and face an empty counter, pressing <b>spacebar</b> puts the item down.</li>
-        <li>Face a pot and press <b>spacebar</b> to add an ingredient (if it's not full).</li>
-        <li>Face a non-empty pot while holding nothing and press <b>spacebar</b> to begin cooking.</li>
-      </ul>
-      <p>
-        <u><b>You cannot occupy the same location as your partner.</b></u>
-      </p>
+    <!-- Header with logos -->
+    <div class="header white-bg">
+      <img src="static/images/logo_airudit.png" alt="Airudit">
+      <h1>Cooking Game Instructions</h1>
+      <img src="static/images/ONERA.png" alt="ONERA">
     </div>
-        <!-- Exchange -->
-        <div style="flex: 1; max-width: 500px;">
+
+    <section class="card">
+      <p>Hello! Welcome to this video game where it's all about... cooking! In this experiment you will play a chef in a restaurant specialised in soups!</p>
+    </section>
+
+    <section class="card">
+      <h3>Layouts</h3>
+      <div class="center">
+        <p>This is what your kitchen (one level of the game) looks like:</p>
+        <figure>
+          <img src="static/images/basic_map_exchange_V2.png" alt="Kitchen layout" style="max-width:500px;">
+        </figure>
+        
+        <p>Here you will interact with several objects:</p>
+        <figure>
+          <img src="static/images/basic_map_exchange_V2_legend.png" alt="Kitchen objects legend" style="max-width:800px;">
+        </figure>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Gameplay Basics</h3>
+      <div class="flex-container">
+        <div class="flex-item">
+          <h4>Movement and interactions</h4>
+          <figure>
+            <img src="static/images/space-arrows.png" alt="Controls" style="max-width:150px;">
+          </figure>
+          <p>You can move up, down, left, and right using the <strong>arrow keys</strong>, and interact with objects using the <strong>spacebar</strong>.</p>
+          <p>You can interact with objects by facing them and pressing <strong>spacebar</strong>. Here are some examples:</p>
+          <ul>
+            <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <strong>spacebar</strong>.</li>
+            <li>If you're holding an ingredient and face an empty counter, pressing <strong>spacebar</strong> puts the item down.</li>
+            <li>Face a pot and press <strong>spacebar</strong> to add an ingredient (if it's not full).</li>
+            <li>Face a non-empty pot while holding nothing and press <strong>spacebar</strong> to begin cooking.</li>
+          </ul>
+          <p><u><strong>You cannot occupy the same location as your partner.</strong></u></p>
+        </div>
+        
+        <div class="flex-item">
           <h4>Cooperating through exchanges</h4>
-          <img src="static/images/onion_exchange.gif" style="width:250px; display: block; margin: 0 auto;">
-          <p>
-            You can use exchanges areas to give assets to the artificial agent. To do so, you have to pick an asset using <b>spacebar</b> and to put it on the exchange area using <b>spacebar</b> again.
-          </p>
+          <figure>
+            <img src="static/images/onion_exchange.gif" alt="Exchange example">
+          </figure>
+          <p>You can use exchanges areas to give assets to the artificial agent. To do so, you have to pick an asset using <strong>spacebar</strong> and to put it on the exchange area using <strong>spacebar</strong> again.</p>
         </div>
-
-      </div>
-        <!-- Cooking -->
-        <div style="flex: 1; max-width: 500px;">
-          <h4>Cooking</h4>
-          <img src="static/images/soup.png" style="width:250px; display: block; margin: 0 auto;">
-          <p>
-            Once an ingredient is in the pot, press <b>spacebar</b> to start cooking. A pot can hold up to 3 ingredients.
-          </p>
-          <p>
-            A red number appears over the pot to indicate cook time. It counts upward until the soup is done.
-            Each onion adds {{ current_user.config["onion_time"] }} and each tomato adds {{ current_user.config["tomato_time"] }} to the cook time. Remember that onions 
-            grant more points than tomatoes but take longer to be cooked !
-          </p>
-        </div>
-
       </div>
 
-      <br>
-      <hr>
-      <br>
+      <div style="max-width: 500px; margin: 20px 0;">
+        <h4>Cooking</h4>
+        <figure>
+          <img src="static/images/soup.png" alt="Soup cooking" style="max-width:250px;">
+        </figure>
+        <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to 3 ingredients.</p>
+        <p>A red number appears over the pot to indicate cook time. It counts upward until the soup is done. Each onion adds {{ current_user.config["onion_time"] }} and each tomato adds {{ current_user.config["tomato_time"] }} to the cook time. Remember that onions grant more points than tomatoes but take longer to be cooked!</p>
+      </div>
+    </section>
 
-      <h3 class="text-center">Your Goal</h3>
-      <p>
-        For each game, you will have a list of recipes to make.
-        The goal of the game is to achieve all these recipes in the shortest possible time.
-        Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.
-        The <b>All Orders</b> list shows which recipes you have to realize for the game.
-        This is important because any soup served that is not on this list will not
-        be counted and will just waste your time.
-      </p>
+    <section class="card">
+      <h3>Your Goal</h3>
+      <p>For each game, you will have a list of recipes to make. The goal of the game is to achieve all these recipes in the shortest possible time. Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.</p>
+      
+      <p>The <strong>All Orders</strong> list shows which recipes you have to realize for the game. This is important because any soup served that is not on this list will not be counted and will just waste your time.</p>
+      
+      <p>When a soup is served at the serving counter, it is automatically validated, and disappears from the <strong>All Orders</strong> list of the recipes you have to realize during the game.</p>
+      
+      <p><strong>Your goal</strong> is to make all the recipes in the "All Orders" list <strong>AS FAST AS POSSIBLE</strong>.</p>
+      
+      <figure>
+        <img src="static/images/info-panel_recipe.png" alt="Recipe panel" style="max-width:400px;">
+      </figure>
+      
+      <p>For example, here you have to make 3 soups:</p>
+      <ul>
+        <li>tomato + tomato + tomato</li>
+        <li>tomato + onion</li>
+        <li>onion + onion + tomato</li>
+      </ul>
+    </section>
 
-      <p>
-        When a soup is served at the serving counter, it is automatically validated, and disapear from the
-        <b>All Orders</b> list of the recipes you have to realize during the game.
-      </p>
+    <section class="card important">
+      <h4 class="center">Please pay VERY close attention to this part. It is AS IMPORTANT AS the game itself.</h4>
+    </section>
 
-      <p>
-        <b>Your goal</b> is to make all the recipes in the "All Orders" list <b>AS FAST AS POSSIBLE</b>.
-      </p>
+    <section class="card">
+      <h3>Questions</h3>
+      
+      <h5>After each GAME</h5>
+      <p>At the end of each game, you will be asked questions, it is very important that you understand what is asked:</p>
+      
+      <p>1) <strong>"How much control did you use?"</strong>: This refers to the actual influence you exerted on what happened. Think about how much of the outcome resulted from your direct actions or commands.</p>
+      
+      <p>2) <strong>"How much control did you feel?"</strong>: This measures your subjective experience of control, how much it felt like you were the one guiding what happened.</p>
+      
+      <p>3) <strong>"Who is accountable for this result?"</strong>: Accountability is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent involved.</p>
+      
+      <p>Your goal is to complete the requested recipes as quickly as possible. Once the game is complete, you will see how long it took. Then, you'll evaluate how responsible you feel for that outcome.</p>
+      
+      <h5>After each BLOCK of games</h5>
+      <p>At the end of each assignment block, you will be asked to complete two questionnaires about the games you have just completed.</p>
+      
+      <div class="important">
+        <h4 class="center">It is VERY IMPORTANT to answer the questions SERIOUSLY for the experiment to be valid.</h4>
+      </div>
+    </section>
 
-      <img class="center" src="static/images/info-panel_recipe.png" style="width:400px">
-
-      <p> For example, here you have to make 3 soups:
-        <ul>
-          <li>tomato + tomato + tomato</li>
-          <li>tomato + onion</li>
-          <li>onion + onion + tomato</li>
-        </ul>
-      </p>
-
-      <br>
-      <hr>
-      <br>
-
-      <h4 class="text-center">Please pay VERY close attention to this part. It is AS IMPORTANT AS the game itself. </h4>
-
-      <br>
-      <br>
-
-      <h3 class="text-center">Questions</h3>
-      <br>
-      <br>
-
-      <h5 class="text-left">After each GAME</h5>
-      <p>
-        At the end of each game, you will be asked questions, it is very important that you understand what is asked :
-      </p>
-		
-	  <p>
-	  1) <b> "How much control did you use ? "</b> : This refers to the actual influence you exerted on what happened. 
-	  Think about how much of the outcome resulted from your direct actions or commands.
-	  </p>
-      <p>
-        2) <b> "How much control did you feel ? " </b> : This measures your subjective experience of control, how much it felt like you were the one guiding what happened.
-      </p>
-
-      <p>
-        3) <b> "Who is accountable for this result ? " </b> : Accountability is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent involved.
-      </p>
-	  <p>
-	  Your goal is to complete the requested recipes as quickly as possible.
-        Once the game is complete, you will see how long it took. Then, you'll evaluate how responsible you feel for that outcome.
-	  </p>
-      <br>
-
-      <h5 class="text-left">After each BLOCK of games</h5>
-      <p>
-        At the end of each assignment block, you will be asked to complete two questionnaires about the
-        games you have just completed.
-      </p>
-
-      <h4 class="text-center">It is VERY IMPORTANT to answer the questions SERIOUSLY for the experiment to be valid.</h4>
-
-      <br>
-      <hr>
-      <br>
-
-      <h3 class="text-center">Course of the experiment</h3>
+    <section class="card">
+      <h3>Course of the experiment</h3>
       <p>You will start by performing a tutorial to familiarize yourself with the interface.</p>
-      <p>You will start each block with a practice trial to learn how to play with the agent.
-        This trial will look like other trials but we wont use the data collected.</p>
+      <p>You will start each block with a practice trial to learn how to play with the agent. This trial will look like other trials but we won't use the data collected.</p>
       <p>Then you will start the experiment where you will complete 3 blocks containing 11 games each.</p>
       <p>You will be able to take a small break between each block if you wish.</p>
-	  <p>Keep in mind that every survey is to mean to be completed in a certain amount of time</p>
+      <p>Keep in mind that every survey is meant to be completed in a certain amount of time.</p>
+    </section>
 
-      <br>
-      <hr>
-      <br>
-
-      <h3 class="text-center">PLEASE READ THIS BEFORE STARTING THE EXPERIMENT</h3>
-      <p>
-        It is possible that, for some reason, you have the impression that the page is loading incorrectly.
-      </p>
+    <section class="card warning">
+      <h3>PLEASE READ THIS BEFORE STARTING THE EXPERIMENT</h3>
+      <p>It is possible that, for some reason, you have the impression that the page is loading incorrectly.</p>
       <p>1. RELOAD the page immediately — this usually solves the problem.</p>
       <p>2. REPORT the problem at the end of the experiment during the final questionnaire.</p>
       <p>3. CONTACT the experimenter through the Prolific platform.</p>
+    </section>
 
-      <h4 class="text-center"><a href="./experience_video_games_survey">Next</a></h4>
-      <br>
-      <hr>
-      <br>
-    </div>
+    <a href="./experience_video_games_survey" class="start-button">
+      Start the experiment
+    </a>
   </div>
-</body>
 
+  <!-- Scripts -->
+  <script src="static/lib/jquery-min.js"></script>
+  <script type="module" src="static/lib/js.cookie.min.js"></script>
+</body>
 </html>

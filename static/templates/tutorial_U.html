@@ -1,107 +1,177 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
-          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    
-    <title>Tutoriel - Condition U</title>
-    <link rel="Favicon" href="static/favicon.ico" />
-    
-    <link rel="stylesheet" href="static/css/bootstrap.min.css" type="text/css" />
-    <link rel="stylesheet" href="static/css/style.css" type="text/css" />
-    
-    <style>
-        .tutorial-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background-color: #f8f9fa;
-            border-radius: 0.5rem;
-            box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.1);
-        }
-        
-        .tutorial-title {
-            color: #6c757d;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        
-        .tutorial-content {
-            color: #495057;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
-        
-        .start-button {
-            display: block;
-            margin: 2rem auto 0;
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        
-        .highlight-box {
-            background-color: #f8f9fa;
-            border-left: 4px solid #6c757d;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 4px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Behavioral communication</title>
+  <link rel="Favicon" href="static/favicon.ico" />
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#6c757d}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(108,117,125,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    .start-button{background:#6c757d;border:none;color:#fff;font-weight:800;padding:16px 32px;border-radius:12px;cursor:pointer;font-size:18px;margin:32px auto;display:block}
+    .start-button:hover{filter:brightness(1.05)}
+    .highlight-box{background:rgba(108,117,125,.1);border-left:4px solid var(--accent);padding:1rem;margin:1rem 0;border-radius:4px}
+  </style>
 </head>
-
 <body>
-    <!-- Variables cachées pour les scripts -->
-    <div id="uid" style="display:none;">{{uid}}</div>
-    <div id="condition" style="display:none;">U</div>
-    <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
-    
-    <div class="tutorial-container">
-        <h1 class="tutorial-title">Tutoriel - Condition U (Sans Explicabilité)</h1>
-        
-        <div class="tutorial-content">
-            <p><strong>Bienvenue dans ce bloc d'expérimentation !</strong></p>
-            
-            <p>Dans cette condition, vous allez collaborer avec un agent intelligent qui vous aidera à cuisiner. 
-            L'agent agira de manière autonome sans fournir d'indices supplémentaires sur ses intentions.</p>
-            
-            <div class="highlight-box">
-                <h5>Particularités de cette condition :</h5>
-                <ul>
-                    <li><strong>Collaboration simple :</strong> L'agent effectuera ses tâches sans signalement particulier</li>
-                    <li><strong>Observation directe :</strong> Vous devrez observer les actions de l'agent pour comprendre ses intentions</li>
-                    <li><strong>Coordination naturelle :</strong> Basez-vous uniquement sur les actions visibles pour vous coordonner</li>
-                </ul>
-            </div>
-            
-            <p><strong>Objectif :</strong> Collaborez efficacement avec l'agent en observant ses actions et en adaptant votre stratégie pour maximiser votre score.</p>
-            
-            <p><em>Note : Dans cette condition, concentrez-vous sur l'observation des actions de l'agent et votre adaptation en temps réel.</em></p>
-        </div>
-        
-        <button id="start-bloc" class="btn btn-secondary start-button">
-            Commencer le bloc U
-        </button>
-    </div>
+  <!-- Variables cachées pour les scripts -->
+  <div id="uid" style="display:none;">{{uid}}</div>
+  <div id="condition" style="display:none;">U</div>
+  <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
+  
+  <div class="wrap">
+    <div class="crumbs">Tutorial · Condition U</div>
+    <div class="title">Tutorial : <span style="color:var(--accent)">Behavioral</span> communication</div>
 
-    <!-- Scripts -->
-    <script src="static/lib/jquery-min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" 
-            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    
-    <script>
-        // Script pour gérer le bouton de démarrage du bloc
-        $(document).ready(function() {
-            $('#start-bloc').click(function() {
-                // Redirection vers la route planning avec paramètre pour éviter la boucle de redirection
-                window.location.href = '/planning?from_condition_tutorial=true';
+    <section class="card">
+      <h2>Behavioral communication only</h2>
+      <p>In this experimental condition, the artificial agent <strong>does not provide explicit communication</strong> about its intentions. You must rely solely on observing the agent's behavior and actions to understand what it is trying to accomplish.</p>
+    </section>
+
+    <section class="card">
+      <h2>Communication approach</h2>
+      <p class="muted">The agent will communicate through:</p>
+      <div class="flow">
+        <div class="step">Direct Actions</div>
+        <div class="arrow">→</div>
+        <div class="step">Movement Patterns</div>
+        <div class="arrow">→</div>
+        <div class="step">Object Interactions</div>
+        <div class="arrow">→</div>
+        <div class="step">Task Behavior</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>In-game example of the artificial agent behavior</h2>
+      <figure>
+        <img src="static/images/tutorial/U_plate_picking.gif" alt="Example of behavioral-communication in-game"/>
+        <figcaption>Example — Behavioral communication through actions.</figcaption>
+      </figure>
+    </section>
+
+    <section class="card">
+      <h2>Key observation points</h2>
+      <div class="highlight-box">
+        <h5>What to observe:</h5>
+        <ul>
+          <li><strong>Agent movement:</strong> Where the agent goes indicates its current objective</li>
+          <li><strong>Object interactions:</strong> What the agent picks up or uses reveals its recipe intentions</li>
+          <li><strong>Timing patterns:</strong> When the agent acts can indicate priority and coordination needs</li>
+          <li><strong>Spatial behavior:</strong> How the agent positions itself shows its next planned actions</li>
+        </ul>
+      </div>
+      
+      <p><strong>Strategy:</strong> Pay close attention to the agent's actions and adapt your behavior to complement its apparent goals. Successful coordination relies on your ability to interpret and predict the agent's intentions through observation.</p>
+      
+      <!-- Game objects preview -->
+      <div style="margin-top: 20px; text-align: center;">
+        <h5>Game Objects to Observe:</h5>
+        <div id="objects-preview" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+          <!-- Objects will be loaded here -->
+        </div>
+      </div>
+
+      <script>
+        // Function to create sprite canvas from atlas
+        function createSpriteCanvas(atlasImg, frame) {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = frame.w;
+          canvas.height = frame.h;
+          
+          ctx.drawImage(
+            atlasImg,
+            frame.x, frame.y, frame.w, frame.h,
+            0, 0, frame.w, frame.h
+          );
+          
+          return canvas;
+        }
+
+        // Load and display key objects
+        async function loadObjectsPreview() {
+          try {
+            const objectsData = await fetch('static/assets/objects.json').then(r => r.json());
+            const objectsImg = new Image();
+            
+            await new Promise(resolve => {
+              objectsImg.onload = resolve;
+              objectsImg.src = 'static/assets/objects.png';
             });
-        });
-    </script>
+
+            const keyObjects = [
+              {label: "Onion", objectKey: "onion.png"},
+              {label: "Tomato", objectKey: "tomato.png"},
+              {label: "Plate", objectKey: "dish.png"}
+            ];
+
+            const preview = document.getElementById('objects-preview');
+            keyObjects.forEach(obj => {
+              const objectFrame = objectsData.frames[obj.objectKey];
+              if (objectFrame) {
+                const canvas = createSpriteCanvas(objectsImg, objectFrame.frame);
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.transform = 'scale(1.5)';
+                canvas.style.border = '1px solid var(--ring)';
+                canvas.style.borderRadius = '4px';
+                canvas.style.background = '#0b1325';
+                canvas.style.width = '45px';
+                canvas.style.height = '45px';
+                canvas.title = obj.label;
+                
+                const container = document.createElement('div');
+                container.style.textAlign = 'center';
+                container.appendChild(canvas);
+                
+                const label = document.createElement('div');
+                label.textContent = obj.label;
+                label.style.fontSize = '12px';
+                label.style.color = 'var(--muted)';
+                label.style.marginTop = '5px';
+                container.appendChild(label);
+                
+                preview.appendChild(container);
+              }
+            });
+
+          } catch (error) {
+            console.error('Error loading objects preview:', error);
+          }
+        }
+
+        // Load objects when page loads
+        document.addEventListener('DOMContentLoaded', loadObjectsPreview);
+      </script>
+    </section>
+    
+    <button id="start-bloc" class="start-button">
+      Start the game !
+    </button>
+  </div>
+
+  <!-- Scripts -->
+  <script src="static/lib/jquery-min.js"></script>
+  <script>
+    // Script pour gérer le bouton de démarrage du bloc
+    $(document).ready(function() {
+      $('#start-bloc').click(function() {
+        window.location.href = '/planning?from_condition_tutorial=true';
+      });
+    });
+  </script>
 </body>
 </html>
