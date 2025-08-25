@@ -1567,7 +1567,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'O': { atlas: 'objects', frame: 'onion.png' },
             'T': { atlas: 'objects', frame: 'tomato.png' },  
             'D': { atlas: 'objects', frame: 'dish.png' },
-            'S': { atlas: 'terrain', frame: 'serve.png' }    // Zone de service depuis terrain
+            'S': { atlas: 'tiles', frame: 'serve.png' }    // Zone de service depuis tiles (qui charge terrain.json)
         };
         
         let spriteInfo = assetToSprite[assetData];
