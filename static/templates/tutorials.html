@@ -1,0 +1,249 @@
+<!-- File: tutorial_vocal.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Vocal communication</title>
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(56,189,248,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:12px;border:1px solid var(--ring);vertical-align:middle}
+    th{background:#0b1325}
+    tr:nth-child(even){background:#111a2f}
+    .thumb{width:80px;height:auto;border-radius:8px;border:1px solid var(--ring);background:#0b1325}
+    .tag{display:inline-block;font-size:12px;color:#0f172a;background:#38bdf8;border-radius:999px;padding:2px 8px;font-weight:700}
+    .play{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .play:hover{filter:brightness(1.05)}
+    .group{background:rgba(56,189,248,.12);color:#e2e8f0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs">Tutorial · Condition</div>
+    <div class="title">Tutorial : <span style="color:var(--accent)">Vocal</span> communication</div>
+
+    <section class="card">
+      <h2>Vocal communication of intentions</h2>
+      <p>In this experimental condition, the artificial agent communicates its intentions using <strong>audio messages</strong>. These messages explain which recipe the agent is pursuing and which asset it is currently seeking in the game.</p>
+    </section>
+
+    <section class="card">
+      <h2>Sequence explanation</h2>
+      <p class="muted">The intentions will be communicated in the following order:</p>
+      <div class="flow">
+        <div class="step">Recipe</div>
+        <div class="arrow">→</div>
+        <div class="step">Asset</div>
+        <div class="arrow">→</div>
+        <div class="step">Following asset</div>
+        <div class="arrow">→</div>
+        <div class="step">Next recipe</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>In-game example of the artificial agent behavior</h2>
+      <figure>
+        <img src="static/images/tutorial/vocal_bloc_exemple.gif" alt="Example of vocal-communication behavior in-game"/>
+        <figcaption>Example — Vocal communication.</figcaption>
+      </figure>
+    </section>
+
+    <section class="card">
+      <h2>Familiarize with vocal messages</h2>
+      <p>Below is the <strong>complete list</strong> of possible intentions. Click ▶ to hear the associated audio message.</p>
+      <table>
+        <tr class="group"><th colspan="3">Recipes</th></tr>
+        <tr><th>Intention</th><th>Visual</th><th>Audio</th></tr>
+        <script>
+          const recipes=[
+            {id:"0o1t",label:"One tomato",img:"1tomato.png"},
+            {id:"0o2t",label:"Two tomatoes",img:"2tomato.png"},
+            {id:"0o3t",label:"Three tomatoes",img:"3tomato.png"},
+            {id:"1o0t",label:"One onion",img:"1onion.png"},
+            {id:"2o0t",label:"Two onions",img:"2onion.png"},
+            {id:"3o0t",label:"Three onions",img:"3onion.png"},
+            {id:"1o1t",label:"One onion + One tomato",img:"1onion1tomato.png"},
+            {id:"1o2t",label:"One onion + Two tomatoes",img:"1onion2tomato.png"},
+            {id:"2o1t",label:"Two onions + One tomato",img:"2onion1tomato.png"}
+          ];
+          recipes.forEach(r=>{
+            document.write(`<tr><td>${r.label} <span class="tag">Recipe</span></td><td><img class="thumb" src="static/images/tutorial/${r.img}" alt="${r.label}"/></td><td><button class="play" onclick=\"playOnly('a_${r.id}')\">▶ Play</button><audio id="a_${r.id}" src="static/audio/recette_${r.id}.mp3"></audio></td></tr>`)
+          });
+        </script>
+
+        <tr class="group"><th colspan="3">Assets & Actions</th></tr>
+        <tr><th>Intention</th><th>Visual</th><th>Audio</th></tr>
+        <script>
+          const assets=[
+            {id:"onion",label:"Onion",type:"Asset"},
+            {id:"tomato",label:"Tomato",type:"Asset"},
+            {id:"plate",label:"Plate",type:"Asset"},
+            {id:"serving",label:"Serving",type:"Action"}
+          ];
+          assets.forEach(a=>{
+            document.write(`<tr><td>${a.label} <span class="tag">${a.type}</span></td><td><img class="thumb" src="static/images/tutorial/${a.id}.png" alt="${a.label}"/></td><td><button class="play" onclick=\"playOnly('a_${a.id}')\">▶ Play</button><audio id="a_${a.id}" src="static/audio/${a.id}.mp3"></audio></td></tr>`)
+          });
+        </script>
+      </table>
+
+      <script>
+        function playOnly(id){
+          const audios=[...document.querySelectorAll('audio')];
+          audios.forEach(a=>{if(a.id!==id){a.pause();a.currentTime=0}});
+          const el=document.getElementById(id); if(el){el.play();}
+        }
+      </script>
+    </section>
+  </div>
+</body>
+</html>
+
+
+<!-- File: tutorial_visual.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Visual communication</title>
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(56,189,248,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:12px;border:1px solid var(--ring);vertical-align:middle}
+    th{background:#0b1325}
+    tr:nth-child(even){background:#111a2f}
+    .thumb{width:80px;height:auto;border-radius:8px;border:1px solid var(--ring);background:#0b1325}
+    .tag{display:inline-block;font-size:12px;color:#0f172a;background:#38bdf8;border-radius:999px;padding:2px 8px;font-weight:700}
+    .group{background:rgba(56,189,248,.12);color:#e2e8f0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs">Tutorial · Condition</div>
+    <div class="title">Tutorial : <span style="color:var(--accent)">Visual</span> communication</div>
+
+    <section class="card">
+      <h2>Visual communication of intentions</h2>
+      <p>In this experimental condition, the artificial agent communicates its intentions using <strong>visual bubbles above its head</strong>. These bubbles clarify which recipe the agent is pursuing and which asset it is currently seeking in the game.</p>
+    </section>
+
+    <section class="card">
+      <h2>Sequence explanation</h2>
+      <p class="muted">The intentions will be communicated in the following order:</p>
+      <div class="flow">
+        <div class="step">Recipe</div>
+        <div class="arrow">→</div>
+        <div class="step">Asset</div>
+        <div class="arrow">→</div>
+        <div class="step">Following asset</div>
+        <div class="arrow">→</div>
+        <div class="step">Next recipe</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>In-game example of the artificial agent behavior</h2>
+      <figure>
+        <img src="static/images/tutorial/EVH_Recipe_Asset_onion.gif" alt="Example of visual-communication behavior in-game"/>
+        <figcaption>Example — Visual communication.</figcaption>
+      </figure>
+    </section>
+
+    <section class="card">
+      <h2>Familiarize with visual messages</h2>
+      <p>Below is the <strong>complete list</strong> of visual cues the agent can display.</p>
+      <table>
+        <tr class="group"><th colspan="2">Recipes</th></tr>
+        <tr><th>Intention</th><th>Visual</th></tr>
+        <script>
+          const recipes=[
+            {id:"0o1t",label:"One tomato",img:"1tomato.png"},
+            {id:"0o2t",label:"Two tomatoes",img:"2tomato.png"},
+            {id:"0o3t",label:"Three tomatoes",img:"3tomato.png"},
+            {id:"1o0t",label:"One onion",img:"1onion.png"},
+            {id:"2o0t",label:"Two onions",img:"2onion.png"},
+            {id:"3o0t",label:"Three onions",img:"3onion.png"},
+            {id:"1o1t",label:"One onion + One tomato",img:"1onion1tomato.png"},
+            {id:"1o2t",label:"One onion + Two tomatoes",img:"1onion2tomato.png"},
+            {id:"2o1t",label:"Two onions + One tomato",img:"2onion1tomato.png"}
+          ];
+          recipes.forEach(r=>{
+            document.write(`<tr><td>${r.label} <span class="tag">Recipe</span></td><td><img class="thumb" src="static/images/tutorial/${r.img}" alt="${r.label}"/></td></tr>`)
+          });
+        </script>
+
+        <tr class="group"><th colspan="2">Assets & Actions</th></tr>
+        <tr><th>Intention</th><th>Visual</th></tr>
+        <script>
+          const assets=[
+            {id:"onion",label:"Onion",type:"Asset"},
+            {id:"tomato",label:"Tomato",type:"Asset"},
+            {id:"plate",label:"Plate",type:"Asset"},
+            {id:"serving",label:"Serving",type:"Action"}
+          ];
+          assets.forEach(a=>{
+            document.write(`<tr><td>${a.label} <span class="tag">${a.type}</span></td><td><img class="thumb" src="static/images/tutorial/${a.id}.png" alt="${a.label}"/></td></tr>`)
+          });
+        </script>
+      </table>
+    </section>
+  </div>
+</body>
+</html>
+
+
+<!-- File: tutorial_behavioral.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Behavioral communication</title>
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(56,189,248,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+  </style>
+</head

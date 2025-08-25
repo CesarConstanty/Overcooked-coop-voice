@@ -111,7 +111,7 @@
         "preference_length" : 1,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"0" : "EVH", "1":"U", "2":"EA","3":"EV"},
+        "conditions" : {"0" : "U", "1":"U", "2":"EA","3":"EV"},
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
             "0": ["marinII1","marinII4"],
