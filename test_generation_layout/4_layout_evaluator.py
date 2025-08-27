@@ -9,6 +9,7 @@ OBJECTIF: Évaluation précise et fiable des layouts générés pour expérience
 """
 
 import os
+import sys
 import glob
 import time
 import json
@@ -17,6 +18,12 @@ from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
+
+# Ajouter le répertoire parent au PYTHONPATH pour importer overcooked_ai_py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
 from overcooked_ai_py.agents.agent import GreedyAgent, AgentGroup
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
@@ -2629,9 +2636,9 @@ def main():
     single_agent_mode = '--solo' in sys.argv or '--single' in sys.argv
     greedy_with_stay_mode = '--stay' in sys.argv or '--greedy-stay' in sys.argv
     
-    # Options d'optimisation
-    parallel_mode = '--parallel' in sys.argv or '--fast' in sys.argv
-    high_fps = '--speed' in sys.argv or '--turbo' in sys.argv
+    # Options d'optimisation - MODE FAST PAR DÉFAUT
+    parallel_mode = '--parallel' in sys.argv or '--fast' in sys.argv or True  # Fast par défaut
+    high_fps = '--speed' in sys.argv or '--turbo' in sys.argv or True  # High FPS par défaut
     
     # Paramètres d'optimisation
     target_fps = 100.0 if high_fps else 10.0
@@ -2658,8 +2665,8 @@ def main():
         filename_suffix = "coop"
     
     if parallel_mode:
-        mode_description += " [PARALLÈLE]"
-        filename_suffix += "_parallel"
+        mode_description += " [PARALLÈLE + HIGH SPEED]"
+        filename_suffix += "_fast"
     elif high_fps:
         mode_description += " [HIGH SPEED]"
         filename_suffix += "_speed"
@@ -2668,62 +2675,105 @@ def main():
     print(f"🤖 Mode: {mode_description}")
     print("=" * 60)
     
-    # Configuration
-    layouts_dir = "./overcooked_ai_py/data/layouts/generation_cesar/"
+    # Configuration - UTILISER layouts_with_objects PAR DÉFAUT
+    layouts_dir = "./layouts_with_objects"
     
     if not os.path.exists(layouts_dir):
         print(f"❌ Répertoire {layouts_dir} non trouvé")
-        return
+        print(f"🔍 Recherche dans le répertoire test_generation_layout...")
+        layouts_dir = "./test_generation_layout/layouts_with_objects"
+        
+        if not os.path.exists(layouts_dir):
+            print(f"❌ Répertoire {layouts_dir} non trouvé non plus")
+            print(f"🔍 Utilisation du répertoire par défaut...")
+            layouts_dir = "./overcooked_ai_py/data/layouts/generation_cesar/"
+            
+            if not os.path.exists(layouts_dir):
+                print(f"❌ Aucun répertoire de layouts trouvé")
+                return
     
-    # Liste des sous-dossiers à traiter
-    subfolders = ["complementary", "symmetric", "symmetric_complex"]
+    print(f"📁 Utilisation du répertoire: {layouts_dir}")
     
-    for subfolder in subfolders:
+    # Si on utilise layouts_with_objects, pas de sous-dossiers
+    if "layouts_with_objects" in layouts_dir:
         print(f"\n{'='*80}")
-        print(f"🗂️ TRAITEMENT DU DOSSIER: {subfolder}")
+        print(f"🗂️ TRAITEMENT DU DOSSIER: layouts_with_objects")
         print(f"{'='*80}")
         
-        # Vérifier que le sous-dossier existe
-        subfolder_path = os.path.join(layouts_dir, subfolder)
-        if not os.path.exists(subfolder_path):
-            print(f"⚠️ Dossier {subfolder_path} non trouvé, passage au suivant")
-            continue
-        
-        # Créer l'évaluateur pour ce sous-dossier
         evaluator = LayoutEvaluator(
             layouts_directory=layouts_dir,
-            horizon=600,  # Horizon raisonnable
-            num_games_per_layout=10,  # Plusieurs parties pour moyenner
+            horizon=600,
+            num_games_per_layout=5,
             target_fps=target_fps,
+            single_agent=single_agent_mode,
+            greedy_with_stay=greedy_with_stay_mode,
             parallel_games=parallel_mode,
             max_workers=max_workers,
-            max_stuck_frames=50,  # Éviter les blocages infinis
-            single_agent=single_agent_mode,  # Mode solo pur
-            greedy_with_stay=greedy_with_stay_mode,  # Mode GreedyAgent + StayAgent
-            subfolder=subfolder,  # Spécifier le sous-dossier
-            verbose=not parallel_mode  # Mode silencieux en parallèle/fast
+            subfolder="",
+            verbose=True
         )
         
-        # Lancer l'évaluation pour ce sous-dossier
-        results = evaluator.evaluate_all_layouts()
+        evaluator.evaluate_all_layouts()
         
-        if not results:
-            print(f"❌ Aucun résultat pour {subfolder}, passage au suivant")
-            continue
+        # Sauvegarder les résultats
+        output_filename = f"layout_evaluation_layouts_with_objects_{filename_suffix}.json"
+        evaluator.save_results(output_filename, include_individual_games=False)
+        evaluator.save_simulation_data_files()
         
-        # Sauvegarder avec un nom différent selon le mode et le sous-dossier
-        filename = f"layout_evaluation_{subfolder}_{filename_suffix}.json"
-        # Sauvegarder seulement les métriques agrégées par layout (pas les parties individuelles)
-        evaluator.save_results(filename, include_individual_games=False)
-        
-        # Générer les fichiers de données de simulation individuels
-        print(f"\n🔄 GÉNÉRATION DES FICHIERS DE DONNÉES DE SIMULATION POUR {subfolder.upper()}...")
-        simulation_files = evaluator.save_simulation_data_files()
-        
-        print(f"\n🎯 ÉVALUATION DE {subfolder.upper()} TERMINÉE!")
+        print(f"\n🎯 ÉVALUATION DE LAYOUTS_WITH_OBJECTS TERMINÉE!")
         print(f"   📊 Mode: {mode_description}")
-        print(f"   📊 Métriques comportementales complètes par layout")
-        print(f"   💾 Résultats agrégés sauvegardés dans {filename}")
+        print(f"   💾 Résultats sauvegardés dans {output_filename}")
+        
+    else:
+        # Liste des sous-dossiers à traiter (ancien comportement)
+        subfolders = ["complementary", "symmetric", "symmetric_complex"]
+        
+        for subfolder in subfolders:
+            print(f"\n{'='*80}")
+            print(f"🗂️ TRAITEMENT DU DOSSIER: {subfolder}")
+            print(f"{'='*80}")
+            
+            # Vérifier que le sous-dossier existe
+            subfolder_path = os.path.join(layouts_dir, subfolder)
+            if not os.path.exists(subfolder_path):
+                print(f"⚠️ Dossier {subfolder_path} non trouvé, passage au suivant")
+                continue
+            
+            # Créer l'évaluateur pour ce sous-dossier
+            evaluator = LayoutEvaluator(
+                layouts_directory=layouts_dir,
+                horizon=600,  # Horizon raisonnable
+                num_games_per_layout=10,  # Plusieurs parties pour moyenner
+                target_fps=target_fps,
+                parallel_games=parallel_mode,
+                max_workers=max_workers,
+                max_stuck_frames=50,  # Éviter les blocages infinis
+                single_agent=single_agent_mode,  # Mode solo pur
+                greedy_with_stay=greedy_with_stay_mode,  # Mode GreedyAgent + StayAgent
+                subfolder=subfolder,  # Spécifier le sous-dossier
+                verbose=not parallel_mode  # Mode silencieux en parallèle/fast
+            )
+            
+            # Lancer l'évaluation pour ce sous-dossier
+            results = evaluator.evaluate_all_layouts()
+            
+            if not results:
+                print(f"❌ Aucun résultat pour {subfolder}, passage au suivant")
+                continue
+            
+            # Sauvegarder avec un nom différent selon le mode et le sous-dossier
+            filename = f"layout_evaluation_{subfolder}_{filename_suffix}.json"
+            # Sauvegarder seulement les métriques agrégées par layout (pas les parties individuelles)
+            evaluator.save_results(filename, include_individual_games=False)
+            
+            # Générer les fichiers de données de simulation individuels
+            print(f"\n🔄 GÉNÉRATION DES FICHIERS DE DONNÉES DE SIMULATION POUR {subfolder.upper()}...")
+            simulation_files = evaluator.save_simulation_data_files()
+            
+            print(f"\n🎯 ÉVALUATION DE {subfolder.upper()} TERMINÉE!")
+            print(f"   📊 Mode: {mode_description}")
+            print(f"   📊 Métriques comportementales complètes par layout")
+            print(f"   💾 Résultats agrégés sauvegardés dans {filename}")
         
         # Affichage spécialisé selon le mode
         if single_agent_mode:
