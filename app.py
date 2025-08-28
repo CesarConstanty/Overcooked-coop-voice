@@ -208,23 +208,46 @@ def try_create_game(game_name, **kwargs):
 
 
 def cleanup_game(game):
-    #if FREE_MAP[game.id]:
-     #   raise ValueError("Double free on a game")
-
-    # User tracking
+    """
+    Nettoie proprement un jeu terminé
+    """
+    print(f"[CLEANUP] Starting cleanup for game {game.id}")
+    
+    # User tracking - Retirer les joueurs de la room
     for user_id in game.players:
         leave_curr_room(user_id)
+        print(f"[CLEANUP] Removed user {user_id} from room")
 
-    # Socketio tracking
-    socketio.close_room(game.id)
+    # Socketio tracking - Fermer la room
+    try:
+        socketio.close_room(game.id)
+        print(f"[CLEANUP] Closed socketio room {game.id}")
+    except Exception as e:
+        print(f"[CLEANUP] Warning: Could not close room {game.id}: {e}")
 
-    # Game tracking
-    #FREE_MAP[game.id] = True
-    #FREE_IDS.put(game.id)
-    del GAMES[game.id]
+    # Game tracking - Marquer comme inactif au lieu de supprimer immédiatement
+    # Cela permet la réutilisation pour des jeux similaires
+    if hasattr(game, '_is_active'):
+        game._is_active = False
+    
+    # Supprimer seulement si le jeu ne peut pas être réutilisé
+    game_can_be_reused = (
+        hasattr(game, 'config') and 
+        len(game.players) == 0 and 
+        not game.is_finished()
+    )
+    
+    if not game_can_be_reused and game.id in GAMES:
+        del GAMES[game.id]
+        print(f"[CLEANUP] Removed game {game.id} from GAMES")
+    else:
+        print(f"[CLEANUP] Game {game.id} marked for potential reuse")
 
     if game.id in ACTIVE_GAMES:
         ACTIVE_GAMES.remove(game.id)
+        print(f"[CLEANUP] Removed game {game.id} from ACTIVE_GAMES")
+    
+    print(f"[CLEANUP] Cleanup completed for game {game.id}")
 
 
 def get_game(game_id):
@@ -325,27 +348,84 @@ def _leave_game(user_id):
 # déclenche également un évènement socketIO pour lancer la partie
 # cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
+    print(f"[CREATE_GAME] User {user_id} requesting to create game {game_name}")
+    
+    # Optimisation: vérifier d'abord si un jeu identique peut être réutilisé
+    current_game = get_curr_game(user_id)
+    if current_game and current_game.id == game_name and not current_game._is_active:
+        print(f"[CREATE_GAME] Reusing existing inactive game {game_name} for user {user_id}")
+        with current_game.lock:
+            current_game.activate()
+            ACTIVE_GAMES.add(current_game.id)
+            emit('start_game', {
+                "spectating": user_id not in current_game.players,
+                "start_info": current_game.to_json(), 
+                "trial": current_user.trial, 
+                "step": current_user.step, 
+                "config": current_game.config
+            }, room=current_game.id)
+            socketio.start_background_task(play_game, current_game, fps=current_user.config.get("fps", MAX_FPS))
+        return
+    
+    # Nettoyer le jeu actuel de l'utilisateur si différent
+    if current_game and current_game.id != game_name:
+        print(f"[CREATE_GAME] User {user_id} switching from game {current_game.id} to {game_name}")
+        with current_game.lock:
+            _leave_game(user_id)
+    
+    # Nettoyer tout jeu existant avec le même nom s'il est inactif
     existing_game = GAMES.get(game_name, None)
-    if existing_game:
+    if existing_game and not existing_game._is_active:
+        print(f"[CREATE_GAME] Cleaning up inactive game {game_name}")
         cleanup_game(existing_game)
+    elif existing_game and existing_game._is_active:
+        print(f"[CREATE_GAME] Game {game_name} already active, joining existing game")
+        # Rejoindre le jeu existant au lieu d'en créer un nouveau
+        with existing_game.lock:
+            if not existing_game.is_full():
+                existing_game.add_player(user_id)
+                spectating = False
+            else:
+                existing_game.add_spectator(user_id)
+                spectating = True
+            
+            join_room(existing_game.id)
+            set_curr_room(user_id, existing_game.id)
+            
+            emit('start_game', {
+                "spectating": spectating,
+                "start_info": existing_game.to_json(), 
+                "trial": current_user.trial, 
+                "step": current_user.step, 
+                "config": existing_game.config
+            }, room=existing_game.id)
+        return
+    
+    # Créer le nouveau jeu seulement si nécessaire
     game, err = try_create_game(game_name, **params)
     if not game:
+        print(f"[CREATE_GAME] Failed to create game: {err}")
         emit("creation_failed", {"error": err.__repr__()}, to=current_user.uid)
-        print("error:" + (err.__repr__()))
         return
-    spectating = True
+    
+    print(f"[CREATE_GAME] Successfully created new game {game.id}")
+    
     with game.lock:
-        if not game.is_full():
-            spectating = False
+        spectating = game.is_full()
+        if not spectating:
             game.add_player(user_id)
+            print(f"[CREATE_GAME] Added user {user_id} as player to game {game.id}")
         else:
-            spectating = True
             game.add_spectator(user_id)
-        socketio.close_room(game.id) # ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
+            print(f"[CREATE_GAME] Added user {user_id} as spectator to game {game.id}")
+            
+        socketio.close_room(game.id)
         join_room(game.id)
         set_curr_room(user_id, game.id)
         game.activate() 
         ACTIVE_GAMES.add(game.id)
+        
+        print(f"[CREATE_GAME] Game {game.id} activated, starting background task")
 # Déclenche l'évènement pour lancer la partie qui est écouté par planning.js
 # va également déclencher play_game qui permet de mettre à jour la partie
         emit('start_game', {"spectating": spectating,
@@ -1345,12 +1425,24 @@ def on_connect():       # utilise le user_id pour gérer ces connexions
 def on_disconnect():
     # Ensure game data is properly cleaned-up in case of unexpected disconnect
     user_id = current_user.uid
+    print(f"[DISCONNECT] User {user_id} disconnected")
+    
     if user_id not in USERS:
+        print(f"[DISCONNECT] User {user_id} not in USERS, nothing to clean")
         return
+        
     with USERS[user_id]:
-        _leave_game(user_id)
-
-    del USERS[user_id]
+        # Nettoyer le jeu actuel de l'utilisateur
+        current_game = get_curr_game(user_id)
+        if current_game:
+            print(f"[DISCONNECT] Cleaning up game {current_game.id} for user {user_id}")
+            was_active = _leave_game(user_id)
+            if was_active:
+                print(f"[DISCONNECT] User {user_id} was in active game, game ended")
+        
+        # Supprimer l'utilisateur de la liste
+        del USERS[user_id]
+        print(f"[DISCONNECT] User {user_id} cleanup completed")
 
 @socketio.on("new_trial")
 def on_new_trial():
@@ -1566,9 +1658,27 @@ def play_game(game, fps=15):
                 "trial": game.curr_trial_in_game,
                 "step": getattr(game, "step", 0),
                 "condition": getattr(game, "curr_condition", None),
-                "config": game.config
+                "config": game.config,
+                "requires_confirmation": True
             }, room=game.id)
-            socketio.sleep(game.reset_timeout / 1000)
+            
+            # Délai de reset adaptatif: plus court si le client confirme rapidement
+            start_time = time()
+            try:
+                confirmation = socketio.call('reset_game_confirmation', timeout=2, room=game.id)
+                if confirmation:
+                    actual_delay = time() - start_time
+                    print(f"[PLAY_GAME] Reset confirmed in {actual_delay:.2f}s")
+                    # Délai minimal de 200ms même avec confirmation rapide
+                    remaining_delay = max(0.2, game.reset_timeout / 1000 - actual_delay)
+                else:
+                    remaining_delay = game.reset_timeout / 1000 * 0.5
+            except:
+                # Pas de confirmation, utiliser un délai réduit
+                remaining_delay = game.reset_timeout / 1000 * 0.5
+                
+            print(f"[PLAY_GAME] Additional reset delay: {remaining_delay:.2f}s")
+            socketio.sleep(remaining_delay)
         else:
             socketio.emit('state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
@@ -1581,20 +1691,44 @@ def play_game(game, fps=15):
             try:
                 # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai SAUF pour le tutoriel
                 if not isinstance(game, OvercookedTutorial):
-                    socketio.call("qpt", {
-                        "qpt_length": game.config.get("qpt_length", 30),
-                        "trial": data.get("curr_trial_in_game", 0),
-                        "show_time": game.config.get("show_trial_time", False),
-                        "time_elapsed": data.get("time_elapsed", 0),
-                        "score": data.get("score", 0),
-                        "infinite_all_order": game.config.get("infinite_all_order", False)
+                    # Émettre end_game avec callback pour confirmation
+                    socketio.emit('end_game', {
+                        "status": status, 
+                        "data": data,
+                        "requires_confirmation": True
                     }, room=game.id)
-                    socketio.emit("qpb", room=game.id)
+                    
+                    # Attendre la confirmation du client avant de continuer
+                    confirmation_received = socketio.call("wait_end_game_confirmation", 
+                                                         timeout=5, room=game.id)
+                    
+                    if confirmation_received:
+                        # Client prêt, émettre les questionnaires
+                        socketio.call("qpt", {
+                            "qpt_length": game.config.get("qpt_length", 30),
+                            "trial": data.get("curr_trial_in_game", 0),
+                            "show_time": game.config.get("show_trial_time", False),
+                            "time_elapsed": data.get("time_elapsed", 0),
+                            "score": data.get("score", 0),
+                            "infinite_all_order": game.config.get("infinite_all_order", False)
+                        }, room=game.id)
+                        socketio.emit("qpb", room=game.id)
+                    else:
+                        print(f"[PLAY_GAME] Client confirmation timeout for game {game.id}")
+                        # Fallback: émettre quand même les questionnaires
+                        socketio.emit("qpb", room=game.id)
+                else:
+                    # Pour le tutoriel, juste émettre end_game
+                    socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
             except SocketIOTimeOutError:
                 print("Player " + str(game.id) + " is not on")
                 if not isinstance(game, OvercookedTutorial):
                     socketio.emit("qpb", room=game.id)
-            socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
+                socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
+            except Exception as e:
+                print(f"Error in end_game sequence: {e}")
+                # En cas d'erreur, au minimum émettre end_game
+                socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
