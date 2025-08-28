@@ -6,13 +6,11 @@ from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
 from overcooked_ai_py.planning.planners import MotionPlanner
 
 layouts = [
-    "V1_layout_combination_01", "V1_layout_combination_02", "V1_layout_combination_03","V1_layout_combination_10", "V1_layout_combination_11", 
-    "V1_layout_combination_12","V1_layout_combination_19","V1_layout_combination_04", "V1_layout_combination_05", "V1_layout_combination_06",
-    "V1_layout_combination_13", "V1_layout_combination_14", "V1_layout_combination_15","V1_layout_combination_20","V1_layout_combination_07", 
-    "V1_layout_combination_08", "V1_layout_combination_09","V1_layout_combination_16", "V1_layout_combination_17", "V1_layout_combination_18",
-    "V1_layout_combination_21"
+    "L10_R54_V06","L10_R56_V07","L22_R69_V02","L26_R64_V08","L45_R59_V01","L53_R82_V02","L89_R63_V07","L99_R75_V05","L109_R79_V03","L114_R84_V10","L125_R38_V08","L186_R39_V10",
+    "L10_R54_V06_R90","L10_R56_V07_R90","L22_R69_V02_R90","L26_R64_V08_R90","L45_R59_V01_R90","L53_R82_V02_R90","L89_R63_V07_R90","L99_R75_V05_R90","L109_R79_V03_R90","L114_R84_V10_R90","L125_R38_V08_R90","L186_R39_V10_R90",
+    "L10_R54_V06_R180","L10_R56_V07_R180","L22_R69_V02_R180","L26_R64_V08_R180","L45_R59_V01_R180","L53_R82_V02_R180","L89_R63_V07_R180","L99_R75_V05_R180","L109_R79_V03_R180","L114_R84_V10_R180","L125_R38_V08_R180","L186_R39_V10_R180"
 ]
-layouts_dir = "overcooked_ai_py/data/layouts/generation_cesar/demo"
+layouts_dir = "overcooked_ai_py/data/layouts/generation_cesar"
 
 for layout in layouts:
     print(f"Processing {layout}")
