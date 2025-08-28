@@ -173,8 +173,8 @@ def rotate_grid(grid_str: str, angle: int) -> str:
         rotated_matrix = rotate_matrix_90(matrix)
     elif angle == 180:
         rotated_matrix = rotate_matrix_180(matrix)
-    elif angle == 270:
-        rotated_matrix = rotate_matrix_270(matrix)
+    # elif angle == 270:
+    #    rotated_matrix = rotate_matrix_270(matrix)
     else:
         raise ValueError(f"Angle de rotation non supporté: {angle}")
     

@@ -1,8 +1,8 @@
 {
     "grid":  """XPXXXDX
-                X X   S
-                X2 X XX
-                T  X 1X
+                X Y   S
+                X2 Y XX
+                T  Y 1X
                 XX XX X
                 X     O
                 XXXXXXX""",

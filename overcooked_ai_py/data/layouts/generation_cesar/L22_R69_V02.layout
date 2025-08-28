@@ -3,8 +3,8 @@
                 T     X
                 X  XX X
                 X XX2 S
-                O X X1X
-                X X   X
+                O Y X1X
+                X Y   X
                 XPXXDXX""",
     "start_all_orders": [{"ingredients": ["tomato"]},{"ingredients": ["onion","onion"]},{"ingredients": ["tomato","tomato"]},{"ingredients": ["onion","onion","onion"]},{"ingredients": ["onion","tomato","tomato"]},{"ingredients": ["tomato","tomato","tomato"]}],
     "counter_goals":[],
