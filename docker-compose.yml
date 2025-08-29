@@ -1,0 +1,14 @@
+services:
+  overcooked:
+    image: overcooked:xp1
+    # build:
+    #   dockerfile: Dockerfile
+    environment:
+      - FLASK_ENV=production
+    ports:
+      - 5000:5000
+    volumes:
+      - ./OUTPUT:/overcooked/trajectories/
+
+
+# docker compose up --no-build
