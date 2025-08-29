@@ -140,10 +140,16 @@ dmypy.json
 /trajectories/*
 /overcooked_ai_py/agents/old/
 /overcooked_ai_py/mdp/old/
-/overcooked_ai_py/data/planners
+# /overcooked_ai_py/data/planners
 
 db.sqlite
 .idea/*
 .vscode/*
 
 *\:Zone.Identifier
+
+# layout generation
+test_generation_layout/layouts_split
+test_generation_layout/layouts_with_objects
+test_generation_layout/raw_layouts
+test_generation_layout/path_evaluation_results

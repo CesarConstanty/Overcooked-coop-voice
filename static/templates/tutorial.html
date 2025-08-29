@@ -34,26 +34,32 @@
     <div id="config" style="display:none;">{{config}}</div>
     <div id="step" style="display:none;">{{step}}</div>
     <div id="user_config" style="display:none;">{{current_user.config}}</div>
-    <div id="overcooked-container" class="text-center">
-        <h3 id="game-title" style="display:none"></h3>
-        <div id="game-over" style="display:none">
-            <h3>Tutorial Complete</h3>
+    
+    <div style="display: flex; justify-content: center; align-items: center; gap: 20px; padding: 20px;">
+        <!-- Soup Legend à gauche -->
+        <div id="soup-icons" style="flex-shrink: 0;">
+            <h4>Soup Legend</h4>
+            <img src="static/images/soup_icons.png" style="width:200px">
         </div>
-        <div id="instructions-wrapper" class="text-center">
-            <div id="tutorial-instructions" class="text-left" style="display:inline-block; width: 50%"></div>
+        
+        <!-- Container principal du jeu -->
+        <div id="overcooked-container" class="text-center" style="flex: 1;">
+            <h3 id="game-title" style="display:none"></h3>
+            <div id="game-over" style="display:none">
+                <h3>Tutorial Complete</h3>
+            </div>
+            <div id="instructions-wrapper" class="text-center">
+                <div id="tutorial-instructions" class="text-left" style="display:inline-block; width: 50%"></div>
+            </div>
+            <div id="hint-wrapper" style="display: none;" class="text-center">
+                <div id="hint" style="display:inline-block; width: 50%" class="text-left"></div>
+            </div>
+            <button id="show-hint">Show Hint</button>
+            <br></br>
+            <div id="overcooked"></div>
+            <button id="startExperiment" class="text-center" style="display:none">Start Experiment</button>
+            <div id="error-exit" style="display:none">Tutorial ended unexpectedly (probably due to server side error)</div>
         </div>
-        <div id="hint-wrapper" style="display: none;" class="text-center">
-            <div id="hint" style="display:inline-block; width: 50%" class="text-left"></div>
-        </div>
-        <button id="show-hint">Show Hint</button>
-        <br></br>
-        <div id="overcooked"></div>
-        <button id="startExperiment" class="text-center" style="display:none">Start Experiment</button>
-        <div id="error-exit" style="display:none">Tutorial ended unexpectedly (probably due to server side error)</div>
-    </div>
-    <div id="soup-icons" class="text-center">
-        <h4>Soup Legend</h4>
-        <img src="static/images/soup_icons.png" style="width:200px">
     </div>
     <div id="control" class="text-center">
         <button id="try-again" style="display:none;">Try Again?</button>

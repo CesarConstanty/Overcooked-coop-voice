@@ -881,8 +881,25 @@ class PlanningGame(OvercookedGame):
         if self.mechanic == "recipe" and len(self.state.all_orders) == 0:
             return True
         
-        # Sinon, on utilise la logique normale (reset seulement si pas terminé)
-        return not self.is_finished()
+        # Si la partie est terminée par le temps ET qu'il reste des essais, on reset
+        # Le jeu ne se termine que si c'est le dernier essai ET qu'il est terminé
+        return self.curr_trial_in_game < len(self.layouts) - 1
+    
+    def is_last_trial_in_bloc(self):
+        """
+        Détermine si c'est le dernier essai du bloc actuel.
+        """
+        return self.curr_trial_in_game >= len(self.layouts) - 1
+    
+    def should_show_post_trial_questionnaire(self):
+        """
+        Détermine si on doit afficher le questionnaire post-trial.
+        Le questionnaire post-trial doit être affiché après chaque essai,
+        sauf après le dernier essai d'un bloc (qui déclenche le questionnaire post-bloc).
+        """
+        return (self._curr_game_over() and 
+                not self.is_last_trial_in_bloc() and 
+                self.config.get("questionnaire_post_trial", "") != "")
     
     def game_timer(self):
         return time() - self.start_time
@@ -1016,13 +1033,35 @@ class PlanningGame(OvercookedGame):
         state_dict['potential'] = self.phi if self.show_potential else None
         state_dict['state'] = self.state.to_dict()
         state_dict['score'] = self.score
-        state_dict['time_left'] = max(
-            self.max_time - (time() - self.start_time), 0)
+        
+        # Debug timing calculation
+        current_time = time()
+        elapsed_time = current_time - self.start_time
+        calculated_time_left = self.max_time - elapsed_time
+        time_left = max(calculated_time_left, 0)
+        
+        # Log timing info for debugging
+        if hasattr(self, 'debug_timer_count'):
+            self.debug_timer_count += 1
+        else:
+            self.debug_timer_count = 1
+            
+        if self.debug_timer_count % 60 == 0:  # Log every 60 calls to avoid spam
+            print(f"[TIMER_DEBUG] Trial {self.curr_trial_in_game+1}: max_time={self.max_time}, elapsed={elapsed_time:.2f}, time_left={time_left}")
+        
+        state_dict['time_left'] = time_left
         state_dict['intentions'] = self.get_intentions(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['intentions'] = self.get_intentions(self.planning_agent_id)
+        
+        # Ajouter des informations sur les questionnaires pour le client
+        state_dict['show_post_trial_questionnaire'] = self.should_show_post_trial_questionnaire()
+        state_dict['is_last_trial_in_bloc'] = self.is_last_trial_in_bloc()
+        state_dict['curr_trial_in_game'] = self.curr_trial_in_game
+        state_dict['total_trials_in_bloc'] = len(self.layouts)
+        
 #        print ("valeur de la variable state_dict['intentions']['recipe'] : ", state_dict['intentions']['recipe'])
 #        print ("valeur de la variable state_dict['intentions']['goal'] : ", state_dict['intentions']['goal'])
 #        print ("valeur de la variable state_dict['intentions']['agent_name'] : ", state_dict['intentions']['agent_name'])
@@ -1261,7 +1300,11 @@ class OvercookedTutorial(OvercookedGame):
                 "timestamp": gmtime(), "date": asctime(gmtime()),
                 "score": self.trajectory[-1]["score"],
                 "trajectory": self.trajectory,
-                "config" : self.config}
+                "config" : self.config,
+                "show_post_trial_questionnaire": self.should_show_post_trial_questionnaire() if hasattr(self, 'should_show_post_trial_questionnaire') else False,
+                "is_last_trial_in_bloc": self.is_last_trial_in_bloc() if hasattr(self, 'is_last_trial_in_bloc') else False,
+                "curr_trial_in_game": self.curr_trial_in_game,
+                "total_trials_in_bloc": self.total_trials_in_bloc if hasattr(self, 'total_trials_in_bloc') else 1}
         self.trajectory = []
         return data
 

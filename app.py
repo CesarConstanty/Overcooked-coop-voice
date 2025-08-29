@@ -118,7 +118,7 @@ game._configure(MAX_GAME_LENGTH, AGENT_DIR)
 # Random #
 #######################
 
-random.seed(114101072025)
+#random.seed(114101072025)
 
 #######################
 # Flask Configuration #
@@ -208,23 +208,46 @@ def try_create_game(game_name, **kwargs):
 
 
 def cleanup_game(game):
-    #if FREE_MAP[game.id]:
-     #   raise ValueError("Double free on a game")
-
-    # User tracking
+    """
+    Nettoie proprement un jeu terminé
+    """
+    print(f"[CLEANUP] Starting cleanup for game {game.id}")
+    
+    # User tracking - Retirer les joueurs de la room
     for user_id in game.players:
         leave_curr_room(user_id)
+        print(f"[CLEANUP] Removed user {user_id} from room")
 
-    # Socketio tracking
-    socketio.close_room(game.id)
+    # Socketio tracking - Fermer la room
+    try:
+        socketio.close_room(game.id)
+        print(f"[CLEANUP] Closed socketio room {game.id}")
+    except Exception as e:
+        print(f"[CLEANUP] Warning: Could not close room {game.id}: {e}")
 
-    # Game tracking
-    #FREE_MAP[game.id] = True
-    #FREE_IDS.put(game.id)
-    del GAMES[game.id]
+    # Game tracking - Marquer comme inactif au lieu de supprimer immédiatement
+    # Cela permet la réutilisation pour des jeux similaires
+    if hasattr(game, '_is_active'):
+        game._is_active = False
+    
+    # Supprimer seulement si le jeu ne peut pas être réutilisé
+    game_can_be_reused = (
+        hasattr(game, 'config') and 
+        len(game.players) == 0 and 
+        not game.is_finished()
+    )
+    
+    if not game_can_be_reused and game.id in GAMES:
+        del GAMES[game.id]
+        print(f"[CLEANUP] Removed game {game.id} from GAMES")
+    else:
+        print(f"[CLEANUP] Game {game.id} marked for potential reuse")
 
     if game.id in ACTIVE_GAMES:
         ACTIVE_GAMES.remove(game.id)
+        print(f"[CLEANUP] Removed game {game.id} from ACTIVE_GAMES")
+    
+    print(f"[CLEANUP] Cleanup completed for game {game.id}")
 
 
 def get_game(game_id):
@@ -325,27 +348,84 @@ def _leave_game(user_id):
 # déclenche également un évènement socketIO pour lancer la partie
 # cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
+    print(f"[CREATE_GAME] User {user_id} requesting to create game {game_name}")
+    
+    # Optimisation: vérifier d'abord si un jeu identique peut être réutilisé
+    current_game = get_curr_game(user_id)
+    if current_game and current_game.id == game_name and not current_game._is_active:
+        print(f"[CREATE_GAME] Reusing existing inactive game {game_name} for user {user_id}")
+        with current_game.lock:
+            current_game.activate()
+            ACTIVE_GAMES.add(current_game.id)
+            emit('start_game', {
+                "spectating": user_id not in current_game.players,
+                "start_info": current_game.to_json(), 
+                "trial": current_user.trial, 
+                "step": current_user.step, 
+                "config": current_game.config
+            }, room=current_game.id)
+            socketio.start_background_task(play_game, current_game, fps=current_user.config.get("fps", MAX_FPS))
+        return
+    
+    # Nettoyer le jeu actuel de l'utilisateur si différent
+    if current_game and current_game.id != game_name:
+        print(f"[CREATE_GAME] User {user_id} switching from game {current_game.id} to {game_name}")
+        with current_game.lock:
+            _leave_game(user_id)
+    
+    # Nettoyer tout jeu existant avec le même nom s'il est inactif
     existing_game = GAMES.get(game_name, None)
-    if existing_game:
+    if existing_game and not existing_game._is_active:
+        print(f"[CREATE_GAME] Cleaning up inactive game {game_name}")
         cleanup_game(existing_game)
+    elif existing_game and existing_game._is_active:
+        print(f"[CREATE_GAME] Game {game_name} already active, joining existing game")
+        # Rejoindre le jeu existant au lieu d'en créer un nouveau
+        with existing_game.lock:
+            if not existing_game.is_full():
+                existing_game.add_player(user_id)
+                spectating = False
+            else:
+                existing_game.add_spectator(user_id)
+                spectating = True
+            
+            join_room(existing_game.id)
+            set_curr_room(user_id, existing_game.id)
+            
+            emit('start_game', {
+                "spectating": spectating,
+                "start_info": existing_game.to_json(), 
+                "trial": current_user.trial, 
+                "step": current_user.step, 
+                "config": existing_game.config
+            }, room=existing_game.id)
+        return
+    
+    # Créer le nouveau jeu seulement si nécessaire
     game, err = try_create_game(game_name, **params)
     if not game:
+        print(f"[CREATE_GAME] Failed to create game: {err}")
         emit("creation_failed", {"error": err.__repr__()}, to=current_user.uid)
-        print("error:" + (err.__repr__()))
         return
-    spectating = True
+    
+    print(f"[CREATE_GAME] Successfully created new game {game.id}")
+    
     with game.lock:
-        if not game.is_full():
-            spectating = False
+        spectating = game.is_full()
+        if not spectating:
             game.add_player(user_id)
+            print(f"[CREATE_GAME] Added user {user_id} as player to game {game.id}")
         else:
-            spectating = True
             game.add_spectator(user_id)
-        socketio.close_room(game.id) # ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
+            print(f"[CREATE_GAME] Added user {user_id} as spectator to game {game.id}")
+            
+        socketio.close_room(game.id)
         join_room(game.id)
         set_curr_room(user_id, game.id)
         game.activate() 
         ACTIVE_GAMES.add(game.id)
+        
+        print(f"[CREATE_GAME] Game {game.id} activated, starting background task")
 # Déclenche l'évènement pour lancer la partie qui est écouté par planning.js
 # va également déclencher play_game qui permet de mettre à jour la partie
         emit('start_game', {"spectating": spectating,
@@ -419,6 +499,10 @@ def index():
         config_id = request.args.get('CONFIG', default=None)
         config = CONFIG[config_id]
         config["config_id"] = config_id
+        
+        # NOUVEAU: Préserver les labels de condition originaux pour les tutoriels
+        config["condition_labels"] = dict(config["conditions"])  # Copie des labels originaux
+        
         for bloc, value in config["conditions"].items():
             if value == "U":
                 config["conditions"][bloc]={
@@ -510,6 +594,19 @@ def index():
             "asset_sound" : False,
             "recipe_sound" : True
             }
+            elif value =="EVH" :
+                config["conditions"][bloc]={
+            "recipe_head": True,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000)
+            }
 
     except KeyError:
         return render_template('UID_error.html')
@@ -529,15 +626,25 @@ def index():
             new_user = User(uid=uid, config=config, step=0, trial=0)
             # gère la randomisation des blocs
             if new_user.config.get("shuffle_blocs", False):
+                # SHUFFLE_BLOCS = TRUE : Ordre aléatoire
                 bloc_keys = list(new_user.config["blocs"].keys())
                 random.shuffle(bloc_keys)
-                print ("ordre des essais :" , bloc_keys)
                 new_user.config["bloc_order"] = bloc_keys
+                print(f"🎲 SHUFFLE_BLOCS=TRUE - Ordre randomisé: {bloc_keys}")
                 bloc_key = new_user.config["bloc_order"][new_user.step]
-                print("premier bloc :", bloc_key)
-                print ("liste des essais : ",new_user.config["blocs"][bloc_key] )
+                print(f"🎲 Premier bloc sélectionné: {bloc_key}")
+                print(f"🎲 Liste des essais du premier bloc: {new_user.config['blocs'][bloc_key]}")
             else:
-                new_user.config["bloc_order"] = list(new_user.config["blocs"].keys())
+                # SHUFFLE_BLOCS = FALSE : Ordre croissant strict (0, 1, 2, ...)
+                bloc_keys = sorted(new_user.config["blocs"].keys(), key=lambda x: int(x))
+                new_user.config["bloc_order"] = bloc_keys
+                print(f"📋 SHUFFLE_BLOCS=FALSE - Ordre croissant: {bloc_keys}")
+                if bloc_keys:
+                    premier_bloc = bloc_keys[0]
+                    print(f"📋 Premier bloc sélectionné (step 0): {premier_bloc}")
+                    print(f"📋 Condition du premier bloc: {new_user.config.get('conditions', {}).get(premier_bloc, 'Non définie')}")
+                else:
+                    print("⚠️  Aucun bloc défini dans la configuration")
             if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
                 for key, value in new_user.config["blocs"].items():
                     random.shuffle(value)
@@ -642,15 +749,99 @@ def instructions_explained():
 @login_required
 def planning():
     uid = current_user.uid
-    bloc_order = current_user.config["bloc_order"]
+    bloc_order = current_user.config.get("bloc_order", [])
+    
     if current_user.step >= len(bloc_order):
+        print(f"Utilisateur {uid} terminé tous les blocs (step {current_user.step}), redirection vers qex_ranking")
         return redirect(url_for('qex_ranking'))
+    
+    # --- GESTION DES TUTORIELS DE CONDITION ---
+    # Vérifier si l'utilisateur doit voir le tutoriel de condition avant de commencer le bloc
+    from_tutorial = request.args.get('from_condition_tutorial', False)
+    should_show_tutorial = (
+        current_user.trial == 0 and  # Début d'un nouveau bloc
+        not from_tutorial and  # Pas déjà venu du tutoriel
+        current_user.config.get("condition_tutorials")  # Tutoriels configurés
+    )
+    
+    # Debug des informations de bloc
+    bloc_order = current_user.config.get("bloc_order", [])
+    print(f"🎯 SÉLECTION BLOC - Utilisateur {uid}:")
+    print(f"   Step actuel: {current_user.step}")
+    print(f"   Ordre des blocs: {bloc_order}")
+    if current_user.step < len(bloc_order):
+        bloc_actuel = bloc_order[current_user.step]
+        condition_actuelle = current_user.config.get("conditions", {}).get(bloc_actuel, "Non définie")
+        print(f"   Bloc actuel (step {current_user.step}): {bloc_actuel}")
+        print(f"   Condition actuelle: {condition_actuelle}")
+    else:
+        print(f"   ⚠️  Step {current_user.step} dépasse la longueur des blocs ({len(bloc_order)})")
+    
+    print(f"DEBUG TUTORIEL - Utilisateur {uid}: trial={current_user.trial}, from_tutorial={from_tutorial}, condition_tutorials présent={bool(current_user.config.get('condition_tutorials'))}")
+    print(f"DEBUG TUTORIEL - should_show_tutorial={should_show_tutorial}")
+    
+    if should_show_tutorial:
+        try:
+            bloc_key = current_user.config["bloc_order"][current_user.step]
+            
+            # Récupérer le label de condition depuis condition_labels (préservé depuis /index)
+            condition_label = current_user.config.get("condition_labels", {}).get(bloc_key)
+            
+            # Si condition_labels n'existe pas, est vide, ou contient un dict, déduire depuis la configuration
+            if not condition_label or isinstance(condition_label, dict):
+                condition_config = current_user.config["conditions"][bloc_key]
+                if isinstance(condition_config, dict):
+                    # Logique inverse : déterminer le label depuis la configuration
+                    # Vérifier d'abord EVH (nouvelle condition avec visual_bubbles)
+                    if (condition_config.get("visual_bubbles") == True and 
+                        condition_config.get("recipe_head") == True):
+                        condition_label = "EVH"
+                    elif (condition_config.get("recipe_hud") == False and 
+                        condition_config.get("asset_hud") == False and
+                        condition_config.get("asset_sound") == False and
+                        condition_config.get("recipe_sound") == False and
+                        condition_config.get("visual_bubbles") != True):
+                        condition_label = "U"
+                    elif (condition_config.get("recipe_hud") == True and 
+                          condition_config.get("asset_hud") == True and
+                          condition_config.get("asset_sound") == False):
+                        condition_label = "EV"
+                    elif (condition_config.get("asset_sound") == True and 
+                          condition_config.get("recipe_sound") == True):
+                        condition_label = "EA"
+                    else:
+                        condition_label = None
+                        print(f"ERREUR: Configuration inconnue pour bloc {bloc_key}: {condition_config}")
+                else:
+                    condition_label = condition_config
+            
+            print(f"DEBUG TUTORIEL - bloc_key={bloc_key}, condition_label={condition_label} (type: {type(condition_label)})")
+            
+            condition_tutorials = current_user.config.get("condition_tutorials", {})
+            print(f"DEBUG TUTORIEL - condition_tutorials={condition_tutorials}")
+            
+            # Si un tutoriel existe pour cette condition, y rediriger
+            if condition_label and isinstance(condition_label, str) and condition_label in condition_tutorials:
+                print(f"Redirection vers tutoriel de condition {condition_label} pour bloc {bloc_key} (step {current_user.step})")
+                return redirect(url_for('condition_tutorial'))
+            else:
+                print(f"Aucun tutoriel configuré pour condition {condition_label} ou type incorrect: {type(condition_label)}")
+        except (KeyError, IndexError) as e:
+            print(f"Erreur lors de la vérification tutoriel pour utilisateur {uid}: {e}")
+            # Continuer vers planning normal en cas d'erreur
+    
+    # --- LOGIQUE PLANNING NORMALE ---
     try:
         bloc_key = current_user.config["bloc_order"][current_user.step]
+        # Pour l'affichage, utiliser les conditions transformées (dictionnaires)
         condition = current_user.config["conditions"][bloc_key]
-        print ("CONDITION random bloc : ", condition)
-    except KeyError:
-        condition = request.args.get('CONDITION')
+        # Pour le logging, utiliser le label simple
+        condition_label = current_user.config.get("condition_labels", {}).get(bloc_key, "inconnu")
+        print(f"Planning - Utilisateur {uid}, bloc {bloc_key}, condition {condition_label}, trial {current_user.trial}")
+    except (KeyError, IndexError) as e:
+        print(f"Erreur configuration bloc pour utilisateur {uid}: {e}")
+        condition = request.args.get('CONDITION', 'U')  # Fallback
+    
     agent_names = get_agent_names()
 
     post_trial = current_user.config.get("questionnaire_post_trial", "")
@@ -680,7 +871,7 @@ def planning():
             hoffman_elements.append(value)
     hoffman = {"elements": hoffman_elements}
 
-    # --- MODIFICATION ICI ---
+    # --- RENDU TEMPLATE ---
     # On ne retourne JAMAIS qex_ranking ici, même si on est au dernier bloc.
     # Le JS s'occupe de rediriger après le dernier questionnaire.
     return render_template(
@@ -979,6 +1170,100 @@ def tutorial():
         return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
 
 
+@app.route('/condition_tutorial')
+@login_required
+def condition_tutorial():
+    """
+    Route pour afficher le tutoriel spécifique à une condition expérimentale.
+    Cette route est appelée avant chaque bloc pour présenter le tutoriel correspondant 
+    à la condition (EA, U, EV) qui va être jouée.
+    
+    La logique :
+    1. Récupère la condition du bloc courant en fonction de current_user.step
+    2. Utilise le mapping condition_tutorials de la config pour trouver le bon template
+    3. Affiche le tutoriel correspondant avec les bonnes variables
+    """
+    uid = current_user.uid
+    bloc_order = current_user.config.get("bloc_order", [])
+    
+    # Vérifier qu'on n'est pas au-delà du nombre de blocs
+    if current_user.step >= len(bloc_order):
+        print(f"Utilisateur {uid} au step {current_user.step} >= nombre de blocs {len(bloc_order)}, redirection vers qex_ranking")
+        return redirect(url_for('qex_ranking'))
+    
+    # Récupérer la condition du bloc courant
+    # TO DO : Modifier pour ajouter les autres conditions si nécessaire
+    try:
+        bloc_key = current_user.config["bloc_order"][current_user.step]
+        # Récupérer le label de condition depuis condition_labels (préservé depuis /index)
+        condition_label = current_user.config.get("condition_labels", {}).get(bloc_key)
+        
+        # Si condition_labels n'existe pas, est vide, ou contient un dict, déduire depuis la configuration
+        if not condition_label or isinstance(condition_label, dict):
+            condition_config = current_user.config["conditions"][bloc_key]
+            if isinstance(condition_config, dict):
+                # Logique inverse : déterminer le label depuis la configuration
+                # Vérifier d'abord EVH (nouvelle condition avec visual_bubbles)
+                if (condition_config.get("visual_bubbles") == True and 
+                    condition_config.get("recipe_head") == True):
+                    condition_label = "EVH"
+                elif (condition_config.get("recipe_hud") == False and 
+                    condition_config.get("asset_hud") == False and
+                    condition_config.get("asset_sound") == False and
+                    condition_config.get("recipe_sound") == False and
+                    condition_config.get("visual_bubbles") != True):
+                    condition_label = "U"
+                elif (condition_config.get("recipe_hud") == True and 
+                      condition_config.get("asset_hud") == True and
+                      condition_config.get("asset_sound") == False):
+                    condition_label = "EV"
+                elif (condition_config.get("asset_sound") == True and 
+                      condition_config.get("recipe_sound") == True):
+                    condition_label = "EA"
+                else:
+                    condition_label = None
+                    print(f"ERREUR: Configuration inconnue pour bloc {bloc_key}: {condition_config}")
+            else:
+                condition_label = condition_config
+        
+        print(f"DEBUG CONDITION_TUTORIAL - bloc_key={bloc_key}, condition_label={condition_label} (type: {type(condition_label)})")
+        
+        # Vérifier que c'est une chaîne
+        if not isinstance(condition_label, str):
+            print(f"Condition label n'est pas une chaîne: {condition_label} (type: {type(condition_label)})")
+            return redirect(url_for('planning'))
+            
+    except (KeyError, IndexError) as e:
+        print(f"Erreur récupération condition pour utilisateur {uid} step {current_user.step}: {e}")
+        return redirect(url_for('planning'))
+    
+    # Récupérer le template de tutoriel correspondant à cette condition
+    condition_tutorials = current_user.config.get("condition_tutorials", {})
+    tutorial_template = condition_tutorials.get(condition_label)
+    
+    # Si pas de tutoriel spécifique trouvé, rediriger vers planning
+    if not tutorial_template:
+        print(f"Aucun tutoriel trouvé pour la condition {condition_label}, redirection vers planning")
+        return redirect(url_for('planning'))
+    
+    # Vérifier que le template existe
+    template_path = f"static/templates/{tutorial_template}"
+    if not os.path.exists(template_path):
+        print(f"Template {template_path} introuvable, redirection vers planning")
+        return redirect(url_for('planning'))
+    
+    print(f"Affichage du tutoriel {tutorial_template} pour la condition {condition_label} (bloc {bloc_key}, step {current_user.step})")
+    
+    # Retourner le template correspondant avec les variables nécessaires
+    return render_template(
+        tutorial_template, 
+        uid=uid, 
+        condition=condition_label,
+        bloc_id=bloc_key,
+        step=current_user.step
+    )
+
+
 @app.route('/debug')
 def debug():
     resp = {}
@@ -1140,12 +1425,24 @@ def on_connect():       # utilise le user_id pour gérer ces connexions
 def on_disconnect():
     # Ensure game data is properly cleaned-up in case of unexpected disconnect
     user_id = current_user.uid
+    print(f"[DISCONNECT] User {user_id} disconnected")
+    
     if user_id not in USERS:
+        print(f"[DISCONNECT] User {user_id} not in USERS, nothing to clean")
         return
+        
     with USERS[user_id]:
-        _leave_game(user_id)
-
-    del USERS[user_id]
+        # Nettoyer le jeu actuel de l'utilisateur
+        current_game = get_curr_game(user_id)
+        if current_game:
+            print(f"[DISCONNECT] Cleaning up game {current_game.id} for user {user_id}")
+            was_active = _leave_game(user_id)
+            if was_active:
+                print(f"[DISCONNECT] User {user_id} was in active game, game ended")
+        
+        # Supprimer l'utilisateur de la liste
+        del USERS[user_id]
+        print(f"[DISCONNECT] User {user_id} cleanup completed")
 
 @socketio.on("new_trial")
 def on_new_trial():
@@ -1167,8 +1464,6 @@ def post_qpt(data):
     form = {}
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
-    for key, value in data["survey_data"].items():
-        form["answer"][key] = value
     condition = current_user.config["conditions"][bloc_key]
     form["timeout_bool"] = data["timeout_bool"]
     form["step"] = current_user.step
@@ -1363,9 +1658,27 @@ def play_game(game, fps=15):
                 "trial": game.curr_trial_in_game,
                 "step": getattr(game, "step", 0),
                 "condition": getattr(game, "curr_condition", None),
-                "config": game.config
+                "config": game.config,
+                "requires_confirmation": True
             }, room=game.id)
-            socketio.sleep(game.reset_timeout / 1000)
+            
+            # Délai de reset adaptatif: plus court si le client confirme rapidement
+            start_time = time()
+            try:
+                confirmation = socketio.call('reset_game_confirmation', timeout=2, room=game.id)
+                if confirmation:
+                    actual_delay = time() - start_time
+                    print(f"[PLAY_GAME] Reset confirmed in {actual_delay:.2f}s")
+                    # Délai minimal de 200ms même avec confirmation rapide
+                    remaining_delay = max(0.2, game.reset_timeout / 1000 - actual_delay)
+                else:
+                    remaining_delay = game.reset_timeout / 1000 * 0.5
+            except:
+                # Pas de confirmation, utiliser un délai réduit
+                remaining_delay = game.reset_timeout / 1000 * 0.5
+                
+            print(f"[PLAY_GAME] Additional reset delay: {remaining_delay:.2f}s")
+            socketio.sleep(remaining_delay)
         else:
             socketio.emit('state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
@@ -1378,20 +1691,44 @@ def play_game(game, fps=15):
             try:
                 # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai SAUF pour le tutoriel
                 if not isinstance(game, OvercookedTutorial):
-                    socketio.call("qpt", {
-                        "qpt_length": game.config.get("qpt_length", 30),
-                        "trial": data.get("curr_trial_in_game", 0),
-                        "show_time": game.config.get("show_trial_time", False),
-                        "time_elapsed": data.get("time_elapsed", 0),
-                        "score": data.get("score", 0),
-                        "infinite_all_order": game.config.get("infinite_all_order", False)
+                    # Émettre end_game avec callback pour confirmation
+                    socketio.emit('end_game', {
+                        "status": status, 
+                        "data": data,
+                        "requires_confirmation": True
                     }, room=game.id)
-                    socketio.emit("qpb", room=game.id)
+                    
+                    # Attendre la confirmation du client avant de continuer
+                    confirmation_received = socketio.call("wait_end_game_confirmation", 
+                                                         timeout=5, room=game.id)
+                    
+                    if confirmation_received:
+                        # Client prêt, émettre les questionnaires
+                        socketio.call("qpt", {
+                            "qpt_length": game.config.get("qpt_length", 30),
+                            "trial": data.get("curr_trial_in_game", 0),
+                            "show_time": game.config.get("show_trial_time", False),
+                            "time_elapsed": data.get("time_elapsed", 0),
+                            "score": data.get("score", 0),
+                            "infinite_all_order": game.config.get("infinite_all_order", False)
+                        }, room=game.id)
+                        socketio.emit("qpb", room=game.id)
+                    else:
+                        print(f"[PLAY_GAME] Client confirmation timeout for game {game.id}")
+                        # Fallback: émettre quand même les questionnaires
+                        socketio.emit("qpb", room=game.id)
+                else:
+                    # Pour le tutoriel, juste émettre end_game
+                    socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
             except SocketIOTimeOutError:
                 print("Player " + str(game.id) + " is not on")
                 if not isinstance(game, OvercookedTutorial):
                     socketio.emit("qpb", room=game.id)
-            socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
+                socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
+            except Exception as e:
+                print(f"Error in end_game sequence: {e}")
+                # En cas d'erreur, au minimum émettre end_game
+                socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
