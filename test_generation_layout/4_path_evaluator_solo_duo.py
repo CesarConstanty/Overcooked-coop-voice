@@ -1235,7 +1235,25 @@ class LayoutEvaluator:
     
     def __init__(self):
         self.pathfinder = OvercookedPathfinder()
-        self.layouts_dir = "layouts_with_objects"
+        
+        # Détecter automatiquement le chemin vers layouts_with_objects
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        layouts_dir_relative = os.path.join(script_dir, "layouts_with_objects")
+        layouts_dir_from_root = "test_generation_layout/layouts_with_objects"
+        
+        if os.path.exists(layouts_dir_relative):
+            self.layouts_dir = layouts_dir_relative
+        elif os.path.exists(layouts_dir_from_root):
+            self.layouts_dir = layouts_dir_from_root
+        else:
+            # Essayer de le trouver automatiquement
+            for root, dirs, files in os.walk('.'):
+                if 'layouts_with_objects' in dirs:
+                    self.layouts_dir = os.path.join(root, 'layouts_with_objects')
+                    break
+            else:
+                raise FileNotFoundError("Impossible de trouver le dossier layouts_with_objects")
+        
         self.results_dir = "path_evaluation_results"
         self.report_generator = MarkdownReportGenerator()
         
@@ -1402,7 +1420,7 @@ class LayoutEvaluator:
         layout_folders.sort()
         
         # TEMPORAIRE: ne traiter que les premiers pour les tests
-        layout_folders = layout_folders[:3]
+        layout_folders = layout_folders[:]
         
         print(f"📁 {len(layout_folders)} dossiers de layouts sélectionnés pour test")
         

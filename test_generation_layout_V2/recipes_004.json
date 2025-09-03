@@ -1,0 +1,36 @@
+{
+  "recipes": [
+    [
+      "tomato",
+      "tomato"
+    ],
+    [
+      "onion",
+      "onion",
+      "onion"
+    ],
+    [
+      "onion",
+      "onion",
+      "tomato"
+    ],
+    [
+      "onion",
+      "tomato",
+      "tomato"
+    ],
+    [
+      "tomato",
+      "tomato",
+      "tomato"
+    ],
+    [
+      "onion"
+    ]
+  ],
+  "params": {
+    "seed": 5,
+    "n_empty": 30,
+    "recipes_per_layout": 6
+  }
+}
