@@ -1,0 +1,15 @@
+{
+  "configuration": {
+    "grid_size": 8,
+    "combination_size": 6,
+    "n_combinations": 260,
+    "onion_value": 3,
+    "tomato_value": 2,
+    "onion_time": 9,
+    "tomato_time": 6,
+    "any_score": true,
+    "description": "Configuration optimisée pour layouts 8x8 - la plus grande variété de recettes quel que soit le score",
+    "note": "Sélection des combinaisons les plus diverses parmi toutes les combinaisons possibles, sans contrainte de score, il y a 84 combinaisons de 6 recettes pour layouts 8x8",
+    "target_layout_format": "XXXXXXX format with 8x8 adaptation"
+  }
+}
