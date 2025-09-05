@@ -18,6 +18,10 @@ from pathlib import Path
 from itertools import combinations, product
 import random
 import hashlib
+import argparse
+
+# Import du système de compression et batch
+from layout_compression import LayoutCompressor, LayoutBatchManager
 import numpy as np
 from collections import deque
 import argparse
@@ -112,6 +116,9 @@ class ProfessionalLayoutGenerator:
         
         # Cache pour éviter les doublons
         self.canonical_cache = set()
+        
+        # Gestionnaire de batch pour compression
+        self.batch_manager = LayoutBatchManager(batch_size=gen_config.get("compression_batch_size", 10000))
         
         logger.info(f"🏗️  Générateur initialisé - Target: {self.target_total:,} layouts")
         logger.info(f"📁 Output: {self.output_dir}")
@@ -439,7 +446,8 @@ class ProfessionalLayoutGenerator:
     
     def grid_to_layout_dict(self, grid: List[List[str]], 
                            object_positions: Dict[str, Tuple[int, int]]) -> Dict:
-        """Convertit une grille en dictionnaire de layout."""
+        """Convertit une grille en format brut pour génération massive."""
+        # Format grid comme string simple pour génération massive
         grid_str = '\n'.join([''.join(row) for row in grid])
         
         # Calculer le hash canonique si détection des doublons activée
@@ -449,22 +457,22 @@ class ProfessionalLayoutGenerator:
         else:
             layout_hash = hashlib.md5(grid_str.encode()).hexdigest()[:16]
         
-        return {
-            'grid': grid_str,
-            'canonical_hash': layout_hash,
-            'n_empty': sum(row.count('.') for row in grid),
-            'n_walls': sum(row.count('X') for row in grid),
-            'object_positions': object_positions,
-            'dispersion_score': self.calculate_object_dispersion_score(object_positions),
-            'metadata': {
-                'generation_timestamp': time.time(),
-                'constraints_applied': {
-                    'serving_on_edge': self.enforce_serving_on_edge,
-                    'object_dispersion': self.enforce_object_dispersion,
-                    'duplicate_detection': self.detect_duplicates
-                }
+        # Format brut optimisé pour génération massive (SANS recettes)
+        layout_dict = {
+            "grid": grid_str,
+            "canonical_hash": layout_hash,
+            "object_positions": object_positions,
+            "generation_metadata": {
+                "timestamp": time.time(),
+                "n_empty": sum(row.count('.') for row in grid),
+                "n_walls": sum(row.count('X') for row in grid),
+                "dispersion_score": self.calculate_object_dispersion_score(object_positions)
             }
         }
+        
+        return layout_dict
+        
+        return layout_dict
     
     def generate_single_layout(self) -> Optional[Dict]:
         """Génère un seul layout valide."""
@@ -493,21 +501,34 @@ class ProfessionalLayoutGenerator:
         return None
     
     def generate_block_worker(self, block_id: int, layouts_per_block: int) -> Dict:
-        """Worker pour générer un bloc de layouts."""
-        logger.info(f"🔄 Worker {block_id}: Génération de {layouts_per_block} layouts")
+        """Worker pour générer un bloc de layouts avec diversité garantie."""
+        # Initialiser la randomisation avec une seed unique pour chaque worker
+        import time
+        unique_seed = int(time.time() * 1000000) % 2**32 + block_id * 1000
+        random.seed(unique_seed)
+        
+        logger.info(f"🔄 Worker {block_id}: Génération de {layouts_per_block} layouts (seed: {unique_seed})")
         
         layouts = []
         attempts = 0
-        max_total_attempts = layouts_per_block * 5  # Limite pour éviter les boucles infinies
+        max_total_attempts = layouts_per_block * 10  # Augmenter pour plus de diversité
+        local_cache = set()  # Cache local pour éviter les doublons dans ce bloc
         
         while len(layouts) < layouts_per_block and attempts < max_total_attempts:
             attempts += 1
             layout = self.generate_single_layout()
             
             if layout is not None:
+                # Vérifier les doublons locaux
+                if self.detect_duplicates:
+                    canonical_hash = layout['canonical_hash']
+                    if canonical_hash in local_cache:
+                        continue  # Doublon local détecté
+                    local_cache.add(canonical_hash)
+                
                 layouts.append(layout)
                 
-                if len(layouts) % 100 == 0:
+                if len(layouts) % 10 == 0:  # Log plus fréquent pour voir la progression
                     logger.info(f"Worker {block_id}: {len(layouts)}/{layouts_per_block} layouts générés")
         
         success_rate = len(layouts) / attempts * 100 if attempts > 0 else 0
@@ -536,10 +557,10 @@ class ProfessionalLayoutGenerator:
         
         total_generated = 0
         
-        # Traitement par blocs avec multiprocessing
-        with mp.Pool(processes=self.n_processes) as pool:
-            # Préparer les tâches
-            tasks = []
+        # Si un seul processus, pas besoin de multiprocessing
+        if self.n_processes == 1:
+            logger.info("🔄 Mode single-process activé")
+            
             for block_id in range(n_blocks):
                 remaining = self.target_total - total_generated
                 block_size = min(self.layouts_per_block, remaining)
@@ -547,45 +568,57 @@ class ProfessionalLayoutGenerator:
                 if block_size <= 0:
                     break
                 
-                tasks.append((block_id, block_size))
-            
-            # Exécuter les tâches
-            results = []
-            for block_id, block_size in tasks:
-                result = pool.apply_async(self.generate_block_worker, (block_id, block_size))
-                results.append(result)
-            
-            # Collecter et sauvegarder les résultats
-            for i, result_async in enumerate(results):
-                try:
-                    result = result_async.get(timeout=3600)  # 1 heure max par bloc
-                    
-                    # Sauvegarder le bloc
-                    block_file = self.output_dir / f"layouts_block_{result['block_id']:04d}.json"
-                    
-                    save_data = {
-                        'block_info': {
-                            'block_id': result['block_id'],
-                            'total_layouts': len(result['layouts']),
-                            'generation_time': time.time() - start_time,
-                            'success_rate': result['success_rate']
-                        },
-                        'layouts': result['layouts']
-                    }
-                    
-                    # Créer le dossier uniquement au moment de sauvegarder
-                    self.output_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    with open(block_file, 'w', encoding='utf-8') as f:
-                        json.dump(save_data, f, indent=2, ensure_ascii=False)
-                    
-                    total_generated += len(result['layouts'])
-                    
-                    logger.info(f"💾 Bloc {result['block_id']} sauvé: {len(result['layouts'])} layouts")
-                    logger.info(f"📈 Progression: {total_generated:,}/{self.target_total:,} ({total_generated/self.target_total*100:.1f}%)")
+                # Génération directe sans multiprocessing
+                result = self.generate_block_worker(block_id, block_size)
                 
-                except Exception as e:
-                    logger.error(f"❌ Erreur bloc {i}: {e}")
+                # Ajouter les layouts au gestionnaire de batch compressé (SEUL stockage nécessaire)
+                for layout in result['layouts']:
+                    self.batch_manager.add_layout(layout, str(self.output_dir))
+                
+                total_generated += len(result['layouts'])
+                
+                logger.info(f"� Bloc {result['block_id']} traité: {len(result['layouts'])} layouts → batch compressé")
+                logger.info(f"📈 Progression: {total_generated:,}/{self.target_total:,} ({total_generated/self.target_total*100:.1f}%)")
+        
+        else:
+            # Traitement par blocs avec multiprocessing
+            with mp.Pool(processes=self.n_processes) as pool:
+                # Préparer les tâches
+                tasks = []
+                for block_id in range(n_blocks):
+                    remaining = self.target_total - total_generated
+                    block_size = min(self.layouts_per_block, remaining)
+                    
+                    if block_size <= 0:
+                        break
+                    
+                    tasks.append((block_id, block_size))
+                
+                # Exécuter les tâches
+                results = []
+                for block_id, block_size in tasks:
+                    result = pool.apply_async(self.generate_block_worker, (block_id, block_size))
+                    results.append(result)
+                
+                # Collecter et sauvegarder les résultats avec compression
+                for i, result_async in enumerate(results):
+                    try:
+                        result = result_async.get(timeout=3600)  # 1 heure max par bloc
+                        
+                        # Ajouter les layouts au gestionnaire de batch compressé (SEUL stockage nécessaire)
+                        for layout in result['layouts']:
+                            self.batch_manager.add_layout(layout, str(self.output_dir))
+                        
+                        total_generated += len(result['layouts'])
+                        
+                        logger.info(f"� Bloc {result['block_id']} traité: {len(result['layouts'])} layouts → batch compressé")
+                        logger.info(f"📈 Progression: {total_generated:,}/{self.target_total:,} ({total_generated/self.target_total*100:.1f}%)")
+                    
+                    except Exception as e:
+                        logger.error(f"❌ Erreur bloc {i}: {e}")
+        
+        # Finaliser le gestionnaire de batch
+        compression_stats = self.batch_manager.finalize(str(self.output_dir))
         
         generation_time = time.time() - start_time
         
@@ -593,6 +626,8 @@ class ProfessionalLayoutGenerator:
         logger.info(f"✅ Génération terminée!")
         logger.info(f"📊 Résultats: {total_generated:,} layouts générés en {generation_time:.1f}s")
         logger.info(f"⚡ Performance: {total_generated/generation_time:.1f} layouts/sec")
+        logger.info(f"📦 Compression: {compression_stats['compression_ratio']:.1f}% gain d'espace")
+        logger.info(f"🗂️ Batches créés: {compression_stats['total_batches']}")
         
         return total_generated > 0
 

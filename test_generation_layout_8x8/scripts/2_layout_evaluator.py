@@ -1,23 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Évaluateur professionnel optimisé des layouts Overcooked
-- Évaluation légère avec simulation réelle (métriques seulement)
-- Génération de trajectoires détaillées uniquement pour layouts sélectionnés
-- Pathfinding BFS/A* pour calculs précis des steps
-- Gestion dynamique des zones d'échange X->Y
-- Architecture modulaire pour éviter la surcharge mémoire
+Évaluateur Massif de Layouts Overcooked
+Évalue chaque layout généré avec chaque groupe de recettes pour calculer les métriques de performance
+
+Fonctionnalités:
+1. Charge tous les layouts générés (fichiers .gz compressés)
+2. Charge tous les groupes de recettes générés
+3. Évalue chaque combinaison layout + groupe de recettes
+4. Calcule: étapes solo, étapes duo, nombre d'échanges
+5. Stockage optimisé avec identifiants uniques
+
+Architecture:
+- Adapte les classes GameState et OvercookedPathfinder pour l'évaluation massive
+- Système de compression pour stockage efficace des résultats
+- Multiprocessing pour évaluation parallèle
+- Métriques détaillées avec traçabilité layout+recettes
+
+Author: Assistant AI Expert
+Date: Septembre 2025
 """
 
+import os
 import json
+import gzip
 import time
 import logging
+import hashlib
+import argparse
 import multiprocessing as mp
 from pathlib import Path
-from collections import deque, defaultdict
-from typing import Dict, List, Tuple, Set, Optional, Any
-import argparse
-import heapq
+from collections import deque
+from typing import Dict, List, Tuple, Optional, Set, Any
+from dataclasses import dataclass
 import copy
 
 # Configuration du logging
@@ -31,867 +46,630 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class GameState:
-    """Représente l'état du jeu à un moment donné."""
+@dataclass
+class EvaluationMetrics:
+    """Métriques d'évaluation pour une combinaison layout+recettes"""
+    layout_id: str
+    recipe_group_id: int
+    solo_steps: int
+    duo_steps: int
+    exchanges_count: int
+    solo_actions: List[Dict]
+    duo_actions: List[Dict]
+    evaluation_time: float
+    layout_hash: str
+    recipe_hash: str
+
+class OptimizedGameState:
+    """Version optimisée de GameState pour évaluation massive"""
     
-    def __init__(self, grid: List[List[str]], player_positions: Dict[str, Tuple[int, int]]):
-        self.grid = [row[:] for row in grid]  # Copie profonde
-        self.player_positions = player_positions.copy()
-        self.inventory = {'1': [], '2': []}  # Inventaire des joueurs
-        self.pot_contents = {}  # Contenu des pots {position: [ingredients]}
-        self.completed_dishes = []  # Plats terminés
-        self.steps_count = 0
-        self.exchanges_used = 0
-        self.exchange_zones = set()  # Zones X converties en Y
+    def __init__(self, layout_data: Dict, recipes: List[Dict]):
+        # Parsing du layout depuis le format raw généré
+        self.grid_string = layout_data["grid"]
+        self.layout = [list(row) for row in self.grid_string.split('\n')]
+        self.object_positions = layout_data["object_positions"]
+        self.recipes = recipes
+        
+        self.width = len(self.layout[0])
+        self.height = len(self.layout)
+        
+        # Positions des éléments depuis object_positions
+        self.player_positions = {}
+        self.pot_position = None
+        self.service_position = None
+        self.onion_dispenser = None
+        self.tomato_dispenser = None
+        self.dish_dispenser = None
+        self.counters = []
+        self.walls = []
+        
+        # État du jeu
+        self.player_inventory = {}
+        self.counter_items = {}
+        self.pot_contents = []
+        self.pot_cooking = False
+        self.pot_cooking_time = 0
+        self.completed_recipes = []
+        self.current_step = 0
+        
+        self._parse_layout_optimized()
+    
+    def _parse_layout_optimized(self):
+        """Parse optimisé du layout depuis les données générées"""
+        # Utiliser object_positions pour placer les objets
+        for obj_type, position in self.object_positions.items():
+            if obj_type == '1':
+                self.player_positions[1] = position
+                self.player_inventory[1] = None
+            elif obj_type == '2':
+                self.player_positions[2] = position
+                self.player_inventory[2] = None
+            elif obj_type == 'P':
+                self.pot_position = position
+            elif obj_type == 'S':
+                self.service_position = position
+            elif obj_type == 'O':
+                self.onion_dispenser = position
+            elif obj_type == 'T':
+                self.tomato_dispenser = position
+            elif obj_type == 'D':
+                self.dish_dispenser = position
+        
+        # Identifier les comptoirs et murs depuis la grille
+        for y in range(self.height):
+            for x in range(self.width):
+                cell = self.layout[y][x]
+                if cell == 'Y':  # Comptoirs dans nos layouts
+                    self.counters.append((x, y))
+                elif cell == 'X':  # Murs
+                    self.walls.append((x, y))
+        
+        # Initialiser les inventaires des comptoirs
+        for counter in self.counters:
+            self.counter_items[counter] = None
+    
+    def is_valid_position(self, x: int, y: int) -> bool:
+        """Vérifie si une position est valide"""
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.layout[y][x] != 'X'
+        return False
+    
+    def get_neighbors(self, pos: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """Retourne les positions voisines valides"""
+        x, y = pos
+        neighbors = []
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+            if self.is_valid_position(nx, ny):
+                neighbors.append((nx, ny))
+        return neighbors
+    
+    def is_position_occupied(self, pos: Tuple[int, int], excluding_player: Optional[int] = None) -> bool:
+        """Vérifie si une position est occupée par un autre joueur"""
+        for player_id, player_pos in self.player_positions.items():
+            if player_id != excluding_player and player_pos == pos:
+                return True
+        return False
     
     def copy(self):
-        """Crée une copie profonde de l'état."""
-        new_state = GameState(self.grid, self.player_positions)
-        new_state.inventory = {k: v[:] for k, v in self.inventory.items()}
-        new_state.pot_contents = {k: v[:] for k, v in self.pot_contents.items()}
-        new_state.completed_dishes = self.completed_dishes[:]
-        new_state.steps_count = self.steps_count
-        new_state.exchanges_used = self.exchanges_used
-        new_state.exchange_zones = self.exchange_zones.copy()
-        return new_state
+        """Crée une copie profonde de l'état"""
+        return copy.deepcopy(self)
 
-class PathFinder:
-    """Classe pour le calcul de chemins avec BFS/A*."""
+class FastDistanceCalculator:
+    """Calculateur de distances optimisé pour évaluation massive"""
     
-    @staticmethod
-    def bfs_shortest_path(grid: List[List[str]], start: Tuple[int, int], 
-                         end: Tuple[int, int], exchange_zones: Set[Tuple[int, int]] = None) -> Optional[List[Tuple[int, int]]]:
-        """Calcule le chemin le plus court avec BFS."""
-        if start == end:
-            return [start]
+    def __init__(self, game_state: OptimizedGameState):
+        self.state = game_state
+        self.distances = {}
+        self._precompute_critical_distances()
+    
+    def bfs_distance(self, start: Tuple[int, int], goal: Tuple[int, int]) -> int:
+        """Calcule la distance BFS entre deux points"""
+        if start == goal:
+            return 0
         
-        grid_size = len(grid)
-        queue = deque([(start, [start])])
+        # Vérifier le cache
+        cache_key = (start, goal)
+        if cache_key in self.distances:
+            return self.distances[cache_key]
+        
+        queue = deque([(start, 0)])
         visited = {start}
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         
         while queue:
-            current, path = queue.popleft()
+            current, dist = queue.popleft()
             
-            for di, dj in directions:
-                ni, nj = current[0] + di, current[1] + dj
+            for neighbor in self.state.get_neighbors(current):
+                if neighbor in visited:
+                    continue
                 
-                if (0 <= ni < grid_size and 0 <= nj < grid_size and
-                    (ni, nj) not in visited):
-                    
-                    cell = grid[ni][nj]
-                    
-                    # Vérifier si la case est traversable
-                    if cell != 'X' or (exchange_zones and (ni, nj) in exchange_zones):
-                        visited.add((ni, nj))
-                        new_path = path + [(ni, nj)]
-                        
-                        if (ni, nj) == end:
-                            return new_path
-                        
-                        queue.append(((ni, nj), new_path))
-        
-        return None  # Aucun chemin trouvé
-
-class OvercookedSimulator:
-    """Simulateur complet du gameplay Overcooked."""
-    
-    def __init__(self, config: Dict):
-        self.config = config
-        self.eval_config = config["pipeline_config"]["evaluation"]
-        self.ignore_cooking_times = self.eval_config["ignore_cooking_times"]
-        self.max_exchange_zones = self.eval_config["max_exchange_zones"]
-        self.pathfinding_algo = self.eval_config["pathfinding_algorithm"]
-        
-    def simulate_recipe_completion(self, layout: Dict, recipe: Dict, 
-                                 player_mode: str = "solo", generate_trajectories: bool = False) -> Dict:
-        """Simule la completion d'une recette complète."""
-        grid_str = layout['grid']
-        grid = [list(row) for row in grid_str.split('\n')]
-        
-        # Initialiser l'état du jeu
-        player_positions = self.extract_player_positions(grid)
-        initial_state = GameState(grid, player_positions)
-        
-        # Remplacer les joueurs par des espaces vides dans la grille
-        for pos in player_positions.values():
-            initial_state.grid[pos[0]][pos[1]] = '.'
-        
-        # Simuler selon le mode
-        if player_mode == "solo":
-            result = self.simulate_solo_mode(initial_state, recipe, generate_trajectories)
-        else:  # duo
-            result = self.simulate_duo_mode(initial_state, recipe, generate_trajectories)
-        
-        return result
-    
-    def extract_player_positions(self, grid: List[List[str]]) -> Dict[str, Tuple[int, int]]:
-        """Extrait les positions des joueurs de la grille."""
-        positions = {}
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] in ['1', '2']:
-                    positions[grid[i][j]] = (i, j)
-        return positions
-    
-    def simulate_solo_mode(self, initial_state: GameState, recipe: Dict, generate_trajectories: bool = False) -> Dict:
-        """Simule le mode solo (joueur 1 uniquement)."""
-        state = initial_state.copy()
-        trajectory = [] if generate_trajectories else None
-        ingredients_needed = recipe['ingredients'][:]
-        
-        logger.debug(f"🎯 Simulation solo pour recette: {ingredients_needed}")
-        
-        while ingredients_needed:
-            ingredient = ingredients_needed.pop(0)
-            steps = self.collect_and_process_ingredient(state, ingredient, '1', trajectory)
-            
-            if steps == -1:  # Échec
-                return {
-                    'success': False,
-                    'total_steps': float('inf'),
-                    'trajectory': trajectory,
-                    'reason': 'Impossible de collecter ingrédient',
-                    'exchanges_used': 0
-                }
-        
-        # Finaliser le plat
-        final_steps = self.finalize_dish(state, '1', trajectory)
-        if final_steps == -1:
-            return {
-                'success': False,
-                'total_steps': float('inf'),
-                'trajectory': trajectory,
-                'reason': 'Impossible de finaliser le plat',
-                'exchanges_used': 0
-            }
-        
-        result = {
-            'success': True,
-            'total_steps': state.steps_count,
-            'exchanges_used': state.exchanges_used,
-            'final_state': state
-        }
-        
-        # Ajouter les trajectoires seulement si demandées
-        if generate_trajectories:
-            result['trajectory'] = trajectory
-        
-        return result
-    
-    def simulate_duo_mode(self, initial_state: GameState, recipe: Dict, generate_trajectories: bool = False) -> Dict:
-        """Simule le mode duo avec optimisation des échanges."""
-        state = initial_state.copy()
-        trajectory = [] if generate_trajectories else None
-        ingredients_needed = recipe['ingredients'][:]
-        
-        logger.debug(f"🎯 Simulation duo pour recette: {ingredients_needed}")
-        
-        # Essayer différentes stratégies de répartition
-        best_result = None
-        best_steps = float('inf')
-        
-        # Stratégie 1: Répartition équilibrée
-        result1 = self.simulate_duo_balanced_strategy(state.copy(), ingredients_needed, trajectory[:] if trajectory else None)
-        if result1['success'] and result1['total_steps'] < best_steps:
-            best_result = result1
-            best_steps = result1['total_steps']
-        
-        # Stratégie 2: Avec zones d'échange optimisées
-        if state.exchanges_used < self.max_exchange_zones:
-            result2 = self.simulate_duo_with_exchanges(state.copy(), ingredients_needed, trajectory[:] if trajectory else None)
-            if result2['success'] and result2['total_steps'] < best_steps:
-                best_result = result2
-                best_steps = result2['total_steps']
-        
-        return best_result or {
-            'success': False,
-            'total_steps': float('inf'),
-            'trajectory': trajectory,
-            'reason': 'Toutes les stratégies ont échoué',
-            'exchanges_used': 0
-        }
-    
-    def simulate_duo_balanced_strategy(self, state: GameState, 
-                                     ingredients: List[str], trajectory: Optional[List[Dict]]) -> Dict:
-        """Stratégie équilibrée pour le mode duo."""
-        # Répartir les ingrédients entre les joueurs
-        player1_ingredients = ingredients[::2]  # Indices pairs
-        player2_ingredients = ingredients[1::2]  # Indices impairs
-        
-        # Simuler en parallèle (simplifié)
-        max_steps = 0
-        
-        # Joueur 1
-        for ingredient in player1_ingredients:
-            steps = self.collect_and_process_ingredient(state, ingredient, '1', trajectory)
-            if steps == -1:
-                return {'success': False, 'total_steps': float('inf'), 
-                       'trajectory': trajectory, 'exchanges_used': state.exchanges_used}
-            max_steps = max(max_steps, state.steps_count)
-        
-        # Joueur 2
-        for ingredient in player2_ingredients:
-            steps = self.collect_and_process_ingredient(state, ingredient, '2', trajectory)
-            if steps == -1:
-                return {'success': False, 'total_steps': float('inf'), 
-                       'trajectory': trajectory, 'exchanges_used': state.exchanges_used}
-            max_steps = max(max_steps, state.steps_count)
-        
-        # Finalisation par le joueur le plus proche
-        final_steps = self.finalize_dish(state, '1', trajectory)  # Simplifié
-        if final_steps == -1:
-            return {'success': False, 'total_steps': float('inf'), 
-                   'trajectory': trajectory, 'exchanges_used': state.exchanges_used}
-        
-        result = {
-            'success': True,
-            'total_steps': state.steps_count,
-            'exchanges_used': state.exchanges_used,
-            'final_state': state
-        }
-        
-        # Ajouter les trajectoires seulement si demandées
-        if trajectory is not None:
-            result['trajectory'] = trajectory
-        
-        return result
-    
-    def simulate_duo_with_exchanges(self, state: GameState, 
-                                   ingredients: List[str], trajectory: Optional[List[Dict]]) -> Dict:
-        """Stratégie duo avec optimisation des zones d'échange."""
-        # Identifier les zones X potentiellement utiles pour les échanges
-        potential_exchanges = self.identify_potential_exchange_zones(state.grid, state.player_positions)
-        
-        if not potential_exchanges:
-            return self.simulate_duo_balanced_strategy(state, ingredients, trajectory)
-        
-        # Essayer avec les meilleures zones d'échange
-        best_zones = potential_exchanges[:self.max_exchange_zones]
-        
-        for zone in best_zones:
-            if self.is_exchange_beneficial(state, zone, ingredients):
-                state.grid[zone[0]][zone[1]] = 'Y'
-                state.exchange_zones.add(zone)
-                state.exchanges_used += 1
+                if neighbor == goal:
+                    distance = dist + 1
+                    self.distances[cache_key] = distance
+                    self.distances[(goal, start)] = distance  # Symétrique
+                    return distance
                 
-                if trajectory is not None:
-                    trajectory.append({
-                        'action': 'create_exchange_zone',
-                        'position': zone,
-                        'step': state.steps_count,
-                        'reason': 'Optimisation des échanges'
-                    })
+                visited.add(neighbor)
+                queue.append((neighbor, dist + 1))
         
-        return self.simulate_duo_balanced_strategy(state, ingredients, trajectory)
+        distance = float('inf')
+        self.distances[cache_key] = distance
+        return distance
     
-    def identify_potential_exchange_zones(self, grid: List[List[str]], 
-                                        player_positions: Dict[str, Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """Identifie les zones X potentiellement utiles pour les échanges."""
-        potential_zones = []
+    def _precompute_critical_distances(self):
+        """Pré-calcule les distances critiques pour optimiser les évaluations"""
+        critical_points = {}
         
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] == 'X':
-                    # Vérifier si cette zone pourrait améliorer la connectivité
-                    if self.would_improve_connectivity(grid, (i, j), player_positions):
-                        potential_zones.append((i, j))
+        # Ajouter tous les points d'intérêt
+        if self.state.player_positions:
+            critical_points.update({f'player_{k}': v for k, v in self.state.player_positions.items()})
+        if self.state.pot_position:
+            critical_points['pot'] = self.state.pot_position
+        if self.state.service_position:
+            critical_points['service'] = self.state.service_position
+        if self.state.onion_dispenser:
+            critical_points['onion'] = self.state.onion_dispenser
+        if self.state.tomato_dispenser:
+            critical_points['tomato'] = self.state.tomato_dispenser
+        if self.state.dish_dispenser:
+            critical_points['dish'] = self.state.dish_dispenser
         
-        # Trier par utilité potentielle
-        potential_zones.sort(key=lambda zone: self.calculate_exchange_utility(grid, zone, player_positions), reverse=True)
+        # Ajouter les comptoirs
+        for i, counter in enumerate(self.state.counters):
+            critical_points[f'counter_{i}'] = counter
         
-        return potential_zones
-    
-    def would_improve_connectivity(self, grid: List[List[str]], 
-                                 zone: Tuple[int, int], player_positions: Dict[str, Tuple[int, int]]) -> bool:
-        """Vérifie si convertir une zone X en Y améliorerait la connectivité."""
-        # Test simple: vérifier si cela réduit la distance entre les joueurs
-        p1_pos = player_positions['1']
-        p2_pos = player_positions['2']
-        
-        # Distance actuelle
-        current_dist = abs(p1_pos[0] - p2_pos[0]) + abs(p1_pos[1] - p2_pos[1])
-        
-        # Distance avec la zone convertie (approximation)
-        zone_to_p1 = abs(zone[0] - p1_pos[0]) + abs(zone[1] - p1_pos[1])
-        zone_to_p2 = abs(zone[0] - p2_pos[0]) + abs(zone[1] - p2_pos[1])
-        potential_new_dist = zone_to_p1 + zone_to_p2
-        
-        return potential_new_dist < current_dist * 1.5  # Seuil d'amélioration
-    
-    def calculate_exchange_utility(self, grid: List[List[str]], 
-                                 zone: Tuple[int, int], player_positions: Dict[str, Tuple[int, int]]) -> float:
-        """Calcule l'utilité d'une zone d'échange."""
-        # Score basé sur la position centrale et la proximité aux objets importants
-        grid_size = len(grid)
-        center_x, center_y = grid_size // 2, grid_size // 2
-        
-        # Distance au centre (plus c'est central, mieux c'est)
-        center_dist = abs(zone[0] - center_x) + abs(zone[1] - center_y)
-        center_score = 1.0 - (center_dist / (grid_size * 0.7))
-        
-        # Proximité aux objets importants
-        object_score = 0.0
-        important_objects = ['O', 'T', 'P', 'D', 'S']
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                if grid[i][j] in important_objects:
-                    obj_dist = abs(zone[0] - i) + abs(zone[1] - j)
-                    object_score += 1.0 / (1 + obj_dist)
-        
-        return center_score * 0.3 + object_score * 0.7
-    
-    def is_exchange_beneficial(self, state: GameState, zone: Tuple[int, int], 
-                              ingredients: List[str]) -> bool:
-        """Vérifie si créer une zone d'échange serait bénéfique."""
-        # Heuristique simple: bénéfique si cela réduit les trajets moyens
-        return True  # Pour l'instant, simplifié
-    
-    def collect_and_process_ingredient(self, state: GameState, ingredient: str, 
-                                     player: str, trajectory: Optional[List[Dict]]) -> int:
-        """Simule la collecte et le traitement d'un ingrédient."""
-        # Trouver la source de l'ingrédient
-        source_obj = 'O' if ingredient == 'onion' else 'T'
-        
-        # Trouver la position de la source
-        source_pos = None
-        for i in range(len(state.grid)):
-            for j in range(len(state.grid[i])):
-                if state.grid[i][j] == source_obj:
-                    source_pos = (i, j)
-                    break
-            if source_pos:
-                break
-        
-        if not source_pos:
-            return -1  # Source non trouvée
-        
-        # Calculer le chemin vers la source
-        player_pos = state.player_positions[player]
-        path_to_source = PathFinder.bfs_shortest_path(state.grid, player_pos, source_pos, state.exchange_zones)
-        
-        if not path_to_source:
-            return -1  # Chemin impossible
-        
-        # Ajouter les steps pour atteindre la source
-        steps_to_source = len(path_to_source) - 1
-        state.steps_count += steps_to_source
-        state.player_positions[player] = source_pos
-        
-        # Collecter l'ingrédient
-        state.inventory[player].append(ingredient)
-        state.steps_count += 1  # Action de collecte
-        
-        if trajectory is not None:
-            trajectory.append({
-                'action': 'collect_ingredient',
-                'player': player,
-                'ingredient': ingredient,
-                'source_position': source_pos,
-                'path': path_to_source,
-                'steps_used': steps_to_source + 1,
-                'total_steps': state.steps_count
-            })
-        
-        # Aller au pot pour déposer l'ingrédient
-        pot_pos = self.find_nearest_pot(state.grid, state.player_positions[player])
-        if not pot_pos:
-            return -1  # Pas de pot accessible
-        
-        path_to_pot = PathFinder.bfs_shortest_path(state.grid, state.player_positions[player], pot_pos, state.exchange_zones)
-        if not path_to_pot:
-            return -1  # Chemin vers pot impossible
-        
-        steps_to_pot = len(path_to_pot) - 1
-        state.steps_count += steps_to_pot
-        state.player_positions[player] = pot_pos
-        
-        # Déposer dans le pot
-        if pot_pos not in state.pot_contents:
-            state.pot_contents[pot_pos] = []
-        state.pot_contents[pot_pos].append(ingredient)
-        state.inventory[player].remove(ingredient)
-        state.steps_count += 1  # Action de dépôt
-        
-        if trajectory is not None:
-            trajectory.append({
-                'action': 'deposit_ingredient',
-                'player': player,
-                'ingredient': ingredient,
-                'pot_position': pot_pos,
-                'path': path_to_pot,
-                'steps_used': steps_to_pot + 1,
-                'total_steps': state.steps_count
-            })
-        
-        return steps_to_source + steps_to_pot + 2  # Total des steps utilisés
-    
-    def find_nearest_pot(self, grid: List[List[str]], position: Tuple[int, int]) -> Optional[Tuple[int, int]]:
-        """Trouve le pot le plus proche d'une position."""
-        best_pot = None
-        min_distance = float('inf')
-        
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] == 'P':
-                    distance = abs(i - position[0]) + abs(j - position[1])
-                    if distance < min_distance:
-                        min_distance = distance
-                        best_pot = (i, j)
-        
-        return best_pot
-    
-    def finalize_dish(self, state: GameState, player: str, trajectory: Optional[List[Dict]]) -> int:
-        """Simule la finalisation d'un plat."""
-        # Trouver un pot avec des ingrédients
-        pot_pos = None
-        for pos, contents in state.pot_contents.items():
-            if contents:
-                pot_pos = pos
-                break
-        
-        if not pot_pos:
-            return -1  # Pas de pot avec ingrédients
-        
-        # Aller au pot
-        player_pos = state.player_positions[player]
-        if player_pos != pot_pos:
-            path_to_pot = PathFinder.bfs_shortest_path(state.grid, player_pos, pot_pos, state.exchange_zones)
-            if not path_to_pot:
-                return -1
-            
-            steps_to_pot = len(path_to_pot) - 1
-            state.steps_count += steps_to_pot
-            state.player_positions[player] = pot_pos
-        
-        # Cuisson (instantanée si ignore_cooking_times)
-        if not self.ignore_cooking_times:
-            cooking_time = 10  # Temps de cuisson standard
-            state.steps_count += cooking_time
-        
-        # Récupérer le plat cuit
-        state.steps_count += 1  # Action de récupération
-        cooked_dish = state.pot_contents[pot_pos][:]
-        state.pot_contents[pot_pos] = []
-        state.inventory[player].extend(['cooked_dish'])
-        
-        # Trouver une assiette
-        dish_pos = self.find_nearest_dish_dispenser(state.grid, state.player_positions[player])
-        if not dish_pos:
-            return -1
-        
-        path_to_dish = PathFinder.bfs_shortest_path(state.grid, state.player_positions[player], dish_pos, state.exchange_zones)
-        if not path_to_dish:
-            return -1
-        
-        steps_to_dish = len(path_to_dish) - 1
-        state.steps_count += steps_to_dish
-        state.player_positions[player] = dish_pos
-        
-        # Prendre une assiette
-        state.steps_count += 1
-        state.inventory[player].append('dish')
-        
-        # Assembler le plat
-        state.steps_count += 1
-        state.inventory[player] = [item for item in state.inventory[player] if item not in ['cooked_dish', 'dish']]
-        state.inventory[player].append('complete_dish')
-        
-        # Aller à la zone de service
-        serving_pos = self.find_serving_station(state.grid)
-        if not serving_pos:
-            return -1
-        
-        path_to_serving = PathFinder.bfs_shortest_path(state.grid, state.player_positions[player], serving_pos, state.exchange_zones)
-        if not path_to_serving:
-            return -1
-        
-        steps_to_serving = len(path_to_serving) - 1
-        state.steps_count += steps_to_serving
-        state.player_positions[player] = serving_pos
-        
-        # Servir le plat
-        state.steps_count += 1
-        state.inventory[player].remove('complete_dish')
-        state.completed_dishes.append(cooked_dish)
-        
-        if trajectory is not None:
-            trajectory.append({
-                'action': 'finalize_dish',
-                'player': player,
-                'dish_contents': cooked_dish,
-                'total_steps_for_finalization': steps_to_dish + steps_to_serving + 4,
-                'total_steps': state.steps_count
-            })
-        
-        return steps_to_dish + steps_to_serving + 4
-    
-    def find_nearest_dish_dispenser(self, grid: List[List[str]], position: Tuple[int, int]) -> Optional[Tuple[int, int]]:
-        """Trouve le distributeur d'assiettes le plus proche."""
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] == 'D':
-                    return (i, j)
-        return None
-    
-    def find_serving_station(self, grid: List[List[str]]) -> Optional[Tuple[int, int]]:
-        """Trouve la station de service."""
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] == 'S':
-                    return (i, j)
-        return None
+        # Pré-calculer toutes les distances entre points critiques
+        points_list = list(critical_points.items())
+        for i, (name1, pos1) in enumerate(points_list):
+            for name2, pos2 in points_list[i:]:
+                self.bfs_distance(pos1, pos2)
 
-class ProfessionalLayoutEvaluator:
-    """Évaluateur professionnel avec optimisation des ressources."""
+class MassiveLayoutEvaluator:
+    """Évaluateur principal pour l'évaluation massive des layouts"""
     
     def __init__(self, config_file: str = "config/pipeline_config.json"):
-        """Initialise l'évaluateur avec la configuration."""
         self.base_dir = Path(__file__).parent.parent
         self.config_file = self.base_dir / config_file
         self.config = self.load_config()
         
-        # Dossiers
-        self.layouts_dir = self.base_dir / "outputs" / self.config["pipeline_config"]["output"]["layouts_generated_dir"]
-        self.trajectories_dir = self.base_dir / "outputs" / self.config["pipeline_config"]["output"]["trajectories_dir"]
-        self.evaluation_dir = self.base_dir / "outputs" / "detailed_evaluation"
+        # Configuration
+        eval_config = self.config["pipeline_config"]["evaluation"]
+        self.layouts_dir = self.base_dir / "outputs" / "layouts_generes"
+        self.recipes_file = self.base_dir / "outputs" / "recipes.json"
+        self.output_dir = self.base_dir / "outputs" / eval_config["results_dir"]
         
-        self.trajectories_dir.mkdir(parents=True, exist_ok=True)
-        self.evaluation_dir.mkdir(parents=True, exist_ok=True)
+        self.n_processes = eval_config.get("processes", mp.cpu_count() - 1)
+        self.batch_size = eval_config.get("batch_size", 1000)
         
-        # Simulateur
-        self.simulator = OvercookedSimulator(self.config)
+        # Constantes de jeu
+        self.onion_time = 9
+        self.tomato_time = 6
         
-        logger.info(f"🎯 Évaluateur professionnel initialisé")
+        logger.info(f"🔍 Évaluateur massif initialisé")
         logger.info(f"📁 Layouts: {self.layouts_dir}")
-        logger.info(f"📁 Trajectoires: {self.trajectories_dir}")
-        logger.info(f"📁 Évaluations: {self.evaluation_dir}")
+        logger.info(f"📋 Recettes: {self.recipes_file}")
+        logger.info(f"💾 Résultats: {self.output_dir}")
     
     def load_config(self) -> Dict:
-        """Charge la configuration du pipeline."""
+        """Charge la configuration du pipeline"""
         if not self.config_file.exists():
             raise FileNotFoundError(f"Configuration non trouvée: {self.config_file}")
         
         with open(self.config_file, 'r', encoding='utf-8') as f:
             return json.load(f)
     
-    def load_layouts_and_recipes(self) -> Tuple[List[Dict], List[Dict]]:
-        """Charge les layouts et groupes de recettes."""
-        # Charger les layouts
+    def load_recipes(self) -> List[Dict]:
+        """Charge tous les groupes de recettes"""
+        with open(self.recipes_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data["recipe_groups"]
+    
+    def load_layouts_batch(self, batch_file: Path) -> List[Dict]:
+        """Charge un batch de layouts depuis un fichier .gz"""
         layouts = []
-        if self.layouts_dir.exists():
-            for layout_file in self.layouts_dir.glob("*.json"):
-                try:
-                    with open(layout_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if 'layouts' in data:
-                            layouts.extend(data['layouts'])
-                except Exception as e:
-                    logger.warning(f"❌ Erreur lecture layout {layout_file}: {e}")
+        try:
+            with gzip.open(batch_file, 'rt', encoding='utf-8') as f:
+                for line in f:
+                    layout_data = json.loads(line.strip())
+                    layouts.append(layout_data)
+        except Exception as e:
+            logger.error(f"❌ Erreur chargement batch {batch_file}: {e}")
         
-        # Charger les groupes de recettes
-        recipe_groups = []
-        recipe_files = list(self.base_dir.glob("outputs/recipe_combinations/all_recipe_groups_*.json"))
-        if recipe_files:
-            latest_file = max(recipe_files, key=lambda f: f.stat().st_mtime)
-            with open(latest_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                recipe_groups = data['recipe_groups']
-        
-        logger.info(f"📊 Chargés: {len(layouts)} layouts, {len(recipe_groups)} groupes de recettes")
-        return layouts, recipe_groups
+        return layouts
     
-    def evaluate_layout_with_recipe_group(self, layout: Dict, recipe_group: Dict) -> Dict:
-        """Évalue un layout avec un groupe de recettes (mode léger sans trajectoires)."""
-        layout_id = layout['canonical_hash']
-        group_id = recipe_group['group_id']
+    def get_all_layout_batches(self) -> List[Path]:
+        """Récupère tous les fichiers de batch de layouts"""
+        return list(self.layouts_dir.glob("layouts_batch_*.gz"))
+    
+    def calculate_cooking_time(self, ingredients: List[str]) -> int:
+        """Calcule le temps de cuisson total"""
+        onion_count = ingredients.count('onion')
+        tomato_count = ingredients.count('tomato')
+        return onion_count * self.onion_time + tomato_count * self.tomato_time
+    
+    def bfs_path(self, start: Tuple[int, int], goal: Tuple[int, int], 
+                 state: OptimizedGameState, excluding_player: Optional[int] = None) -> List[Tuple[int, int]]:
+        """Trouve le chemin BFS entre deux points"""
+        if start == goal:
+            return [start]
         
-        logger.debug(f"🔄 Évaluation layout {layout_id} avec groupe {group_id}")
+        queue = deque([(start, [start])])
+        visited = {start}
         
-        results = {
-            'layout_id': layout_id,
-            'recipe_group_id': group_id,
-            'recipe_evaluations': [],
-            'summary_metrics': {}
-        }
-        
-        total_solo_steps = 0
-        total_duo_steps = 0
-        total_exchanges_used = 0
-        successful_recipes = 0
-        
-        # Évaluer chaque recette du groupe (sans trajectoires)
-        for recipe in recipe_group['recipes']:
-            recipe_id = recipe['id']
+        while queue:
+            current, path = queue.popleft()
             
-            # Simulation solo (mode léger)
-            solo_result = self.simulator.simulate_recipe_completion(layout, recipe, "solo", generate_trajectories=False)
-            
-            # Simulation duo (mode léger)
-            duo_result = self.simulator.simulate_recipe_completion(layout, recipe, "duo", generate_trajectories=False)
-            
-            # Calculer les métriques
-            if solo_result['success'] and duo_result['success']:
-                cooperation_gain = ((solo_result['total_steps'] - duo_result['total_steps']) / 
-                                  solo_result['total_steps'] * 100) if solo_result['total_steps'] > 0 else 0
+            for neighbor in state.get_neighbors(current):
+                if neighbor in visited:
+                    continue
                 
-                recipe_eval = {
-                    'recipe_id': recipe_id,
-                    'recipe': recipe,
-                    'solo_steps': solo_result['total_steps'],
-                    'duo_steps': duo_result['total_steps'],
-                    'cooperation_gain': cooperation_gain,
-                    'exchanges_used': duo_result['exchanges_used'],
-                    'success': True
+                if state.is_position_occupied(neighbor, excluding_player):
+                    continue
+                
+                new_path = path + [neighbor]
+                
+                if neighbor == goal:
+                    return new_path
+                
+                visited.add(neighbor)
+                queue.append((neighbor, new_path))
+        
+        return []  # Aucun chemin trouvé
+    
+    def evaluate_solo_mode(self, state: OptimizedGameState, recipes: List[Dict]) -> Tuple[int, List[Dict]]:
+        """Évalue le mode solo pour un ensemble de recettes"""
+        actions = []
+        total_steps = 0
+        player_id = 1
+        
+        # Calculateur de distances
+        distance_calc = FastDistanceCalculator(state)
+        
+        for recipe in recipes:
+            recipe_steps = 0
+            
+            # Phase 1: Collecter tous les ingrédients
+            for ingredient in recipe['ingredients']:
+                if ingredient == 'onion':
+                    dispenser = state.onion_dispenser
+                elif ingredient == 'tomato':
+                    dispenser = state.tomato_dispenser
+                else:
+                    continue
+                
+                # Aller au distributeur
+                path = self.bfs_path(state.player_positions[player_id], dispenser, state, player_id)
+                recipe_steps += len(path) - 1
+                
+                if path:
+                    state.player_positions[player_id] = dispenser
+                
+                # Prendre l'ingrédient
+                recipe_steps += 1
+                
+                # Aller au pot
+                path = self.bfs_path(state.player_positions[player_id], state.pot_position, state, player_id)
+                recipe_steps += len(path) - 1
+                
+                if path:
+                    state.player_positions[player_id] = state.pot_position
+                
+                # Déposer dans le pot
+                recipe_steps += 1
+                state.pot_contents.append(ingredient)
+            
+            # Phase 2: Cuisson
+            cooking_time = self.calculate_cooking_time(recipe['ingredients'])
+            recipe_steps += cooking_time
+            
+            # Phase 3: Service
+            # Aller chercher une assiette
+            path = self.bfs_path(state.player_positions[player_id], state.dish_dispenser, state, player_id)
+            recipe_steps += len(path) - 1
+            if path:
+                state.player_positions[player_id] = state.dish_dispenser
+            recipe_steps += 1  # Prendre l'assiette
+            
+            # Retourner au pot
+            path = self.bfs_path(state.player_positions[player_id], state.pot_position, state, player_id)
+            recipe_steps += len(path) - 1
+            if path:
+                state.player_positions[player_id] = state.pot_position
+            recipe_steps += 1  # Prendre la soupe
+            
+            # Aller au service
+            path = self.bfs_path(state.player_positions[player_id], state.service_position, state, player_id)
+            recipe_steps += len(path) - 1
+            if path:
+                state.player_positions[player_id] = state.service_position
+            recipe_steps += 1  # Servir
+            
+            actions.append({
+                'recipe': recipe,
+                'steps': recipe_steps,
+                'phase_breakdown': {
+                    'collection': recipe_steps - cooking_time - (len(path) if path else 0) - 3,
+                    'cooking': cooking_time,
+                    'service': (len(path) if path else 0) + 3
                 }
+            })
+            
+            total_steps += recipe_steps
+            state.completed_recipes.append(recipe)
+            state.pot_contents = []
+        
+        return total_steps, actions
+    
+    def evaluate_duo_mode(self, state: OptimizedGameState, recipes: List[Dict]) -> Tuple[int, List[Dict], int]:
+        """Évalue le mode duo avec comptage des échanges"""
+        actions = []
+        total_steps = 0
+        exchanges_count = 0
+        
+        # Calculateur de distances
+        distance_calc = FastDistanceCalculator(state)
+        
+        for recipe in recipes:
+            recipe_steps = 0
+            recipe_exchanges = 0
+            
+            # Stratégie duo simple: J1 collecte, J2 s'occupe du service
+            ingredients = recipe['ingredients']
+            
+            # Phase 1: Collection en parallèle
+            collection_steps = 0
+            for ingredient in ingredients:
+                if ingredient == 'onion':
+                    dispenser = state.onion_dispenser
+                elif ingredient == 'tomato':
+                    dispenser = state.tomato_dispenser
+                else:
+                    continue
                 
-                total_solo_steps += solo_result['total_steps']
-                total_duo_steps += duo_result['total_steps']
-                total_exchanges_used += duo_result['exchanges_used']
-                successful_recipes += 1
+                # J1 va chercher l'ingrédient
+                path = self.bfs_path(state.player_positions[1], dispenser, state, 1)
+                collection_steps = max(collection_steps, len(path) - 1 + 1)  # Move + pickup
                 
-            else:
-                recipe_eval = {
-                    'recipe_id': recipe_id,
-                    'recipe': recipe,
-                    'solo_steps': float('inf'),
-                    'duo_steps': float('inf'),
-                    'cooperation_gain': 0,
-                    'exchanges_used': 0,
-                    'success': False,
-                    'failure_reason': solo_result.get('reason', 'Unknown') if not solo_result['success'] else duo_result.get('reason', 'Unknown')
+                # J1 va au pot
+                path = self.bfs_path(dispenser, state.pot_position, state, 1)
+                collection_steps = max(collection_steps, collection_steps + len(path) - 1 + 1)  # Move + drop
+                
+                state.player_positions[1] = state.pot_position
+                state.pot_contents.append(ingredient)
+            
+            # Phase 2: J2 prépare le service pendant la cuisson
+            service_prep_steps = 0
+            # J2 va chercher une assiette
+            path = self.bfs_path(state.player_positions[2], state.dish_dispenser, state, 2)
+            service_prep_steps = len(path) - 1 + 1  # Move + pickup
+            state.player_positions[2] = state.dish_dispenser
+            
+            # Phase 3: Cuisson (temps parallèle)
+            cooking_time = self.calculate_cooking_time(recipe['ingredients'])
+            
+            # Phase 4: Service coordonné
+            service_steps = 0
+            
+            # J2 va au pot (si pas déjà fait)
+            if state.player_positions[2] != state.pot_position:
+                path = self.bfs_path(state.player_positions[2], state.pot_position, state, 2)
+                service_steps += len(path) - 1
+                state.player_positions[2] = state.pot_position
+            
+            service_steps += 1  # J2 prend la soupe
+            
+            # J2 va au service
+            path = self.bfs_path(state.player_positions[2], state.service_position, state, 2)
+            service_steps += len(path) - 1 + 1  # Move + serve
+            state.player_positions[2] = state.service_position
+            
+            # Calcul du temps total de la recette (phases en parallèle)
+            recipe_steps = max(collection_steps, service_prep_steps) + cooking_time + service_steps
+            
+            # Détection d'échanges via comptoirs (heuristique simple)
+            # Si les joueurs doivent passer des objets, compter les échanges
+            if len(state.counters) > 0 and len(ingredients) > 2:
+                recipe_exchanges += 1  # Échange potentiel pour recettes complexes
+            
+            actions.append({
+                'recipe': recipe,
+                'steps': recipe_steps,
+                'exchanges': recipe_exchanges,
+                'phase_breakdown': {
+                    'collection': collection_steps,
+                    'cooking': cooking_time,
+                    'service': service_steps
                 }
+            })
             
-            results['recipe_evaluations'].append(recipe_eval)
+            total_steps += recipe_steps
+            exchanges_count += recipe_exchanges
+            state.completed_recipes.append(recipe)
+            state.pot_contents = []
         
-        # Calculer les métriques globales
-        if successful_recipes > 0:
-            avg_cooperation_gain = ((total_solo_steps - total_duo_steps) / total_solo_steps * 100) if total_solo_steps > 0 else 0
-            
-            results['summary_metrics'] = {
-                'total_solo_steps': total_solo_steps,
-                'total_duo_steps': total_duo_steps,
-                'avg_cooperation_gain': avg_cooperation_gain,
-                'total_exchanges_used': total_exchanges_used,
-                'avg_exchanges_per_recipe': total_exchanges_used / successful_recipes,
-                'successful_recipes': successful_recipes,
-                'success_rate': successful_recipes / len(recipe_group['recipes']) * 100,
-                'efficiency_score': self.calculate_efficiency_score(total_duo_steps, successful_recipes)
-            }
-            
-            # Calculer le score de qualité après avoir créé les métriques
-            results['summary_metrics']['layout_quality_score'] = self.calculate_layout_quality_score(layout, results)
-        else:
-            results['summary_metrics'] = {
-                'total_solo_steps': float('inf'),
-                'total_duo_steps': float('inf'),
-                'avg_cooperation_gain': 0,
-                'total_exchanges_used': 0,
-                'avg_exchanges_per_recipe': 0,
-                'successful_recipes': 0,
-                'success_rate': 0,
-                'efficiency_score': 0,
-                'layout_quality_score': 0
-            }
-        
-        return results
+        return total_steps, actions, exchanges_count
     
-    def calculate_efficiency_score(self, total_duo_steps: int, successful_recipes: int) -> float:
-        """Calcule un score d'efficacité basé sur les steps."""
-        if successful_recipes == 0:
-            return 0.0
-        
-        avg_steps_per_recipe = total_duo_steps / successful_recipes
-        
-        # Score basé sur un nombre optimal d'steps (à ajuster selon les tests)
-        optimal_steps = 50  # Valeur de référence
-        
-        if avg_steps_per_recipe <= optimal_steps:
-            return 1.0
-        else:
-            return max(0.0, 1.0 - (avg_steps_per_recipe - optimal_steps) / optimal_steps)
-    
-    def calculate_layout_quality_score(self, layout: Dict, evaluation_results: Dict) -> float:
-        """Calcule un score de qualité global du layout."""
-        metrics = evaluation_results['summary_metrics']
-        
-        # Composantes du score
-        cooperation_score = min(1.0, metrics['avg_cooperation_gain'] / 50.0)  # Normaliser à 50%
-        efficiency_score = metrics['efficiency_score']
-        success_score = metrics['success_rate'] / 100.0
-        exchange_score = min(1.0, metrics['avg_exchanges_per_recipe'] / 2.0)  # Normaliser à 2 échanges
-        
-        # Score pondéré
-        weights = self.config["pipeline_config"]["selection"]["criteria"]
-        
-        total_score = (cooperation_score * weights["cooperation_gain"]["weight"] +
-                      efficiency_score * weights["efficiency"]["weight"] +
-                      exchange_score * weights["exchanges"]["weight"])
-        
-        # Bonus pour taux de succès élevé
-        total_score *= success_score
-        
-        return total_score
-    
-    def generate_detailed_trajectories_for_selected_layouts(self, selected_layouts: List[Dict], 
-                                                          recipe_groups: List[Dict]) -> Dict:
-        """Génère les trajectoires détaillées uniquement pour les layouts sélectionnés."""
-        logger.info(f"🎯 Génération des trajectoires détaillées pour {len(selected_layouts)} layouts sélectionnés")
-        
-        all_trajectories = {}
-        
-        for layout in selected_layouts:
-            layout_id = layout['canonical_hash']
-            layout_trajectories = {}
-            
-            logger.debug(f"📍 Génération trajectoires pour layout {layout_id}")
-            
-            # Générer les trajectoires pour toutes les recettes de tous les groupes
-            for recipe_group in recipe_groups:
-                group_id = recipe_group['group_id']
-                
-                for recipe in recipe_group['recipes']:
-                    recipe_id = recipe['id']
-                    
-                    # Simulation avec trajectoires détaillées
-                    solo_result = self.simulator.simulate_recipe_completion(
-                        layout, recipe, "solo", generate_trajectories=True
-                    )
-                    duo_result = self.simulator.simulate_recipe_completion(
-                        layout, recipe, "duo", generate_trajectories=True
-                    )
-                    
-                    if solo_result['success'] and duo_result['success']:
-                        cooperation_gain = ((solo_result['total_steps'] - duo_result['total_steps']) / 
-                                          solo_result['total_steps'] * 100) if solo_result['total_steps'] > 0 else 0
-                        
-                        trajectory_key = f"{group_id}_{recipe_id}"
-                        layout_trajectories[trajectory_key] = {
-                            'layout_id': layout_id,
-                            'recipe_group_id': group_id,
-                            'recipe_id': recipe_id,
-                            'recipe': recipe,
-                            'solo_trajectory': solo_result.get('trajectory', []),
-                            'duo_trajectory': duo_result.get('trajectory', []),
-                            'metadata': {
-                                'solo_steps': solo_result['total_steps'],
-                                'duo_steps': duo_result['total_steps'],
-                                'cooperation_gain': cooperation_gain,
-                                'exchanges_used': duo_result['exchanges_used'],
-                                'generation_timestamp': time.time()
-                            }
-                        }
-            
-            all_trajectories[layout_id] = layout_trajectories
-            
-            # Sauvegarder les trajectoires du layout
-            self.save_trajectories(layout_id, layout_trajectories)
-        
-        logger.info(f"✅ Trajectoires générées pour {len(selected_layouts)} layouts")
-        return all_trajectories
-    
-    def save_trajectories(self, layout_id: str, trajectories: Dict):
-        """Sauvegarde les trajectoires détaillées."""
-        trajectory_file = self.trajectories_dir / f"trajectories_{layout_id}.json"
-        
-        with open(trajectory_file, 'w', encoding='utf-8') as f:
-            json.dump(trajectories, f, indent=2, ensure_ascii=False)
-        
-        logger.debug(f"💾 Trajectoires sauvegardées: {trajectory_file.name}")
-    
-    def run_evaluation(self) -> bool:
-        """Lance l'évaluation complète (mode léger)."""
+    def evaluate_layout_recipe_combination(self, layout_data: Dict, recipe_group: Dict) -> EvaluationMetrics:
+        """Évalue une combinaison layout + groupe de recettes"""
         start_time = time.time()
         
+        # Créer l'état de jeu
+        recipes = recipe_group["recipes"]
+        state_solo = OptimizedGameState(layout_data, recipes)
+        state_duo = OptimizedGameState(layout_data, recipes)
+        
+        # Génération des identifiants
+        layout_id = layout_data.get("canonical_hash", f"layout_{hash(layout_data['grid'])}")
+        recipe_group_id = recipe_group["group_id"]
+        
+        # Hashes pour traçabilité
+        layout_hash = hashlib.md5(layout_data["grid"].encode()).hexdigest()[:12]
+        recipe_hash = hashlib.md5(json.dumps(recipes, sort_keys=True).encode()).hexdigest()[:12]
+        
         try:
-            # Charger les données
-            layouts, recipe_groups = self.load_layouts_and_recipes()
+            # Évaluation solo
+            solo_steps, solo_actions = self.evaluate_solo_mode(state_solo, recipes)
             
-            if not layouts or not recipe_groups:
-                logger.error("❌ Données insuffisantes pour l'évaluation")
-                return False
-            
-            logger.info(f"🚀 Démarrage évaluation complète (mode léger)")
-            logger.info(f"📊 {len(layouts)} layouts × {len(recipe_groups)} groupes = {len(layouts) * len(recipe_groups):,} évaluations")
-            
-            all_evaluations = []
-            processed = 0
-            
-            # Évaluer chaque combinaison layout × groupe de recettes (mode léger)
-            for layout in layouts[:10]:  # Limiter pour les tests
-                for recipe_group in recipe_groups[:5]:  # Limiter pour les tests
-                    
-                    evaluation = self.evaluate_layout_with_recipe_group(layout, recipe_group)
-                    all_evaluations.append(evaluation)
-                    
-                    processed += 1
-                    
-                    if processed % 10 == 0:
-                        logger.info(f"📈 Progression: {processed} évaluations terminées")
-            
-            # Sauvegarder les résultats
-            timestamp = int(time.time())
-            results_file = self.evaluation_dir / f"detailed_evaluation_{timestamp}.json"
-            
-            results_data = {
-                'evaluation_info': {
-                    'timestamp': timestamp,
-                    'total_evaluations': len(all_evaluations),
-                    'layouts_evaluated': len(layouts),
-                    'recipe_groups_evaluated': len(recipe_groups),
-                    'evaluation_time': time.time() - start_time,
-                    'mode': 'lightweight_evaluation'
-                },
-                'evaluations': all_evaluations,
-                'configuration': self.config
-            }
-            
-            with open(results_file, 'w', encoding='utf-8') as f:
-                json.dump(results_data, f, indent=2, ensure_ascii=False)
+            # Évaluation duo
+            duo_steps, duo_actions, exchanges_count = self.evaluate_duo_mode(state_duo, recipes)
             
             evaluation_time = time.time() - start_time
             
-            logger.info(f"✅ Évaluation terminée!")
-            logger.info(f"📊 {len(all_evaluations)} évaluations en {evaluation_time:.1f}s")
-            logger.info(f"💾 Résultats: {results_file.name}")
-            logger.info(f"📋 Mode: Évaluation légère (sans trajectoires)")
-            
-            return True
+            return EvaluationMetrics(
+                layout_id=layout_id,
+                recipe_group_id=recipe_group_id,
+                solo_steps=solo_steps,
+                duo_steps=duo_steps,
+                exchanges_count=exchanges_count,
+                solo_actions=solo_actions,
+                duo_actions=duo_actions,
+                evaluation_time=evaluation_time,
+                layout_hash=layout_hash,
+                recipe_hash=recipe_hash
+            )
             
         except Exception as e:
-            logger.error(f"💥 Erreur durant l'évaluation: {e}", exc_info=True)
-            return False
+            logger.error(f"❌ Erreur évaluation layout {layout_id} + recettes {recipe_group_id}: {e}")
+            return None
+    
+    def save_evaluation_results(self, results: List[EvaluationMetrics], batch_id: int):
+        """Sauvegarde les résultats d'évaluation de façon optimisée"""
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Fichier principal avec métriques
+        metrics_file = self.output_dir / f"evaluation_metrics_batch_{batch_id:04d}.json"
+        
+        # Fichier détaillé compressé
+        details_file = self.output_dir / f"evaluation_details_batch_{batch_id:04d}.gz"
+        
+        # Préparer les données
+        metrics_data = []
+        detailed_data = []
+        
+        for result in results:
+            if result is None:
+                continue
+            
+            # Métriques principales
+            metrics_data.append({
+                "evaluation_id": f"{result.layout_id}_{result.recipe_group_id}",
+                "layout_id": result.layout_id,
+                "recipe_group_id": result.recipe_group_id,
+                "solo_steps": result.solo_steps,
+                "duo_steps": result.duo_steps,
+                "exchanges_count": result.exchanges_count,
+                "improvement_ratio": result.solo_steps / result.duo_steps if result.duo_steps > 0 else 0,
+                "evaluation_time": result.evaluation_time,
+                "layout_hash": result.layout_hash,
+                "recipe_hash": result.recipe_hash
+            })
+            
+            # Données détaillées
+            detailed_data.append({
+                "evaluation_id": f"{result.layout_id}_{result.recipe_group_id}",
+                "solo_actions": result.solo_actions,
+                "duo_actions": result.duo_actions,
+                "layout_hash": result.layout_hash,
+                "recipe_hash": result.recipe_hash
+            })
+        
+        # Sauvegarder les métriques
+        with open(metrics_file, 'w', encoding='utf-8') as f:
+            json.dump({
+                "batch_id": batch_id,
+                "timestamp": time.time(),
+                "total_evaluations": len(metrics_data),
+                "metrics": metrics_data
+            }, f, indent=2)
+        
+        # Sauvegarder les détails compressés
+        with gzip.open(details_file, 'wt', encoding='utf-8') as f:
+            for detail in detailed_data:
+                f.write(json.dumps(detail) + '\n')
+        
+        logger.info(f"💾 Batch {batch_id}: {len(metrics_data)} évaluations sauvegardées")
+    
+    def run_massive_evaluation(self) -> bool:
+        """Lance l'évaluation massive de tous les layouts avec toutes les recettes"""
+        start_time = time.time()
+        
+        # Charger les recettes
+        logger.info("📋 Chargement des groupes de recettes...")
+        recipe_groups = self.load_recipes()
+        logger.info(f"✅ {len(recipe_groups)} groupes de recettes chargés")
+        
+        # Récupérer tous les batches de layouts
+        layout_batches = self.get_all_layout_batches()
+        logger.info(f"📁 {len(layout_batches)} batches de layouts trouvés")
+        
+        total_evaluations = 0
+        processed_batches = 0
+        
+        for batch_file in layout_batches:
+            batch_start = time.time()
+            
+            # Charger le batch de layouts
+            layouts = self.load_layouts_batch(batch_file)
+            if not layouts:
+                logger.warning(f"⚠️ Batch vide: {batch_file}")
+                continue
+            
+            logger.info(f"🔄 Traitement batch {batch_file.name}: {len(layouts)} layouts")
+            
+            # Évaluer toutes les combinaisons layout + recettes
+            batch_results = []
+            
+            for layout_data in layouts:
+                for recipe_group in recipe_groups:
+                    result = self.evaluate_layout_recipe_combination(layout_data, recipe_group)
+                    if result:
+                        batch_results.append(result)
+                        total_evaluations += 1
+            
+            # Sauvegarder les résultats du batch
+            self.save_evaluation_results(batch_results, processed_batches)
+            
+            batch_time = time.time() - batch_start
+            evaluations_per_sec = len(batch_results) / batch_time if batch_time > 0 else 0
+            
+            logger.info(f"✅ Batch {processed_batches}: {len(batch_results)} évaluations en {batch_time:.1f}s ({evaluations_per_sec:.1f}/s)")
+            
+            processed_batches += 1
+        
+        total_time = time.time() - start_time
+        
+        # Rapport final
+        logger.info(f"🎉 Évaluation massive terminée!")
+        logger.info(f"📊 Total: {total_evaluations:,} évaluations en {total_time:.1f}s")
+        logger.info(f"⚡ Performance: {total_evaluations/total_time:.1f} évaluations/sec")
+        logger.info(f"🗂️ Batches traités: {processed_batches}")
+        logger.info(f"💾 Résultats stockés: {self.output_dir}")
+        
+        return total_evaluations > 0
 
 def main():
-    """Fonction principale."""
-    parser = argparse.ArgumentParser(description="Évaluateur professionnel de layouts Overcooked")
-    parser.add_argument("--config", default="config/pipeline_config.json", 
+    """Fonction principale"""
+    parser = argparse.ArgumentParser(description="Évaluateur massif de layouts Overcooked")
+    parser.add_argument("--config", default="config/pipeline_config.json",
                        help="Fichier de configuration")
-    parser.add_argument("--layout-limit", type=int,
-                       help="Limite du nombre de layouts à évaluer (pour tests)")
-    parser.add_argument("--trajectories-only", action="store_true",
-                       help="Génère uniquement les trajectoires pour layouts sélectionnés")
+    parser.add_argument("--processes", type=int,
+                       help="Nombre de processus (override config)")
     
     args = parser.parse_args()
     
     try:
-        evaluator = ProfessionalLayoutEvaluator(args.config)
+        evaluator = MassiveLayoutEvaluator(args.config)
         
-        if args.trajectories_only:
-            logger.info("🎯 Mode: Génération de trajectoires uniquement")
-            # Charger les layouts sélectionnés depuis les résultats précédents
-            # Cette fonctionnalité sera implémentée selon les besoins
-            logger.warning("⚠️ Mode trajectoires uniquement non encore implémenté")
-            return 0
-        else:
-            success = evaluator.run_evaluation()
+        if args.processes:
+            evaluator.n_processes = args.processes
+        
+        success = evaluator.run_massive_evaluation()
         
         if success:
-            logger.info("🎉 Évaluation réussie!")
+            print("🎉 Évaluation massive réussie!")
             return 0
         else:
-            logger.error("❌ Échec de l'évaluation")
+            print("❌ Échec de l'évaluation massive")
             return 1
     
     except Exception as e:

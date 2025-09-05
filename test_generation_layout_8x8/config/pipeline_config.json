@@ -22,20 +22,20 @@
     },
     "generation": {
       "grid_size": 8,
-      "total_layouts_to_generate": 5,
-      "block_size": 50,
-      "processes": 1,
+      "total_layouts_to_generate": 1000,
+      "block_size": 10000,
+      "processes": 4,
       "layout_constraints": {
         "min_empty_cells": 20,
-        "max_empty_cells": 30,
+        "max_empty_cells": 35,
         "min_wall_density": 0.1,
         "max_wall_density": 0.5,
         "required_objects": ["O", "T", "P", "D", "S", "1", "2"],
         "optional_objects": ["Y"],
         "max_counters": 3,
         "enforce_serving_on_edge": false,
-        "enforce_object_dispersion": false,
-        "min_object_separation": 1,
+        "enforce_object_dispersion": true,
+        "min_object_separation": 2,
         "detect_rotations_mirrors": true
       },
       "quality_filters": {
@@ -49,6 +49,9 @@
       "simulation_mode": "real_pathfinding",
       "max_simulation_time": 180,
       "pathfinding_algorithm": "bfs",
+      "processes": 4,
+      "batch_size": 1000,
+      "results_dir": "evaluation_results",
       "agents": {
         "agent1": {
           "type": "greedy",
@@ -58,6 +61,11 @@
           "type": "greedy", 
           "planning_horizon": 3
         }
+      },
+      "game_constants": {
+        "onion_cooking_time": 9,
+        "tomato_cooking_time": 6,
+        "action_duration": 1
       },
       "metrics": {
         "cooperation": {
@@ -83,6 +91,11 @@
         "max_duo_steps": 300,
         "max_layouts_per_recipe_group": 1,
         "enforce_diversity": true
+      },
+      "output_options": {
+        "save_detailed_actions": true,
+        "compress_results": true,
+        "include_performance_metrics": true
       }
     },
     "analysis": {

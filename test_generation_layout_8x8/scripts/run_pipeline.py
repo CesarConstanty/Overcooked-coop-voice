@@ -183,13 +183,13 @@ class ProfessionalPipelineOrchestrator:
             PipelineStep(0, "Recipe Generation", "0_recipe_generator.py", 
                         "Génération des combinaisons de recettes"),
             PipelineStep(1, "Layout Generation", "1_layout_generator.py", 
-                        "Génération des layouts avec formes canoniques"),
+                        "Génération massive des layouts avec formes canoniques"),
             PipelineStep(2, "Layout Evaluation", "2_layout_evaluator.py", 
-                        "Évaluation détaillée avec simulation BFS"),
+                        "Évaluation massive - chaque layout avec chaque groupe de recettes"),
             PipelineStep(3, "Results Analysis", "3_results_analyzer.py", 
-                        "Analyse statistique et visualisations"),
+                        "Analyse statistique et ranking des résultats d'évaluation"),
             PipelineStep(4, "Final Selection", "4_final_selector.py", 
-                        "Sélection finale selon 3 critères pondérés")
+                        "Sélection finale selon critères pondérés et formatage .layout")
         ]
         
         # État du pipeline
