@@ -34,6 +34,11 @@ from collections import deque
 from typing import Dict, List, Tuple, Optional, Set, Any
 from dataclasses import dataclass
 import copy
+import sys
+
+# Ajouter les répertoires nécessaires au path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from layout_compression import LayoutDecompressor
 
 # Configuration du logging
 logging.basicConfig(
@@ -64,16 +69,25 @@ class OptimizedGameState:
     """Version optimisée de GameState pour évaluation massive"""
     
     def __init__(self, layout_data: Dict, recipes: List[Dict]):
-        # Parsing du layout depuis le format raw généré
-        self.grid_string = layout_data["grid"]
-        self.layout = [list(row) for row in self.grid_string.split('\n')]
-        self.object_positions = layout_data["object_positions"]
+        # Vérifier si le layout est dans le format compressé ou standard
+        if 'grid' in layout_data and isinstance(layout_data['grid'], list):
+            # Format standard déjà décompressé
+            self.layout = layout_data["grid"]
+            self.object_positions = layout_data.get("objects", {})
+        elif 'g' in layout_data:
+            # Format compressé - décompresser
+            decompressed = LayoutDecompressor.decompress_layout(layout_data)
+            self.layout = decompressed["grid"]
+            self.object_positions = decompressed.get("objects", {})
+        else:
+            raise ValueError(f"Format de layout non reconnu. Clés disponibles: {list(layout_data.keys())}")
+        
         self.recipes = recipes
         
-        self.width = len(self.layout[0])
+        self.width = len(self.layout[0]) if self.layout else 0
         self.height = len(self.layout)
         
-        # Positions des éléments depuis object_positions
+        # Positions des éléments depuis object_positions et grille
         self.player_positions = {}
         self.pot_position = None
         self.service_position = None
@@ -96,24 +110,57 @@ class OptimizedGameState:
     
     def _parse_layout_optimized(self):
         """Parse optimisé du layout depuis les données générées"""
-        # Utiliser object_positions pour placer les objets
-        for obj_type, position in self.object_positions.items():
-            if obj_type == '1':
-                self.player_positions[1] = position
-                self.player_inventory[1] = None
-            elif obj_type == '2':
-                self.player_positions[2] = position
-                self.player_inventory[2] = None
-            elif obj_type == 'P':
-                self.pot_position = position
-            elif obj_type == 'S':
-                self.service_position = position
-            elif obj_type == 'O':
-                self.onion_dispenser = position
-            elif obj_type == 'T':
-                self.tomato_dispenser = position
-            elif obj_type == 'D':
-                self.dish_dispenser = position
+        # Parser la grille pour trouver les objets directement
+        for i, row in enumerate(self.layout):
+            for j, cell in enumerate(row):
+                pos = (i, j)
+                if cell == 'X':
+                    self.walls.append(pos)
+                elif cell == 'P':
+                    self.pot_position = pos
+                elif cell == 'S':
+                    self.service_position = pos
+                elif cell == 'O':
+                    self.onion_dispenser = pos
+                elif cell == 'T':
+                    self.tomato_dispenser = pos
+                elif cell == 'D':
+                    self.dish_dispenser = pos
+        
+        # Utiliser object_positions pour les positions des joueurs si disponible
+        if self.object_positions:
+            for obj_type, positions in self.object_positions.items():
+                if obj_type == '1':
+                    if isinstance(positions, list) and len(positions) > 0:
+                        self.player_positions[1] = positions[0]
+                        self.player_inventory[1] = None
+                elif obj_type == '2':
+                    if isinstance(positions, list) and len(positions) > 0:
+                        self.player_positions[2] = positions[0]
+                        self.player_inventory[2] = None
+        
+        # Positions par défaut des joueurs si pas définies
+        if 1 not in self.player_positions:
+            # Trouver la première position libre
+            for i in range(self.height):
+                for j in range(self.width):
+                    if self.layout[i][j] == ' ':
+                        self.player_positions[1] = (i, j)
+                        self.player_inventory[1] = None
+                        break
+                if 1 in self.player_positions:
+                    break
+        
+        if 2 not in self.player_positions:
+            # Trouver la deuxième position libre
+            for i in range(self.height):
+                for j in range(self.width):
+                    if self.layout[i][j] == ' ' and (i, j) != self.player_positions.get(1):
+                        self.player_positions[2] = (i, j)
+                        self.player_inventory[2] = None
+                        break
+                if 2 in self.player_positions:
+                    break
         
         # Identifier les comptoirs et murs depuis la grille
         for y in range(self.height):
@@ -266,16 +313,14 @@ class MassiveLayoutEvaluator:
     
     def load_layouts_batch(self, batch_file: Path) -> List[Dict]:
         """Charge un batch de layouts depuis un fichier .gz"""
-        layouts = []
         try:
-            with gzip.open(batch_file, 'rt', encoding='utf-8') as f:
-                for line in f:
-                    layout_data = json.loads(line.strip())
-                    layouts.append(layout_data)
+            # Utiliser le décompresseur pour charger les layouts
+            layouts = LayoutDecompressor.load_layouts_from_batch(str(batch_file))
+            logger.info(f"✅ Chargé {len(layouts)} layouts depuis {batch_file.name}")
+            return layouts
         except Exception as e:
             logger.error(f"❌ Erreur chargement batch {batch_file}: {e}")
-        
-        return layouts
+            return []
     
     def get_all_layout_batches(self) -> List[Path]:
         """Récupère tous les fichiers de batch de layouts"""
@@ -499,11 +544,12 @@ class MassiveLayoutEvaluator:
         state_duo = OptimizedGameState(layout_data, recipes)
         
         # Génération des identifiants
-        layout_id = layout_data.get("canonical_hash", f"layout_{hash(layout_data['grid'])}")
+        layout_id = layout_data.get("hash", f"layout_{id(layout_data)}")
         recipe_group_id = recipe_group["group_id"]
         
         # Hashes pour traçabilité
-        layout_hash = hashlib.md5(layout_data["grid"].encode()).hexdigest()[:12]
+        grid_str = '\n'.join([''.join(row) for row in layout_data.get("grid", [])])
+        layout_hash = hashlib.md5(grid_str.encode()).hexdigest()[:12]
         recipe_hash = hashlib.md5(json.dumps(recipes, sort_keys=True).encode()).hexdigest()[:12]
         
         try:
