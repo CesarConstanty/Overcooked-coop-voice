@@ -15,3 +15,4 @@ CMD [ "python", "app.py" ]
 # docker build --no-cache -t overcooked:xp1 .
 # docker run -it --rm -p 5000:5000 overcooked:xp1
 # docker save overcooked:xp1 | gzip > overcooked_xp1.tar.gz
+# sha256sum overcooked_xp1.tar.gz > overcooked_xp1.tar.gz.sha256
