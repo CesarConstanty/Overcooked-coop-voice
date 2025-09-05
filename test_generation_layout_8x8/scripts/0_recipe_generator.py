@@ -1,411 +1,411 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Générateur de tous les groupes possibles de 6 recettes différentes
-Crée toutes les combinaisons C(n,6) où n est le nombre total de recettes
+Générateur professio        # Dossiers de sortie
+        self.output_dir = self.base_dir / "outputs" / "recipe_combinations"
+        self.output_dir.mkdir(parents=True, exist_ok=True)l de groupes de recettes Overcooked
+- Génération exhaustive de recettes 1-3 ingrédients (oignons/tomates uniquement)
+- Création de tous les groupes possibles de 6 recettes uniques
+- Validation stricte des doublons et optimisation des combinaisons
+- Format de sortie professionnel avec métadonnées complètes
 """
 
 import json
 import itertools
-from pathlib import Path
+import logging
 import time
+import math
+from pathlib import Path
+from collections import defaultdict
+from typing import List, Dict, Tuple, Set, Any
+import argparse
 
-class RecipeGroupGenerator:
-    """Générateur de tous les groupes possibles de 6 recettes."""
+# Configuration du logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('recipe_generation.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+class RecipeSignature:
+    """Classe pour représenter et comparer les signatures de recettes."""
     
-    def __init__(self):
-        """Initialise le générateur de groupes de recettes."""
+    def __init__(self, onion_count: int, tomato_count: int):
+        self.onion_count = onion_count
+        self.tomato_count = tomato_count
+        self.total_ingredients = onion_count + tomato_count
+    
+    def __eq__(self, other):
+        return (self.onion_count == other.onion_count and 
+                self.tomato_count == other.tomato_count)
+    
+    def __hash__(self):
+        return hash((self.onion_count, self.tomato_count))
+    
+    def __str__(self):
+        return f"({self.onion_count}O, {self.tomato_count}T)"
+    
+    def to_ingredients_list(self) -> List[str]:
+        """Convertit la signature en liste d'ingrédients."""
+        ingredients = ['onion'] * self.onion_count + ['tomato'] * self.tomato_count
+        return ingredients
+
+class ProfessionalRecipeGenerator:
+    """Générateur professionnel de groupes de recettes."""
+    
+    def __init__(self, config_file: str = "config/pipeline_config.json"):
+        """Initialise le générateur avec la configuration."""
         self.base_dir = Path(__file__).parent.parent
-        self.output_dir = self.base_dir / "outputs"
-        self.output_dir.mkdir(exist_ok=True)
+        self.config_file = self.base_dir / config_file
+        self.config = self.load_config()
         
-        print("🍽️  Générateur de groupes de recettes initialisé")
+        # Paramètres depuis la configuration
+        recipe_config = self.config["recipe_config"]
+        self.min_ingredients = recipe_config["min_ingredients_per_recipe"]
+        self.max_ingredients = recipe_config["max_ingredients_per_recipe"]
+        self.allowed_ingredients = recipe_config["allowed_ingredients"]
+        self.group_size = recipe_config["group_size"]
+        self.ensure_no_duplicates = recipe_config["ensure_no_duplicates"]
+        
+        # Dossiers de sortie
+        self.output_dir = self.base_dir / "outputs" / "recipe_combinations"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"🍽️  Générateur de recettes initialisé")
+        logger.info(f"📊 Contraintes: {self.min_ingredients}-{self.max_ingredients} ingrédients")
+        logger.info(f"🥕 Ingrédients autorisés: {self.allowed_ingredients}")
+        logger.info(f"👥 Taille des groupes: {self.group_size}")
     
-    def normalize_recipe(self, ingredients):
-        """
-        Normalise une recette en comptant les ingrédients.
+    def load_config(self) -> Dict:
+        """Charge la configuration du pipeline."""
+        if not self.config_file.exists():
+            raise FileNotFoundError(f"Configuration non trouvée: {self.config_file}")
         
-        Args:
-            ingredients: Liste d'ingrédients
-            
-        Returns:
-            tuple: Signature normalisée (onion_count, tomato_count)
-        """
-        onion_count = ingredients.count('onion')
-        tomato_count = ingredients.count('tomato')
-        return (onion_count, tomato_count)
+        with open(self.config_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
     
-    def eliminate_duplicate_recipes(self, recipes):
-        """
-        Élimine les recettes dupliquées basées sur leur composition.
-        
-        Args:
-            recipes: Liste des recettes brutes
-            
-        Returns:
-            list: Liste des recettes uniques
-        """
-        seen_signatures = set()
-        unique_recipes = []
-        
-        for recipe in recipes:
-            signature = self.normalize_recipe(recipe['ingredients'])
-            
-            if signature not in seen_signatures:
-                seen_signatures.add(signature)
-                unique_recipes.append(recipe)
-            else:
-                print(f"   ⚠️  Doublon éliminé: {recipe['ingredients']} (signature: {signature})")
-        
-        return unique_recipes
-    
-    def generate_base_recipes(self):
-        """Génère les recettes de base sans doublons."""
-        print("🍳 Génération des recettes de base")
-        
+    def generate_all_possible_recipes(self) -> List[Dict]:
+        """Génère toutes les recettes possibles selon les contraintes."""
         recipes = []
+        recipe_signatures = set()
         recipe_id = 1
         
-        # Recettes simples (1 ingrédient)
-        simple_recipes = [
-            ['onion'],
-            ['tomato']
-        ]
+        logger.info("🔄 Génération de toutes les recettes possibles...")
         
-        for ingredients in simple_recipes:
-            recipes.append({
-                'id': f'R{recipe_id:02d}',
-                'ingredients': ingredients,
-                'onion_value': 2,
-                'tomato_value': 2,
-                'onion_time': 6,
-                'tomato_time': 6,
-                'complexity': len(ingredients),
-                'type': 'simple'
-            })
-            recipe_id += 1
+        # Générer toutes les combinaisons possibles
+        for total_ingredients in range(self.min_ingredients, self.max_ingredients + 1):
+            logger.info(f"   Génération recettes à {total_ingredients} ingrédient(s)")
+            
+            # Pour chaque nombre total d'ingrédients, générer toutes les répartitions oignons/tomates
+            for onion_count in range(total_ingredients + 1):
+                tomato_count = total_ingredients - onion_count
+                
+                # Créer la signature
+                signature = RecipeSignature(onion_count, tomato_count)
+                
+                # Éviter les doublons
+                if signature in recipe_signatures:
+                    continue
+                
+                recipe_signatures.add(signature)
+                
+                # Créer la recette
+                recipe = {
+                    'id': f'R{recipe_id:03d}',
+                    'ingredients': signature.to_ingredients_list(),
+                    'signature': {
+                        'onion_count': onion_count,
+                        'tomato_count': tomato_count,
+                        'total_ingredients': total_ingredients
+                    },
+                    'complexity': total_ingredients,
+                    'onion_value': 3,  # Valeurs par défaut depuis l'exemple
+                    'tomato_value': 2,
+                    'onion_time': 9,
+                    'tomato_time': 6,
+                    'type': self.classify_recipe_type(onion_count, tomato_count),
+                    'metadata': {
+                        'generation_timestamp': time.time(),
+                        'unique_signature': str(signature)
+                    }
+                }
+                
+                recipes.append(recipe)
+                recipe_id += 1
         
-        # Recettes doubles (2 mêmes ingrédients)
-        double_recipes = [
-            ['onion', 'onion'],
-            ['tomato', 'tomato']
-        ]
-        
-        for ingredients in double_recipes:
-            recipes.append({
-                'id': f'R{recipe_id:02d}',
-                'ingredients': ingredients,
-                'onion_value': 2,
-                'tomato_value': 2,
-                'onion_time': 6,
-                'tomato_time': 6,
-                'complexity': len(ingredients),
-                'type': 'double'
-            })
-            recipe_id += 1
-        
-        # Recettes mixtes (2 ingrédients différents)
-        mixed_2_recipes = [
-            ['onion', 'tomato']  # Une seule version car l'ordre n'importe pas
-        ]
-        
-        for ingredients in mixed_2_recipes:
-            recipes.append({
-                'id': f'R{recipe_id:02d}',
-                'ingredients': ingredients,
-                'onion_value': 2,
-                'tomato_value': 2,
-                'onion_time': 6,
-                'tomato_time': 6,
-                'complexity': len(ingredients),
-                'type': 'mixed_2'
-            })
-            recipe_id += 1
-        
-        # Recettes moyennes (3 ingrédients) - Élimination des doublons évidents
-        medium_recipes = [
-            ['onion', 'onion', 'tomato'],  # 2 onions, 1 tomato
-            ['tomato', 'tomato', 'onion'], # 2 tomatoes, 1 onion  
-            ['onion', 'tomato', 'tomato']  # 1 onion, 2 tomatoes
-            # Éliminé: ['tomato', 'onion', 'tomato'], ['onion', 'tomato', 'onion'], ['tomato', 'onion', 'onion'] (doublons)
-        ]
-        
-        for ingredients in medium_recipes:
-            recipes.append({
-                'id': f'R{recipe_id:02d}',
-                'ingredients': ingredients,
-                'onion_value': 3,
-                'tomato_value': 3,
-                'onion_time': 8,
-                'tomato_time': 6,
-                'complexity': len(ingredients),
-                'type': 'medium'
-            })
-            recipe_id += 1
-        
-        # Recettes complexes (4+ ingrédients) - Élimination des doublons évidents
-        complex_recipes = [
-            ['onion', 'onion', 'tomato', 'tomato'],    # 2 onions, 2 tomatoes
-            ['onion', 'onion', 'onion', 'tomato'],     # 3 onions, 1 tomato
-            ['tomato', 'tomato', 'tomato', 'onion'],   # 3 tomatoes, 1 onion
-            ['onion', 'tomato', 'tomato', 'tomato'],   # 1 onion, 3 tomatoes
-            ['onion', 'onion', 'tomato', 'tomato', 'onion'],     # 3 onions, 2 tomatoes
-            ['tomato', 'tomato', 'onion', 'onion', 'tomato']     # 2 onions, 3 tomatoes
-            # Éliminés: doublons basés sur l'ordre des ingrédients
-        ]
-        
-        for ingredients in complex_recipes:
-            recipes.append({
-                'id': f'R{recipe_id:02d}',
-                'ingredients': ingredients,
-                'onion_value': 3,
-                'tomato_value': 3,
-                'onion_time': 9,
-                'tomato_time': 6,
-                'complexity': len(ingredients),
-                'type': 'complex'
-            })
-            recipe_id += 1
-        
-        print(f"📊 Recettes générées avant nettoyage: {len(recipes)}")
-        
-        # Éliminer les doublons basés sur la composition
-        unique_recipes = self.eliminate_duplicate_recipes(recipes)
-        
-        print(f"✅ Recettes uniques après nettoyage: {len(unique_recipes)}")
-        
-        # Renuméroter les IDs après nettoyage
-        for i, recipe in enumerate(unique_recipes, 1):
-            recipe['id'] = f'R{i:02d}'
-        
-        return unique_recipes
+        logger.info(f"✅ {len(recipes)} recettes uniques générées")
+        return recipes
     
-    def generate_all_recipe_groups(self, recipes, group_size=6):
-        """
-        Génère tous les groupes possibles de recettes.
+    def classify_recipe_type(self, onion_count: int, tomato_count: int) -> str:
+        """Classifie le type de recette selon sa composition."""
+        total = onion_count + tomato_count
         
-        Args:
-            recipes: Liste des recettes de base
-            group_size: Taille des groupes (défaut: 6)
-            
-        Returns:
-            list: Liste de tous les groupes possibles
-        """
-        print(f"🔢 Génération de tous les groupes de {group_size} recettes")
-        print(f"   À partir de {len(recipes)} recettes de base")
-        
-        # Calculer le nombre total de combinaisons
-        from math import comb
-        total_combinations = comb(len(recipes), group_size)
-        print(f"   Nombre total de combinaisons: {total_combinations:,}")
-        
-        if total_combinations > 100000:
-            print(f"⚠️  ATTENTION: {total_combinations:,} combinaisons générées!")
-            print("   Cela peut prendre beaucoup de temps et d'espace...")
-        
-        # Générer toutes les combinaisons
-        all_groups = []
-        group_id = 1
-        
-        start_time = time.time()
-        
-        for recipe_combination in itertools.combinations(recipes, group_size):
-            group = {
-                'group_id': f'G{group_id:06d}',
-                'recipes': list(recipe_combination),
-                'recipe_ids': [recipe['id'] for recipe in recipe_combination],
-                'complexity_distribution': self.analyze_group_complexity(recipe_combination),
-                'total_ingredients': sum(len(recipe['ingredients']) for recipe in recipe_combination),
-                'avg_complexity': sum(recipe['complexity'] for recipe in recipe_combination) / len(recipe_combination)
-            }
-            
-            all_groups.append(group)
-            group_id += 1
-            
-            # Affichage de progression
-            if group_id % 10000 == 0:
-                elapsed = time.time() - start_time
-                print(f"   Progression: {group_id:,}/{total_combinations:,} ({elapsed:.1f}s)")
-        
-        elapsed = time.time() - start_time
-        print(f"✅ {len(all_groups):,} groupes générés en {elapsed:.1f}s")
-        
-        return all_groups
+        if total == 1:
+            return 'simple'
+        elif total == 2:
+            if onion_count == tomato_count:
+                return 'mixed_balanced'
+            else:
+                return 'double_single'
+        elif total == 3:
+            if abs(onion_count - tomato_count) <= 1:
+                return 'complex_balanced'
+            else:
+                return 'complex_dominated'
+        else:
+            return 'unknown'
     
-    def analyze_group_complexity(self, recipe_group):
-        """Analyse la distribution de complexité d'un groupe de recettes."""
-        complexity_count = {}
-        type_count = {}
+    def validate_recipe_group(self, recipes: List[Dict]) -> bool:
+        """Valide qu'un groupe de recettes ne contient pas de doublons."""
+        if not self.ensure_no_duplicates:
+            return True
         
-        for recipe in recipe_group:
-            complexity = recipe['complexity']
-            recipe_type = recipe['type']
-            
-            complexity_count[complexity] = complexity_count.get(complexity, 0) + 1
-            type_count[recipe_type] = type_count.get(recipe_type, 0) + 1
+        signatures = set()
+        for recipe in recipes:
+            sig = (recipe['signature']['onion_count'], recipe['signature']['tomato_count'])
+            if sig in signatures:
+                return False
+            signatures.add(sig)
+        
+        return True
+    
+    def calculate_group_statistics(self, recipes: List[Dict]) -> Dict:
+        """Calcule les statistiques d'un groupe de recettes."""
+        total_ingredients = sum(r['signature']['total_ingredients'] for r in recipes)
+        complexities = [r['complexity'] for r in recipes]
+        
+        # Répartition par type
+        type_distribution = defaultdict(int)
+        for recipe in recipes:
+            type_distribution[recipe['type']] += 1
+        
+        # Répartition ingrédients
+        onion_total = sum(r['signature']['onion_count'] for r in recipes)
+        tomato_total = sum(r['signature']['tomato_count'] for r in recipes)
         
         return {
-            'by_complexity': complexity_count,
-            'by_type': type_count,
-            'min_complexity': min(recipe['complexity'] for recipe in recipe_group),
-            'max_complexity': max(recipe['complexity'] for recipe in recipe_group),
-            'diversity_score': len(set(recipe['complexity'] for recipe in recipe_group))
+            'recipe_count': len(recipes),
+            'total_ingredients': total_ingredients,
+            'avg_complexity': total_ingredients / len(recipes) if recipes else 0,
+            'min_complexity': min(complexities) if complexities else 0,
+            'max_complexity': max(complexities) if complexities else 0,
+            'onion_total': onion_total,
+            'tomato_total': tomato_total,
+            'ingredient_balance': abs(onion_total - tomato_total),
+            'type_distribution': dict(type_distribution),
+            'complexity_distribution': {
+                str(i): complexities.count(i) for i in range(self.min_ingredients, self.max_ingredients + 1)
+            }
         }
     
-    def save_recipe_groups(self, all_groups, base_recipes):
-        """Sauvegarde tous les groupes de recettes."""
+    def generate_all_recipe_groups(self, recipes: List[Dict]) -> List[Dict]:
+        """Génère tous les groupes possibles de recettes."""
+        logger.info(f"🔄 Génération des groupes de {self.group_size} recettes...")
+        
+        # Calculer le nombre total de combinaisons
+        total_combinations = math.comb(len(recipes), self.group_size)
+        logger.info(f"📊 Nombre total de combinaisons: {total_combinations:,}")
+        
+        if total_combinations > 10_000_000:  # Limite de sécurité
+            logger.warning(f"⚠️  Nombre de combinaisons très élevé: {total_combinations:,}")
+            logger.warning("Considérez réduire le nombre de recettes ou la taille des groupes")
+        
+        recipe_groups = []
+        processed = 0
+        
+        # Générer toutes les combinaisons
+        for group_recipes in itertools.combinations(recipes, self.group_size):
+            group_recipes_list = list(group_recipes)
+            
+            # Valider le groupe
+            if not self.validate_recipe_group(group_recipes_list):
+                continue
+            
+            # Calculer les statistiques du groupe
+            group_stats = self.calculate_group_statistics(group_recipes_list)
+            
+            # Créer le groupe
+            group = {
+                'group_id': f'G{len(recipe_groups) + 1:06d}',
+                'recipes': group_recipes_list,
+                'statistics': group_stats,
+                'metadata': {
+                    'generation_timestamp': time.time(),
+                    'validation_passed': True,
+                    'generation_index': len(recipe_groups)
+                }
+            }
+            
+            recipe_groups.append(group)
+            processed += 1
+            
+            # Log du progrès
+            if processed % 10000 == 0:
+                progress = processed / total_combinations * 100
+                logger.info(f"📈 Progression: {processed:,}/{total_combinations:,} ({progress:.1f}%)")
+        
+        logger.info(f"✅ {len(recipe_groups):,} groupes valides générés")
+        return recipe_groups
+    
+    def save_results(self, recipes: List[Dict], recipe_groups: List[Dict]) -> Tuple[str, str]:
+        """Sauvegarde les résultats dans des fichiers JSON."""
         timestamp = int(time.time())
         
-        # Fichier principal avec tous les groupes
-        main_file = self.output_dir / f"all_recipe_groups_{timestamp}.json"
-        
-        output_data = {
-            'timestamp': timestamp,
-            'generation_info': {
-                'base_recipes_count': len(base_recipes),
-                'group_size': 6,
-                'total_groups': len(all_groups),
-                'generation_method': 'exhaustive_combinations'
-            },
-            'base_recipes': base_recipes,
-            'recipe_groups': all_groups,
-            'statistics': self.calculate_groups_statistics(all_groups)
-        }
-        
-        print(f"💾 Sauvegarde de {len(all_groups):,} groupes...")
-        
-        with open(main_file, 'w', encoding='utf-8') as f:
-            json.dump(output_data, f, indent=2, ensure_ascii=False)
-        
-        file_size_mb = main_file.stat().st_size / (1024 * 1024)
-        print(f"✅ Fichier principal sauvé: {main_file.name} ({file_size_mb:.1f} MB)")
-        
-        # Sauvegarder également les recettes de base séparément
+        # Sauvegarder les recettes de base
         base_recipes_file = self.output_dir / f"base_recipes_{timestamp}.json"
-        
-        base_data = {
-            'timestamp': timestamp,
-            'total_recipes': len(base_recipes),
-            'recipes': base_recipes
+        base_recipes_data = {
+            'generation_info': {
+                'timestamp': timestamp,
+                'total_recipes': len(recipes),
+                'constraints': {
+                    'min_ingredients': self.min_ingredients,
+                    'max_ingredients': self.max_ingredients,
+                    'allowed_ingredients': self.allowed_ingredients,
+                    'ensure_no_duplicates': self.ensure_no_duplicates
+                },
+                'generation_time': time.time()
+            },
+            'recipes': recipes,
+            'statistics': self.calculate_global_recipe_statistics(recipes)
         }
         
         with open(base_recipes_file, 'w', encoding='utf-8') as f:
-            json.dump(base_data, f, indent=2, ensure_ascii=False)
+            json.dump(base_recipes_data, f, indent=2, ensure_ascii=False)
         
-        print(f"✅ Recettes de base sauvées: {base_recipes_file.name}")
-        
-        return main_file, base_recipes_file
-    
-    def calculate_groups_statistics(self, all_groups):
-        """Calcule les statistiques sur tous les groupes."""
-        if not all_groups:
-            return {}
-        
-        # Distribution des complexités moyennes
-        avg_complexities = [group['avg_complexity'] for group in all_groups]
-        total_ingredients = [group['total_ingredients'] for group in all_groups]
-        diversity_scores = [group['complexity_distribution']['diversity_score'] for group in all_groups]
-        
-        stats = {
-            'complexity_stats': {
-                'min_avg_complexity': min(avg_complexities),
-                'max_avg_complexity': max(avg_complexities),
-                'avg_complexity': sum(avg_complexities) / len(avg_complexities)
+        # Sauvegarder les groupes de recettes
+        groups_file = self.output_dir / f"all_recipe_groups_{timestamp}.json"
+        groups_data = {
+            'generation_info': {
+                'timestamp': timestamp,
+                'total_groups': len(recipe_groups),
+                'group_size': self.group_size,
+                'base_recipes_count': len(recipes),
+                'generation_time': time.time()
             },
-            'ingredients_stats': {
-                'min_total_ingredients': min(total_ingredients),
-                'max_total_ingredients': max(total_ingredients),
-                'avg_total_ingredients': sum(total_ingredients) / len(total_ingredients)
-            },
-            'diversity_stats': {
-                'min_diversity': min(diversity_scores),
-                'max_diversity': max(diversity_scores),
-                'avg_diversity': sum(diversity_scores) / len(diversity_scores)
-            }
+            'recipe_groups': recipe_groups,
+            'base_recipes': recipes,  # Inclure pour référence
+            'global_statistics': self.calculate_global_group_statistics(recipe_groups)
         }
         
-        return stats
+        with open(groups_file, 'w', encoding='utf-8') as f:
+            json.dump(groups_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"💾 Fichiers sauvegardés:")
+        logger.info(f"   📄 Recettes: {base_recipes_file.name}")
+        logger.info(f"   📄 Groupes: {groups_file.name}")
+        
+        return str(base_recipes_file), str(groups_file)
     
-    def run_generation(self, group_size=6):
-        """Lance la génération complète des groupes de recettes."""
-        print(f"🚀 GÉNÉRATION DE TOUS LES GROUPES DE RECETTES")
-        print(f"📊 Taille des groupes: {group_size} recettes")
-        print("="*70)
+    def calculate_global_recipe_statistics(self, recipes: List[Dict]) -> Dict:
+        """Calcule les statistiques globales des recettes."""
+        complexity_distribution = defaultdict(int)
+        type_distribution = defaultdict(int)
         
-        # Générer les recettes de base
-        print("📋 Génération des recettes de base...")
-        base_recipes = self.generate_base_recipes()
+        for recipe in recipes:
+            complexity_distribution[recipe['complexity']] += 1
+            type_distribution[recipe['type']] += 1
         
-        print(f"✅ {len(base_recipes)} recettes de base générées")
+        return {
+            'total_recipes': len(recipes),
+            'complexity_distribution': dict(complexity_distribution),
+            'type_distribution': dict(type_distribution),
+            'ingredients_range': f"{self.min_ingredients}-{self.max_ingredients}",
+            'unique_signatures': len(set(
+                (r['signature']['onion_count'], r['signature']['tomato_count']) 
+                for r in recipes
+            ))
+        }
+    
+    def calculate_global_group_statistics(self, recipe_groups: List[Dict]) -> Dict:
+        """Calcule les statistiques globales des groupes."""
+        avg_complexities = [group['statistics']['avg_complexity'] for group in recipe_groups]
+        ingredient_balances = [group['statistics']['ingredient_balance'] for group in recipe_groups]
         
-        # Afficher la distribution des types
-        type_distribution = {}
-        for recipe in base_recipes:
-            recipe_type = recipe['type']
-            type_distribution[recipe_type] = type_distribution.get(recipe_type, 0) + 1
+        return {
+            'total_groups': len(recipe_groups),
+            'avg_group_complexity': sum(avg_complexities) / len(avg_complexities) if avg_complexities else 0,
+            'min_group_complexity': min(avg_complexities) if avg_complexities else 0,
+            'max_group_complexity': max(avg_complexities) if avg_complexities else 0,
+            'avg_ingredient_balance': sum(ingredient_balances) / len(ingredient_balances) if ingredient_balances else 0,
+            'group_size': self.group_size
+        }
+    
+    def run_generation(self) -> bool:
+        """Lance la génération complète des recettes et groupes."""
+        start_time = time.time()
         
-        print(f"📊 Distribution par type:")
-        for recipe_type, count in type_distribution.items():
-            print(f"   - {recipe_type}: {count} recettes")
-        
-        # Générer tous les groupes
-        all_groups = self.generate_all_recipe_groups(base_recipes, group_size)
-        
-        # Sauvegarder
-        main_file, base_file = self.save_recipe_groups(all_groups, base_recipes)
-        
-        # Afficher le résumé
-        print(f"\n🎉 GÉNÉRATION TERMINÉE!")
-        print(f"📊 Résumé:")
-        print(f"   - Recettes de base: {len(base_recipes)}")
-        print(f"   - Groupes générés: {len(all_groups):,}")
-        print(f"   - Fichier principal: {main_file.name}")
-        print(f"   - Fichier recettes: {base_file.name}")
-        
-        # Afficher quelques exemples
-        print(f"\n📋 Exemples de groupes:")
-        for i, group in enumerate(all_groups[:3]):
-            print(f"   {group['group_id']}: {group['recipe_ids']}")
-            print(f"      Complexité moyenne: {group['avg_complexity']:.1f}")
-            print(f"      Total ingrédients: {group['total_ingredients']}")
-        
-        if len(all_groups) > 3:
-            print(f"   ... et {len(all_groups) - 3:,} autres groupes")
-        
-        return True
+        try:
+            logger.info("🚀 Démarrage génération des recettes et groupes")
+            
+            # 1. Générer toutes les recettes possibles
+            recipes = self.generate_all_possible_recipes()
+            if not recipes:
+                logger.error("❌ Aucune recette générée")
+                return False
+            
+            # 2. Générer tous les groupes possibles
+            recipe_groups = self.generate_all_recipe_groups(recipes)
+            if not recipe_groups:
+                logger.error("❌ Aucun groupe de recettes généré")
+                return False
+            
+            # 3. Sauvegarder les résultats
+            base_file, groups_file = self.save_results(recipes, recipe_groups)
+            
+            # 4. Rapport final
+            generation_time = time.time() - start_time
+            logger.info(f"✅ Génération terminée en {generation_time:.1f}s")
+            logger.info(f"📊 Résultats:")
+            logger.info(f"   🍽️  Recettes uniques: {len(recipes)}")
+            logger.info(f"   👥 Groupes générés: {len(recipe_groups):,}")
+            logger.info(f"   ⚡ Performance: {len(recipe_groups)/generation_time:.1f} groupes/sec")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"💥 Erreur durant la génération: {e}", exc_info=True)
+            return False
 
 def main():
     """Fonction principale."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(
-        description='Génère tous les groupes possibles de recettes'
-    )
-    
-    parser.add_argument(
-        '--group-size',
-        type=int,
-        default=6,
-        help='Taille des groupes de recettes (défaut: 6)'
-    )
+    parser = argparse.ArgumentParser(description="Générateur professionnel de groupes de recettes Overcooked")
+    parser.add_argument("--config", default="config/pipeline_config.json", 
+                       help="Fichier de configuration")
+    parser.add_argument("--group-size", type=int,
+                       help="Taille des groupes de recettes (override config)")
+    parser.add_argument("--max-ingredients", type=int,
+                       help="Nombre maximum d'ingrédients par recette (override config)")
     
     args = parser.parse_args()
     
     try:
-        generator = RecipeGroupGenerator()
-        success = generator.run_generation(args.group_size)
+        generator = ProfessionalRecipeGenerator(args.config)
+        
+        # Overrides depuis la ligne de commande
+        if args.group_size:
+            generator.group_size = args.group_size
+            logger.info(f"🎯 Taille des groupes overridée: {args.group_size}")
+        
+        if args.max_ingredients:
+            generator.max_ingredients = args.max_ingredients
+            logger.info(f"🎯 Max ingrédients overridé: {args.max_ingredients}")
+        
+        success = generator.run_generation()
         
         if success:
-            print("✅ Génération réussie!")
+            logger.info("🎉 Génération réussie!")
+            return 0
         else:
-            print("❌ Échec de la génération")
-            exit(1)
-            
+            logger.error("❌ Échec de la génération")
+            return 1
+    
     except Exception as e:
-        print(f"💥 Erreur: {e}")
-        import traceback
-        traceback.print_exc()
-        exit(1)
+        logger.error(f"💥 Erreur critique: {e}", exc_info=True)
+        return 1
 
 if __name__ == "__main__":
-    main()
+    exit(main())

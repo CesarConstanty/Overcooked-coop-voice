@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Évaluateur professionnel optimisé des layouts Overcooked
-- Évaluation légère avec simulation réelle (métriques seulement)
-- Génération de trajectoires détaillées uniquement pour layouts sélectionnés
-- Pathfinding BFS/A* pour calculs précis des steps
+Évaluateur professionnel avec simulation réelle des layouts Overcooked
+- Simulation complète des trajets avec pathfinding BFS/A*
+- Calcul réel des steps pour chaque recette en mode solo et duo
 - Gestion dynamique des zones d'échange X->Y
-- Architecture modulaire pour éviter la surcharge mémoire
+- Génération de trajectoires détaillées pour vérification manuelle
+- Ignore la durée de cuisson selon les spécifications
 """
 
 import json
@@ -92,6 +92,22 @@ class PathFinder:
                         queue.append(((ni, nj), new_path))
         
         return None  # Aucun chemin trouvé
+    
+    @staticmethod
+    def find_accessible_objects(grid: List[List[str]], start: Tuple[int, int], 
+                               target_objects: Set[str], exchange_zones: Set[Tuple[int, int]] = None) -> Dict[str, Tuple[int, int]]:
+        """Trouve tous les objets accessibles depuis une position."""
+        grid_size = len(grid)
+        accessible = {}
+        
+        for i in range(grid_size):
+            for j in range(grid_size):
+                if grid[i][j] in target_objects:
+                    path = PathFinder.bfs_shortest_path(grid, start, (i, j), exchange_zones)
+                    if path:
+                        accessible[grid[i][j]] = (i, j)
+        
+        return accessible
 
 class OvercookedSimulator:
     """Simulateur complet du gameplay Overcooked."""
@@ -313,6 +329,7 @@ class OvercookedSimulator:
         current_dist = abs(p1_pos[0] - p2_pos[0]) + abs(p1_pos[1] - p2_pos[1])
         
         # Distance avec la zone convertie (approximation)
+        # Pour un calcul précis, il faudrait faire un pathfinding complet
         zone_to_p1 = abs(zone[0] - p1_pos[0]) + abs(zone[1] - p1_pos[1])
         zone_to_p2 = abs(zone[0] - p2_pos[0]) + abs(zone[1] - p2_pos[1])
         potential_new_dist = zone_to_p1 + zone_to_p2
@@ -544,7 +561,7 @@ class OvercookedSimulator:
         return None
 
 class ProfessionalLayoutEvaluator:
-    """Évaluateur professionnel avec optimisation des ressources."""
+    """Évaluateur professionnel avec simulation réelle."""
     
     def __init__(self, config_file: str = "config/pipeline_config.json"):
         """Initialise l'évaluateur avec la configuration."""
@@ -592,7 +609,7 @@ class ProfessionalLayoutEvaluator:
         
         # Charger les groupes de recettes
         recipe_groups = []
-        recipe_files = list(self.base_dir.glob("outputs/recipe_combinations/all_recipe_groups_*.json"))
+        recipe_files = list(self.base_dir.glob("outputs/all_recipe_groups_*.json"))
         if recipe_files:
             latest_file = max(recipe_files, key=lambda f: f.stat().st_mtime)
             with open(latest_file, 'r', encoding='utf-8') as f:
@@ -677,11 +694,9 @@ class ProfessionalLayoutEvaluator:
                 'avg_exchanges_per_recipe': total_exchanges_used / successful_recipes,
                 'successful_recipes': successful_recipes,
                 'success_rate': successful_recipes / len(recipe_group['recipes']) * 100,
-                'efficiency_score': self.calculate_efficiency_score(total_duo_steps, successful_recipes)
+                'efficiency_score': self.calculate_efficiency_score(total_duo_steps, successful_recipes),
+                'layout_quality_score': self.calculate_layout_quality_score(layout, results)
             }
-            
-            # Calculer le score de qualité après avoir créé les métriques
-            results['summary_metrics']['layout_quality_score'] = self.calculate_layout_quality_score(layout, results)
         else:
             results['summary_metrics'] = {
                 'total_solo_steps': float('inf'),
@@ -791,17 +806,8 @@ class ProfessionalLayoutEvaluator:
         logger.info(f"✅ Trajectoires générées pour {len(selected_layouts)} layouts")
         return all_trajectories
     
-    def save_trajectories(self, layout_id: str, trajectories: Dict):
-        """Sauvegarde les trajectoires détaillées."""
-        trajectory_file = self.trajectories_dir / f"trajectories_{layout_id}.json"
-        
-        with open(trajectory_file, 'w', encoding='utf-8') as f:
-            json.dump(trajectories, f, indent=2, ensure_ascii=False)
-        
-        logger.debug(f"💾 Trajectoires sauvegardées: {trajectory_file.name}")
-    
     def run_evaluation(self) -> bool:
-        """Lance l'évaluation complète (mode léger)."""
+        """Lance l'évaluation complète."""
         start_time = time.time()
         
         try:
@@ -812,23 +818,20 @@ class ProfessionalLayoutEvaluator:
                 logger.error("❌ Données insuffisantes pour l'évaluation")
                 return False
             
-            logger.info(f"🚀 Démarrage évaluation complète (mode léger)")
+            logger.info(f"🚀 Démarrage évaluation complète")
             logger.info(f"📊 {len(layouts)} layouts × {len(recipe_groups)} groupes = {len(layouts) * len(recipe_groups):,} évaluations")
             
             all_evaluations = []
             processed = 0
             
-            # Évaluer chaque combinaison layout × groupe de recettes (mode léger)
-            for layout in layouts[:10]:  # Limiter pour les tests
-                for recipe_group in recipe_groups[:5]:  # Limiter pour les tests
-                    
-                    evaluation = self.evaluate_layout_with_recipe_group(layout, recipe_group)
-                    all_evaluations.append(evaluation)
-                    
-                    processed += 1
-                    
-                    if processed % 10 == 0:
-                        logger.info(f"📈 Progression: {processed} évaluations terminées")
+    def save_trajectories(self, layout_id: str, trajectories: Dict):
+        """Sauvegarde les trajectoires détaillées."""
+        trajectory_file = self.trajectories_dir / f"trajectories_{layout_id}.json"
+        
+        with open(trajectory_file, 'w', encoding='utf-8') as f:
+            json.dump(trajectories, f, indent=2, ensure_ascii=False)
+        
+        logger.debug(f"� Trajectoires sauvegardées: {trajectory_file.name}")
             
             # Sauvegarder les résultats
             timestamp = int(time.time())
@@ -840,8 +843,7 @@ class ProfessionalLayoutEvaluator:
                     'total_evaluations': len(all_evaluations),
                     'layouts_evaluated': len(layouts),
                     'recipe_groups_evaluated': len(recipe_groups),
-                    'evaluation_time': time.time() - start_time,
-                    'mode': 'lightweight_evaluation'
+                    'evaluation_time': time.time() - start_time
                 },
                 'evaluations': all_evaluations,
                 'configuration': self.config
@@ -855,7 +857,6 @@ class ProfessionalLayoutEvaluator:
             logger.info(f"✅ Évaluation terminée!")
             logger.info(f"📊 {len(all_evaluations)} évaluations en {evaluation_time:.1f}s")
             logger.info(f"💾 Résultats: {results_file.name}")
-            logger.info(f"📋 Mode: Évaluation légère (sans trajectoires)")
             
             return True
             
@@ -870,22 +871,13 @@ def main():
                        help="Fichier de configuration")
     parser.add_argument("--layout-limit", type=int,
                        help="Limite du nombre de layouts à évaluer (pour tests)")
-    parser.add_argument("--trajectories-only", action="store_true",
-                       help="Génère uniquement les trajectoires pour layouts sélectionnés")
     
     args = parser.parse_args()
     
     try:
         evaluator = ProfessionalLayoutEvaluator(args.config)
         
-        if args.trajectories_only:
-            logger.info("🎯 Mode: Génération de trajectoires uniquement")
-            # Charger les layouts sélectionnés depuis les résultats précédents
-            # Cette fonctionnalité sera implémentée selon les besoins
-            logger.warning("⚠️ Mode trajectoires uniquement non encore implémenté")
-            return 0
-        else:
-            success = evaluator.run_evaluation()
+        success = evaluator.run_evaluation()
         
         if success:
             logger.info("🎉 Évaluation réussie!")

@@ -1,0 +1,60 @@
+{
+  "execution_info": {
+    "start_time": 1757076649.7576103,
+    "end_time": 1757076653.878891,
+    "total_duration": 4.121280670166016,
+    "total_errors": 1,
+    "execution_date": "2025-09-05T14:50:54.879452"
+  },
+  "resource_usage": {
+    "initial_stats": {
+      "memory_percent": 32.9,
+      "cpu_percent": 3.3
+    },
+    "final_stats": {
+      "memory_percent": 33.7,
+      "memory_available_gb": 10.232425689697266,
+      "cpu_percent": 0.7,
+      "cpu_count": 8,
+      "disk_usage_percent": 1.2,
+      "elapsed_time": 6.123006343841553
+    }
+  },
+  "steps_summary": [
+    {
+      "step_id": 0,
+      "name": "Recipe Generation",
+      "status": "failed",
+      "duration": 0.04526710510253906,
+      "error_message": "2025-09-05 14:50:53,867 - __main__ - ERROR - 💥 Erreur critique: 'recipe_config'\nTraceback (most recent call last):\n  File \"/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/scripts/0_recipe_generator.py\", line 386, in main\n    generator = ProfessionalRecipeGenerator(args.config)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/scripts/0_recipe_generator.py\", line 67, in __init__\n    recipe_config = self.config[\"recipe_config\"]\n                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^\nKeyError: 'recipe_config'\n"
+    },
+    {
+      "step_id": 1,
+      "name": "Layout Generation",
+      "status": "pending",
+      "duration": null,
+      "error_message": ""
+    },
+    {
+      "step_id": 2,
+      "name": "Layout Evaluation",
+      "status": "pending",
+      "duration": null,
+      "error_message": ""
+    },
+    {
+      "step_id": 3,
+      "name": "Results Analysis",
+      "status": "pending",
+      "duration": null,
+      "error_message": ""
+    },
+    {
+      "step_id": 4,
+      "name": "Final Selection",
+      "status": "pending",
+      "duration": null,
+      "error_message": ""
+    }
+  ]
+}
