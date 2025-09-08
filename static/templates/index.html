@@ -3,7 +3,37 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name=      this info      ticking the 'I consent' box below.
+      You may ask any questions before deciding to take part by contacting the
+      researcher (details below).
+      {% if user_config %}
+      The Principal Researcher is <a href=mailto::{{user_config['researcher']['email']}}>{{user_config['researcher']['name']}}</a>
+      , PhD student attached to the
+      {{user_config['researcher']['institution']}} and the {{user_config['supervisor']['institution']}} of {{user_config["researcher"]["university"]}}. This
+      project is being completed under the supervision of Pr. {{user_config['supervisor']['name']}} ({{user_config['supervisor']['institution']}})
+      and Dr. Bruno Berberian (ONERA).
+      {% else %}
+      The Principal Researcher is [Researcher Name]
+      , PhD student attached to the
+      [Institution] and the [Supervisor Institution] of [University]. This
+      project is being completed under the supervision of [Supervisor Name] ([Institution])
+      and Dr. Bruno Berberian (ONERA).
+      {% endif %}
+      You will be asked toefore agreeing to participate (if you wish to) by
+      ticking the 'I consent' box below.
+      You may ask any questions before deciding to take part by contacting the
+      researcher (details below).
+      {% if user_config %}
+      The Principal Researcher is <a href=mailto::{{user_config['researcher']['email']}}>{{user_config['researcher']['name']}}</a>
+      , PhD student attached to the
+      {{user_config['researcher']['institution']}} and the {{user_config['supervisor']['institution']}} of {{user_config["researcher"]["university"]}}. This
+      project is being completed under the supervision of Pr. {{user_config['supervisor']['name']}} ({{user_config['supervisor']['institution']}})
+      and Dr. Bruno Berberian (ONERA).
+      {% else %}
+      The Principal Researcher is at [contact information not available].
+      {% endif %}
+      You will be asked to
+      play a cooperative game inspired from <a href=https://en.wikipedia.org/wiki/Overcooked>Overcooked</a> . Thiscontent="width=device-width, initial-scale=1">
   <meta name="description" content="">
   <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
   <meta name="generator" content="Hugo 0.84.0">
@@ -81,10 +111,10 @@
       ticking the ‘I consent’ box below.
       You may ask any questions before deciding to take part by contacting the
       researcher (details below).
-      The Principal Researcher is <a href=mailto::{{current_user.config['researcher']['email']}}>{{current_user.config['researcher']['name']}}</a>
+      The Principal Researcher is <a href=mailto::{{user_config['researcher']['email']}}>{{user_config['researcher']['name']}}</a>
       , PhD student attached to the
-      {{current_user.config['researcher']['institution']}} and the {{current_user.config['supervisor']['institution']}} of {{current_user.config["researcher"]["university"]}}. This
-      project is being completed under the supervision of Pr. {{current_user.config['supervisor']['name']}} ({{current_user.config['supervisor']['institution']}})
+      {{user_config['researcher']['institution']}} and the {{user_config['supervisor']['institution']}} of {{user_config["researcher"]["university"]}}. This
+      project is being completed under the supervision of Pr. {{user_config['supervisor']['name']}} ({{user_config['supervisor']['institution']}})
       and Dr. Bruno Berberian (ONERA).
       You will be asked to
       play a cooperative game inspired from <a href=https://en.wikipedia.org/wiki/Overcooked>Overcooked</a> . This
@@ -122,12 +152,12 @@
         I have a concern or I wish to complain?</h3>
       <p class="text-left">If you
       have a concern about any aspect of this study, please speak to
-      {{current_user.config['researcher']['name']}} (<a href="{{current_user.config['researcher']['email']}}">e-mail</a>) or his
-      supervisor {{current_user.config['supervisor']['name']}} (<a href="{{current_user.config['supervisor']['name']}}">e-mail</a>), and we will do our best
+      {{user_config['researcher']['name']}} (<a href="{{user_config['researcher']['email']}}">e-mail</a>) or his
+      supervisor {{user_config['supervisor']['name']}} (<a href="{{user_config['supervisor']['name']}}">e-mail</a>), and we will do our best
       to answer your query. We will acknowledge your concern within 10
       working days and give you an indication of how it will be dealt with.
       If you remain unhappy or wish to make a formal complaint, please
-      contact the {{current_user.config['researcher']['university']}} ethical committee
+      contact the {{user_config['researcher']['university']}} ethical committee
       who will seek to resolve the matter as soon as possible.</p>
       <p class="text-left"><b>Please note that you may only participate in this study
         if you are 18 years old or over.</b></p>

@@ -795,3 +795,157 @@ Traceback (most recent call last):
   File "/home/cesar/environnements/overcooked/lib/python3.11/site-packages/flask/templating.py", line 99, in _get_source_fast
     raise TemplateNotFound(template)
 jinja2.exceptions.TemplateNotFound: tutorial_EVH.html
+Exception on / [GET]
+Traceback (most recent call last):
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/projet_python/Overcooked-coop-voice/app.py", line 651, in index
+    return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS) #--- uncomment
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/cesar/projet_python/Overcooked-coop-voice/static/templates/index.html", line 84, in top-level template code
+    The Principal Researcher is <a href=mailto::{{current_user.config['researcher']['email']}}>{{current_user.config['researcher']['name']}}</a>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'current_user' is undefined
+Exception on /instructions [POST]
+Traceback (most recent call last):
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/projet_python/Overcooked-coop-voice/app.py", line 694, in instructions
+    return render_template('instructions_recipe.html', is_explained=is_explained)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/cesar/projet_python/Overcooked-coop-voice/static/templates/instructions_recipe.html", line 108, in top-level template code
+    <p>A red number appears over the pot to indicate cook time. It counts upward until the soup is done. Each onion adds {{ current_user.config["onion_time"] }} and each tomato adds {{ current_user.config["tomato_time"] }} to the cook time. Remember that onions grant more points than tomatoes but take longer to be cooked!</p>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'current_user' is undefined
+Exception on /condition_tutorial [GET]
+Traceback (most recent call last):
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/projet_python/Overcooked-coop-voice/app.py", line 1148, in condition_tutorial
+    uid = current_user.uid
+          ^^^^^^^^^^^^
+NameError: name 'current_user' is not defined. Did you mean: 'get_current_user'?
+Exception on /tutorial [GET]
+Traceback (most recent call last):
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/projet_python/Overcooked-coop-voice/app.py", line 1197, in tutorial
+    return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/cesar/projet_python/Overcooked-coop-voice/static/templates/tutorial.html", line 36, in top-level template code
+    <div id="user_config" style="display:none;">{{current_user.config}}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'current_user' is undefined
+Exception on /tutorial [GET]
+Traceback (most recent call last):
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/projet_python/Overcooked-coop-voice/app.py", line 1197, in tutorial
+    return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/cesar/projet_python/Overcooked-coop-voice/static/templates/tutorial.html", line 36, in top-level template code
+    <div id="user_config" style="display:none;">{{current_user.config}}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cesar/environnements/OvercookedEnv/lib/python3.12/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'current_user' is undefined

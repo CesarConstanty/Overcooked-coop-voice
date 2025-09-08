@@ -26,7 +26,8 @@ from utils import ThreadSafeSet, ThreadSafeDict, questionnaire_to_surveyjs
 from flask import Flask, redirect, render_template, jsonify, request, session, url_for
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_session import Session
-from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
+# Système d'authentification supprimé
+# from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import JSON
 from game import OvercookedGame, OvercookedTutorial, Game, OvercookedPsiturk, PlanningGame
@@ -129,14 +130,16 @@ app.config['DEBUG'] = os.getenv('FLASK_ENV', 'production') == 'development'
 app.config['SECRET_KEY'] = 'c-\x9f^\x80\xd8\xd0j\xed\xc1\x15\xf7\xc9\x97J{\x97\x165Iq#\x87\x88'
 app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
-app.config['SESSION_COOKIE_SECURE'] = True
+# Désactivé pour permettre HTTP : app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #app.config.update(SECRET_KEY='osd(99092=36&462134kjKDhuIS_d23', ENV='development')
 socketio = SocketIO(app, cors_allowed_origins="*", logger=app.config['DEBUG'], ping_interval=5, ping_timeout=5)
-login_manager = LoginManager()
-login_manager.init_app(app)
+# Système d'authentification désactivé - utilisation de sessions simples
+# login_manager = LoginManager()
+# login_manager.init_app(app)
 db = SQLAlchemy()
 db.init_app(app)
 # Attach handler for logging errors to file
@@ -145,7 +148,7 @@ handler.setLevel(logging.ERROR)
 app.logger.addHandler(handler)
 
 
-class User(UserMixin, db.Model):
+class User(db.Model):
 
     __tablename__ = 'user'
     uid = db.Column(db.String, primary_key=True)
@@ -160,11 +163,6 @@ class User(UserMixin, db.Model):
 with app.app_context():
     db.create_all()
 
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(user_id)
-
 #################
 # MODIFICATIONS #	
 #################
@@ -172,6 +170,48 @@ def load_user(user_id):
 is_test = CONFIG.get('mode')
 #is_test = "pas_test"
 print("ceci est un : ",is_test)
+
+#######################
+# Session Management  #
+#######################
+
+def get_current_user():
+    """
+    Remplace current_user - récupère l'utilisateur actuel depuis la session
+    """
+    user_id = session.get('user_id')
+    if user_id:
+        return User.query.get(user_id)
+    return None
+
+def login_user_session(user):
+    """
+    Remplace login_user - connecte un utilisateur en stockant son ID en session
+    """
+    session['user_id'] = user.uid
+    session['uid'] = user.uid
+    session['config_id'] = user.config.get('config_id')
+    session.permanent = True
+
+def logout_user_session():
+    """
+    Remplace logout_user - déconnecte l'utilisateur
+    """
+    session.pop('user_id', None)
+
+def login_required_session(f):
+    """
+    Remplace @login_required - décorateur pour vérifier l'authentification
+    """
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        current_user = get_current_user()
+        if current_user is None:
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 #################################
 # Global Coordination Functions #
@@ -325,6 +365,7 @@ def _leave_game(user_id):
 # déclenche également un évènement socketIO pour lancer la partie
 # cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
+    current_user = get_current_user()
     existing_game = GAMES.get(game_name, None)
     if existing_game:
         cleanup_game(existing_game)
@@ -371,9 +412,9 @@ def _ensure_consistent_state():
 
     - Intersection of WAITING and ACTIVE games must be empty set
     - Union of WAITING and ACTIVE must be equal to GAMES
-    - id \in FREE_IDS => FREE_MAP[id]
-    - id \in ACTIVE_GAMES => Game in active state
-    - id \in WAITING_GAMES => Game in inactive state
+    - id \\in FREE_IDS => FREE_MAP[id]
+    - id \\in ACTIVE_GAMES => Game in active state
+    - id \\in WAITING_GAMES => Game in inactive state
     """
     #waiting_games = set()
     active_games = set()
@@ -541,7 +582,7 @@ def index():
         user = User.query.filter_by(uid=uid).first()
         #user = False
         if user:
-            login_user(user)
+            login_user_session(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
             # gère la randomisation des blocs
@@ -603,59 +644,113 @@ def index():
 
             db.session.add(new_user)
             db.session.commit()
-            login_user(new_user)
-        return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS) #--- uncomment
+            login_user_session(new_user)
+        
+        # Récupérer l'utilisateur pour passer ses données au template
+        user = User.query.filter_by(uid=uid).first()
+        if user:
+            return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS, user_config=user.config) #--- uncomment
+        else:
+            return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS) #--- uncomment
         #return redirect(url_for('planning'))
     else:
         return render_template('UID_error.html')
 
 
 @app.route('/instructions', methods=['GET', 'POST'])
-@login_required
 def instructions():
-    uid = current_user.uid
-    condition = current_user.config["conditions"]
+    # Récupérer l'UID et la CONFIG depuis les paramètres URL ou session
+    uid = request.args.get('PROLIFIC_PID') or request.args.get('TEST_UID') or session.get('uid')
+    config_id = request.args.get('CONFIG') or session.get('config_id')
+    
+    if not uid or not config_id:
+        return render_template('UID_error.html')
+    
+    # Récupérer la configuration depuis le fichier global
+    try:
+        config = CONFIG[config_id]
+        config["config_id"] = config_id
+    except KeyError:
+        return render_template('UID_error.html')
+    
+    # Vérifier s'il y a des explications dans les conditions
+    condition = config.get("conditions", {})
     is_explained = False
-
-    all_conditions = [item for sublist in [list(bloc.values()) for bloc in condition.values()] for item in sublist] #test wheter at least 1 intention is given at some point
+    
+    # Tester si au moins une intention est donnée à un moment donné
+    all_conditions = [item for sublist in [list(bloc.values()) for bloc in condition.values()] for item in sublist] if condition else []
     if any(all_conditions):
         is_explained = True
-    mechanic_type =  current_user.config["mechanic"]
-    isAgency =  current_user.config.get("agency", False)
-    form = request.form.to_dict()
-    form["timestamp"] = gmtime()
-    form["date"] = asctime(form["timestamp"])
-    form["useragent"] = request.headers.get('User-Agent')
-    #form["IPadress"] = request.remote_addr
-    #
-    if form["consentRadio"] == "accept":
-        Path("trajectories/" + current_user.config["config_id"] + "/"+ uid).mkdir(parents=True, exist_ok=True)
-        try:
-            with open('trajectories/' + current_user.config["config_id"] + "/" +uid + '/CONSENT.json', 'w', encoding='utf-8') as f:
-                json.dump(form, f, ensure_ascii=False, indent=4)
-                f.close()
-        except KeyError:
-            pass
-        if condition:
-            if mechanic_type == "recipe":
-                if isAgency:
-                    return render_template('instructions_recipe_Agency.html', is_explained=is_explained)
-                else :
-                    return render_template('instructions_recipe.html', is_explained=is_explained)
-            #return redirect(url_for('qvg_survey'))
+    
+    mechanic_type = config.get("mechanic", "recipe")
+    isAgency = config.get("agency", False)
+    
+    if request.method == 'POST':
+        form = request.form.to_dict()
+        form["timestamp"] = gmtime()
+        form["date"] = asctime(form["timestamp"])
+        form["useragent"] = request.headers.get('User-Agent')
+        #form["IPadress"] = request.remote_addr
+        #
+        if form.get("consentRadio") == "accept":
+            Path("trajectories/" + config_id + "/"+ uid).mkdir(parents=True, exist_ok=True)
+            try:
+                with open('trajectories/' + config_id + "/" +uid + '/CONSENT.json', 'w', encoding='utf-8') as f:
+                    json.dump(form, f, ensure_ascii=False, indent=4)
+                    f.close()
+            except KeyError:
+                pass
+            if condition:
+                if mechanic_type == "recipe":
+                    # Récupérer les valeurs depuis la config ou les defaults
+                    onion_time = config.get("onion_time", LAYOUT_GLOBALS.get("onion_time", 15))
+                    tomato_time = config.get("tomato_time", LAYOUT_GLOBALS.get("tomato_time", 7))
+                    onion_value = config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21))
+                    tomato_value = config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13))
+                    
+                    if isAgency:
+                        return render_template('instructions_recipe_Agency.html', 
+                                             is_explained=is_explained,
+                                             onion_time=onion_time,
+                                             tomato_time=tomato_time,
+                                             onion_value=onion_value,
+                                             tomato_value=tomato_value,
+                                             config=config)
+                    else :
+                        return render_template('instructions_recipe.html', 
+                                             is_explained=is_explained,
+                                             onion_time=onion_time,
+                                             tomato_time=tomato_time,
+                                             onion_value=onion_value,
+                                             tomato_value=tomato_value,
+                                             config=config)
+                #return redirect(url_for('qvg_survey'))
+
+            else:
+                return render_template('condition_error.html')
 
         else:
-            return render_template('condition_error.html')
-
-    else:
-        Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
-        try:
-            with open('trajectories/' + uid + '/NOT_CONSENT.json', 'w', encoding='utf-8') as f:
-                json.dump(form, f, ensure_ascii=False, indent=4)
-                f.close()
-        except KeyError:
-            pass
-        return render_template('leave.html', uid=uid, complete=False)
+            Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
+            try:
+                with open('trajectories/' + uid + '/NOT_CONSENT.json', 'w', encoding='utf-8') as f:
+                    json.dump(form, f, ensure_ascii=False, indent=4)
+                    f.close()
+            except KeyError:
+                pass
+            return render_template('leave.html', uid=uid, complete=False)
+    
+    # Affichage initial de la page d'instructions (GET)
+    return render_template('instructions.html', 
+                          uid=uid, 
+                          config=config,
+                          researcher=config.get("researcher", {}),
+                          supervisor=config.get("supervisor", {}),
+                          onion_time=config.get("onion_time", LAYOUT_GLOBALS.get("onion_time", 15)),
+                          tomato_time=config.get("tomato_time", LAYOUT_GLOBALS.get("tomato_time", 7)),
+                          onion_value=config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21)),
+                          tomato_value=config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13)),
+                          max_num_ingredients=config.get("max_num_ingredients", LAYOUT_GLOBALS.get("max_num_ingredients", 3)),
+                          order_bonus=config.get("order_bonus", LAYOUT_GLOBALS.get("order_bonus", 2)))
 
 
 @app.route('/instructions_explained')
@@ -666,8 +761,8 @@ def instructions_explained():
 
 
 @app.route('/planning', methods=['GET', 'POST'])
-@login_required
 def planning():
+    current_user = get_current_user()
     uid = current_user.uid
     bloc_order = current_user.config.get("bloc_order", [])
     
@@ -794,14 +889,30 @@ def planning():
     # --- RENDU TEMPLATE ---
     # On ne retourne JAMAIS qex_ranking ici, même si on est au dernier bloc.
     # Le JS s'occupe de rediriger après le dernier questionnaire.
+    
+    # Préparer les variables qui étaient dans current_user
+    total_blocs = len(current_user.config["bloc_order"])
+    bloc_key = current_user.config["bloc_order"][current_user.step]
+    current_condition = current_user.config["conditions"][bloc_key]
+    current_trials = current_user.config["blocs"][bloc_key]
+    
     return render_template(
         "planning.html",
         qpb=json.dumps(qpb),
         qpt=qpt if qpt else "",
-        hoffman=json.dumps(hoffman)
+        hoffman=json.dumps(hoffman),
+        uid=current_user.uid,
+        step=current_user.step,
+        condition=current_condition,
+        config=json.dumps(current_user.config),
+        trials=json.dumps(current_trials),
+        total_blocs=total_blocs,
+        qpb_length=current_user.config.get("qpb_length", 300),
+        hoffman_length=current_user.config.get("hoffman_length", 300)
     )
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
+    current_user = get_current_user()
     uid = current_user.uid
     step = current_user.step
     bloc_key = current_user.config["bloc_order"][current_user.step]
@@ -833,8 +944,8 @@ def transition():
 
 
 @app.route('/qex_ranking', methods=['GET'])
-@login_required
 def qex_ranking():
+    current_user = get_current_user()
     uid = current_user.uid
     step = current_user.step
     config_id = current_user.config["config_id"]
@@ -843,12 +954,12 @@ def qex_ranking():
         return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
     
     preference_length = current_user.config.get("preference_length", 60)
-    return render_template('preference order_en.html', preference_length=preference_length)
+    num_blocs = len(current_user.config.get("bloc_order", []))
+    return render_template('preference order_en.html', preference_length=preference_length, num_blocs=num_blocs)
 
 @app.route('/submit_qex_ranking', methods=['POST'])
-@login_required
 def submit_qex_ranking():
-
+    current_user = get_current_user()
     uid = current_user.uid
     step = current_user.step 
     config_id = current_user.config["config_id"]
@@ -914,22 +1025,22 @@ def submit_qex_ranking():
 
 
 @app.route('/experience_video_games_survey', methods=['GET'])
-@login_required
 def qvg_survey():
     """
     Renders the video game questionnaire (QVG) HTML page.
     """
+    current_user = get_current_user()
     # Récupère la durée du timer depuis la config utilisateur
     qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
     return render_template('experience_video_games_en.html', qvg_length=qvg_length)
 
 @app.route('/submit_qvg_survey', methods=['POST'])
-@login_required
 def submit_qvg_survey():
     """
     Handles the POST submission of the video game questionnaire (QVG).
     Extracts data, saves it to a JSON file, and progresses the user's step.
     """
+    current_user = get_current_user()
     uid = current_user.uid
     step = current_user.step
 
@@ -989,18 +1100,18 @@ def submit_qvg_survey():
 # -- ptta
 
 @app.route('/ptta_survey', methods=['GET'])
-@login_required
 def ptta_survey():
+    current_user = get_current_user()
     ptta_length = current_user.config.get("ptta_length", 60)
     return render_template('PTT_A_en.html',ptta_length=ptta_length)
 
 @app.route('/submit_ptta_survey', methods=['POST'])
-@login_required
 def submit_ptta_survey():
     """
     Handles the POST submission of the PTT-A survey.
     Extracts data, saves it to a JSON file, and progresses the user's step.
     """
+    current_user = get_current_user()
     uid = current_user.uid
     step = current_user.step
 
@@ -1061,7 +1172,7 @@ def planning_design():
     new_user = User(uid=uid, config={}, step=0, trial=0)
     db.session.add(new_user)
     db.session.commit()
-    login_user(new_user)
+    login_user_session(new_user)
     layouts_path = "overcooked_ai_py/data/layouts"
     layouts = [f[:-7] for f in os.listdir(layouts_path)
                if os.path.isfile(os.path.join(layouts_path, f))]
@@ -1075,8 +1186,8 @@ def cat():
 
 
 @app.route('/tutorial')
-@login_required
 def tutorial():
+    current_user = get_current_user()
     uid = current_user.uid
     step = 0
     # Remise à zéro des compteurs d'essai et de bloc pour l'expérience principale
@@ -1091,7 +1202,6 @@ def tutorial():
 
 
 @app.route('/condition_tutorial')
-@login_required
 def condition_tutorial():
     """
     Route pour afficher le tutoriel spécifique à une condition expérimentale.
@@ -1103,6 +1213,7 @@ def condition_tutorial():
     2. Utilise le mapping condition_tutorials de la config pour trouver le bon template
     3. Affiche le tutoriel correspondant avec les bonnes variables
     """
+    current_user = get_current_user()
     uid = current_user.uid
     bloc_order = current_user.config.get("bloc_order", [])
     
@@ -1234,6 +1345,7 @@ def debug():
 
 @socketio.on('create') # déplenché suite à une requette du fichier planning.js
 def on_create(data):
+    current_user = get_current_user()
     user_id = current_user.uid
     #print(data)
     curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
@@ -1265,6 +1377,7 @@ def on_create(data):
 
 @socketio.on('join')
 def on_join(data):
+    current_user = get_current_user()
     user_id = current_user.uid
     with USERS[user_id]:
         create_if_not_found = data.get("create_if_not_found", True)
@@ -1309,6 +1422,7 @@ def on_join(data):
 
 @socketio.on('leave')
 def on_leave(data):
+    current_user = get_current_user()
     user_id = current_user.uid
     with USERS[user_id]:
         was_active = _leave_game(user_id)
@@ -1321,6 +1435,7 @@ def on_leave(data):
 
 @socketio.on('action')
 def on_action(data):
+    current_user = get_current_user()
     user_id = current_user.uid
     action = data['action']
 
@@ -1333,6 +1448,7 @@ def on_action(data):
 
 @socketio.on('connect') # est déclenché à chaque fois qu'un client se connect au serveur via Socket.IO
 def on_connect():       # utilise le user_id pour gérer ces connexions
+    current_user = get_current_user()
     user_id = current_user.uid
     if user_id in USERS:
         return
@@ -1344,6 +1460,7 @@ def on_connect():       # utilise le user_id pour gérer ces connexions
 @socketio.on('disconnect')
 def on_disconnect():
     # Ensure game data is properly cleaned-up in case of unexpected disconnect
+    current_user = get_current_user()
     user_id = current_user.uid
     if user_id not in USERS:
         return
@@ -1354,6 +1471,7 @@ def on_disconnect():
 
 @socketio.on("new_trial")
 def on_new_trial():
+    current_user = get_current_user()
     user_id = current_user.uid
     game = get_curr_game(user_id)
     if not game:
@@ -1364,6 +1482,7 @@ def on_new_trial():
 
 @socketio.on("post_qpt")
 def post_qpt(data):
+    current_user = get_current_user()
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
@@ -1405,6 +1524,7 @@ def post_qpt(data):
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
 def post_qpb(data):
+    current_user = get_current_user()
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
@@ -1435,6 +1555,7 @@ def post_qpb(data):
 
 @socketio.on("post_hoffman")
 def post_hoffman(data):
+    current_user = get_current_user()
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
