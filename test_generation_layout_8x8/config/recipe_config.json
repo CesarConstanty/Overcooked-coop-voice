@@ -1,0 +1,12 @@
+{
+  "configuration": {
+    "group_size": 6,
+    "onion_value": 3,
+    "tomato_value": 2,
+    "onion_time": 9,
+    "tomato_time": 6,
+    "max_ingredient": 3,
+    "min_ingredient": 1,
+    "repeat_recipe": false
+  }
+}

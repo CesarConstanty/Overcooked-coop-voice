@@ -176,13 +176,13 @@ $(document).on('input change', '#qptForm input[type=range]', function() {
 
 socket.on('next_step', function () {
     console.log('[NEXT_STEP] Received next_step event');
-    
+
     // Récupère le numéro du bloc courant et le nombre total de blocs
     var step = parseInt($('#step').text());
     var total_blocs = parseInt($('#total_blocs').text());
-    
+
     console.log(`[NEXT_STEP] Current step: ${step}, Total blocs: ${total_blocs}`);
-    
+
     // Si on vient de finir le dernier bloc, on redirige vers le ranking
     if (step + 1 > total_blocs) {
         console.log('[NEXT_STEP] All blocs completed, redirecting to qex_ranking');
@@ -198,13 +198,13 @@ socket.on('qpb', function () {
     $("#qpt").hide();
     $("#QpbDisplay").show();
     $("#qpb").show();
-    
+
     // Démarre le timer QPB maintenant que le questionnaire est affiché
     if (window.qpb_model) {
         qpbSubmitted = false;
         let qpb_timer_val = parseInt($("#qpb_timer_value").text()) || 30;
         let timer = qpb_timer_val;
-        
+
         // Ajoute un affichage du timer si besoin
         if ($("#QpbDisplay").find("#qpb_timer_display").length === 0) {
             $("#QpbDisplay").prepend('<div id="qpb_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
@@ -247,13 +247,13 @@ socket.on('hoffman', function () {
     $("#qpb").hide();
     $("#HoffmanDisplay").show();
     $("#hoffman").show();
-    
+
     // Démarre le timer Hoffman maintenant que le questionnaire est affiché
     if (window.hoffman_model) {
         hoffmanSubmitted = false;
         let hoffman_timer_val = parseInt($("#hoffman_timer_value").text()) || 30;
         let timer = hoffman_timer_val;
-        
+
         // Ajoute un affichage du timer si besoin
         if ($("#HoffmanDisplay").find("#hoffman_timer_display").length === 0) {
             $("#HoffmanDisplay").prepend('<div id="hoffman_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');

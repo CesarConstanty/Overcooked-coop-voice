@@ -2,7 +2,7 @@ console.log("executing planning")
 // Persistent network connection that will be used to transmit real-time data
 var socket = io();
 
-/* * * * * * * * * * * * * * * * 
+/* * * * * * * * * * * * * * * *
  * Button click event handlers *
  * * * * * * * * * * * * * * * */
 
@@ -74,7 +74,7 @@ $(function() {
         $('start').attr("disable", true);
         $.ajax({
             type: "POST",
-            url: "/planning", 
+            url: "/planning",
             data: {"achieved_step" : $('#step').text()},
             success: function(){
                 location.reload();
@@ -84,7 +84,7 @@ $(function() {
 });
 
 
-/* * * * * * * * * * * * * 
+/* * * * * * * * * * * * *
  * Socket event handlers *
  * * * * * * * * * * * * */
 
@@ -182,8 +182,8 @@ socket.on('start_game', function(data) {
 
     let bloc_key = data.config.bloc_order[data.step];
     $('#game-title').text(`Experiment in Progress, Bloc ${data.step + 1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[bloc_key]).length}`);
-    $('#game-title').show(); 
-    
+    $('#game-title').show();
+
     if (!window.spectating) {
         enable_key_listener();
     }
@@ -193,7 +193,7 @@ socket.on('start_game', function(data) {
 
 // Lorsque le serveur émet l'évènement reset_game (via play_game dans app.py)
 // alors le jeu met à jour son affichage graphique pour passer à l'essai suivant
-socket.on('reset_game', function(data) {   
+socket.on('reset_game', function(data) {
     //console.log(`[RESET_GAME] Received reset_game event for trial ${data.trial + 1} in block ${data.step + 1}`);
     //console.log(`[RESET_GAME] State:`, data.state);
     step = $('#step')
@@ -210,7 +210,7 @@ socket.on('reset_game', function(data) {
         $("reset-game").hide();
         graphics_config = {
             container_id : "overcooked",
-            start_info : data.state, 
+            start_info : data.state,
             condition : data.condition,
             Game_Trial_Timer : data.config.Game_Trial_Timer
         };
@@ -221,7 +221,7 @@ socket.on('reset_game', function(data) {
         //console.log(`[RESET_GAME] Graphics reset complete for trial ${curr_trial} in block ${data.step + 1}`);
 
     }, data.timeout);
-    socket.emit("new_trial");     
+    socket.emit("new_trial");
     //console.log(`[RESET_GAME] Emitted new_trial event for trial ${curr_trial} in block ${data.step + 1}`);
 });
 
@@ -233,20 +233,20 @@ socket.on('state_pong', function(data) {
 socket.on('end_game', function(data) {
     console.log('[END_GAME] Received end_game event with status:', data.status);
     console.log('[END_GAME] Data:', data);
-    
+
     // Fonction de nettoyage centralisée
     function performCleanup() {
         // Arrêter immédiatement la surveillance des inputs et le jeu
         if (!window.spectating) {
             disable_key_listener();
         }
-        
+
         // Arrêter tous les intervalles en cours
         if (window.intervalID !== -1) {
             clearInterval(window.intervalID);
             window.intervalID = -1;
         }
-        
+
         // Nettoyer l'état graphique
         if (typeof graphics_end === 'function') {
             try {
@@ -255,25 +255,25 @@ socket.on('end_game', function(data) {
                 console.log('[END_GAME] Warning: graphics_end failed:', e);
             }
         }
-        
+
         // Vider le contenu du jeu
         $("#overcooked").empty();
-        
+
         // Masquer tous les éléments de jeu
         $('#game-title').hide();
         $('#overcooked').hide();
         $('#leave').hide();
         $('#leave').attr("disabled", true);
     }
-    
+
     // Effectuer le nettoyage immédiatement
     performCleanup();
-    
+
     // Gérer l'affichage selon le statut
     if (data.status === 'done') {
         let bloc = $('#bloc').text();
         let step = $('#step').text();
-        
+
         // Afficher le message approprié
         if (data.show_post_trial_questionnaire && !data.is_last_trial_in_bloc) {
             console.log(`[POST_TRIAL] Affichage du questionnaire post-trial pour l'essai ${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc}`);
@@ -284,13 +284,13 @@ socket.on('end_game', function(data) {
         } else {
             $('#overcooked-container').append(`<h4>Now we are going to ask you a few questions about your feeling during the last games</h4>`);
         }
-        
+
         $('#game-over').show();
         $('#answer').attr("disabled", false);
     } else if (data.status === 'inactive') {
         $('#error-exit').show();
     }
-    
+
     // Si une confirmation est requise, l'envoyer
     if (data.requires_confirmation) {
         console.log('[END_GAME] Sending confirmation to server');
@@ -299,7 +299,7 @@ socket.on('end_game', function(data) {
             socket.emit('end_game_confirmed', {game_ready: true});
         }, 100);
     }
-    
+
     console.log('[END_GAME] UI cleanup completed');
 });
 
@@ -332,7 +332,7 @@ socket.on('end_lobby', function() {
 
 
 
-/* * * * * * * * * * * * * * 
+/* * * * * * * * * * * * * *
  * Game Key Event Listener *
  * * * * * * * * * * * * * */
 
@@ -361,7 +361,7 @@ function enable_key_listener() {
                 break;
 
             default: // exit this handler for other keys
-                return; 
+                return;
         }
         e.preventDefault();
         socket.emit('action', { 'action' : action, 'condition' : condition});

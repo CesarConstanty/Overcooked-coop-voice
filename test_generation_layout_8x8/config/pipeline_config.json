@@ -1,0 +1,150 @@
+{
+  "recipe_config": {
+    "min_ingredients_per_recipe": 1,
+    "max_ingredients_per_recipe": 2,
+    "allowed_ingredients": ["onion", "tomato"],
+    "group_size": 3,
+    "ensure_no_duplicates": true
+  },
+  "pipeline_config": {
+    "description": "Configuration complète du pipeline de génération et sélection de layouts Overcooked",
+    "recipe_config": {
+      "recipes": [
+        {"ingredients": ["onion"], "cooking_time": 20},
+        {"ingredients": ["tomato"], "cooking_time": 15},
+        {"ingredients": ["onion", "tomato"], "cooking_time": 25}
+      ],
+      "base_values": {
+        "onion_value": 3,
+        "tomato_value": 2,
+        "dish_value": 1
+      }
+    },
+    "generation": {
+      "grid_size": 8,
+      "total_layouts_to_generate": 1000,
+      "block_size": 10000,
+      "processes": 4,
+      "layout_constraints": {
+        "min_empty_cells": 20,
+        "max_empty_cells": 35,
+        "min_wall_density": 0.1,
+        "max_wall_density": 0.5,
+        "required_objects": ["O", "T", "P", "D", "S", "1", "2"],
+        "optional_objects": ["Y"],
+        "max_counters": 3,
+        "enforce_serving_on_edge": false,
+        "enforce_object_dispersion": true,
+        "min_object_separation": 2,
+        "detect_rotations_mirrors": true
+      },
+      "quality_filters": {
+        "ensure_connectivity": true,
+        "no_2x2_wall_blocks": true,
+        "all_objects_accessible": true,
+        "minimum_path_efficiency": 0.3
+      }
+    },
+    "evaluation": {
+      "simulation_mode": "real_pathfinding",
+      "max_simulation_time": 180,
+      "pathfinding_algorithm": "bfs",
+      "processes": 4,
+      "batch_size": 1000,
+      "results_dir": "evaluation_results",
+      "agents": {
+        "agent1": {
+          "type": "greedy",
+          "planning_horizon": 3
+        },
+        "agent2": {
+          "type": "greedy", 
+          "planning_horizon": 3
+        }
+      },
+      "game_constants": {
+        "onion_cooking_time": 9,
+        "tomato_cooking_time": 6,
+        "action_duration": 1
+      },
+      "metrics": {
+        "cooperation": {
+          "weight": 0.4,
+          "description": "Pourcentage d'amélioration en mode coopératif vs solo"
+        },
+        "efficiency": {
+          "weight": 0.35,
+          "description": "Efficacité basée sur le nombre d'étapes duo réelles"
+        },
+        "exchanges": {
+          "weight": 0.25,
+          "description": "Potentiel d'échanges entre joueurs"
+        }
+      },
+      "scoring_weights": {
+        "success_rate": 0.3,
+        "cooperation_benefit": 0.4,
+        "efficiency_score": 0.3
+      },
+      "filtering": {
+        "min_success_rate": 0.5,
+        "max_duo_steps": 300,
+        "max_layouts_per_recipe_group": 1,
+        "enforce_diversity": true
+      },
+      "output_options": {
+        "save_detailed_actions": true,
+        "compress_results": true,
+        "include_performance_metrics": true
+      }
+    },
+    "analysis": {
+      "grouping_method": "by_recipe",
+      "ranking_method": "weighted_score",
+      "max_layouts_per_recipe": 100,
+      "diversity_threshold": 0.7,
+      "performance_filters": {
+        "min_cooperation_score": 0.3,
+        "max_average_steps": 250,
+        "min_success_rate": 0.6
+      },
+      "output_format": {
+        "include_metrics": true,
+        "include_visualizations": false,
+        "save_detailed_analysis": true
+      }
+    },
+    "selection": {
+      "final_count": 20,
+      "selection_method": "best_per_recipe",
+      "diversity_weight": 0.3,
+      "performance_weight": 0.7,
+      "output_formats": ["layout"],
+      "quality_thresholds": {
+        "min_final_score": 0.5,
+        "min_cooperation_benefit": 0.2,
+        "max_complexity": 0.8
+      }
+    },
+    "output": {
+      "layouts_generated_dir": "layouts_generes",
+      "evaluation_results_dir": "evaluation_results",
+      "analysis_results_dir": "analysis_results",
+      "final_layouts_dir": "final_layouts"
+    },
+    "production_mode": {
+      "enabled": true,
+      "cleanup_intermediate_files": true,
+      "minimal_logging": true,
+      "memory_optimization": true,
+      "parallel_evaluation": true,
+      "max_memory_usage_gb": 8,
+      "temp_directory": "/tmp/overcooked_pipeline",
+      "batch_processing": {
+        "enabled": true,
+        "batch_size": 50,
+        "max_concurrent_batches": 2
+      }
+    }
+  }
+}

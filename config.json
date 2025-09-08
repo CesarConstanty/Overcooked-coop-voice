@@ -19,7 +19,7 @@
     "AGENT_DIR" : "./static/assets/agents",
     "MAX_FPS" : 10,
     "planning_design" : {
-        "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
+        "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"]
     },
     "pretest_experiment_1_V1_short_survey" : {
         "mechanic" : "recipe",
@@ -166,11 +166,11 @@
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
         "gameTime" : 5,
-        "hoffman_length": 300,
-        "qpb_length" : 300,
-        "qpt_length" : 60,
-        "qvg_length" : 300,
-        "ptta_length" : 300,
+        "hoffman_length": 5,
+        "qpb_length" : 5,
+        "qpt_length" : 5,
+        "qvg_length" : 5,
+        "ptta_length" : 5,
         "preference_length" : 300,
         "playerZero" : "Planning",
         "agent" : "Greedy",
