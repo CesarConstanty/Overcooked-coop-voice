@@ -13,6 +13,7 @@ import os
 import json
 import time
 import logging
+import signal
 import multiprocessing as mp
 from pathlib import Path
 from itertools import combinations, product
@@ -20,9 +21,9 @@ import random
 import hashlib
 import argparse
 
-# Import du système de compression et batch
-from layout_compression import LayoutCompressor, LayoutBatchManager
 import numpy as np
+import gzip
+import base64
 from collections import deque
 import argparse
 from typing import Dict, List, Tuple, Set, Optional, Any
@@ -37,6 +38,130 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+class LayoutCompressor:
+    """Compresse les layouts pour le stockage optimisé"""
+    
+    def __init__(self):
+        self.symbol_map = {
+            'X': 'X',  # Wall
+            ' ': ' ',  # Empty space
+            '1': '1',  # Player 1
+            '2': '2',  # Player 2
+            'O': 'O',  # Onion dispenser
+            'T': 'T',  # Tomato dispenser
+            'P': 'P',  # Pot
+            'D': 'D',  # Dish dispenser
+            'S': 'S',  # Serving area
+            'Y': 'Y'   # Counter
+        }
+    
+    def encode_grid_to_base64(self, grid: List[List[str]]) -> str:
+        """Encode une grille en base64"""
+        # Convertir la grille en string simple
+        grid_str = '\n'.join([''.join(row) for row in grid])
+        # Encoder en base64
+        return base64.b64encode(grid_str.encode('utf-8')).decode('ascii')
+    
+    def compress_layout(self, layout: Dict) -> Dict:
+        """Compresse un layout"""
+        grid_str = layout.get('grid', '')
+        
+        # Convertir string grid en liste si nécessaire
+        if isinstance(grid_str, str):
+            lines = grid_str.strip().split('\n')
+            grid = [list(line) for line in lines]
+        else:
+            grid = grid_str
+        
+        # Encoder la grille
+        compressed_grid = self.encode_grid_to_base64(grid)
+        
+        # Calculer le hash
+        if isinstance(grid_str, str):
+            layout_hash = hashlib.md5(grid_str.encode()).hexdigest()[:16]
+        else:
+            grid_str_calc = '\n'.join([''.join(row) for row in grid])
+            layout_hash = hashlib.md5(grid_str_calc.encode()).hexdigest()[:16]
+        
+        # Extraire les positions des objets depuis la grille
+        object_positions = {}
+        for i, row in enumerate(grid):
+            for j, cell in enumerate(row):
+                if cell in ['O', 'T', 'P', 'D', 'S', '1', '2']:
+                    if cell not in object_positions:
+                        object_positions[cell] = []
+                    object_positions[cell].append([i, j])
+        
+        return {
+            'g': compressed_grid,  # grid compressed
+            'h': layout_hash,      # hash
+            'op': object_positions # object positions
+        }
+
+class LayoutBatchManager:
+    """Gestionnaire des batchs de layouts"""
+    
+    def __init__(self, batch_size: int = 1000):
+        self.batch_size = batch_size
+        self.compressor = LayoutCompressor()
+        self.current_batch = []
+        self.batch_count = 0
+        self.total_layouts = 0
+    
+    def add_layout(self, layout: Dict, output_dir: str):
+        """Ajoute un layout au batch actuel"""
+        compressed = self.compressor.compress_layout(layout)
+        self.current_batch.append(compressed)
+        self.total_layouts += 1
+        
+        # Sauvegarder si le batch est plein
+        if len(self.current_batch) >= self.batch_size:
+            self._save_current_batch(output_dir)
+    
+    def _save_current_batch(self, output_dir: str) -> str:
+        """Sauvegarde le batch actuel"""
+        if not self.current_batch:
+            return None
+        
+        # Créer le répertoire s'il n'existe pas
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        
+        self.batch_count += 1
+        batch_file = f"{output_dir}/layout_batch_{self.batch_count}.jsonl.gz"
+        
+        with gzip.open(batch_file, 'wt', encoding='utf-8') as f:
+            for layout in self.current_batch:
+                f.write(json.dumps(layout) + '\n')
+        
+        logger.info(f"Batch {self.batch_count} sauvegardé: {len(self.current_batch)} layouts dans {batch_file}")
+        self.current_batch = []
+        return batch_file
+    
+    def finalize(self, output_dir: str) -> Dict:
+        """Finalise et sauvegarde le dernier batch"""
+        # Sauvegarder le batch restant
+        if self.current_batch:
+            self._save_current_batch(output_dir)
+        
+        # Créer un fichier de résumé
+        summary = {
+            "total_layouts": self.total_layouts,
+            "total_batches": self.batch_count,
+            "compression_format": "jsonl.gz",
+            "timestamp": time.time()
+        }
+        
+        # S'assurer que le répertoire de sortie existe
+        import os
+        os.makedirs(output_dir, exist_ok=True)
+        
+        summary_file = f"{output_dir}/generation_summary.json"
+        with open(summary_file, 'w', encoding='utf-8') as f:
+            json.dump(summary, f, indent=2)
+        
+        logger.info(f"Génération finalisée: {self.total_layouts} layouts dans {self.batch_count} batches")
+        return summary
 
 class LayoutCanonicalizer:
     """Classe pour détecter les rotations et miroirs de layouts."""
@@ -100,13 +225,13 @@ class ProfessionalLayoutGenerator:
         self.layouts_per_block = gen_config["block_size"]
         self.n_processes = gen_config["processes"]
         
+        # Mode exhaustif si target = 0
+        self.is_exhaustive_mode = (self.target_total == 0)
+        
         # Contraintes de layout
         constraints = gen_config["layout_constraints"]
-        self.min_empty_cells = constraints["min_empty_cells"]
-        self.max_empty_cells = constraints["max_empty_cells"]
-        self.required_objects = constraints["required_objects"]
-        self.max_counters = constraints["max_counters"]
-        self.enforce_serving_on_edge = constraints["enforce_serving_on_edge"]
+        self.empty_cells = constraints["empty_cells"]  # Nombre exact de cellules vides
+        self.required_objects = [obj for obj in constraints["required_objects"] if obj != "Y"]  # Exclure Y de la génération
         self.enforce_object_dispersion = constraints["enforce_object_dispersion"]
         self.min_object_separation = constraints["min_object_separation"]
         self.detect_duplicates = constraints["detect_rotations_mirrors"]
@@ -117,11 +242,31 @@ class ProfessionalLayoutGenerator:
         # Cache pour éviter les doublons
         self.canonical_cache = set()
         
+        # Compteur pour limiter les logs d'échecs en mode exhaustif
+        self.failure_log_count = 0
+        self.max_failure_logs = 10 if self.is_exhaustive_mode else 100
+        
         # Gestionnaire de batch pour compression
-        self.batch_manager = LayoutBatchManager(batch_size=gen_config.get("compression_batch_size", 10000))
+        self.batch_manager = LayoutBatchManager(batch_size=gen_config.get("compression_batch_size", 100))
+        
+        # Gestionnaire d'interruption pour sauvegardes en cas d'arrêt forcé
+        self._setup_signal_handlers()
         
         logger.info(f"🏗️  Générateur initialisé - Target: {self.target_total:,} layouts")
         logger.info(f"📁 Output: {self.output_dir}")
+    
+    def _setup_signal_handlers(self):
+        """Configure la gestion d'interruption gracieuse"""
+        def signal_handler(signum, frame):
+            logger.info("🛑 Interruption détectée - Sauvegarde du batch courant...")
+            if hasattr(self, 'batch_manager') and self.batch_manager.current_batch:
+                self.batch_manager.finalize(str(self.output_dir))
+                logger.info(f"✅ {len(self.batch_manager.current_batch)} layouts sauvegardés avant arrêt")
+            logger.info("🔚 Arrêt gracieux terminé")
+            exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
+        signal.signal(signal.SIGTERM, signal_handler)  # Terminate
     
     def load_config(self) -> Dict:
         """Charge la configuration du pipeline."""
@@ -129,15 +274,102 @@ class ProfessionalLayoutGenerator:
             raise FileNotFoundError(f"Configuration non trouvée: {self.config_file}")
         
         with open(self.config_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            config = json.load(f)
+        
+        # Valider la faisabilité de la configuration
+        self.validate_config_feasibility(config)
+        return config
+    
+    def validate_config_feasibility(self, config: Dict) -> None:
+        """Valide si la configuration est mathématiquement possible."""
+        gen_config = config["pipeline_config"]["generation"]
+        constraints = gen_config["layout_constraints"]
+        
+        grid_size = gen_config["grid_size"]
+        empty_cells = constraints["empty_cells"]
+        required_objects = [obj for obj in constraints["required_objects"] if obj != "Y"]
+        
+        # Calculs théoriques
+        total_cells = grid_size * grid_size  # 64 pour 8x8
+        border_cells = 4 * (grid_size - 1)  # 28 pour 8x8 (bordures)
+        inner_cells = total_cells - border_cells  # 36 pour 8x8
+        
+        # Objets requis : 2 joueurs + objets (O, T, P, D) sans Y, sans S (placé sur bordure)
+        players = 2
+        objects_count = len(required_objects)  # O, T, P, D = 4
+        total_objects = players + objects_count  # 2 + 4 = 6
+        
+        # Cases disponibles pour vide + murs intérieurs
+        available_for_empty_and_walls = inner_cells - total_objects  # 36 - 6 = 30
+        
+        # Vérification de faisabilité
+        if empty_cells > available_for_empty_and_walls:
+            error_msg = f"""
+🚨 CONFIGURATION IMPOSSIBLE !
+
+La configuration demande {empty_cells} cellules vides, mais c'est mathématiquement impossible :
+
+📐 Analyse du grid {grid_size}x{grid_size} :
+   • Total de cellules : {total_cells}
+   • Bordures (murs + S) : {border_cells}
+   • Cases intérieures : {inner_cells}
+   • Objets requis : {total_objects} (2 joueurs + {objects_count} objets)
+   • Cases disponibles pour vides + murs : {available_for_empty_and_walls}
+
+💡 Maximum de cellules vides possible : {available_for_empty_and_walls}
+⚠️  Demandé : {empty_cells} cellules vides
+
+🔧 Solutions possibles :
+   1. Réduire empty_cells à {available_for_empty_and_walls} ou moins
+   2. Augmenter la taille du grid
+   3. Réduire le nombre d'objets requis
+"""
+            logger.error(error_msg)
+            raise ValueError("Configuration impossible - trop de cellules vides demandées")
+        
+        # Vérification de connectivité théorique
+        min_walls_needed = inner_cells - empty_cells - total_objects
+        if min_walls_needed < 0:
+            error_msg = f"""
+🚨 ERREUR DE CALCUL !
+
+Calcul des murs intérieurs négatif : {min_walls_needed}
+Ceci indique une erreur dans la configuration.
+"""
+            logger.error(error_msg)
+            raise ValueError("Erreur de calcul - configuration incohérente")
+        
+        logger.info(f"✅ Configuration validée : {empty_cells} cellules vides sur {available_for_empty_and_walls} possibles")
+        logger.info(f"📊 Murs intérieurs : {min_walls_needed} minimum requis")
+    
+    def save_layouts_to_file(self):
+        """Sauvegarde tous les layouts générés dans un fichier JSON."""
+        if not self.generated_layouts:
+            logger.warning("Aucun layout à sauvegarder")
+            return
+        
+        # Créer le répertoire de sortie s'il n'existe pas
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Fichier de sortie
+        output_file = self.output_dir / "generated_layouts.json"
+        
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(self.generated_layouts, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"💾 {len(self.generated_layouts)} layouts sauvegardés dans {output_file}")
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur lors de la sauvegarde: {e}")
     
     def generate_base_grid(self) -> Optional[List[List[str]]]:
         """Génère une grille de base avec murs et espaces vides."""
         max_attempts = 100
         
         for attempt in range(max_attempts):
-            # Initialiser la grille vide
-            grid = [['.' for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+            # Initialiser la grille vide avec des espaces
+            grid = [[' ' for _ in range(self.grid_size)] for _ in range(self.grid_size)]
             
             # Forcer les bordures à être des murs
             for i in range(self.grid_size):
@@ -152,27 +384,58 @@ class ProfessionalLayoutGenerator:
                 for j in range(1, self.grid_size-1):
                     inner_positions.append((i, j))
             
-            # Déterminer le nombre de cases vides (entre min et max)
-            n_empty = random.randint(self.min_empty_cells, 
-                                   min(self.max_empty_cells, len(inner_positions)))
-            n_walls = len(inner_positions) - n_empty
+            # Calculer le nombre exact de cases vides requises
+            # Note: une position de bordure sera remplacée par S, donc on doit compenser
+            total_inner_positions = len(inner_positions)
+            
+            # Vérifier si c'est possible de générer avec ce nombre de cellules vides
+            # On ajoute 1 car la station S remplacera un mur de bordure
+            required_positions = self.empty_cells + len(self.required_objects) - 1  # -1 car S remplace un X
+            
+            if required_positions > total_inner_positions:
+                raise ValueError(f"Impossible de générer un layout avec {self.empty_cells} cellules vides et {len(self.required_objects)} objets. "
+                               f"Maximum possible: {total_inner_positions} positions intérieures (grille {self.grid_size}x{self.grid_size})")
+            
+            # Calculer le nombre de murs nécessaires à l'intérieur
+            # Objets à placer dans l'intérieur (tous sauf S qui va sur la bordure, et sans les joueurs qui vont sur les cases vides)
+            objects_interior = [obj for obj in self.required_objects if obj not in ['S', '1', '2']]
+            
+            # STRATÉGIE CORRECTE : placer assez de murs pour qu'après remplacement par objets, on ait le bon nombre de cases vides
+            # Cases finales = cases vides (20) + objets (4) + murs finaux
+            # Donc: murs finaux = 36 - 20 - 4 = 12
+            # Mais on doit placer initialement: murs finaux + objets qui remplaceront des murs = 12 + 4 = 16
+            n_walls = total_inner_positions - self.empty_cells
+            
+            logger.debug(f"📊 Calcul: {total_inner_positions} positions - {self.empty_cells} vides finales = {n_walls} murs à placer (dont {len(objects_interior)} seront remplacés)")
             
             if n_walls < 0:
-                continue
+                raise ValueError(f"Configuration impossible: {self.empty_cells} cellules vides + {len(objects_interior)} objets > {total_inner_positions} positions")
             
-            # Placer les murs en évitant les blocs 2x2
+            # Placer exactement n_walls murs
             wall_positions = self.place_walls_safely(inner_positions, n_walls)
             if wall_positions is None:
                 continue
             
+            logger.debug(f"🧱 Murs placés: {len(wall_positions)}/{n_walls}")
+            
             for i, j in wall_positions:
                 grid[i][j] = 'X'
             
-            # Vérifier la connectivité complète
-            if self.is_fully_connected(grid):
+            # Vérifier la connectivité complète avant de placer les objets
+            if self.is_fully_connected_for_all_positions(grid) and self.are_all_empty_cells_connected(grid):
                 return grid
         
-        logger.warning("❌ Échec génération grille de base après max tentatives")
+        # Limiter les logs en mode exhaustif pour éviter le spam
+        if self.failure_log_count < self.max_failure_logs:
+            if self.is_exhaustive_mode:
+                logger.debug("❌ Échec génération grille de base après max tentatives")
+            else:
+                logger.warning("❌ Échec génération grille de base après max tentatives")
+            self.failure_log_count += 1
+        elif self.failure_log_count == self.max_failure_logs:
+            logger.info(f"ℹ️  Mode silencieux activé: plus de logs d'échecs après {self.max_failure_logs} occurrences")
+            self.failure_log_count += 1
+        
         return None
     
     def place_walls_safely(self, inner_positions: List[Tuple[int, int]], 
@@ -258,7 +521,7 @@ class ProfessionalLayoutGenerator:
         empty_cells = []
         for i in range(self.grid_size):
             for j in range(self.grid_size):
-                if grid[i][j] == '.':
+                if grid[i][j] == ' ':
                     empty_cells.append((i, j))
         
         if len(empty_cells) < 2:
@@ -269,6 +532,42 @@ class ProfessionalLayoutGenerator:
         reachable = self.bfs_reachable(grid, start)
         
         return len(reachable) == len(empty_cells)
+    
+    def are_all_empty_cells_connected(self, grid: List[List[str]]) -> bool:
+        """Vérifie que toutes les cases vides ' ' sont connectées entre elles."""
+        # Trouver toutes les cases vides
+        empty_positions = []
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if grid[i][j] == ' ':
+                    empty_positions.append((i, j))
+        
+        if len(empty_positions) < 2:
+            return len(empty_positions) >= 1
+        
+        # Vérifier que toutes les cases vides sont mutuellement accessibles
+        start = empty_positions[0]
+        reachable = self.bfs_reachable_empty_only(grid, start)
+        
+        return len(reachable) == len(empty_positions)
+    
+    def is_fully_connected_for_all_positions(self, grid: List[List[str]]) -> bool:
+        """Vérifie que toutes les positions non-murs sont mutuellement accessibles."""
+        # Trouver toutes les positions non-murs
+        non_wall_positions = []
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if grid[i][j] != 'X':
+                    non_wall_positions.append((i, j))
+        
+        if len(non_wall_positions) < 2:
+            return len(non_wall_positions) >= 1
+        
+        # Vérifier que toutes les positions sont mutuellement accessibles
+        start = non_wall_positions[0]
+        reachable = self.bfs_reachable(grid, start)
+        
+        return len(reachable) == len(non_wall_positions)
     
     def bfs_reachable(self, grid: List[List[str]], start: Tuple[int, int]) -> Set[Tuple[int, int]]:
         """BFS pour trouver toutes les cases accessibles."""
@@ -289,19 +588,63 @@ class ProfessionalLayoutGenerator:
                     queue.append((ni, nj))
         
         return visited
-    
-    def get_edge_positions(self, grid: List[List[str]]) -> List[Tuple[int, int]]:
-        """Retourne les positions vides sur les bords intérieurs."""
-        edge_positions = []
+
+    def bfs_reachable_empty_only(self, grid: List[List[str]], start: Tuple[int, int]) -> Set[Tuple[int, int]]:
+        """BFS pour trouver toutes les cases vides ' ' accessibles depuis le point de départ."""
+        queue = deque([start])
+        visited = {start}
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         
+        while queue:
+            current = queue.popleft()
+            
+            for di, dj in directions:
+                ni, nj = current[0] + di, current[1] + dj
+                
+                if (0 <= ni < self.grid_size and 0 <= nj < self.grid_size and
+                    (ni, nj) not in visited and grid[ni][nj] == ' '):
+                    
+                    visited.add((ni, nj))
+                    queue.append((ni, nj))
+        
+        return visited
+    
+    def are_all_empty_cells_connected(self, grid: List[List[str]]) -> bool:
+        """Vérifie que toutes les cases vides ' ' sont connectées entre elles."""
+        # Trouver toutes les cases vides
+        empty_positions = []
         for i in range(self.grid_size):
             for j in range(self.grid_size):
-                if grid[i][j] == '.':
-                    # Vérifier si adjacent au bord
-                    is_edge = (i == 1 or i == self.grid_size-2 or 
-                              j == 1 or j == self.grid_size-2)
-                    if is_edge:
-                        edge_positions.append((i, j))
+                if grid[i][j] == ' ':
+                    empty_positions.append((i, j))
+        
+        # S'il n'y a pas de cases vides, retourner True
+        if not empty_positions:
+            return True
+        
+        # Vérifier que toutes les cases vides sont accessibles depuis la première
+        start = empty_positions[0]
+        reachable_empty = self.bfs_reachable_empty_only(grid, start)
+        
+        return len(reachable_empty) == len(empty_positions)
+
+    def get_edge_positions(self, grid: List[List[str]]) -> List[Tuple[int, int]]:
+        """Retourne les positions vides sur les bordures extérieures (positions 0 et grid_size-1)."""
+        edge_positions = []
+        
+        # Bordure haute (ligne 0) et basse (ligne grid_size-1)
+        for j in range(self.grid_size):
+            if grid[0][j] == ' ':
+                edge_positions.append((0, j))
+            if grid[self.grid_size-1][j] == ' ':
+                edge_positions.append((self.grid_size-1, j))
+        
+        # Bordure gauche (colonne 0) et droite (colonne grid_size-1)
+        for i in range(1, self.grid_size-1):  # Éviter les coins déjà traités
+            if grid[i][0] == ' ':
+                edge_positions.append((i, 0))
+            if grid[i][self.grid_size-1] == ' ':
+                edge_positions.append((i, self.grid_size-1))
         
         return edge_positions
     
@@ -325,99 +668,135 @@ class ProfessionalLayoutGenerator:
         # Score basé sur distance moyenne et distance minimale
         score = min(1.0, (avg_distance / (self.grid_size * 0.7)) * (min_distance / self.min_object_separation))
         return score
-    
-    def place_objects_with_constraints(self, grid: List[List[str]]) -> Optional[Dict]:
-        """Place les objets en respectant toutes les contraintes."""
-        max_attempts = 50
+
+    def select_dispersed_positions(self, available_positions: List[Tuple[int, int]], 
+                                 count: int) -> Optional[List[Tuple[int, int]]]:
+        """Sélectionne des positions en maximisant la dispersion."""
+        if count <= 0:
+            return []
+        if count == 1:
+            return [random.choice(available_positions)]
+        if len(available_positions) < count:
+            return None
+            
+        best_positions = None
+        best_score = -1
+        max_attempts = 50  # Limite pour éviter les boucles infinies
         
         for attempt in range(max_attempts):
-            layout_grid = [row[:] for row in grid]  # Copie
+            # Sélection aléatoire
+            positions = random.sample(available_positions, count)
             
-            # Trouver toutes les positions vides
-            empty_positions = []
-            for i in range(self.grid_size):
+            # Calculer le score de dispersion
+            distances = []
+            for i in range(len(positions)):
+                for j in range(i + 1, len(positions)):
+                    p1, p2 = positions[i], positions[j]
+                    dist = abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])  # Distance Manhattan
+                    distances.append(dist)
+            
+            if not distances:
+                continue
+                
+            min_distance = min(distances)
+            avg_distance = sum(distances) / len(distances)
+            
+            # Score privilégiant la distance minimale (éviter les objets trop proches)
+            score = min_distance + (avg_distance * 0.5)
+            
+            # Vérifier que les objets respectent la distance minimale
+            if min_distance >= self.min_object_separation and score > best_score:
+                best_score = score
+                best_positions = positions
+        
+        return best_positions if best_positions else random.sample(available_positions, count)
+    
+    def place_objects_with_constraints(self, grid: List[List[str]]) -> Optional[Dict]:
+        """Place les objets en remplaçant des X par les objets spécifiques."""
+        max_attempts = 100
+        
+        for attempt in range(max_attempts):
+            # Copier la grille de base
+            layout_grid = [row[:] for row in grid]
+            object_positions = {}
+            
+            # 1. Placer S sur une bordure (remplacer un X de bordure par S)
+            edge_positions = []
+            for i in [0, self.grid_size-1]:  # Bordures haute et basse
                 for j in range(self.grid_size):
-                    if layout_grid[i][j] == '.':
+                    if layout_grid[i][j] == 'X':
+                        edge_positions.append((i, j))
+            for i in range(self.grid_size):  # Bordures gauche et droite
+                for j in [0, self.grid_size-1]:
+                    if layout_grid[i][j] == 'X':
+                        edge_positions.append((i, j))
+            
+            if not edge_positions:
+                continue
+            
+            # Choisir une position pour S
+            border_pos = random.choice(edge_positions)
+            layout_grid[border_pos[0]][border_pos[1]] = 'S'
+            object_positions['S'] = border_pos
+            
+            # 2. Placer les joueurs sur des cases vides (jamais sur les bordures)
+            empty_positions = []
+            for i in range(1, self.grid_size-1):  # Exclure les bordures
+                for j in range(1, self.grid_size-1):
+                    if layout_grid[i][j] == ' ':
                         empty_positions.append((i, j))
             
-            if len(empty_positions) < len(self.required_objects):
+            if len(empty_positions) < 2:
                 continue
             
-            # Positions pour objets requis
-            object_positions = {}
-            available_positions = empty_positions[:]
-            
-            # 1. Placer les joueurs (pas sur les bords)
-            inner_positions = [(i, j) for i, j in available_positions 
-                              if 1 < i < self.grid_size-2 and 1 < j < self.grid_size-2]
-            
-            if len(inner_positions) < 2:
-                continue
-            
-            player_positions = random.sample(inner_positions, 2)
+            player_positions = random.sample(empty_positions, 2)
+            layout_grid[player_positions[0][0]][player_positions[0][1]] = '1'
+            layout_grid[player_positions[1][0]][player_positions[1][1]] = '2'
             object_positions['1'] = player_positions[0]
             object_positions['2'] = player_positions[1]
             
-            # Retirer les positions des joueurs
+            # Retirer les positions des joueurs des cases vides disponibles
             for pos in player_positions:
-                available_positions.remove(pos)
+                empty_positions.remove(pos)
             
-            # 2. Placer la station de service (S) sur le bord si requis
-            if self.enforce_serving_on_edge and 'S' in self.required_objects:
-                edge_positions = self.get_edge_positions(grid)
-                edge_available = [pos for pos in edge_positions if pos in available_positions]
-                
-                if not edge_available:
-                    continue
-                
-                serving_pos = random.choice(edge_available)
-                object_positions['S'] = serving_pos
-                available_positions.remove(serving_pos)
-            
-            # 3. Placer les autres objets obligatoires
+            # 3. Placer les autres objets (O, T, P, D) en remplaçant des X
             remaining_objects = [obj for obj in self.required_objects 
-                               if obj not in ['1', '2', 'S'] or ('S' not in object_positions)]
+                               if obj not in ['1', '2', 'S']]
             
-            if 'S' not in object_positions and 'S' in self.required_objects:
-                remaining_objects.append('S')
+            # Trouver les positions X disponibles (intérieures uniquement)
+            wall_positions = []
+            for i in range(1, self.grid_size-1):
+                for j in range(1, self.grid_size-1):
+                    if layout_grid[i][j] == 'X':
+                        wall_positions.append((i, j))
             
-            if len(available_positions) < len(remaining_objects):
+            if len(wall_positions) < len(remaining_objects):
                 continue
             
-            # Placement avec vérification de dispersion
-            selected_positions = random.sample(available_positions, len(remaining_objects))
+            # Sélectionner des positions X pour les remplacer par des objets
+            # Avec dispersion forcée si activée
+            if self.enforce_object_dispersion:
+                selected_wall_positions = self.select_dispersed_positions(wall_positions, len(remaining_objects))
+                if selected_wall_positions is None:
+                    continue  # Pas réussi à trouver des positions bien dispersées
+            else:
+                selected_wall_positions = random.sample(wall_positions, len(remaining_objects))
             
             for i, obj in enumerate(remaining_objects):
-                object_positions[obj] = selected_positions[i]
-            
-            # Vérifier la dispersion si requise
-            if self.enforce_object_dispersion:
-                dispersion_score = self.calculate_object_dispersion_score(object_positions)
-                if dispersion_score < 0.6:  # Seuil de dispersion
-                    continue
-            
-            # Placer les objets sur la grille
-            for obj, pos in object_positions.items():
+                pos = selected_wall_positions[i]
                 layout_grid[pos[0]][pos[1]] = obj
+                object_positions[obj] = pos
             
-            # Ajouter quelques comptoirs optionnels
-            remaining_available = [pos for pos in available_positions 
-                                 if pos not in selected_positions]
+            # 4. Vérifier que toutes les cases vides restent connectées
+            if not self.are_all_empty_cells_connected(layout_grid):
+                continue
             
-            n_counters = min(self.max_counters, 
-                           random.randint(0, min(3, len(remaining_available))))
-            
-            if n_counters > 0 and remaining_available:
-                counter_positions = random.sample(remaining_available, n_counters)
-                for pos in counter_positions:
-                    layout_grid[pos[0]][pos[1]] = 'Y'
-            
-            # Vérifier que tous les objets sont accessibles
-            if self.are_all_objects_accessible(layout_grid):
+            # 5. Vérifier que tous les objets sont mutuellement accessibles
+            if self.are_all_objects_accessible_strict(layout_grid):
                 return self.grid_to_layout_dict(layout_grid, object_positions)
         
         return None
-    
+
     def are_all_objects_accessible(self, grid: List[List[str]]) -> bool:
         """Vérifie que tous les objets sont accessibles par les deux joueurs."""
         # Trouver les positions des joueurs et objets
@@ -444,6 +823,29 @@ class ProfessionalLayoutGenerator:
         
         return True
     
+    def are_all_objects_accessible_strict(self, grid: List[List[str]]) -> bool:
+        """Vérification stricte: tous les objets doivent être mutuellement accessibles."""
+        # Trouver toutes les positions d'objets et de joueurs
+        all_important_positions = []
+        
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if grid[i][j] in ['1', '2', 'O', 'T', 'P', 'D', 'S']:
+                    all_important_positions.append((i, j))
+        
+        if len(all_important_positions) < 2:
+            return False
+        
+        # Vérifier que chaque position importante peut atteindre toutes les autres
+        for start_pos in all_important_positions:
+            reachable = self.bfs_reachable(grid, start_pos)
+            
+            for target_pos in all_important_positions:
+                if target_pos not in reachable:
+                    return False
+        
+        return True
+    
     def grid_to_layout_dict(self, grid: List[List[str]], 
                            object_positions: Dict[str, Tuple[int, int]]) -> Dict:
         """Convertit une grille en format brut pour génération massive."""
@@ -464,7 +866,7 @@ class ProfessionalLayoutGenerator:
             "object_positions": object_positions,
             "generation_metadata": {
                 "timestamp": time.time(),
-                "n_empty": sum(row.count('.') for row in grid),
+                "n_empty": sum(row.count(' ') for row in grid),
                 "n_walls": sum(row.count('X') for row in grid),
                 "dispersion_score": self.calculate_object_dispersion_score(object_positions)
             }
@@ -548,6 +950,13 @@ class ProfessionalLayoutGenerator:
         """Lance la génération massive de layouts."""
         start_time = time.time()
         
+        # Mode exhaustif si target_total = 0
+        if self.target_total == 0:
+            logger.info(f"🚀 Démarrage génération EXHAUSTIVE")
+            logger.info(f"🔄 Mode: Génération de tous les layouts possibles")
+            logger.info(f"⚙️  Processus: {self.n_processes}")
+            return self._run_exhaustive_generation(start_time)
+        
         # Calculer le nombre de blocs nécessaires
         n_blocks = (self.target_total + self.layouts_per_block - 1) // self.layouts_per_block
         
@@ -571,7 +980,7 @@ class ProfessionalLayoutGenerator:
                 # Génération directe sans multiprocessing
                 result = self.generate_block_worker(block_id, block_size)
                 
-                # Ajouter les layouts au gestionnaire de batch compressé (SEUL stockage nécessaire)
+                # Ajouter les layouts au gestionnaire de batch compressé
                 for layout in result['layouts']:
                     self.batch_manager.add_layout(layout, str(self.output_dir))
                 
@@ -605,7 +1014,7 @@ class ProfessionalLayoutGenerator:
                     try:
                         result = result_async.get(timeout=3600)  # 1 heure max par bloc
                         
-                        # Ajouter les layouts au gestionnaire de batch compressé (SEUL stockage nécessaire)
+                        # Ajouter les layouts au gestionnaire de batch compressé
                         for layout in result['layouts']:
                             self.batch_manager.add_layout(layout, str(self.output_dir))
                         
@@ -626,8 +1035,66 @@ class ProfessionalLayoutGenerator:
         logger.info(f"✅ Génération terminée!")
         logger.info(f"📊 Résultats: {total_generated:,} layouts générés en {generation_time:.1f}s")
         logger.info(f"⚡ Performance: {total_generated/generation_time:.1f} layouts/sec")
-        logger.info(f"📦 Compression: {compression_stats['compression_ratio']:.1f}% gain d'espace")
-        logger.info(f"🗂️ Batches créés: {compression_stats['total_batches']}")
+        logger.info(f"� Layouts sauvegardés dans: {self.output_dir}")
+        
+        return total_generated > 0
+
+    def _run_exhaustive_generation(self, start_time: float) -> bool:
+        """Mode exhaustif: génère tous les layouts possibles."""
+        total_generated = 0
+        block_id = 0
+        consecutive_empty_blocks = 0
+        max_empty_blocks = 5  # Arrêter après 5 blocs vides consécutifs
+        
+        logger.info("🔄 Début génération exhaustive...")
+        logger.info("ℹ️  Mode optimisé: logs d'échecs réduits en mode exhaustif")
+        
+        while consecutive_empty_blocks < max_empty_blocks:
+            try:
+                # Générer un bloc
+                result = self.generate_block_worker(block_id, self.layouts_per_block)
+                
+                # Ajouter les layouts au gestionnaire de batch compressé (avec sauvegarde automatique)
+                for layout in result['layouts']:
+                    self.batch_manager.add_layout(layout, str(self.output_dir))
+                
+                layouts_in_block = len(result['layouts'])
+                total_generated += layouts_in_block
+                
+                if layouts_in_block == 0:
+                    consecutive_empty_blocks += 1
+                    logger.debug(f"Bloc {block_id} vide ({consecutive_empty_blocks}/{max_empty_blocks})")
+                else:
+                    consecutive_empty_blocks = 0
+                    # Logging optimisé : seulement tous les 10 blocs ou si > 1000 layouts dans le bloc
+                    if block_id % 10 == 0 or layouts_in_block > 1000:
+                        logger.info(f"✅ Bloc {block_id}: {layouts_in_block} layouts → Total: {total_generated:,}")
+                
+                block_id += 1
+                
+                # Sécurité : arrêter si trop de layouts générés (éviter l'explosion)
+                if total_generated > 1000000:  # 1M layouts max
+                    logger.warning(f"🛑 Arrêt de sécurité: {total_generated:,} layouts générés")
+                    break
+                    
+            except Exception as e:
+                logger.error(f"❌ Erreur bloc {block_id}: {e}")
+                consecutive_empty_blocks += 1
+                block_id += 1
+                continue
+        
+        # Finaliser le gestionnaire de batch
+        compression_stats = self.batch_manager.finalize(str(self.output_dir))
+        
+        generation_time = time.time() - start_time
+        
+        # Rapport final
+        logger.info(f"✅ Génération exhaustive terminée!")
+        logger.info(f"📊 Résultats: {total_generated:,} layouts générés en {generation_time:.1f}s")
+        if generation_time > 0:
+            logger.info(f"⚡ Performance: {total_generated/generation_time:.1f} layouts/sec")
+        logger.info(f"🏁 Arrêt: {consecutive_empty_blocks} blocs vides consécutifs")
+        logger.info(f"💾 Layouts sauvegardés dans: {self.output_dir}")
         
         return total_generated > 0
 

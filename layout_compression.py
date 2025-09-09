@@ -31,32 +31,26 @@ class LayoutDecompressor:
         # Décoder depuis base64
         decoded_bytes = base64.b64decode(encoded_grid)
         
-        # Convertir en array numpy
-        grid_array = np.frombuffer(decoded_bytes, dtype=np.uint8)
+        # Convertir en texte
+        grid_text = decoded_bytes.decode('utf-8')
         
-        # Mapping des codes vers les caractères
-        CODE_TO_CHAR = {
-            0: ' ',  # EMPTY
-            1: 'X',  # COUNTER/WALL
-            2: 'O',  # ONION_DISPENSER
-            3: 'T',  # TOMATO_DISPENSER
-            4: 'P',  # POT
-            5: 'D',  # DISH_DISPENSER
-            6: 'S'   # SERVING_LOC
-        }
+        # Séparer par lignes et nettoyer
+        lines = grid_text.strip().split('\n')
         
         # Créer la grille
         grid = []
         for i in range(height):
-            row = []
-            for j in range(width):
-                if i * width + j < len(grid_array):
-                    code = grid_array[i * width + j]
-                    char = CODE_TO_CHAR.get(code, ' ')
-                    row.append(char)
-                else:
-                    row.append(' ')
-            grid.append(row)
+            if i < len(lines):
+                line = lines[i]
+                # Assurer que la ligne fait exactement la bonne largeur
+                if len(line) < width:
+                    line += ' ' * (width - len(line))
+                elif len(line) > width:
+                    line = line[:width]
+                grid.append(list(line))
+            else:
+                # Ligne vide si pas assez de données
+                grid.append([' '] * width)
         
         return grid
     
@@ -80,20 +74,21 @@ class LayoutDecompressor:
         # Convertir les objets en format standard
         objects = {}
         for obj_type, positions in object_positions.items():
-            if isinstance(positions, list) and len(positions) == 2:
-                # Position unique
-                objects[obj_type] = [(positions[0], positions[1])]
-            elif isinstance(positions, list) and len(positions) > 2:
-                # Multiples positions (par paires)
+            if isinstance(positions, list) and len(positions) > 0:
                 obj_positions = []
-                for i in range(0, len(positions), 2):
-                    if i + 1 < len(positions):
-                        obj_positions.append((positions[i], positions[i + 1]))
+                for pos in positions:
+                    if isinstance(pos, list) and len(pos) >= 2:
+                        # Format [[x, y]] depuis le générateur
+                        obj_positions.append((pos[0], pos[1]))
+                    elif isinstance(pos, (tuple, list)) and len(pos) >= 2:
+                        # Format (x, y) ou [x, y]
+                        obj_positions.append((pos[0], pos[1]))
                 objects[obj_type] = obj_positions
         
         return {
             'grid': grid,
             'objects': objects,
+            'object_positions': objects,  # Compatibilité avec l'évaluateur
             'hash': compressed_layout.get('h', ''),
             'ne_count': compressed_layout.get('ne', 0),
             'nw_count': compressed_layout.get('nw', 0)

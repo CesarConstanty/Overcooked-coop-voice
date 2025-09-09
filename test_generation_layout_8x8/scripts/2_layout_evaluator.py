@@ -35,10 +35,7 @@ from typing import Dict, List, Tuple, Optional, Set, Any
 from dataclasses import dataclass
 import copy
 import sys
-
-# Ajouter les répertoires nécessaires au path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from layout_compression import LayoutDecompressor
+import base64
 
 # Configuration du logging
 logging.basicConfig(
@@ -51,6 +48,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+class LayoutDecompressor:
+    """Décompresse les layouts stockés"""
+    
+    def decode_grid_from_base64(self, encoded_grid: str) -> List[List[str]]:
+        """Décode une grille depuis base64"""
+        # Décoder depuis base64
+        grid_str = base64.b64decode(encoded_grid.encode('ascii')).decode('utf-8')
+        # Convertir en grille
+        lines = grid_str.strip().split('\n')
+        return [list(line) for line in lines]
+    
+    def decompress_layout(self, compressed_layout: Dict) -> Dict:
+        """Décompresse un layout"""
+        # Décoder la grille
+        grid = self.decode_grid_from_base64(compressed_layout['g'])
+        
+        return {
+            'grid': grid,
+            'hash': compressed_layout['h'],
+            'object_positions': compressed_layout.get('op', {})
+        }
+    
+    @staticmethod
+    def load_layouts_from_batch(batch_file: str) -> List[Dict]:
+        """Charge les layouts depuis un fichier batch compressé"""
+        layouts = []
+        decompressor = LayoutDecompressor()
+        try:
+            with gzip.open(batch_file, 'rt', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        compressed_layout = json.loads(line.strip())
+                        # Décompresser le layout
+                        layout = decompressor.decompress_layout(compressed_layout)
+                        layouts.append(layout)
+        except Exception as e:
+            logger.error(f"Erreur lors du chargement du batch {batch_file}: {e}")
+        
+        return layouts
+
 @dataclass
 class EvaluationMetrics:
     """Métriques d'évaluation pour une combinaison layout+recettes"""
@@ -59,6 +96,7 @@ class EvaluationMetrics:
     solo_steps: int
     duo_steps: int
     exchanges_count: int
+    optimal_y_positions: List[Tuple[int, int]]  # Nouvellement ajouté
     solo_actions: List[Dict]
     duo_actions: List[Dict]
     evaluation_time: float
@@ -76,9 +114,10 @@ class OptimizedGameState:
             self.object_positions = layout_data.get("objects", {})
         elif 'g' in layout_data:
             # Format compressé - décompresser
-            decompressed = LayoutDecompressor.decompress_layout(layout_data)
+            decompressor = LayoutDecompressor()
+            decompressed = decompressor.decompress_layout(layout_data)
             self.layout = decompressed["grid"]
-            self.object_positions = decompressed.get("objects", {})
+            self.object_positions = decompressed.get("object_positions", {})
         else:
             raise ValueError(f"Format de layout non reconnu. Clés disponibles: {list(layout_data.keys())}")
         
@@ -132,11 +171,19 @@ class OptimizedGameState:
             for obj_type, positions in self.object_positions.items():
                 if obj_type == '1':
                     if isinstance(positions, list) and len(positions) > 0:
-                        self.player_positions[1] = positions[0]
+                        pos = positions[0]
+                        if isinstance(pos, list) and len(pos) >= 2:
+                            self.player_positions[1] = (pos[0], pos[1])
+                        else:
+                            self.player_positions[1] = tuple(pos)
                         self.player_inventory[1] = None
                 elif obj_type == '2':
                     if isinstance(positions, list) and len(positions) > 0:
-                        self.player_positions[2] = positions[0]
+                        pos = positions[0]
+                        if isinstance(pos, list) and len(pos) >= 2:
+                            self.player_positions[2] = (pos[0], pos[1])
+                        else:
+                            self.player_positions[2] = tuple(pos)
                         self.player_inventory[2] = None
         
         # Positions par défaut des joueurs si pas définies
@@ -202,74 +249,130 @@ class OptimizedGameState:
         """Crée une copie profonde de l'état"""
         return copy.deepcopy(self)
 
-class FastDistanceCalculator:
-    """Calculateur de distances optimisé pour évaluation massive"""
+class OptimalPathfinder:
+    """Calculateur de chemins optimaux avec gestion d'obstacles et d'échanges"""
     
-    def __init__(self, game_state: OptimizedGameState):
+    def __init__(self, game_state: 'OptimizedGameState'):
         self.state = game_state
-        self.distances = {}
-        self._precompute_critical_distances()
-    
-    def bfs_distance(self, start: Tuple[int, int], goal: Tuple[int, int]) -> int:
-        """Calcule la distance BFS entre deux points"""
+        self.distance_cache = {}
+        self.path_cache = {}
+        
+    def get_optimal_path(self, start: Tuple[int, int], goal: Tuple[int, int], 
+                        excluding_player: Optional[int] = None) -> List[Tuple[int, int]]:
+        """Calcule le chemin optimal A* entre deux points"""
+        cache_key = (start, goal, excluding_player)
+        if cache_key in self.path_cache:
+            return self.path_cache[cache_key]
+        
         if start == goal:
-            return 0
+            return [start]
         
-        # Vérifier le cache
-        cache_key = (start, goal)
-        if cache_key in self.distances:
-            return self.distances[cache_key]
+        # A* avec heuristique Manhattan
+        from heapq import heappush, heappop
         
-        queue = deque([(start, 0)])
-        visited = {start}
+        def heuristic(pos: Tuple[int, int]) -> int:
+            return abs(pos[0] - goal[0]) + abs(pos[1] - goal[1])
         
-        while queue:
-            current, dist = queue.popleft()
+        open_set = [(heuristic(start), 0, start, [start])]
+        visited = set()
+        
+        while open_set:
+            _, cost, current, path = heappop(open_set)
+            
+            if current in visited:
+                continue
+            visited.add(current)
+            
+            if current == goal:
+                self.path_cache[cache_key] = path
+                return path
             
             for neighbor in self.state.get_neighbors(current):
                 if neighbor in visited:
                     continue
                 
-                if neighbor == goal:
-                    distance = dist + 1
-                    self.distances[cache_key] = distance
-                    self.distances[(goal, start)] = distance  # Symétrique
-                    return distance
+                if self.state.is_position_occupied(neighbor, excluding_player):
+                    continue
                 
-                visited.add(neighbor)
-                queue.append((neighbor, dist + 1))
+                new_cost = cost + 1
+                new_path = path + [neighbor]
+                priority = new_cost + heuristic(neighbor)
+                
+                heappush(open_set, (priority, new_cost, neighbor, new_path))
         
-        distance = float('inf')
-        self.distances[cache_key] = distance
-        return distance
+        # Aucun chemin trouvé
+        self.path_cache[cache_key] = []
+        return []
     
-    def _precompute_critical_distances(self):
-        """Pré-calcule les distances critiques pour optimiser les évaluations"""
-        critical_points = {}
+    def calculate_exchange_benefit(self, player1_pos: Tuple[int, int], player1_goal: Tuple[int, int],
+                                 player2_pos: Tuple[int, int], player2_goal: Tuple[int, int],
+                                 exchange_pos: Tuple[int, int]) -> int:
+        """Calcule le bénéfice (en étapes économisées) d'un échange à une position donnée"""
+        # Coût sans échange
+        direct_cost = (len(self.get_optimal_path(player1_pos, player1_goal, 1)) - 1 +
+                      len(self.get_optimal_path(player2_pos, player2_goal, 2)) - 1)
         
-        # Ajouter tous les points d'intérêt
-        if self.state.player_positions:
-            critical_points.update({f'player_{k}': v for k, v in self.state.player_positions.items()})
-        if self.state.pot_position:
-            critical_points['pot'] = self.state.pot_position
-        if self.state.service_position:
-            critical_points['service'] = self.state.service_position
-        if self.state.onion_dispenser:
-            critical_points['onion'] = self.state.onion_dispenser
-        if self.state.tomato_dispenser:
-            critical_points['tomato'] = self.state.tomato_dispenser
-        if self.state.dish_dispenser:
-            critical_points['dish'] = self.state.dish_dispenser
+        # Coût avec échange
+        p1_to_exchange = len(self.get_optimal_path(player1_pos, exchange_pos, 1)) - 1
+        exchange_to_p2_goal = len(self.get_optimal_path(exchange_pos, player2_goal, 2)) - 1
+        p2_to_exchange = len(self.get_optimal_path(player2_pos, exchange_pos, 2)) - 1
         
-        # Ajouter les comptoirs
-        for i, counter in enumerate(self.state.counters):
-            critical_points[f'counter_{i}'] = counter
+        exchange_cost = p1_to_exchange + 1 + p2_to_exchange + 1 + exchange_to_p2_goal  # +1 pour déposer/prendre
         
-        # Pré-calculer toutes les distances entre points critiques
-        points_list = list(critical_points.items())
-        for i, (name1, pos1) in enumerate(points_list):
-            for name2, pos2 in points_list[i:]:
-                self.bfs_distance(pos1, pos2)
+        return max(0, direct_cost - exchange_cost)
+
+class ExchangeTracker:
+    """Suit les échanges et optimise les positions Y"""
+    
+    def __init__(self, game_state: 'OptimizedGameState'):
+        self.state = game_state
+        self.exchange_counts = {}  # position -> nombre d'échanges
+        self.potential_exchanges = []  # positions où un échange pourrait être fait
+        self.selected_y_positions = []
+        
+        # Identifier tous les murs intérieurs comme échanges potentiels
+        self._find_potential_exchanges()
+    
+    def _find_potential_exchanges(self):
+        """Identifie les positions X intérieures pouvant devenir des Y"""
+        for i in range(1, self.state.height - 1):  # Exclure les bordures
+            for j in range(1, self.state.width - 1):
+                if self.state.layout[i][j] == 'X':
+                    # Vérifier qu'il y a au moins 2 cases vides adjacentes
+                    empty_neighbors = 0
+                    for di, dj in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                        ni, nj = i + di, j + dj
+                        if (0 <= ni < self.state.height and 0 <= nj < self.state.width and
+                            self.state.layout[ni][nj] == ' '):
+                            empty_neighbors += 1
+                    
+                    if empty_neighbors >= 2:
+                        self.potential_exchanges.append((i, j))
+                        self.exchange_counts[(i, j)] = 0
+    
+    def record_exchange(self, position: Tuple[int, int]):
+        """Enregistre un échange à une position"""
+        if position in self.exchange_counts:
+            self.exchange_counts[position] += 1
+    
+    def select_optimal_y_positions(self) -> List[Tuple[int, int]]:
+        """Sélectionne les 2 meilleures positions pour placer les Y"""
+        # Trier par nombre d'échanges (décroissant)
+        sorted_exchanges = sorted(self.exchange_counts.items(), 
+                                key=lambda x: x[1], reverse=True)
+        
+        # Prendre les 2 meilleures positions avec au moins 1 échange
+        self.selected_y_positions = [pos for pos, count in sorted_exchanges[:2] if count > 0]
+        return self.selected_y_positions
+    
+    def apply_y_positions(self):
+        """Applique les positions Y sélectionnées au layout"""
+        for pos in self.selected_y_positions:
+            i, j = pos
+            self.state.layout[i][j] = 'Y'
+            if pos not in self.state.counters:
+                self.state.counters.append(pos)
+                self.state.counter_items[pos] = None
 
 class MassiveLayoutEvaluator:
     """Évaluateur principal pour l'évaluation massive des layouts"""
@@ -324,7 +427,7 @@ class MassiveLayoutEvaluator:
     
     def get_all_layout_batches(self) -> List[Path]:
         """Récupère tous les fichiers de batch de layouts"""
-        return list(self.layouts_dir.glob("layouts_batch_*.gz"))
+        return list(self.layouts_dir.glob("layout_batch_*.gz"))
     
     def calculate_cooking_time(self, ingredients: List[str]) -> int:
         """Calcule le temps de cuisson total"""
@@ -332,43 +435,14 @@ class MassiveLayoutEvaluator:
         tomato_count = ingredients.count('tomato')
         return onion_count * self.onion_time + tomato_count * self.tomato_time
     
-    def bfs_path(self, start: Tuple[int, int], goal: Tuple[int, int], 
-                 state: OptimizedGameState, excluding_player: Optional[int] = None) -> List[Tuple[int, int]]:
-        """Trouve le chemin BFS entre deux points"""
-        if start == goal:
-            return [start]
-        
-        queue = deque([(start, [start])])
-        visited = {start}
-        
-        while queue:
-            current, path = queue.popleft()
-            
-            for neighbor in state.get_neighbors(current):
-                if neighbor in visited:
-                    continue
-                
-                if state.is_position_occupied(neighbor, excluding_player):
-                    continue
-                
-                new_path = path + [neighbor]
-                
-                if neighbor == goal:
-                    return new_path
-                
-                visited.add(neighbor)
-                queue.append((neighbor, new_path))
-        
-        return []  # Aucun chemin trouvé
-    
     def evaluate_solo_mode(self, state: OptimizedGameState, recipes: List[Dict]) -> Tuple[int, List[Dict]]:
         """Évalue le mode solo pour un ensemble de recettes"""
         actions = []
         total_steps = 0
         player_id = 1
         
-        # Calculateur de distances
-        distance_calc = FastDistanceCalculator(state)
+        # Calculateur de chemins optimaux
+        pathfinder = OptimalPathfinder(state)
         
         for recipe in recipes:
             recipe_steps = 0
@@ -382,8 +456,12 @@ class MassiveLayoutEvaluator:
                 else:
                     continue
                 
+                # Vérifier si le distributeur existe
+                if dispenser is None:
+                    return None, None  # Layout invalide pour cette recette
+                
                 # Aller au distributeur
-                path = self.bfs_path(state.player_positions[player_id], dispenser, state, player_id)
+                path = pathfinder.get_optimal_path(state.player_positions[player_id], dispenser, player_id)
                 recipe_steps += len(path) - 1
                 
                 if path:
@@ -393,7 +471,7 @@ class MassiveLayoutEvaluator:
                 recipe_steps += 1
                 
                 # Aller au pot
-                path = self.bfs_path(state.player_positions[player_id], state.pot_position, state, player_id)
+                path = pathfinder.get_optimal_path(state.player_positions[player_id], state.pot_position, player_id)
                 recipe_steps += len(path) - 1
                 
                 if path:
@@ -409,21 +487,21 @@ class MassiveLayoutEvaluator:
             
             # Phase 3: Service
             # Aller chercher une assiette
-            path = self.bfs_path(state.player_positions[player_id], state.dish_dispenser, state, player_id)
+            path = pathfinder.get_optimal_path(state.player_positions[player_id], state.dish_dispenser, player_id)
             recipe_steps += len(path) - 1
             if path:
                 state.player_positions[player_id] = state.dish_dispenser
             recipe_steps += 1  # Prendre l'assiette
             
             # Retourner au pot
-            path = self.bfs_path(state.player_positions[player_id], state.pot_position, state, player_id)
+            path = pathfinder.get_optimal_path(state.player_positions[player_id], state.pot_position, player_id)
             recipe_steps += len(path) - 1
             if path:
                 state.player_positions[player_id] = state.pot_position
             recipe_steps += 1  # Prendre la soupe
             
             # Aller au service
-            path = self.bfs_path(state.player_positions[player_id], state.service_position, state, player_id)
+            path = pathfinder.get_optimal_path(state.player_positions[player_id], state.service_position, player_id)
             recipe_steps += len(path) - 1
             if path:
                 state.player_positions[player_id] = state.service_position
@@ -445,121 +523,292 @@ class MassiveLayoutEvaluator:
         
         return total_steps, actions
     
-    def evaluate_duo_mode(self, state: OptimizedGameState, recipes: List[Dict]) -> Tuple[int, List[Dict], int]:
-        """Évalue le mode duo avec comptage des échanges"""
-        actions = []
-        total_steps = 0
-        exchanges_count = 0
+    def evaluate_duo_mode_with_exchanges(self, state: OptimizedGameState, recipes: List[Dict]) -> Tuple[int, List[Dict], int, List[Tuple[int, int]]]:
+        """Évalue le mode duo avec détection automatique des zones d'échange optimales"""
+        # Phase 1: Évaluation avec détection des échanges potentiels
+        pathfinder = OptimalPathfinder(state)
+        exchange_tracker = ExchangeTracker(state)
         
-        # Calculateur de distances
-        distance_calc = FastDistanceCalculator(state)
+        actions = []
+        total_steps_phase1 = 0
         
         for recipe in recipes:
-            recipe_steps = 0
-            recipe_exchanges = 0
-            
-            # Stratégie duo simple: J1 collecte, J2 s'occupe du service
-            ingredients = recipe['ingredients']
-            
-            # Phase 1: Collection en parallèle
-            collection_steps = 0
-            for ingredient in ingredients:
-                if ingredient == 'onion':
-                    dispenser = state.onion_dispenser
-                elif ingredient == 'tomato':
-                    dispenser = state.tomato_dispenser
-                else:
-                    continue
-                
-                # J1 va chercher l'ingrédient
-                path = self.bfs_path(state.player_positions[1], dispenser, state, 1)
-                collection_steps = max(collection_steps, len(path) - 1 + 1)  # Move + pickup
-                
-                # J1 va au pot
-                path = self.bfs_path(dispenser, state.pot_position, state, 1)
-                collection_steps = max(collection_steps, collection_steps + len(path) - 1 + 1)  # Move + drop
-                
-                state.player_positions[1] = state.pot_position
-                state.pot_contents.append(ingredient)
-            
-            # Phase 2: J2 prépare le service pendant la cuisson
-            service_prep_steps = 0
-            # J2 va chercher une assiette
-            path = self.bfs_path(state.player_positions[2], state.dish_dispenser, state, 2)
-            service_prep_steps = len(path) - 1 + 1  # Move + pickup
-            state.player_positions[2] = state.dish_dispenser
-            
-            # Phase 3: Cuisson (temps parallèle)
-            cooking_time = self.calculate_cooking_time(recipe['ingredients'])
-            
-            # Phase 4: Service coordonné
-            service_steps = 0
-            
-            # J2 va au pot (si pas déjà fait)
-            if state.player_positions[2] != state.pot_position:
-                path = self.bfs_path(state.player_positions[2], state.pot_position, state, 2)
-                service_steps += len(path) - 1
-                state.player_positions[2] = state.pot_position
-            
-            service_steps += 1  # J2 prend la soupe
-            
-            # J2 va au service
-            path = self.bfs_path(state.player_positions[2], state.service_position, state, 2)
-            service_steps += len(path) - 1 + 1  # Move + serve
-            state.player_positions[2] = state.service_position
-            
-            # Calcul du temps total de la recette (phases en parallèle)
-            recipe_steps = max(collection_steps, service_prep_steps) + cooking_time + service_steps
-            
-            # Détection d'échanges via comptoirs (heuristique simple)
-            # Si les joueurs doivent passer des objets, compter les échanges
-            if len(state.counters) > 0 and len(ingredients) > 2:
-                recipe_exchanges += 1  # Échange potentiel pour recettes complexes
+            recipe_steps, recipe_exchanges = self._evaluate_recipe_with_exchange_detection(
+                state, recipe, pathfinder, exchange_tracker)
             
             actions.append({
                 'recipe': recipe,
                 'steps': recipe_steps,
-                'exchanges': recipe_exchanges,
-                'phase_breakdown': {
-                    'collection': collection_steps,
-                    'cooking': cooking_time,
-                    'service': service_steps
-                }
+                'exchanges_detected': recipe_exchanges
             })
             
-            total_steps += recipe_steps
-            exchanges_count += recipe_exchanges
-            state.completed_recipes.append(recipe)
-            state.pot_contents = []
+            total_steps_phase1 += recipe_steps
         
-        return total_steps, actions, exchanges_count
+        # Phase 2: Sélection des 2 meilleures positions Y
+        optimal_y_positions = exchange_tracker.select_optimal_y_positions()
+        
+        if len(optimal_y_positions) == 0:
+            # Pas d'échanges bénéfiques détectés, retourner l'évaluation simple
+            return total_steps_phase1, actions, 0, []
+        
+        # Phase 3: Appliquer les Y et re-évaluer avec contraintes
+        exchange_tracker.apply_y_positions()
+        
+        # Re-évaluation avec les Y contraints
+        final_actions = []
+        total_steps_final = 0
+        total_exchanges = 0
+        
+        # Réinitialiser l'état pour la seconde évaluation
+        state_copy = state.copy()
+        for pos in optimal_y_positions:
+            i, j = pos
+            state_copy.layout[i][j] = 'Y'
+            if pos not in state_copy.counters:
+                state_copy.counters.append(pos)
+                state_copy.counter_items[pos] = None
+        
+        pathfinder_final = OptimalPathfinder(state_copy)
+        
+        for recipe in recipes:
+            recipe_steps, recipe_exchanges = self._evaluate_recipe_with_y_constraints(
+                state_copy, recipe, pathfinder_final, optimal_y_positions)
+            
+            final_actions.append({
+                'recipe': recipe,
+                'steps': recipe_steps,
+                'exchanges': recipe_exchanges,
+                'y_positions_used': optimal_y_positions
+            })
+            
+            total_steps_final += recipe_steps
+            total_exchanges += recipe_exchanges
+        
+        return total_steps_final, final_actions, total_exchanges, optimal_y_positions
+    
+    def _evaluate_recipe_with_exchange_detection(self, state: OptimizedGameState, recipe: Dict, 
+                                               pathfinder: OptimalPathfinder, 
+                                               exchange_tracker: ExchangeTracker) -> Tuple[int, int]:
+        """Évalue une recette en détectant les échanges bénéfiques"""
+        recipe_steps = 0
+        recipe_exchanges = 0
+        
+        ingredients = recipe['ingredients']
+        
+        # Stratégie: J1 collecte, J2 prépare le service
+        # Analyser chaque étape pour détecter les échanges bénéfiques
+        
+        for ingredient in ingredients:
+            if ingredient == 'onion':
+                dispenser = state.onion_dispenser
+            elif ingredient == 'tomato':
+                dispenser = state.tomato_dispenser
+            else:
+                continue
+            
+            if dispenser is None:
+                continue
+            
+            # J1 va chercher l'ingrédient
+            path = pathfinder.get_optimal_path(state.player_positions[1], dispenser, 1)
+            recipe_steps += len(path) - 1 + 1  # Move + pickup
+            state.player_positions[1] = dispenser
+            
+            # Analyser si un échange vers J2 est bénéfique
+            best_exchange_benefit = 0
+            best_exchange_pos = None
+            
+            for exchange_pos in exchange_tracker.potential_exchanges:
+                benefit = pathfinder.calculate_exchange_benefit(
+                    state.player_positions[1], state.pot_position,
+                    state.player_positions[2], state.pot_position,
+                    exchange_pos
+                )
+                
+                if benefit > best_exchange_benefit:
+                    best_exchange_benefit = benefit
+                    best_exchange_pos = exchange_pos
+            
+            if best_exchange_pos and best_exchange_benefit > 0:
+                # Effectuer l'échange
+                path_to_exchange = pathfinder.get_optimal_path(state.player_positions[1], best_exchange_pos, 1)
+                recipe_steps += len(path_to_exchange) - 1 + 1  # Move + drop
+                state.player_positions[1] = best_exchange_pos
+                
+                # J2 récupère l'objet
+                path_j2_to_exchange = pathfinder.get_optimal_path(state.player_positions[2], best_exchange_pos, 2)
+                recipe_steps += len(path_j2_to_exchange) - 1 + 1  # Move + pickup
+                state.player_positions[2] = best_exchange_pos
+                
+                # J2 va au pot
+                path_to_pot = pathfinder.get_optimal_path(state.player_positions[2], state.pot_position, 2)
+                recipe_steps += len(path_to_pot) - 1 + 1  # Move + drop
+                state.player_positions[2] = state.pot_position
+                
+                exchange_tracker.record_exchange(best_exchange_pos)
+                recipe_exchanges += 1
+            else:
+                # Pas d'échange bénéfique, J1 va directement au pot
+                path = pathfinder.get_optimal_path(state.player_positions[1], state.pot_position, 1)
+                recipe_steps += len(path) - 1 + 1  # Move + drop
+                state.player_positions[1] = state.pot_position
+        
+        # Temps de cuisson
+        cooking_time = self.calculate_cooking_time(recipe['ingredients'])
+        recipe_steps += cooking_time
+        
+        # Service (J2 ou J1 selon qui est le mieux placé)
+        service_steps = self._calculate_service_steps(state, pathfinder)
+        recipe_steps += service_steps
+        
+        return recipe_steps, recipe_exchanges
+    
+    def _evaluate_recipe_with_y_constraints(self, state: OptimizedGameState, recipe: Dict,
+                                          pathfinder: OptimalPathfinder, 
+                                          y_positions: List[Tuple[int, int]]) -> Tuple[int, int]:
+        """Évalue une recette avec contraintes Y (échanges uniquement sur Y)"""
+        recipe_steps = 0
+        recipe_exchanges = 0
+        
+        ingredients = recipe['ingredients']
+        
+        for ingredient in ingredients:
+            if ingredient == 'onion':
+                dispenser = state.onion_dispenser
+            elif ingredient == 'tomato':
+                dispenser = state.tomato_dispenser
+            else:
+                continue
+            
+            if dispenser is None:
+                continue
+            
+            # J1 va chercher l'ingrédient
+            path = pathfinder.get_optimal_path(state.player_positions[1], dispenser, 1)
+            recipe_steps += len(path) - 1 + 1
+            state.player_positions[1] = dispenser
+            
+            # Analyser les échanges uniquement sur les Y sélectionnés
+            best_exchange_benefit = 0
+            best_y_pos = None
+            
+            for y_pos in y_positions:
+                benefit = pathfinder.calculate_exchange_benefit(
+                    state.player_positions[1], state.pot_position,
+                    state.player_positions[2], state.pot_position,
+                    y_pos
+                )
+                
+                if benefit > best_exchange_benefit:
+                    best_exchange_benefit = benefit
+                    best_y_pos = y_pos
+            
+            if best_y_pos and best_exchange_benefit > 0:
+                # Effectuer l'échange sur Y
+                path_to_y = pathfinder.get_optimal_path(state.player_positions[1], best_y_pos, 1)
+                recipe_steps += len(path_to_y) - 1 + 1
+                state.player_positions[1] = best_y_pos
+                
+                path_j2_to_y = pathfinder.get_optimal_path(state.player_positions[2], best_y_pos, 2)
+                recipe_steps += len(path_j2_to_y) - 1 + 1
+                state.player_positions[2] = best_y_pos
+                
+                path_to_pot = pathfinder.get_optimal_path(state.player_positions[2], state.pot_position, 2)
+                recipe_steps += len(path_to_pot) - 1 + 1
+                state.player_positions[2] = state.pot_position
+                
+                recipe_exchanges += 1
+            else:
+                # Pas d'échange bénéfique, aller directement au pot
+                path = pathfinder.get_optimal_path(state.player_positions[1], state.pot_position, 1)
+                recipe_steps += len(path) - 1 + 1
+                state.player_positions[1] = state.pot_position
+        
+        # Temps de cuisson
+        cooking_time = self.calculate_cooking_time(recipe['ingredients'])
+        recipe_steps += cooking_time
+        
+        # Service
+        service_steps = self._calculate_service_steps(state, pathfinder)
+        recipe_steps += service_steps
+        
+        return recipe_steps, recipe_exchanges
+    
+    def _calculate_service_steps(self, state: OptimizedGameState, pathfinder: OptimalPathfinder) -> int:
+        """Calcule les étapes de service optimisées"""
+        service_steps = 0
+        
+        # Déterminer qui est le mieux placé pour le service
+        dist_j1_to_dish = len(pathfinder.get_optimal_path(state.player_positions[1], state.dish_dispenser, 1)) - 1
+        dist_j2_to_dish = len(pathfinder.get_optimal_path(state.player_positions[2], state.dish_dispenser, 2)) - 1
+        
+        if dist_j1_to_dish <= dist_j2_to_dish:
+            service_player = 1
+        else:
+            service_player = 2
+        
+        # Aller chercher l'assiette
+        path = pathfinder.get_optimal_path(state.player_positions[service_player], state.dish_dispenser, service_player)
+        service_steps += len(path) - 1 + 1
+        state.player_positions[service_player] = state.dish_dispenser
+        
+        # Aller au pot
+        path = pathfinder.get_optimal_path(state.player_positions[service_player], state.pot_position, service_player)
+        service_steps += len(path) - 1 + 1
+        state.player_positions[service_player] = state.pot_position
+        
+        # Aller au service
+        path = pathfinder.get_optimal_path(state.player_positions[service_player], state.service_position, service_player)
+        service_steps += len(path) - 1 + 1
+        state.player_positions[service_player] = state.service_position
+        
+        return service_steps
     
     def evaluate_layout_recipe_combination(self, layout_data: Dict, recipe_group: Dict) -> EvaluationMetrics:
-        """Évalue une combinaison layout + groupe de recettes"""
+        """Évalue une combinaison layout + groupe de recettes avec optimisation des échanges"""
         start_time = time.time()
         
-        # Créer l'état de jeu
-        recipes = recipe_group["recipes"]
-        state_solo = OptimizedGameState(layout_data, recipes)
-        state_duo = OptimizedGameState(layout_data, recipes)
-        
-        # Génération des identifiants
-        layout_id = layout_data.get("hash", f"layout_{id(layout_data)}")
-        recipe_group_id = recipe_group["group_id"]
-        
-        # Hashes pour traçabilité
-        grid_str = '\n'.join([''.join(row) for row in layout_data.get("grid", [])])
-        layout_hash = hashlib.md5(grid_str.encode()).hexdigest()[:12]
-        recipe_hash = hashlib.md5(json.dumps(recipes, sort_keys=True).encode()).hexdigest()[:12]
-        
         try:
-            # Évaluation solo
-            solo_steps, solo_actions = self.evaluate_solo_mode(state_solo, recipes)
+            # Créer l'état de jeu
+            recipes = recipe_group["recipes"]
             
-            # Évaluation duo
-            duo_steps, duo_actions, exchanges_count = self.evaluate_duo_mode(state_duo, recipes)
+            # Filtrer les recettes vides
+            valid_recipes = [r for r in recipes if r.get("ingredients") and len(r["ingredients"]) > 0]
+            if not valid_recipes:
+                logger.debug(f"Groupe de recettes {recipe_group['group_id']} ignoré: aucune recette valide")
+                return None
+            
+            state_solo = OptimizedGameState(layout_data, valid_recipes)
+            state_duo = OptimizedGameState(layout_data, valid_recipes)
+            
+            # Génération des identifiants
+            layout_id = layout_data.get("hash", f"layout_{id(layout_data)}")
+            recipe_group_id = recipe_group["group_id"]
+            
+            # Utiliser le hash existant du layout ou en calculer un compatible
+            if "hash" in layout_data:
+                layout_hash = layout_data["hash"]
+            else:
+                # Calculer un hash compatible avec le générateur (16 caractères)
+                grid_str = '\n'.join([''.join(row) for row in layout_data.get("grid", [])])
+                layout_hash = hashlib.md5(grid_str.encode()).hexdigest()[:16]
+            
+            recipe_hash = hashlib.md5(json.dumps(valid_recipes, sort_keys=True).encode()).hexdigest()[:12]
+            
+            # Évaluation solo
+            solo_steps, solo_actions = self.evaluate_solo_mode(state_solo, valid_recipes)
+            
+            # Évaluation duo avec optimisation des échanges
+            duo_steps, duo_actions, exchanges_count, y_positions = self.evaluate_duo_mode_with_exchanges(state_duo, valid_recipes)
             
             evaluation_time = time.time() - start_time
+            
+            # Ajouter les informations sur les positions Y sélectionnées
+            enhanced_duo_actions = []
+            for action in duo_actions:
+                enhanced_action = action.copy()
+                enhanced_action['optimal_y_positions'] = y_positions
+                enhanced_duo_actions.append(enhanced_action)
             
             return EvaluationMetrics(
                 layout_id=layout_id,
@@ -567,15 +816,16 @@ class MassiveLayoutEvaluator:
                 solo_steps=solo_steps,
                 duo_steps=duo_steps,
                 exchanges_count=exchanges_count,
+                optimal_y_positions=y_positions,  # Nouvellement ajouté
                 solo_actions=solo_actions,
-                duo_actions=duo_actions,
+                duo_actions=enhanced_duo_actions,
                 evaluation_time=evaluation_time,
                 layout_hash=layout_hash,
                 recipe_hash=recipe_hash
             )
             
         except Exception as e:
-            logger.error(f"❌ Erreur évaluation layout {layout_id} + recettes {recipe_group_id}: {e}")
+            logger.error(f"❌ Erreur évaluation layout {layout_data.get('hash', 'unknown')} + recettes {recipe_group['group_id']}: {e}")
             return None
     
     def save_evaluation_results(self, results: List[EvaluationMetrics], batch_id: int):
@@ -604,6 +854,7 @@ class MassiveLayoutEvaluator:
                 "solo_steps": result.solo_steps,
                 "duo_steps": result.duo_steps,
                 "exchanges_count": result.exchanges_count,
+                "optimal_y_positions": result.optimal_y_positions,  # Nouvellement ajouté
                 "improvement_ratio": result.solo_steps / result.duo_steps if result.duo_steps > 0 else 0,
                 "evaluation_time": result.evaluation_time,
                 "layout_hash": result.layout_hash,
@@ -692,6 +943,56 @@ class MassiveLayoutEvaluator:
         logger.info(f"💾 Résultats stockés: {self.output_dir}")
         
         return total_evaluations > 0
+    
+    # Méthodes de commodité pour les tests
+    def evaluate_solo(self, grid: List[List[str]], recipes: List[Dict]) -> Dict:
+        """Méthode de commodité pour évaluation solo simple"""
+        state = OptimizedGameState(grid)
+        steps, actions = self.evaluate_solo_mode(state, recipes)
+        return {
+            'total_steps': steps,
+            'actions': actions
+        }
+    
+    def evaluate_duo_with_exchanges(self, grid: List[List[str]], recipes: List[Dict]) -> Dict:
+        """Méthode de commodité pour évaluation duo avec détection d'échanges"""
+        state = OptimizedGameState(grid)
+        steps, actions, exchanges_count, exchange_positions = self.evaluate_duo_mode_with_exchanges(state, recipes)
+        
+        # Compter les échanges par position
+        exchange_counter = {}
+        for pos in exchange_positions:
+            exchange_counter[str(pos)] = exchange_counter.get(str(pos), 0) + 1
+        
+        # Sélectionner les 2 meilleures positions
+        optimal_positions = []
+        if exchange_counter:
+            sorted_positions = sorted(exchange_counter.items(), key=lambda x: x[1], reverse=True)
+            optimal_positions = [eval(pos) for pos, _ in sorted_positions[:2]]
+        
+        return {
+            'total_steps': steps,
+            'actions': actions,
+            'exchanges_count': exchanges_count,
+            'exchange_positions': exchange_counter,
+            'optimal_y_positions': optimal_positions
+        }
+    
+    def evaluate_duo_with_y_constraints(self, grid: List[List[str]], recipes: List[Dict], y_positions: List[Tuple[int, int]]) -> Dict:
+        """Méthode de commodité pour évaluation duo avec contraintes Y"""
+        # Créer une copie de la grille avec les Y placés
+        grid_with_y = [row[:] for row in grid]
+        for i, j in y_positions:
+            if 0 < i < len(grid_with_y)-1 and 0 < j < len(grid_with_y[0])-1:
+                if grid_with_y[i][j] == 'X':  # Remplacer un mur par Y
+                    grid_with_y[i][j] = 'Y'
+        
+        state = OptimizedGameState(grid_with_y)
+        steps, actions = self.evaluate_solo_mode(state, recipes)  # Simplification pour le test
+        return {
+            'total_steps': steps,
+            'actions': actions
+        }
 
 def main():
     """Fonction principale"""

@@ -2,36 +2,55 @@
   "recipe_config": {
     "min_ingredients_per_recipe": 1,
     "max_ingredients_per_recipe": 2,
-    "allowed_ingredients": ["onion", "tomato"],
+    "allowed_ingredients": [
+      "onion",
+      "tomato"
+    ],
     "group_size": 3,
     "ensure_no_duplicates": true
   },
   "pipeline_config": {
-    "description": "Configuration complète du pipeline de génération et sélection de layouts Overcooked",
+    "description": "Configuration compl\u00e8te du pipeline de g\u00e9n\u00e9ration et s\u00e9lection de layouts Overcooked",
     "recipe_config": {
       "recipes": [
-        {"ingredients": ["onion"], "cooking_time": 20},
-        {"ingredients": ["tomato"], "cooking_time": 15},
-        {"ingredients": ["onion", "tomato"], "cooking_time": 25}
+        {
+          "ingredients": [
+            "onion"
+          ],
+          "cooking_time": 9
+        },
+        {
+          "ingredients": [
+            "tomato"
+          ],
+          "cooking_time": 6
+        }
       ],
       "base_values": {
         "onion_value": 3,
-        "tomato_value": 2,
-        "dish_value": 1
+        "tomato_value": 2
       }
     },
     "generation": {
       "grid_size": 8,
-      "total_layouts_to_generate": 1000,
-      "block_size": 10000,
+      "total_layouts_to_generate": 0,
+      "block_size": 50,
       "processes": 4,
+      "compression_batch_size": 500,
       "layout_constraints": {
-        "min_empty_cells": 20,
-        "max_empty_cells": 35,
-        "min_wall_density": 0.1,
-        "max_wall_density": 0.5,
-        "required_objects": ["O", "T", "P", "D", "S", "1", "2"],
-        "optional_objects": ["Y"],
+        "empty_cells": 24,
+        "required_objects": [
+          "O",
+          "T",
+          "P",
+          "D",
+          "S",
+          "1",
+          "2"
+        ],
+        "optional_objects": [
+          "Y"
+        ],
         "max_counters": 3,
         "enforce_serving_on_edge": false,
         "enforce_object_dispersion": true,
@@ -58,7 +77,7 @@
           "planning_horizon": 3
         },
         "agent2": {
-          "type": "greedy", 
+          "type": "greedy",
           "planning_horizon": 3
         }
       },
@@ -69,16 +88,16 @@
       },
       "metrics": {
         "cooperation": {
-          "weight": 0.4,
-          "description": "Pourcentage d'amélioration en mode coopératif vs solo"
+          "weight": 0.6,
+          "description": "Pourcentage d'am\u00e9lioration en mode coop\u00e9ratif vs solo"
         },
         "efficiency": {
-          "weight": 0.35,
-          "description": "Efficacité basée sur le nombre d'étapes duo réelles"
+          "weight": 0.1,
+          "description": "Efficacit\u00e9 bas\u00e9e sur le nombre d'\u00e9tapes duo r\u00e9elles"
         },
         "exchanges": {
-          "weight": 0.25,
-          "description": "Potentiel d'échanges entre joueurs"
+          "weight": 0.3,
+          "description": "Potentiel d'\u00e9changes entre joueurs"
         }
       },
       "scoring_weights": {
@@ -115,14 +134,16 @@
       }
     },
     "selection": {
-      "final_count": 20,
+      "final_count": 12,
       "selection_method": "best_per_recipe",
       "diversity_weight": 0.3,
       "performance_weight": 0.7,
-      "output_formats": ["layout"],
+      "output_formats": [
+        "layout"
+      ],
       "quality_thresholds": {
-        "min_final_score": 0.5,
-        "min_cooperation_benefit": 0.2,
+        "min_final_score": 0.15,
+        "min_cooperation_benefit": 0.05,
         "max_complexity": 0.8
       }
     },
