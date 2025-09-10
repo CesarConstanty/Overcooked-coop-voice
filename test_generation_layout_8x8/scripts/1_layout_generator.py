@@ -281,66 +281,50 @@ class ProfessionalLayoutGenerator:
         return config
     
     def validate_config_feasibility(self, config: Dict) -> None:
-        """Valide si la configuration est mathématiquement possible."""
+        """Valide si la configuration est mathématiquement possible selon la nouvelle logique."""
         gen_config = config["pipeline_config"]["generation"]
         constraints = gen_config["layout_constraints"]
         
         grid_size = gen_config["grid_size"]
         empty_cells = constraints["empty_cells"]
-        required_objects = [obj for obj in constraints["required_objects"] if obj != "Y"]
+        required_objects = [obj for obj in constraints["required_objects"] if obj not in ["Y", "1", "2"]]
         
-        # Calculs théoriques
+        # Calculs selon la nouvelle logique
         total_cells = grid_size * grid_size  # 64 pour 8x8
-        border_cells = 4 * (grid_size - 1)  # 28 pour 8x8 (bordures)
-        inner_cells = total_cells - border_cells  # 36 pour 8x8
+        inner_cells = (grid_size - 2) * (grid_size - 2)  # 36 pour 8x8 (intérieur 6x6)
         
-        # Objets requis : 2 joueurs + objets (O, T, P, D) sans Y, sans S (placé sur bordure)
-        players = 2
-        objects_count = len(required_objects)  # O, T, P, D = 4
-        total_objects = players + objects_count  # 2 + 4 = 6
-        
-        # Cases disponibles pour vide + murs intérieurs
-        available_for_empty_and_walls = inner_cells - total_objects  # 36 - 6 = 30
-        
-        # Vérification de faisabilité
-        if empty_cells > available_for_empty_and_walls:
+        # Vérification 1: Les cellules vides ne peuvent pas dépasser l'intérieur
+        if empty_cells > inner_cells:
             error_msg = f"""
 🚨 CONFIGURATION IMPOSSIBLE !
 
-La configuration demande {empty_cells} cellules vides, mais c'est mathématiquement impossible :
+La configuration demande {empty_cells} cellules vides, mais c'est impossible :
 
 📐 Analyse du grid {grid_size}x{grid_size} :
    • Total de cellules : {total_cells}
-   • Bordures (murs + S) : {border_cells}
-   • Cases intérieures : {inner_cells}
-   • Objets requis : {total_objects} (2 joueurs + {objects_count} objets)
-   • Cases disponibles pour vides + murs : {available_for_empty_and_walls}
+   • Cases intérieures disponibles : {inner_cells}
+   • Cellules vides demandées : {empty_cells}
 
-💡 Maximum de cellules vides possible : {available_for_empty_and_walls}
-⚠️  Demandé : {empty_cells} cellules vides
+💡 Maximum de cellules vides possible : {inner_cells}
 
-🔧 Solutions possibles :
-   1. Réduire empty_cells à {available_for_empty_and_walls} ou moins
-   2. Augmenter la taille du grid
-   3. Réduire le nombre d'objets requis
+🔧 Solution : Réduire empty_cells à {inner_cells} ou moins
 """
             logger.error(error_msg)
             raise ValueError("Configuration impossible - trop de cellules vides demandées")
         
-        # Vérification de connectivité théorique
-        min_walls_needed = inner_cells - empty_cells - total_objects
-        if min_walls_needed < 0:
-            error_msg = f"""
-🚨 ERREUR DE CALCUL !
-
-Calcul des murs intérieurs négatif : {min_walls_needed}
-Ceci indique une erreur dans la configuration.
-"""
-            logger.error(error_msg)
-            raise ValueError("Erreur de calcul - configuration incohérente")
+        # Calcul des murs intérieurs nécessaires
+        walls_needed = inner_cells - empty_cells
         
-        logger.info(f"✅ Configuration validée : {empty_cells} cellules vides sur {available_for_empty_and_walls} possibles")
-        logger.info(f"📊 Murs intérieurs : {min_walls_needed} minimum requis")
+        # Les objets O, T, P, D remplacent des murs X
+        # S remplace un mur de bordure
+        # Les joueurs 1, 2 sont placés sur les cellules vides
+        
+        logger.info(f"✅ Configuration validée :")
+        logger.info(f"   📐 Grille {grid_size}x{grid_size} avec {inner_cells} cases intérieures")
+        logger.info(f"   🕳️ {empty_cells} cellules vides")
+        logger.info(f"   🧱 {walls_needed} murs intérieurs")
+        logger.info(f"   🎯 {len(required_objects)} objets remplaceront des murs")
+        logger.info(f"   👥 2 joueurs seront placés sur les cellules vides")
     
     def save_layouts_to_file(self):
         """Sauvegarde tous les layouts générés dans un fichier JSON."""
@@ -763,10 +747,10 @@ Ceci indique une erreur dans la configuration.
             remaining_objects = [obj for obj in self.required_objects 
                                if obj not in ['1', '2', 'S']]
             
-            # Trouver les positions X disponibles (intérieures uniquement)
+            # Trouver TOUTES les positions X disponibles (bordures ET intérieur)
             wall_positions = []
-            for i in range(1, self.grid_size-1):
-                for j in range(1, self.grid_size-1):
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
                     if layout_grid[i][j] == 'X':
                         wall_positions.append((i, j))
             

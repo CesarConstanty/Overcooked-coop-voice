@@ -481,9 +481,9 @@ class MassiveLayoutEvaluator:
                 recipe_steps += 1
                 state.pot_contents.append(ingredient)
             
-            # Phase 2: Cuisson
+            # Phase 2: Cuisson (temps exclu du calcul des étapes)
             cooking_time = self.calculate_cooking_time(recipe['ingredients'])
-            recipe_steps += cooking_time
+            # recipe_steps += cooking_time  # MODIFIÉ: Temps de cuisson exclu
             
             # Phase 3: Service
             # Aller chercher une assiette
@@ -511,8 +511,8 @@ class MassiveLayoutEvaluator:
                 'recipe': recipe,
                 'steps': recipe_steps,
                 'phase_breakdown': {
-                    'collection': recipe_steps - cooking_time - (len(path) if path else 0) - 3,
-                    'cooking': cooking_time,
+                    'collection': recipe_steps - (len(path) if path else 0) - 3,  # MODIFIÉ: cooking_time retiré
+                    'cooking': 0,  # MODIFIÉ: Temps de cuisson exclu
                     'service': (len(path) if path else 0) + 3
                 }
             })
@@ -653,9 +653,9 @@ class MassiveLayoutEvaluator:
                 recipe_steps += len(path) - 1 + 1  # Move + drop
                 state.player_positions[1] = state.pot_position
         
-        # Temps de cuisson
+        # Temps de cuisson (exclu du calcul des étapes)
         cooking_time = self.calculate_cooking_time(recipe['ingredients'])
-        recipe_steps += cooking_time
+        # recipe_steps += cooking_time  # MODIFIÉ: Temps de cuisson exclu
         
         # Service (J2 ou J1 selon qui est le mieux placé)
         service_steps = self._calculate_service_steps(state, pathfinder)
@@ -724,9 +724,9 @@ class MassiveLayoutEvaluator:
                 recipe_steps += len(path) - 1 + 1
                 state.player_positions[1] = state.pot_position
         
-        # Temps de cuisson
+        # Temps de cuisson (exclu du calcul des étapes)
         cooking_time = self.calculate_cooking_time(recipe['ingredients'])
-        recipe_steps += cooking_time
+        # recipe_steps += cooking_time  # MODIFIÉ: Temps de cuisson exclu
         
         # Service
         service_steps = self._calculate_service_steps(state, pathfinder)

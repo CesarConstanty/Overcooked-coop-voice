@@ -10,7 +10,7 @@
     "ensure_no_duplicates": true
   },
   "pipeline_config": {
-    "description": "Configuration compl\u00e8te du pipeline de g\u00e9n\u00e9ration et s\u00e9lection de layouts Overcooked",
+    "description": "Configuration compléte du pipeline de génération et sélection de layouts Overcooked",
     "recipe_config": {
       "recipes": [
         {
@@ -33,12 +33,12 @@
     },
     "generation": {
       "grid_size": 8,
-      "total_layouts_to_generate": 0,
+      "total_layouts_to_generate": 1000,
       "block_size": 50,
       "processes": 4,
       "compression_batch_size": 500,
       "layout_constraints": {
-        "empty_cells": 24,
+        "empty_cells": 26,
         "required_objects": [
           "O",
           "T",
@@ -52,7 +52,7 @@
           "Y"
         ],
         "max_counters": 3,
-        "enforce_serving_on_edge": false,
+        "enforce_serving_on_edge": true,
         "enforce_object_dispersion": true,
         "min_object_separation": 2,
         "detect_rotations_mirrors": true
@@ -70,7 +70,7 @@
       "pathfinding_algorithm": "bfs",
       "processes": 4,
       "batch_size": 1000,
-      "results_dir": "evaluation_results",
+      "results_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/evaluation_results",
       "agents": {
         "agent1": {
           "type": "greedy",
@@ -89,15 +89,15 @@
       "metrics": {
         "cooperation": {
           "weight": 0.6,
-          "description": "Pourcentage d'am\u00e9lioration en mode coop\u00e9ratif vs solo"
+          "description": "Pourcentage d'amélioration en mode coopératif vs solo"
         },
         "efficiency": {
           "weight": 0.1,
-          "description": "Efficacit\u00e9 bas\u00e9e sur le nombre d'\u00e9tapes duo r\u00e9elles"
+          "description": "Efficacité basée sur le nombre d'étapes duo réelles"
         },
         "exchanges": {
           "weight": 0.3,
-          "description": "Potentiel d'\u00e9changes entre joueurs"
+          "description": "Potentiel d'échanges entre joueurs"
         }
       },
       "scoring_weights": {
@@ -148,10 +148,10 @@
       }
     },
     "output": {
-      "layouts_generated_dir": "layouts_generes",
-      "evaluation_results_dir": "evaluation_results",
-      "analysis_results_dir": "analysis_results",
-      "final_layouts_dir": "final_layouts"
+      "layouts_generated_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/layouts_generes",
+      "evaluation_results_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/evaluation_results",
+      "analysis_results_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/analysis_results",
+      "final_layouts_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/final_layouts"
     },
     "production_mode": {
       "enabled": true,

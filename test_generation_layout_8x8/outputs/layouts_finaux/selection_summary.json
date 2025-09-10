@@ -1,0 +1,133 @@
+{
+  "selection_timestamp": 1757505738.5931623,
+  "total_selected": 12,
+  "selection_method": "best_per_recipe",
+  "final_count_target": 12,
+  "quality_thresholds": {
+    "min_final_score": 0.15,
+    "min_cooperation_benefit": 0.05,
+    "max_complexity": 0.8
+  },
+  "layouts": [
+    {
+      "index": 1,
+      "filename": "L01_638310f2.layout",
+      "layout_hash": "638310f22836894b",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 2,
+      "filename": "L02_21dbd7fd.layout",
+      "layout_hash": "21dbd7fd757346e9",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 3,
+      "filename": "L03_f407a887.layout",
+      "layout_hash": "f407a887cfea6137",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 4,
+      "filename": "L04_f2da5798.layout",
+      "layout_hash": "f2da5798711737e5",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 5,
+      "filename": "L05_27717686.layout",
+      "layout_hash": "27717686051a23d3",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 6,
+      "filename": "L06_e600be1e.layout",
+      "layout_hash": "e600be1e5de71020",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 7,
+      "filename": "L07_6106d3fd.layout",
+      "layout_hash": "6106d3fdb089e623",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 8,
+      "filename": "L08_95f2feee.layout",
+      "layout_hash": "95f2feeeb37336b9",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 9,
+      "filename": "L09_03d94114.layout",
+      "layout_hash": "03d94114cdaa1a11",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 10,
+      "filename": "L10_5e0a6d7c.layout",
+      "layout_hash": "5e0a6d7c0d899e37",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 11,
+      "filename": "L11_3631ebc3.layout",
+      "layout_hash": "3631ebc34b160b3d",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    },
+    {
+      "index": 12,
+      "filename": "L12_e41ff4fd.layout",
+      "layout_hash": "e41ff4fd4f41b8a6",
+      "weighted_score": 0.7000000000000011,
+      "cooperation_benefit": 1.0,
+      "average_duo_steps": 0.0,
+      "recipe_groups_covered": 84,
+      "total_evaluations": 84
+    }
+  ]
+}
