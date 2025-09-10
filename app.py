@@ -284,7 +284,7 @@ def set_curr_room(user_id, room_id):
 
 
 def leave_curr_room(user_id):
-    del USER_ROOMS[user_id]
+    USER_ROOMS.pop(user_id, None)
 
 
 # def get_waiting_game():
