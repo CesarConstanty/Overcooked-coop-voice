@@ -747,24 +747,26 @@ La configuration demande {empty_cells} cellules vides, mais c'est impossible :
             remaining_objects = [obj for obj in self.required_objects 
                                if obj not in ['1', '2', 'S']]
             
-            # Trouver TOUTES les positions X disponibles (bordures ET intérieur)
-            wall_positions = []
+            # Trouver TOUTES les positions X disponibles qui ont au moins une case vide adjacente
+            accessible_wall_positions = []
             for i in range(self.grid_size):
                 for j in range(self.grid_size):
                     if layout_grid[i][j] == 'X':
-                        wall_positions.append((i, j))
+                        # Vérifier si cette position X a au moins une case vide adjacente
+                        if self.has_adjacent_empty_cell(layout_grid, i, j):
+                            accessible_wall_positions.append((i, j))
             
-            if len(wall_positions) < len(remaining_objects):
+            if len(accessible_wall_positions) < len(remaining_objects):
                 continue
             
-            # Sélectionner des positions X pour les remplacer par des objets
+            # Sélectionner des positions X accessibles pour les remplacer par des objets
             # Avec dispersion forcée si activée
             if self.enforce_object_dispersion:
-                selected_wall_positions = self.select_dispersed_positions(wall_positions, len(remaining_objects))
+                selected_wall_positions = self.select_dispersed_positions(accessible_wall_positions, len(remaining_objects))
                 if selected_wall_positions is None:
                     continue  # Pas réussi à trouver des positions bien dispersées
             else:
-                selected_wall_positions = random.sample(wall_positions, len(remaining_objects))
+                selected_wall_positions = random.sample(accessible_wall_positions, len(remaining_objects))
             
             for i, obj in enumerate(remaining_objects):
                 pos = selected_wall_positions[i]
@@ -780,6 +782,20 @@ La configuration demande {empty_cells} cellules vides, mais c'est impossible :
                 return self.grid_to_layout_dict(layout_grid, object_positions)
         
         return None
+
+    def has_adjacent_empty_cell(self, grid: List[List[str]], i: int, j: int) -> bool:
+        """Vérifie si la position (i, j) a au moins une case vide adjacente."""
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # droite, gauche, bas, haut
+        
+        for di, dj in directions:
+            ni, nj = i + di, j + dj
+            # Vérifier que la position est dans la grille
+            if 0 <= ni < self.grid_size and 0 <= nj < self.grid_size:
+                # Vérifier si c'est une case vide
+                if grid[ni][nj] == ' ':
+                    return True
+        
+        return False
 
     def are_all_objects_accessible(self, grid: List[List[str]]) -> bool:
         """Vérifie que tous les objets sont accessibles par les deux joueurs."""
