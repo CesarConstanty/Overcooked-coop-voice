@@ -70,7 +70,7 @@
       "pathfinding_algorithm": "bfs",
       "processes": 4,
       "batch_size": 1000,
-      "results_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/evaluation_results",
+      "results_dir": "evaluation_results",
       "agents": {
         "agent1": {
           "type": "greedy",
@@ -148,10 +148,10 @@
       }
     },
     "output": {
-      "layouts_generated_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/layouts_generes",
-      "evaluation_results_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/evaluation_results",
-      "analysis_results_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/analysis_results",
-      "final_layouts_dir": "/home/cesar/python-projects/Overcooked-coop-voice/test_generation_layout_8x8/outputs/final_layouts"
+      "layouts_generated_dir": "layouts_generes",
+      "evaluation_results_dir": "evaluation_results",
+      "analysis_results_dir": "analysis_results",
+      "final_layouts_dir": "final_layouts"
     },
     "production_mode": {
       "enabled": true,

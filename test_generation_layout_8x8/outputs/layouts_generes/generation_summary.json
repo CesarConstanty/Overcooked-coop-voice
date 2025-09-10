@@ -1,6 +1,6 @@
 {
-  "total_layouts": 5,
-  "total_batches": 1,
+  "total_layouts": 1000,
+  "total_batches": 2,
   "compression_format": "jsonl.gz",
-  "timestamp": 1757506690.4923992
+  "timestamp": 1757518555.4855793
 }

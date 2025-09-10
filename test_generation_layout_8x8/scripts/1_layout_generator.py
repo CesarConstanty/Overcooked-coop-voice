@@ -29,11 +29,14 @@ import argparse
 from typing import Dict, List, Tuple, Set, Optional, Any
 
 # Configuration du logging
+logs_dir = Path(__file__).parent.parent / "logs"
+logs_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('layout_generation.log'),
+        logging.FileHandler(logs_dir / 'layout_generation.log'),
         logging.StreamHandler()
     ]
 )

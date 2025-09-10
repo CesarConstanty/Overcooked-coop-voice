@@ -33,11 +33,14 @@ import argparse
 import logging
 
 # Configuration du logging
+logs_dir = Path(__file__).parent.parent / "logs"
+logs_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('layout_selection.log'),
+        logging.FileHandler(logs_dir / 'layout_selection.log'),
         logging.StreamHandler()
     ]
 )
@@ -45,36 +48,29 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class LayoutMetrics:
-    """Métriques d'évaluation pour un layout"""
+    """Métriques simplifiées pour un layout - 3 métriques seulement"""
     layout_id: str
     layout_hash: str
     recipe_group_id: int
     solo_steps: int
     duo_steps: int
     exchanges_count: int
-    optimal_y_positions: List[Tuple[int, int]]  # Nouvellement ajouté
-    improvement_ratio: float
-    evaluation_time: float
     recipe_hash: str
     
-    def cooperation_benefit(self) -> float:
-        """Calcule le bénéfice de la coopération (0-1, plus c'est haut, mieux c'est)"""
+    def step_reduction_percentage(self) -> float:
+        """Facteur 1: Pourcentage de gain en nombre d'étapes (duo vs solo)"""
         if self.solo_steps <= 0:
             return 0.0
-        return max(0, (self.solo_steps - self.duo_steps) / self.solo_steps)
+        reduction = max(0, self.solo_steps - self.duo_steps)
+        return (reduction / self.solo_steps) * 100.0  # Pourcentage de 0 à 100
     
-    def efficiency_score(self) -> float:
-        """Score d'efficacité basé sur le nombre d'étapes duo (0-1, plus c'est haut, mieux c'est)"""
-        # Normaliser entre 50 et 500 étapes (gamme typique)
-        min_steps, max_steps = 50, 500
-        normalized = max(0, min(1, (max_steps - self.duo_steps) / (max_steps - min_steps)))
-        return normalized
+    def exchanges_count_raw(self) -> int:
+        """Facteur 2: Nombre d'échanges réalisés dans la version duo"""
+        return self.exchanges_count
     
-    def exchange_score(self) -> float:
-        """Score d'échanges normalisé (0-1)"""
-        # Normaliser entre 0 et 10 échanges
-        max_exchanges = 10
-        return min(1.0, self.exchanges_count / max_exchanges) if max_exchanges > 0 else 0
+    def duo_steps_total(self) -> int:
+        """Facteur 3: Nombre total d'étapes nécessaires en duo"""
+        return self.duo_steps
 
 @dataclass
 class LayoutCandidate:
@@ -86,104 +82,68 @@ class LayoutCandidate:
     metrics_by_recipe: Dict[int, LayoutMetrics]
     
     def calculate_weighted_score(self, weights: Dict[str, float]) -> float:
-        """Calcule le score pondéré global du layout"""
+        """
+        Calcule le score pondéré simplifié basé sur 3 métriques uniquement:
+        1. step_reduction_weight: Pourcentage de gain d'étapes (duo vs solo)
+        2. exchanges_weight: Nombre d'échanges réalisés en duo  
+        3. duo_steps_weight: Nombre total d'étapes en duo (inversé - moins c'est mieux)
+        """
         if not self.metrics_by_recipe:
             return 0.0
         
         total_score = 0.0
         for metrics in self.metrics_by_recipe.values():
-            cooperation = metrics.cooperation_benefit()
-            efficiency = metrics.efficiency_score()
-            exchanges = metrics.exchange_score()
+            # Facteur 1: Pourcentage de réduction d'étapes (0-100%) - normalisé 0-1
+            step_reduction_pct = metrics.step_reduction_percentage()
+            step_reduction_score = min(1.0, step_reduction_pct / 100.0)
             
-            score = (cooperation * weights.get('cooperation', 0.4) +
-                    efficiency * weights.get('efficiency', 0.35) +
-                    exchanges * weights.get('exchanges', 0.25))
+            # Facteur 2: Nombre d'échanges - normalisé 0-1 (max 20 échanges)
+            exchanges_score = min(1.0, metrics.exchanges_count_raw() / 20.0)
+            
+            # Facteur 3: Étapes duo - normalisé 0-1 (moins = mieux, entre 50-500 étapes)
+            min_steps, max_steps = 50, 500
+            duo_steps = metrics.duo_steps_total()
+            duo_steps_score = max(0.0, min(1.0, (max_steps - duo_steps) / (max_steps - min_steps)))
+            
+            # Score pondéré final
+            score = (
+                step_reduction_score * weights.get('step_reduction_weight', 0.4) +  # 40% par défaut
+                exchanges_score * weights.get('exchanges_weight', 0.4) +           # 40% par défaut  
+                duo_steps_score * weights.get('duo_steps_weight', 0.2)             # 20% par défaut
+            )
             
             total_score += score
         
         # Moyenne des scores par recette
         return total_score / len(self.metrics_by_recipe)
     
-    def get_optimal_y_positions(self) -> List[Tuple[int, int]]:
-        """Retourne les positions Y optimales consolidées de toutes les évaluations"""
-        all_y_positions = []
-        y_counts = {}
-        
-        # Compter les occurrences de chaque position Y
-        for metrics in self.metrics_by_recipe.values():
-            for pos in metrics.optimal_y_positions:
-                pos_tuple = tuple(pos) if isinstance(pos, list) else pos
-                y_counts[pos_tuple] = y_counts.get(pos_tuple, 0) + 1
-        
-        # Retourner les positions les plus fréquentes (top 2)
-        sorted_positions = sorted(y_counts.items(), key=lambda x: x[1], reverse=True)
-        return [pos for pos, count in sorted_positions[:2] if count > 0]
-    
     def get_primary_recipe_group(self) -> int:
-        """Retourne l'ID du groupe de recettes avec le meilleur score"""
+        """Retourne l'ID du groupe de recettes avec le meilleur score simplifié"""
         if not self.metrics_by_recipe:
             return 1
         
-        # Trouver le groupe avec le meilleur ratio d'amélioration
+        # Trouver le groupe avec le meilleur pourcentage de réduction d'étapes
         best_group = max(self.metrics_by_recipe.items(), 
-                        key=lambda x: x[1].improvement_ratio)
+                        key=lambda x: x[1].step_reduction_percentage())
         return best_group[0]
     
-    def get_grid_with_y_positions(self) -> List[List[str]]:
-        """Retourne la grille avec les positions Y optimales appliquées"""
-        # Faire une copie de la grille originale
-        grid_with_y = [row[:] for row in self.grid]
-        
-        # Appliquer les positions Y optimales
-        y_positions = self.get_optimal_y_positions()
-        for y, x in y_positions:
-            if 0 <= y < len(grid_with_y) and 0 <= x < len(grid_with_y[0]):
-                # Remplacer les murs intérieurs X par des zones d'échange Y
-                if grid_with_y[y][x] == 'X':
-                    grid_with_y[y][x] = 'Y'
-        
-        return grid_with_y
-    
-    def get_optimal_y_positions(self) -> List[Tuple[int, int]]:
-        """Retourne les positions Y optimales consolidées de toutes les évaluations"""
-        all_y_positions = []
-        y_counts = {}
-        
-        # Compter les occurrences de chaque position Y
-        for metrics in self.metrics_by_recipe.values():
-            for pos in metrics.optimal_y_positions:
-                pos_tuple = tuple(pos) if isinstance(pos, list) else pos
-                y_counts[pos_tuple] = y_counts.get(pos_tuple, 0) + 1
-        
-        # Retourner les positions les plus fréquentes (top 2)
-        sorted_positions = sorted(y_counts.items(), key=lambda x: x[1], reverse=True)
-        return [pos for pos, count in sorted_positions[:2]]
-    
-    def get_grid_with_y_positions(self) -> List[List[str]]:
-        """Retourne la grille avec les positions Y optimales appliquées"""
-        # Copier la grille originale
-        grid_with_y = [row[:] for row in self.grid]
-        
-        # Appliquer les positions Y optimales
-        for pos in self.get_optimal_y_positions():
-            y, x = pos
-            if 0 <= y < len(grid_with_y) and 0 <= x < len(grid_with_y[0]):
-                grid_with_y[y][x] = 'Y'
-        
-        return grid_with_y
-    
-    def average_cooperation_benefit(self) -> float:
-        """Bénéfice de coopération moyen sur toutes les recettes"""
+    def average_step_reduction_percentage(self) -> float:
+        """Pourcentage moyen de réduction d'étapes (métrique principale)"""
         if not self.metrics_by_recipe:
             return 0.0
-        return sum(m.cooperation_benefit() for m in self.metrics_by_recipe.values()) / len(self.metrics_by_recipe)
+        return sum(m.step_reduction_percentage() for m in self.metrics_by_recipe.values()) / len(self.metrics_by_recipe)
+    
+    def average_exchanges_count(self) -> float:
+        """Nombre moyen d'échanges (métrique principale)"""
+        if not self.metrics_by_recipe:
+            return 0.0
+        return sum(m.exchanges_count_raw() for m in self.metrics_by_recipe.values()) / len(self.metrics_by_recipe)
     
     def average_duo_steps(self) -> float:
-        """Nombre moyen d'étapes en mode duo"""
+        """Nombre moyen d'étapes en mode duo (métrique principale)"""
         if not self.metrics_by_recipe:
             return float('inf')
-        return sum(m.duo_steps for m in self.metrics_by_recipe.values()) / len(self.metrics_by_recipe)
+        return sum(m.duo_steps_total() for m in self.metrics_by_recipe.values()) / len(self.metrics_by_recipe)
 
 class LayoutDecompressor:
     """Décompresse les layouts stockés"""
@@ -219,14 +179,20 @@ class LayoutSelector:
         
         self.final_count = selection_config["final_count"]
         self.selection_method = selection_config["selection_method"]
-        self.diversity_weight = selection_config["diversity_weight"]
-        self.performance_weight = selection_config["performance_weight"]
         
-        # Seuils de qualité
+        # Seuils de qualité simplifiés
         self.quality_thresholds = selection_config["quality_thresholds"]
         
-        # Poids pour le calcul des scores
-        self.metric_weights = evaluation_config["metrics"]
+        # Poids pour le calcul des scores - 3 métriques uniquement (valeurs par défaut)
+        self.scoring_weights = {
+            "step_reduction_percentage": 0.4,  # Importance de l'amélioration duo vs solo
+            "exchanges_count": 0.3,            # Nombre d'échanges détectés
+            "duo_steps_total": 0.3             # Efficacité totale en mode duo
+        }
+        
+        # Override avec la config si elle existe
+        if "scoring_weights" in selection_config:
+            self.scoring_weights.update(selection_config["scoring_weights"])
         
         # Répertoires
         self.evaluation_dir = self.base_dir / "outputs" / evaluation_config["results_dir"]
@@ -275,9 +241,6 @@ class LayoutSelector:
                         solo_steps=metric_data['solo_steps'],
                         duo_steps=metric_data['duo_steps'],
                         exchanges_count=metric_data['exchanges_count'],
-                        optimal_y_positions=metric_data.get('optimal_y_positions', []),  # Nouvellement ajouté
-                        improvement_ratio=metric_data['improvement_ratio'],
-                        evaluation_time=metric_data['evaluation_time'],
                         recipe_hash=metric_data['recipe_hash']
                     )
                     
@@ -339,8 +302,8 @@ class LayoutSelector:
             # Prendre la meilleure métrique par groupe de recettes
             metrics_by_recipe = {}
             for recipe_group_id, metrics_list in recipe_groups.items():
-                # Prendre la métrique avec le meilleur ratio d'amélioration
-                best_metric = max(metrics_list, key=lambda m: m.improvement_ratio)
+                # Prendre la métrique avec le meilleur pourcentage de réduction d'étapes
+                best_metric = max(metrics_list, key=lambda m: m.step_reduction_percentage())
                 metrics_by_recipe[recipe_group_id] = best_metric
             
             # Créer le candidat
@@ -363,21 +326,41 @@ class LayoutSelector:
         logger.info("🔍 Filtrage des candidats selon les seuils de qualité...")
         
         filtered = {}
+        debug_stats = {
+            'step_reduction': [],
+            'exchanges': [],
+            'duo_steps': []
+        }
         
         for layout_hash, candidate in candidates.items():
             # Calculer le score pondéré
-            weights = {k: v.get('weight', 0) for k, v in self.metric_weights.items()}
-            score = candidate.calculate_weighted_score(weights)
+            score = candidate.calculate_weighted_score(self.scoring_weights)
             
-            # Vérifier les seuils
-            avg_cooperation = candidate.average_cooperation_benefit()
-            avg_steps = candidate.average_duo_steps()
+            # Vérifier les seuils simplifiés
+            avg_step_reduction = candidate.average_step_reduction_percentage()
+            avg_exchanges = candidate.average_exchanges_count()
+            avg_duo_steps = candidate.average_duo_steps()
             
-            if (score >= self.quality_thresholds["min_final_score"] and
-                avg_cooperation >= self.quality_thresholds["min_cooperation_benefit"] and
-                avg_steps < float('inf')):  # Remplacer max_complexity par une vérification simple
+            # Collecter les stats pour debug
+            debug_stats['step_reduction'].append(avg_step_reduction)
+            debug_stats['exchanges'].append(avg_exchanges)
+            debug_stats['duo_steps'].append(avg_duo_steps)
+            
+            if (avg_step_reduction >= self.quality_thresholds["min_step_reduction_percentage"] and
+                avg_exchanges >= self.quality_thresholds["min_exchanges_count"] and
+                avg_duo_steps <= self.quality_thresholds["max_duo_steps"]):
                 
                 filtered[layout_hash] = candidate
+        
+        # Logs de debug pour comprendre les valeurs
+        if debug_stats['step_reduction']:
+            step_red_stats = debug_stats['step_reduction']
+            exch_stats = debug_stats['exchanges']
+            duo_stats = debug_stats['duo_steps']
+            
+            logger.info(f"📊 STATS RÉDUCTION ÉTAPES: min={min(step_red_stats):.1f}%, max={max(step_red_stats):.1f}%, moy={sum(step_red_stats)/len(step_red_stats):.1f}% (seuil: {self.quality_thresholds['min_step_reduction_percentage']}%)")
+            logger.info(f"📊 STATS ÉCHANGES: min={min(exch_stats):.1f}, max={max(exch_stats):.1f}, moy={sum(exch_stats)/len(exch_stats):.1f} (seuil: {self.quality_thresholds['min_exchanges_count']})")
+            logger.info(f"📊 STATS ÉTAPES DUO: min={min(duo_stats):.0f}, max={max(duo_stats):.0f}, moy={sum(duo_stats)/len(duo_stats):.0f} (seuil: {self.quality_thresholds['max_duo_steps']})")
         
         logger.info(f"✅ {len(filtered)} candidats passent les filtres de qualité")
         return filtered
@@ -395,31 +378,46 @@ class LayoutSelector:
             return self._select_global_best(candidates)
     
     def _select_global_best(self, candidates: Dict[str, LayoutCandidate]) -> List[LayoutCandidate]:
-        """Sélectionne les meilleurs layouts globalement"""
-        weights = {k: v.get('weight', 0) for k, v in self.metric_weights.items()}
+        """Sélectionne les meilleurs layouts globalement selon les 3 métriques simplifiées"""
         
-        # Calculer les scores et trier
+        # Calculer les scores avec tri prioritaire
         scored_candidates = []
         for candidate in candidates.values():
-            score = candidate.calculate_weighted_score(weights)
-            scored_candidates.append((score, candidate))
+            score = candidate.calculate_weighted_score(self.scoring_weights)
+            avg_exchanges = candidate.average_exchanges_count()
+            avg_step_reduction = candidate.average_step_reduction_percentage()
+            avg_duo_steps = candidate.average_duo_steps()
+            
+            # Critère de tri multi-niveaux simplifié :
+            # 1. Nombre d'échanges moyens (priorité 1)
+            # 2. Réduction d'étapes en pourcentage (priorité 2)  
+            # 3. Moins d'étapes duo = mieux (priorité 3, inversé)
+            # 4. Score global
+            sort_key = (avg_exchanges, avg_step_reduction, -avg_duo_steps, score)
+            scored_candidates.append((sort_key, candidate))
         
-        # Trier par score décroissant
+        # Trier par critères prioritaires (décroissant sauf duo_steps)
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
+        
+        # Log des meilleurs candidats pour debugging
+        logger.info("🎯 TOP CANDIDATS (échanges → réduction% → duo_steps) :")
+        for i, (sort_key, candidate) in enumerate(scored_candidates[:min(5, len(scored_candidates))]):
+            exchanges, reduction, neg_duo_steps, score = sort_key
+            duo_steps = -neg_duo_steps
+            logger.info(f"  #{i+1}: Échanges={exchanges:.1f}, Réduction={reduction:.1f}%, DuoSteps={duo_steps:.0f}, Score={score:.3f}")
         
         # Prendre les N meilleurs
         return [candidate for _, candidate in scored_candidates[:self.final_count]]
     
     def _select_best_per_recipe(self, candidates: Dict[str, LayoutCandidate]) -> List[LayoutCandidate]:
         """Sélectionne les meilleurs layouts en essayant de couvrir différents groupes de recettes"""
-        weights = {k: v.get('weight', 0) for k, v in self.metric_weights.items()}
         
         # Grouper par groupes de recettes couverts
         recipe_coverage = defaultdict(list)
         
         for candidate in candidates.values():
             recipe_groups = tuple(sorted(candidate.metrics_by_recipe.keys()))
-            score = candidate.calculate_weighted_score(weights)
+            score = candidate.calculate_weighted_score(self.scoring_weights)
             recipe_coverage[recipe_groups].append((score, candidate))
         
         # Sélectionner le meilleur de chaque groupe de recettes
@@ -432,7 +430,7 @@ class LayoutSelector:
         # Si pas assez, compléter avec les meilleurs globalement
         if len(selected) < self.final_count:
             all_candidates = list(candidates.values())
-            scored_candidates = [(candidate.calculate_weighted_score(weights), candidate) 
+            scored_candidates = [(candidate.calculate_weighted_score(self.scoring_weights), candidate) 
                                for candidate in all_candidates]
             scored_candidates.sort(key=lambda x: x[0], reverse=True)
             
@@ -448,8 +446,8 @@ class LayoutSelector:
     
     def convert_to_layout_format(self, candidate: LayoutCandidate, index: int) -> Dict:
         """Convertit un candidat au format .layout requis"""
-        # Utiliser la grille avec les positions Y optimales
-        grid = candidate.get_grid_with_y_positions()
+        # Utiliser la grille du candidat
+        grid = candidate.grid
         
         # Convertir la grille en string avec formatage spécial
         grid_lines = []
@@ -500,7 +498,7 @@ class LayoutSelector:
         for i, candidate in enumerate(selected_layouts):
             # Déterminer le groupe de recettes principal (celui avec le meilleur score)
             best_recipe_group = max(candidate.metrics_by_recipe.items(), 
-                                  key=lambda x: x[1].improvement_ratio)[0]
+                                  key=lambda x: x[1].step_reduction_percentage())[0]
             
             # Nom de fichier avec index, groupe de recettes et hash partiel
             filename = f"L{i+1:02d}_G{best_recipe_group:02d}_{candidate.layout_hash[:8]}.layout"
@@ -525,12 +523,12 @@ class LayoutSelector:
                 f.write(content)
             
             # Calculer quelques statistiques pour le log
-            weights = {k: v.get('weight', 0) for k, v in self.metric_weights.items()}
-            score = candidate.calculate_weighted_score(weights)
-            avg_coop = candidate.average_cooperation_benefit()
-            avg_steps = candidate.average_duo_steps()
+            score = candidate.calculate_weighted_score(self.scoring_weights)
+            avg_step_reduction = candidate.average_step_reduction_percentage()
+            avg_exchanges = candidate.average_exchanges_count()
+            avg_duo_steps = candidate.average_duo_steps()
             
-            logger.info(f"  ✅ {filename}: score={score:.3f}, coop={avg_coop:.3f}, steps={avg_steps:.1f}")
+            logger.info(f"  ✅ {filename}: score={score:.3f}, réduction={avg_step_reduction:.1f}%, échanges={avg_exchanges:.1f}, steps={avg_duo_steps:.0f}")
         
         # Sauvegarder un résumé de la sélection
         summary = {
@@ -543,14 +541,14 @@ class LayoutSelector:
         }
         
         for i, candidate in enumerate(selected_layouts):
-            weights = {k: v.get('weight', 0) for k, v in self.metric_weights.items()}
             layout_summary = {
                 "index": i + 1,
                 "filename": f"L{i+1:02d}_{candidate.layout_hash[:8]}.layout",
                 "layout_hash": candidate.layout_hash,
-                "weighted_score": candidate.calculate_weighted_score(weights),
-                "cooperation_benefit": candidate.average_cooperation_benefit(),
-                "average_duo_steps": candidate.average_duo_steps(),
+                "weighted_score": candidate.calculate_weighted_score(self.scoring_weights),
+                "step_reduction_percentage": candidate.average_step_reduction_percentage(),
+                "exchanges_count": candidate.average_exchanges_count(),
+                "duo_steps": candidate.average_duo_steps(),
                 "recipe_groups_covered": len(candidate.metrics_by_recipe),
                 "total_evaluations": len(candidate.metrics_by_recipe)
             }

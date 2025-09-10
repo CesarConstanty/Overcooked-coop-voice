@@ -27,12 +27,15 @@ from pathlib import Path
 from typing import Dict, Optional
 
 # Configuration du logging
+logs_dir = Path(__file__).parent.parent / "logs"
+logs_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('pipeline.log')
+        logging.FileHandler(logs_dir / 'pipeline.log')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -68,7 +71,7 @@ class OptimizedPipeline:
             return {
                 "pipeline_config": {
                     "generation": {
-                        "total_layouts_to_generate": 10000,
+                        "total_layouts_to_generate": 1000,
                         "processes": 4,
                         "batch_size": 100
                     },
