@@ -132,13 +132,13 @@
       <p>
         When a soup begins cooking, you'll notice a red number appear over the pot to
         denote the cook time. This number counts upward until the soup is done. Soup
-        cook time is determined its ingredients; every onion adds {{ onion_time }} and
-        every tomato adds {{ tomato_time }} to the cook time.
+        cook time is determined its ingredients; every onion adds {{ current_user.config["onion_time"]}} and
+        every tomato adds {{ current_user.config["tomato_time"] }} to the cook time.
       </p>
       <p>
         Additionally, the base
-        reward for any recipe is determined by its ingredients; each onion adds {{ onion_value }}
-        points and each tomato adds {{ tomato_value }} points.
+        reward for any recipe is determined by its ingredients; each onion adds {{ current_user.config["onion_value"] }}
+        points and each tomato adds {{ current_user.config["tomato_value"] }} points.
       </p>
 
       <br>
@@ -169,14 +169,14 @@
           <th>Base Reward</th>
           <th>Cook Time</th>
         </tr>
-        {% for num_tomatoes in range(max_num_ingredients) %}
-        {% for num_onions in range(max_num_ingredients) %}
-        {% if num_tomatoes + num_onions > 0 and num_onions + num_tomatoes <= max_num_ingredients %} <tr>
+        {% for num_tomatoes in range(current_user.config["max_num_ingredients"] ) %}
+        {% for num_onions in range(current_user.config["max_num_ingredients"] ) %}
+        {% if num_tomatoes + num_onions > 0 and num_onions + num_tomatoes <= current_user.config["max_num_ingredients"] %} <tr>
           <td>{{ num_onions ~ " Onion" if num_onions }} {{ num_tomatoes ~ " Tomato" if num_tomatoes }}</td>
           <td><img src="{{ " static/assets/new_sprites/soup_done_tomato_" ~ num_tomatoes ~ "_onion_" ~ num_onions
               ~ ".png" }}" style="width:75px;background-color: #e6b453;"></td>
-          <td>{{ onion_value * num_onions + tomato_value * num_tomatoes }}</td>
-          <td>{{ onion_time * num_onions + tomato_time * num_tomatoes }}</td>
+          <td>{{ current_user.config["onion_value"] * num_onions + current_user.config["tomato_value"] * num_tomatoes }}</td>
+          <td>{{ current_user.config["onion_time"] * num_onions + current_user.config["tomato_time"] * num_tomatoes }}</td>
           </tr>
           {% endif %}
           {% endfor %}
@@ -204,10 +204,10 @@
       <h3 class="text-center">Score</h3>
       <p>
         When a soup is served at the serving counter, points could potentially be added to your score.
-        The base reward for any recipe is determined by its ingredients; each onion adds {{ onion_value }}
-        points and each tomato adds {{ tomato_value }} points. Note that serving a soup in the <b>Bonus
+        The base reward for any recipe is determined by its ingredients; each onion adds {{ current_user.config["onion_value"] }}
+        points and each tomato adds {{ current_user.config["tomato_value"] }} points. Note that serving a soup in the <b>Bonus
           Orders</b>
-        multiplies the base soup score by {{ order_bonus }}. Additionally, serving a soup not in the
+        multiplies the base soup score by {{ current_user.config["order_bonus"] }}. Additionally, serving a soup not in the
         <b>All Orders</b> list results in zero points not matter what!
       </p>
 
@@ -223,7 +223,7 @@
         The current all orders, bonus orders, time, and score are all displayed
         in an info panel below the layout.
       </p>
-      {% if "E" in config["conditions"].values() %}
+      {% if "E" in current_user.config["conditions"].values() %}
       <p>
         During the experiment, you will also have to interact with agents sharing with you informations about their
         actions

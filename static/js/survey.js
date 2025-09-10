@@ -175,15 +175,21 @@ $(document).on('input change', '#qptForm input[type=range]', function() {
 });
 
 socket.on('next_step', function () {
+    console.log('[NEXT_STEP] Received next_step event');
+    
     // Récupère le numéro du bloc courant et le nombre total de blocs
     var step = parseInt($('#step').text());
     var total_blocs = parseInt($('#total_blocs').text());
+    
+    console.log(`[NEXT_STEP] Current step: ${step}, Total blocs: ${total_blocs}`);
+    
     // Si on vient de finir le dernier bloc, on redirige vers le ranking
     if (step + 1 > total_blocs) {
+        console.log('[NEXT_STEP] All blocs completed, redirecting to qex_ranking');
         window.location.href = "/qex_ranking";
     } else {
-        // MODIFICATION: Rediriger vers /planning au lieu de recharger la page
-        // Cela déclenchera la logique de vérification des tutoriels de condition
+        console.log('[NEXT_STEP] Moving to next bloc, redirecting to planning');
+        // Redirection immédiate - le serveur gère maintenant la synchronisation
         window.location.href = "/planning";
     }
 });
@@ -282,3 +288,4 @@ socket.on('hoffman', function () {
         }, 1000);
     }
 });
+

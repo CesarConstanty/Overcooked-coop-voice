@@ -231,38 +231,84 @@ socket.on('state_pong', function(data) {
 });
 
 socket.on('end_game', function(data) {
-    // Hide game data and display game-over html
-    graphics_end();
-    if (!window.spectating) {
-        disable_key_listener();
+    console.log('[END_GAME] Received end_game event with status:', data.status);
+    console.log('[END_GAME] Data:', data);
+    
+    // Fonction de nettoyage centralisée
+    function performCleanup() {
+        // Arrêter immédiatement la surveillance des inputs et le jeu
+        if (!window.spectating) {
+            disable_key_listener();
+        }
+        
+        // Arrêter tous les intervalles en cours
+        if (window.intervalID !== -1) {
+            clearInterval(window.intervalID);
+            window.intervalID = -1;
+        }
+        
+        // Nettoyer l'état graphique
+        if (typeof graphics_end === 'function') {
+            try {
+                graphics_end();
+            } catch(e) {
+                console.log('[END_GAME] Warning: graphics_end failed:', e);
+            }
+        }
+        
+        // Vider le contenu du jeu
+        $("#overcooked").empty();
+        
+        // Masquer tous les éléments de jeu
+        $('#game-title').hide();
+        $('#overcooked').hide();
+        $('#leave').hide();
+        $('#leave').attr("disabled", true);
     }
-    let bloc = $('#bloc').text();
-    let step = $('#step').text();
     
-    // Vérifier si c'est un questionnaire post-trial ou post-bloc
-    if (data.show_post_trial_questionnaire && !data.is_last_trial_in_bloc) {
-        // Questionnaire post-trial
-        console.log(`[POST_TRIAL] Affichage du questionnaire post-trial pour l'essai ${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc}`);
-        $('#overcooked-container').append(`<h4>Please answer a few questions about the trial you just completed (${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc})</h4>`);
-    } else if (data.is_last_trial_in_bloc) {
-        // Questionnaire post-bloc
-        console.log(`[POST_BLOC] Affichage du questionnaire post-bloc après ${data.total_trials_in_bloc} essais`);
-        $('#overcooked-container').append(`<h4>Now we are going to ask you a few questions about your feeling during the last games</h4>`);
-    } else {
-        // Cas par défaut
-        $('#overcooked-container').append(`<h4>Now we are going to ask you a few questions about your feeling during the last games</h4>`);
-    }
+    // Effectuer le nettoyage immédiatement
+    performCleanup();
     
-    $('#game-title').hide();
-    $('#game-over').show();
-    $('#overcooked').hide();
-    $('#answer').attr("disabled", false);
-    $("#leave").hide();
-    $('#leave').attr("disabled", true)
-    
-    // Game ended unexpectedly
-    if (data.status === 'inactive') {
+    // Gérer l'affichage selon le statut
+    if (data.status === 'done') {
+        let bloc = $('#bloc').text();
+        let step = $('#step').text();
+        
+        // Afficher le message approprié
+        if (data.show_post_trial_questionnaire && !data.is_last_trial_in_bloc) {
+            console.log(`[POST_TRIAL] Affichage du questionnaire post-trial pour l'essai ${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc}`);
+            $('#overcooked-container').append(`<h4>Please answer a few questions about the trial you just completed (${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc})</h4>`);
+        } else if (data.is_last_trial_in_bloc) {
+            console.log(`[POST_BLOC] Affichage du questionnaire post-bloc après ${data.total_trials_in_bloc} essais`);
+            $('#overcooked-container').append(`<h4>Now we are going to ask you a few questions about your feeling during the last games</h4>`);
+        } else {
+            $('#overcooked-container').append(`<h4>Now we are going to ask you a few questions about your feeling during the last games</h4>`);
+        }
+        
+        $('#game-over').show();
+        $('#answer').attr("disabled", false);
+    } else if (data.status === 'inactive') {
         $('#error-exit').show();
+    }
+    
+    // Si une confirmation est requise, l'envoyer
+    if (data.requires_confirmation) {
+        console.log('[END_GAME] Sending confirmation to server');
+        // Utiliser un petit délai pour s'assurer que le DOM est mis à jour
+        setTimeout(function() {
+            socket.emit('end_game_confirmed', {game_ready: true});
+        }, 100);
+    }
+    
+    console.log('[END_GAME] UI cleanup completed');
+});
+
+// Gestion de la demande de confirmation du serveur
+socket.on('wait_end_game_confirmation', function(data, callback) {
+    console.log('[END_GAME] Server requesting confirmation');
+    // Répondre immédiatement que le client est prêt
+    if (callback) {
+        callback(true);
     }
 });
 
@@ -341,3 +387,11 @@ var arrToJSON = function(arr) {
     }
     return retval;
 };
+
+// Gestion de la demande de confirmation pour reset
+socket.on('reset_game_confirmation', function(data, callback) {
+    console.log('[RESET_GAME] Server requesting reset confirmation');
+    if (callback) {
+        callback(true);
+    }
+});

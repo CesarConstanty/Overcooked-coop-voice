@@ -213,8 +213,8 @@
       bank.appendChild(item);
     });
 
-    // Create empty slots
-    Array.from({ length: {{ num_blocs }} }).forEach(() => {
+    // Create empty slots (same number as conditions)
+    Array.from({ length: conditions.length }).forEach(() => {
       const slot = document.createElement('div');
       slot.className = 'arrow-slot';
       slot.ondrop = drop;
@@ -255,7 +255,7 @@
       if (preferenceSubmitted) return; // Prevent any changes if already submitted
       
       const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
-      const allSlotsFilled = (filled.length === {{ num_blocs }});
+      const allSlotsFilled = (filled.length === conditions.length); // Check against number of conditions
       submitBtn.disabled = !allSlotsFilled; // Enable if all slots are filled
 
       if (allSlotsFilled) {
@@ -285,7 +285,7 @@
       
       // Check if form is complete (manual submission)
       const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
-      const allSlotsFilled = (filled.length === {{ num_blocs }});
+      const allSlotsFilled = (filled.length === conditions.length); // Check against number of conditions
       
       if (!allSlotsFilled) {
         event.preventDefault();

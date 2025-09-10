@@ -132,8 +132,8 @@
       <p>
         When a soup begins cooking, you'll notice a red number appear over the pot to
         denote the cook time. This number counts upward until the soup is done. Soup
-        cook time is determined its ingredients; every onion adds {{ onion_time }} and
-        every tomato adds {{ tomato_time }} to the cook time.
+        cook time is determined its ingredients; every onion adds {{ current_user.config["onion_time"]}} and
+        every tomato adds {{ current_user.config["tomato_time"] }} to the cook time.
       </p>
 
       <br>

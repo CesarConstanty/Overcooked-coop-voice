@@ -96,12 +96,12 @@
 
 <body>
   <!-- User and Config Info -->
-  <div id="uid" style="display:none;">{{uid}}</div>
-  <div id="step" style="display:none;">{{ step }}</div>
-  <div id="condition" style="display:none;">{{condition}}</div>
-  <div id="config" style="display:none;">{{config}}</div>
-  <div id="trials" style="display:none;">{{trials}}</div>
-  <div id="total_blocs" style="display:none;">{{ total_blocs }}</div>
+  <div id="uid" style="display:none;">{{current_user.uid}}</div>
+  <div id="step" style="display:none;">{{ current_user.step }}</div>
+  <div id="condition" style="display:none;">{{current_user.config["conditions"][current_user.config["bloc_order"][current_user.step]]}}</div>
+  <div id="config" style="display:none;">{{current_user.config}}</div>
+  <div id="trials" style="display:none;">{{current_user.config["blocs"][current_user.config["bloc_order"][current_user.step]]}}</div>
+  <div id="total_blocs" style="display:none;">{{ current_user.config["bloc_order"]|length }}</div>
 
 
   <!-- Game States -->
@@ -206,10 +206,10 @@
 </div>
 
 <div id="qpb_timer_value" style="display:none;">
-  {{ qpb_length }}
+  {{ current_user.config.get("qpb_length", 300) }}
 </div>
 <div id="hoffman_timer_value" style="display:none;">
-  {{ hoffman_length }}
+  {{ current_user.config.get("hoffman_length", 300) }}
 </div>
 
   <!-- No JS fallback -->
