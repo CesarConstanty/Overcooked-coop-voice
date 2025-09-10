@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {
   "Q1": {
     "name": "Q1",
@@ -121,263 +120,6 @@
   },
   "Q8": {
     "name": "Q8",
-    "title": "I understand the agent's intentions.",
-    "cat": "Communication",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q9": {
-    "name": "Q9",
-    "title": "The agent depends on me to complete its work.",
-    "cat": "Dependence",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q10": {
-    "name": "Q10",
-    "title": "The agent relies on my input to function.",
-    "cat": "Dependence",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q11": {
-    "name": "Q11",
-    "title": "The agent and I work together in a well-coordinated way.",
-    "cat": "Coordination",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q12": {
-    "name": "Q12",
-    "title": "The agent and I operate in sync.",
-    "cat": "Coordination",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q13": {
-    "name": "Q13",
-    "title": "I feel connected to the agent.",
-    "cat": "Cohesion",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q14": {
-    "name": "Q14",
-    "title": "I enjoy working with the agent.",
-    "cat": "Cohesion",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q15": {
-    "name": "Q15",
-    "title": "The agent is like a teammate.",
-    "cat": "Cohesion",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  }
-=======
-{
-  "Q1": {
-    "name": "Q1",
-    "title": "The agent has the ability to make decisions on its own.",
-    "cat": "Autonomy",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q2": {
-    "name": "Q2",
-    "title": "The agent can act without input from others.",
-    "cat": "Autonomy",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q3": {
-    "name": "Q3",
-    "title": "The agent operates independently.",
-    "cat": "Autonomy",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q4": {
-    "name": "Q4",
-    "title": "The agent wants to help me.",
-    "cat": "Helpfulness",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q5": {
-    "name": "Q5",
-    "title": "The agent behaves in ways that benefit me.",
-    "cat": "Helpfulness",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q6": {
-    "name": "Q6",
-    "title": "The agent and I exchange information well.",
-    "cat": "Communication",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q7": {
-    "name": "Q7",
-    "title": "The agent communicates clearly.",
-    "cat": "Communication",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q8": {
-    "name": "Q7",
     "title": "The agent's communications were confusing.",
     "cat": "Communication",
     "reversed": "False",
@@ -394,7 +136,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q9": {
-    "name": "Q8",
+    "name": "Q9",
     "title": "I understand the agent's intentions.",
     "cat": "Communication",
     "reversed": "False",
@@ -411,7 +153,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q10": {
-    "name": "Q9",
+    "name": "Q10",
     "title": "The agent depends on me to complete its work.",
     "cat": "Dependence",
     "reversed": "False",
@@ -428,7 +170,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q11": {
-    "name": "Q10",
+    "name": "Q11",
     "title": "The agent relies on my input to function.",
     "cat": "Dependence",
     "reversed": "False",
@@ -445,7 +187,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q12": {
-    "name": "Q11",
+    "name": "Q12",
     "title": "The agent and I work together in a well-coordinated way.",
     "cat": "Coordination",
     "reversed": "False",
@@ -462,7 +204,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q13": {
-    "name": "Q12",
+    "name": "Q13",
     "title": "The agent and I operate in sync.",
     "cat": "Coordination",
     "reversed": "False",
@@ -479,7 +221,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q14": {
-    "name": "Q13",
+    "name": "Q14",
     "title": "I feel connected to the agent.",
     "cat": "Cohesion",
     "reversed": "False",
@@ -496,7 +238,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q15": {
-    "name": "Q14",
+    "name": "Q15",
     "title": "I enjoy working with the agent.",
     "cat": "Cohesion",
     "reversed": "False",
@@ -513,7 +255,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q16": {
-    "name": "Q14",
+    "name": "Q16",
     "title": "I hate working with the agent.",
     "cat": "Cohesion",
     "reversed": "False",
@@ -530,7 +272,7 @@
     "steps": [0, 1, 2, 3, 4]
   },
   "Q17": {
-    "name": "Q15",
+    "name": "Q17",
     "title": "The agent is like a teammate.",
     "cat": "Cohesion",
     "reversed": "False",
@@ -546,5 +288,4 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   }
->>>>>>> toward_experiement_1
 }
