@@ -576,15 +576,49 @@ def index():
         session["type"] = "PROLIFIC"
     else:
         uid = request.args.get('TEST_UID', default=None)
-        #uid = int(time.time())
         session["type"] = "TEST"
     if uid:
         user = User.query.filter_by(uid=uid).first()
-        #user = False
         if user:
             login_user_session(user)
         else:
             new_user = User(uid=uid, config=config, step=0, trial=0)
+            
+            # Gestion des questionnaires post-trial (depuis old_app.py)
+            try:
+                if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
+                    with open("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"], 'r', encoding='utf-8') as f:
+                        qpt = json.load(f)
+                    f.close()
+                    new_user.config["qpt"] = qpt
+            except KeyError:
+                new_user.config["qpt"] = {}
+                
+            # Gestion des questionnaires post-bloc (depuis old_app.py)
+            try:
+                if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
+                    with open("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"], 'r', encoding='utf-8') as f:
+                        qpb = json.load(f)
+                    f.close()
+                    new_user.config["qpb"] = qpb
+            except KeyError:
+                new_user.config["qpb"] = {}
+                
+            # Gestion questionnaire hoffman
+            try:
+                if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
+                    with open("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"], 'r', encoding='utf-8') as f:
+                        hoffman = json.load(f)
+                    f.close()
+                    new_user.config["hoffman"] = hoffman
+            except KeyError:
+                new_user.config["hoffman"] = {}
+            
+            # Shuffle des trials si nécessaire (depuis old_app.py)
+            if new_user.config.get("shuffle_trials", False) == True:
+                for key, value in new_user.config["blocs"].items():
+                    random.shuffle(value)
+            
             # gère la randomisation des blocs
             if new_user.config.get("shuffle_blocs", False):
                 # SHUFFLE_BLOCS = TRUE : Ordre aléatoire
@@ -603,56 +637,11 @@ def index():
                 if bloc_keys:
                     premier_bloc = bloc_keys[0]
                     print(f"📋 Premier bloc sélectionné (step 0): {premier_bloc}")
-                    print(f"📋 Condition du premier bloc: {new_user.config.get('conditions', {}).get(premier_bloc, 'Non définie')}")
-                else:
-                    print("⚠️  Aucun bloc défini dans la configuration")
-            if new_user.config.get("shuffle_trials", False) == True: # gère la randomisation des essais
-                for key, value in new_user.config["blocs"].items():
-                    random.shuffle(value)
-            # Chargement des questionnaires post trial et post bloc
-            ## -- qpt
-            try:
-                if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
-                    with open("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"], 'r', encoding='utf-8') as f:
-                        qpt = json.load(f)
-                    f.close()
-                    new_user.config["qpt"] = qpt
-            except KeyError:
-                new_user.config["qpt"] = {}
             
-            ## -- qpb
-            try:
-                if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
-                    with open("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"], 'r', encoding='utf-8') as f:
-                        qpb = json.load(f)
-                    f.close()
-                    new_user.config["qpb"] = qpb
-            except KeyError:
-                new_user.config["qpb"] = {}
-            ## -- hoffman
-            try:
-                if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
-                    with open("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"], 'r', encoding='utf-8') as f:
-                        hoffman = json.load(f)
-                    f.close()
-                    new_user.config["hoffman"] = hoffman
-                    #print("hada",hoffman)
-            except KeyError:
-                new_user.config["hoffman"] = {}
-                #print("erhada",hoffman)
-
-
             db.session.add(new_user)
             db.session.commit()
             login_user_session(new_user)
-        
-        # Récupérer l'utilisateur pour passer ses données au template
-        user = User.query.filter_by(uid=uid).first()
-        if user:
-            return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS, user_config=user.config) #--- uncomment
-        else:
-            return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS) #--- uncomment
-        #return redirect(url_for('planning'))
+        return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
     else:
         return render_template('UID_error.html')
 
@@ -678,7 +667,7 @@ def instructions():
     is_explained = False
     
     # Tester si au moins une intention est donnée à un moment donné
-    all_conditions = [item for sublist in [list(bloc.values()) for bloc in condition.values()] for item in sublist] if condition else []
+    all_conditions = list(condition.values()) if condition else []
     if any(all_conditions):
         is_explained = True
     
