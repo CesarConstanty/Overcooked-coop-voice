@@ -1,14 +1,23 @@
+version: '3.11'
+
 services:
   overcooked:
-    image: overcooked:xp1
-    # build:
-    #   dockerfile: Dockerfile
+    build: .
+    container_name: overcooked-app
+    ports:
+      - "5000:5000"
+    volumes:
+      # Base de données SQLite identifiant les participants
+      - ./data/instance:/overcooked/instance
+      
+      # Résultats des participants 
+      - ./data/trajectories:/overcooked/trajectories
+      
+      # Cache des planificateurs IA
+      - ./data/overcooked_ai_py/data/planners:/overcooked/overcooked_ai_py/data/planners
+
+      # Logs des erreurs éventuelles
+      - ./data/logs:/overcooked 
     environment:
       - FLASK_ENV=production
-    ports:
-      - 5000:5000
-    volumes:
-      - ./OUTPUT:/overcooked/trajectories/
-
-
-# docker compose up --no-build
+    restart: unless-stopped

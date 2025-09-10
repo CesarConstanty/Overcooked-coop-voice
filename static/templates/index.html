@@ -78,14 +78,22 @@
       We appreciate your interest in participating in this online task.
       You have been invited to participate as you are between 18 and 35 years old. Please read through
       this information before agreeing to participate (if you wish to) by
-      ticking the ‘I consent’ box below.
+      ticking the 'I consent' box below.
       You may ask any questions before deciding to take part by contacting the
       researcher (details below).
-      The Principal Researcher is <a href=mailto::{{current_user.config['researcher']['email']}}>{{current_user.config['researcher']['name']}}</a>
+      {% if user_config %}
+      The Principal Researcher is <a href=mailto::{{user_config['researcher']['email']}}>{{user_config['researcher']['name']}}</a>
       , PhD student attached to the
-      {{current_user.config['researcher']['institution']}} and the {{current_user.config['supervisor']['institution']}} of {{current_user.config["researcher"]["university"]}}. This
-      project is being completed under the supervision of Pr. {{current_user.config['supervisor']['name']}} ({{current_user.config['supervisor']['institution']}})
+      {{user_config['researcher']['institution']}} and the {{user_config['supervisor']['institution']}} of {{user_config["researcher"]["university"]}}. This
+      project is being completed under the supervision of Pr. {{user_config['supervisor']['name']}} ({{user_config['supervisor']['institution']}})
       and Dr. Bruno Berberian (ONERA).
+      {% else %}
+      The Principal Researcher is [Researcher Name]
+      , PhD student attached to the
+      [Institution] and the [Supervisor Institution] of [University]. This
+      project is being completed under the supervision of [Supervisor Name] ([Institution])
+      and Dr. Bruno Berberian (ONERA).
+      {% endif %}
       You will be asked to
       play a cooperative game inspired from <a href=https://en.wikipedia.org/wiki/Overcooked>Overcooked</a> . This
       should take about 60 minutes. No background knowledge is required.
@@ -122,12 +130,21 @@
         I have a concern or I wish to complain?</h3>
       <p class="text-left">If you
       have a concern about any aspect of this study, please speak to
-      {{current_user.config['researcher']['name']}} (<a href="{{current_user.config['researcher']['email']}}">e-mail</a>) or his
-      supervisor {{current_user.config['supervisor']['name']}} (<a href="{{current_user.config['supervisor']['name']}}">e-mail</a>), and we will do our best
+      {% if user_config %}
+      {{user_config['researcher']['name']}} (<a href="{{user_config['researcher']['email']}}">e-mail</a>) or his
+      supervisor {{user_config['supervisor']['name']}} (<a href="{{user_config['supervisor']['email']}}">e-mail</a>), and we will do our best
+      {% else %}
+      [Researcher Name] (<a href="[email]">e-mail</a>) or his
+      supervisor [Supervisor Name] (<a href="[email]">e-mail</a>), and we will do our best
+      {% endif %}
       to answer your query. We will acknowledge your concern within 10
       working days and give you an indication of how it will be dealt with.
       If you remain unhappy or wish to make a formal complaint, please
-      contact the {{current_user.config['researcher']['university']}} ethical committee
+      {% if user_config %}
+      contact the {{user_config['researcher']['university']}} ethical committee
+      {% else %}
+      contact the [University] ethical committee
+      {% endif %}
       who will seek to resolve the matter as soon as possible.</p>
       <p class="text-left"><b>Please note that you may only participate in this study
         if you are 18 years old or over.</b></p>
@@ -152,22 +169,13 @@
           <button type="submit" class="btn btn-primary">Submit</button>
         </div>
       </form>
+    </main>
+    <footer class="pt-5 my-5 text-muted border-top">
+    </footer>
   </div>
-  </main>
-  <footer class="pt-5 my-5 text-muted border-top">
-  </footer>
-  </div>
-
 
   <script src="static/js/bootstrap.bundle.min.js"></script>
-
 
 </body>
 
 </html>
-
-
-<body>
-
-
-</body>
