@@ -171,11 +171,11 @@
         </p>
         <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">Accountability is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent involved.</p>
         <input type="range" name="q3" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
-        <div class="label-row" style="display:flex; justify-content:space-between; font-size:1rem; color:#6a7a99; margin-top:0.5rem;">
-          <span>Me (0)</span>
-          <span>The team (50)</span>
-          <span>Artificial agent (100)</span>
-        </div>
+      <div class="label-row" style="display:flex; justify-content:space-between; align-items:center; font-size:1rem; color:#6a7a99; margin-top:0.5rem; position:relative;">
+        <span style="flex: 1; text-align: left;">{{ accountability_labels[0] }}</span>
+        <span style="position: absolute; left: 50%; transform: translateX(-50%);">The team</span>
+        <span style="flex: 1; text-align: right;">{{ accountability_labels[1] }}</span>
+      </div>
       </div>
       <button type="submit" disabled
         style="margin:2.5rem auto 0 auto; display:block; padding:14px 44px; font-size:1.15rem; background:linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%); color:#fff; border:none; border-radius:8px; box-shadow:0 2px 8px rgba(60,60,120,0.10); font-weight:600; letter-spacing:1px; transition:background 0.2s,transform 0.1s;">

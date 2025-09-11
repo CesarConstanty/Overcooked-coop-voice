@@ -639,6 +639,19 @@ def index():
                     premier_bloc = bloc_keys[0]
                     print(f"📋 Premier bloc sélectionné (step 0): {premier_bloc}")
             
+            # Gère la randomisation des labels d'attribution de responsabilité
+            if new_user.config.get("randomize_accountability_labels", False):
+                # RANDOMIZE_ACCOUNTABILITY_LABELS = TRUE : Ordre aléatoire des labels
+                accountability_labels = ["Me", "The artificial agent"]
+                random.shuffle(accountability_labels)
+                new_user.config["accountability_label_order"] = accountability_labels
+                print(f"🎲 RANDOMIZE_ACCOUNTABILITY_LABELS=TRUE - Ordre randomisé: {accountability_labels}")
+            else:
+                # RANDOMIZE_ACCOUNTABILITY_LABELS = FALSE : Ordre standard (moi, IA)
+                accountability_labels = ["Entièrement dû à moi", "Entièrement dû à l'IA"]
+                new_user.config["accountability_label_order"] = accountability_labels
+                print(f"📋 RANDOMIZE_ACCOUNTABILITY_LABELS=FALSE - Ordre standard: {accountability_labels}")
+            
             db.session.add(new_user)
             db.session.commit()
             login_user_session(new_user)
@@ -890,7 +903,8 @@ def planning():
         trials=json.dumps(current_trials),
         total_blocs=total_blocs,
         qpb_length=current_user.config.get("qpb_length", 300),
-        hoffman_length=current_user.config.get("hoffman_length", 300)
+        hoffman_length=current_user.config.get("hoffman_length", 300),
+        accountability_labels=current_user.config.get("accountability_label_order", ["Entièrement dû à moi", "Entièrement dû à l'IA"])
     )
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
@@ -1473,6 +1487,7 @@ def post_qpt(data):
     form = {}
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
+    
     condition = current_user.config["conditions"][bloc_key]
     form["timeout_bool"] = data["timeout_bool"]
     form["step"] = current_user.step
