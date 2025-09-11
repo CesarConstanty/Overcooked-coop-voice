@@ -698,22 +698,14 @@ def instructions():
                     onion_value = config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21))
                     tomato_value = config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13))
                     
-                    if isAgency:
-                        return render_template('instructions_recipe_Agency.html', 
-                                             is_explained=is_explained,
-                                             onion_time=onion_time,
-                                             tomato_time=tomato_time,
-                                             onion_value=onion_value,
-                                             tomato_value=tomato_value,
-                                             config=config)
-                    else :
-                        return render_template('instructions_recipe.html', 
-                                             is_explained=is_explained,
-                                             onion_time=onion_time,
-                                             tomato_time=tomato_time,
-                                             onion_value=onion_value,
-                                             tomato_value=tomato_value,
-                                             config=config)
+
+                    return render_template('instructions_recipe.html', 
+                                            is_explained=is_explained,
+                                            onion_time=onion_time,
+                                            tomato_time=tomato_time,
+                                            onion_value=onion_value,
+                                            tomato_value=tomato_value,
+                                            config=config)
                 #return redirect(url_for('qvg_survey'))
 
             else:

@@ -73,6 +73,8 @@
 
     <section class="card">
       <h3>Gameplay Basics</h3>
+      
+      <!-- First row: Movement and Cooking -->
       <div class="flex-container">
         <div class="flex-item">
           <h4>Movement and interactions</h4>
@@ -91,21 +93,32 @@
         </div>
         
         <div class="flex-item">
-          <h4>Cooperating through exchanges</h4>
+          <h4>Cooking</h4>
           <figure>
-            <img src="static/images/onion_exchange.gif" alt="Exchange example">
+            <img src="static/images/soup.png" alt="Soup cooking" style="max-width:250px;">
           </figure>
-          <p>You can use exchanges areas to give assets to the artificial agent. To do so, you have to pick an asset using <strong>spacebar</strong> and to put it on the exchange area using <strong>spacebar</strong> again.</p>
+          <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to 3 ingredients.</p>
+          <p>A red number appears over the pot to indicate cook time. It counts upward until the soup is done. Each onion adds {{ onion_time }} and each tomato adds {{ tomato_time }} to the cook time. Remember that onions grant more points than tomatoes but take longer to be cooked!</p>
         </div>
       </div>
 
-      <div style="max-width: 500px; margin: 20px 0;">
-        <h4>Cooking</h4>
-        <figure>
-          <img src="static/images/soup.png" alt="Soup cooking" style="max-width:250px;">
-        </figure>
-        <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to 3 ingredients.</p>
-        <p>A red number appears over the pot to indicate cook time. It counts upward until the soup is done. Each onion adds {{ onion_time }} and each tomato adds {{ tomato_time }} to the cook time. Remember that onions grant more points than tomatoes but take longer to be cooked!</p>
+      <!-- Second row: Cooperation and In-game behavior -->
+      <div class="flex-container">
+        <div class="flex-item">
+          <h4>Exchange zone mecanics</h4>
+          <figure>
+            <img src="static/images/onion_exchange.gif" alt="Exchange zone mecanics">
+          </figure>
+          <p>You can use exchanges areas to give assets to the artificial agent. To do so, you have to pick an asset using <strong>spacebar</strong> and to put it on the exchange area using <strong>spacebar</strong> again.</p>
+        </div>
+        
+        <div class="flex-item">
+          <h4>In-game behavior</h4>
+          <figure>
+            <img src="static/images/comportement_chacun_sa_recette.gif" alt="In-game behavior example">
+            <p>You and the artificial agent must complete the different recipes indicated in the All Orders list.</p>
+          </figure>
+        </div>
       </div>
     </section>
 
