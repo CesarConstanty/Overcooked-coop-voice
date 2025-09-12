@@ -83,7 +83,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V1_short_game" : {
         "mechanic" : "recipe",
@@ -147,7 +151,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V1_short" : {
         "mechanic" : "recipe",
@@ -211,7 +219,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V1" : {
         "mechanic" : "recipe",
@@ -275,7 +287,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V2" : {
         "mechanic" : "recipe",
@@ -339,7 +355,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V3" : {
         "mechanic" : "recipe",
@@ -403,7 +423,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 15,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V4" : {
         "mechanic" : "recipe",
@@ -467,7 +491,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 15,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V5" : {
         "mechanic" : "recipe",
@@ -531,7 +559,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 25,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V6" : {
         "mechanic" : "recipe",
@@ -595,7 +627,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 26,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V7" : {
         "mechanic" : "recipe",
@@ -659,7 +695,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "tutorial" : {
         "tutorialParams" : {

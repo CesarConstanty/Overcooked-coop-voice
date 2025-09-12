@@ -718,7 +718,9 @@ def instructions():
                                             tomato_time=tomato_time,
                                             onion_value=onion_value,
                                             tomato_value=tomato_value,
-                                            config=config)
+                                            config=config,
+                                            timer_max=config.get('explications_generales_max', 600),
+                                            timer_min=config.get('explications_generales_min', 120))
                 #return redirect(url_for('qvg_survey'))
 
             else:
@@ -1287,7 +1289,9 @@ def condition_tutorial():
         uid=uid, 
         condition=condition_label,
         bloc_id=bloc_key,
-        step=current_user.step
+        step=current_user.step,
+        timer_max=current_user.config.get('explications_block_max', 600),
+        timer_min=current_user.config.get('explications_block_min', 60)
     )
 
 

@@ -94,10 +94,16 @@
     <script src="static/lib/jquery-min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" 
             integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="static/js/page-timer.js"></script>
     
     <script>
-        // Script pour gérer le bouton de démarrage du bloc
+        // Script pour gérer le bouton de démarrage du bloc avec timer
         $(document).ready(function() {
+            // Initialiser le système de timer pour les tutoriels de bloc
+            const timerMin = {{ timer_min|default(60) }};
+            const timerMax = {{ timer_max|default(600) }};
+            initPageTimer(timerMin, timerMax, '#start-bloc');
+            
             $('#start-bloc').click(function() {
                 // Redirection vers la route planning avec paramètre pour éviter la boucle de redirection
                 window.location.href = '/planning?from_condition_tutorial=true';
