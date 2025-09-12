@@ -28,13 +28,16 @@ class PageTimer {
     }
     
     init() {
-        // Créer l'affichage du timer
-        this.createTimerDisplay();
-        
         // Récupérer le bouton next
         this.nextButton = document.querySelector(this.nextButtonSelector);
         
         if (this.nextButton) {
+            // Créer l'affichage du timer minimum au-dessus du bouton
+            this.createMinTimerDisplay();
+            
+            // Créer l'affichage du timer maximum (discret)
+            this.createMaxTimerDisplay();
+            
             // Désactiver le bouton initialement
             this.disableNextButton();
             
@@ -45,32 +48,63 @@ class PageTimer {
         }
     }
     
-    createTimerDisplay() {
-        // Créer un conteneur pour le timer
-        this.timerDisplay = document.createElement('div');
-        this.timerDisplay.id = 'page-timer-display';
-        this.timerDisplay.style.cssText = `
-            position: fixed;
-            top: 24px;
-            right: 24px;
+    createMinTimerDisplay() {
+        // Créer un conteneur pour le timer minimum au-dessus du bouton
+        this.minTimerDisplay = document.createElement('div');
+        this.minTimerDisplay.id = 'min-timer-display';
+        this.minTimerDisplay.style.cssText = `
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
             color: #e2e8f0;
-            padding: 16px 20px;
-            border-radius: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
             border: 1px solid rgba(56, 189, 248, 0.3);
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Inter, Arial, sans-serif;
             font-size: 14px;
             font-weight: 500;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            z-index: 1000;
-            min-width: 280px;
-            text-align: left;
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.15);
+            margin-bottom: 16px;
+            text-align: center;
             backdrop-filter: blur(8px);
             transition: all 0.3s ease-in-out;
         `;
         
-        document.body.appendChild(this.timerDisplay);
-        this.updateDisplay();
+        // Insérer le timer au-dessus du bouton
+        this.nextButton.parentNode.insertBefore(this.minTimerDisplay, this.nextButton);
+    }
+    
+    createMaxTimerDisplay() {
+        // Créer un conteneur pour le timer maximum (discret, en haut à droite)
+        this.maxTimerDisplay = document.createElement('div');
+        this.maxTimerDisplay.id = 'max-timer-display';
+        this.maxTimerDisplay.style.cssText = `
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(15, 23, 42, 0.7);
+            color: rgba(226, 232, 240, 0.8);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Inter, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0.6;
+        `;
+        
+        // Effet hover pour plus de visibilité si nécessaire
+        this.maxTimerDisplay.addEventListener('mouseenter', () => {
+            this.maxTimerDisplay.style.opacity = '0.9';
+        });
+        
+        this.maxTimerDisplay.addEventListener('mouseleave', () => {
+            this.maxTimerDisplay.style.opacity = '0.6';
+        });
+        
+        document.body.appendChild(this.maxTimerDisplay);
     }
     
     formatTime(seconds) {
@@ -80,10 +114,14 @@ class PageTimer {
     }
     
     updateDisplay() {
-        if (!this.timerDisplay) return;
+        this.updateMinTimer();
+        this.updateMaxTimer();
+    }
+    
+    updateMinTimer() {
+        if (!this.minTimerDisplay) return;
         
         const minRemaining = Math.max(0, this.minSeconds - this.currentTime);
-        const maxRemaining = Math.max(0, this.maxSeconds - this.currentTime);
         
         let statusText = '';
         let statusColor = '#e2e8f0';
@@ -102,30 +140,59 @@ class PageTimer {
             progressWidth = 100;
         }
         
-        this.timerDisplay.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        this.minTimerDisplay.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
                 <span style="font-size: 16px;">${statusIcon}</span>
-                <div style="flex: 1;">
-                    <div style="color: ${statusColor}; font-weight: 600; font-size: 15px; margin-bottom: 2px;">
-                        ${statusText}
-                    </div>
-                    <div style="font-size: 12px; color: #94a3b8;">
-                        ${minRemaining > 0 ? `Minimum time: ${this.formatTime(minRemaining)}` : 'Ready to proceed'}
-                    </div>
+                <div style="color: ${statusColor}; font-weight: 600; font-size: 15px;">
+                    ${statusText}
                 </div>
             </div>
             
-            <div style="margin-bottom: 10px;">
-                <div style="background: rgba(148, 163, 184, 0.2); height: 4px; border-radius: 2px; overflow: hidden;">
-                    <div style="width: ${progressWidth}%; height: 100%; background: ${statusColor}; transition: width 0.3s ease;"></div>
+            ${minRemaining > 0 ? `
+                <div style="margin-bottom: 8px;">
+                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px; text-align: center;">
+                        Minimum reading time: ${this.formatTime(minRemaining)}
+                    </div>
+                    <div style="background: rgba(148, 163, 184, 0.2); height: 4px; border-radius: 2px; overflow: hidden;">
+                        <div style="width: ${progressWidth}%; height: 100%; background: ${statusColor}; transition: width 0.3s ease;"></div>
+                    </div>
                 </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b;">
-                <span>📋 Read instructions</span>
-                <span>⏱️ Auto-redirect: ${this.formatTime(maxRemaining)}</span>
+            ` : ''}
+        `;
+        
+        // Masquer progressivement quand le timer minimum est fini
+        if (minRemaining === 0) {
+            setTimeout(() => {
+                if (this.minTimerDisplay && minRemaining === 0) {
+                    this.minTimerDisplay.style.opacity = '0.7';
+                    this.minTimerDisplay.style.transform = 'scale(0.95)';
+                }
+            }, 2000);
+        }
+    }
+    
+    updateMaxTimer() {
+        if (!this.maxTimerDisplay) return;
+        
+        const maxRemaining = Math.max(0, this.maxSeconds - this.currentTime);
+        
+        this.maxTimerDisplay.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 12px;">⏱️</span>
+                <span style="font-size: 11px;">Auto-redirect: ${this.formatTime(maxRemaining)}</span>
             </div>
         `;
+        
+        // Rendre plus visible quand il reste peu de temps
+        if (maxRemaining <= 60) {
+            this.maxTimerDisplay.style.opacity = '0.9';
+            this.maxTimerDisplay.style.background = 'rgba(239, 68, 68, 0.8)';
+            this.maxTimerDisplay.style.color = '#fff';
+        } else if (maxRemaining <= 120) {
+            this.maxTimerDisplay.style.opacity = '0.8';
+            this.maxTimerDisplay.style.background = 'rgba(245, 158, 11, 0.8)';
+            this.maxTimerDisplay.style.color = '#fff';
+        }
     }
     
     disableNextButton() {
@@ -199,6 +266,7 @@ class PageTimer {
     }
     
     startTimer() {
+        this.updateDisplay();
         this.timerInterval = setInterval(() => {
             this.currentTime++;
             this.updateDisplay();
@@ -221,37 +289,26 @@ class PageTimer {
             clearInterval(this.timerInterval);
         }
         
-        // Afficher un message d'avertissement avant la redirection
-        if (this.timerDisplay) {
-            this.timerDisplay.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; padding: 8px;">
-                    <span style="font-size: 24px;">⏰</span>
+        // Afficher un message d'avertissement dans le timer maximum
+        if (this.maxTimerDisplay) {
+            this.maxTimerDisplay.style.opacity = '1';
+            this.maxTimerDisplay.style.background = 'rgba(239, 68, 68, 0.95)';
+            this.maxTimerDisplay.style.color = '#fff';
+            this.maxTimerDisplay.style.padding = '12px 16px';
+            this.maxTimerDisplay.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">⏰</span>
                     <div>
-                        <div style="color: #ef4444; font-weight: bold; font-size: 15px; margin-bottom: 4px;">
-                            Time limit reached
-                        </div>
-                        <div style="color: #94a3b8; font-size: 13px;">
-                            Redirecting to completion page...
-                        </div>
+                        <div style="font-weight: bold; font-size: 13px;">Time limit reached</div>
+                        <div style="font-size: 11px; opacity: 0.9;">Redirecting in 3s...</div>
                     </div>
                 </div>
-                <div style="background: rgba(239, 68, 68, 0.2); height: 4px; border-radius: 2px; margin-top: 8px; overflow: hidden;">
-                    <div style="width: 100%; height: 100%; background: #ef4444; animation: countdown-bar 3s linear;"></div>
-                </div>
             `;
-            
-            // Ajouter l'animation pour la barre de progression
-            if (!document.getElementById('countdown-animation')) {
-                const style = document.createElement('style');
-                style.id = 'countdown-animation';
-                style.textContent = `
-                    @keyframes countdown-bar {
-                        from { width: 100%; }
-                        to { width: 0%; }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+        }
+        
+        // Masquer le timer minimum pour éviter la confusion
+        if (this.minTimerDisplay) {
+            this.minTimerDisplay.style.opacity = '0.3';
         }
         
         // Rediriger après un délai
@@ -266,8 +323,12 @@ class PageTimer {
             clearInterval(this.timerInterval);
         }
         
-        if (this.timerDisplay && this.timerDisplay.parentNode) {
-            this.timerDisplay.parentNode.removeChild(this.timerDisplay);
+        if (this.minTimerDisplay && this.minTimerDisplay.parentNode) {
+            this.minTimerDisplay.parentNode.removeChild(this.minTimerDisplay);
+        }
+        
+        if (this.maxTimerDisplay && this.maxTimerDisplay.parentNode) {
+            this.maxTimerDisplay.parentNode.removeChild(this.maxTimerDisplay);
         }
     }
 }
