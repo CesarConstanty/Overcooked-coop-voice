@@ -72,5 +72,19 @@
       <p>Instructions for enabling Javascript in your browser can be found 
 	<a href="http://support.google.com/bin/answer.py?hl=en&answer=23852">here</a></p>
     </noscript>
+
+    <!-- Timer JavaScript pour les tutoriels -->
+    <script src="static/js/tutorial-timer.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const timerMax = {{ timer_max | default(600) }};
+            
+            if (timerMax > 0) {
+                const tutorialTimer = new TutorialTimer(timerMax, function() {
+                    window.location.href = '/goodbye';
+                });
+            }
+        });
+    </script>
   </body>
 </html>

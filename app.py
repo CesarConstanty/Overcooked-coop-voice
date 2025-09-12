@@ -1206,10 +1206,14 @@ def tutorial():
     current_user.step = 0
     db.session.commit()
     psiturk = request.args.get('psiturk', False)
+    
+    # Récupérer la valeur du timer depuis la configuration utilisateur
+    timer_max = current_user.config.get('timer_tuto_max', 600)  # 600s par défaut si absent
+    
     if is_test != "test" :
-        return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+        return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
     else :
-        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
 
 
 @app.route('/condition_tutorial')

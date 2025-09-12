@@ -85,9 +85,10 @@
         "ai_asset_slow_duration": 10,
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
         "explications_generales_max": 30,
-        "explications_generales_min": 20,
+        "explications_generales_min": 5,
         "explications_block_max": 15,
-        "explications_block_min": 5
+        "explications_block_min": 5,
+        "timer_tuto_max": 25
     },
     "pretest_experiment_1_V1_short_survey" : {
         "mechanic" : "recipe",
