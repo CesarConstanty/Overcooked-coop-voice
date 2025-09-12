@@ -1178,6 +1178,19 @@ def planning_design():
     return render_template('planning_design.html', uid="design", agent_names=["Lazy", "Greedy", "Rational", "Random"], layouts=layouts)
 
 
+@app.route('/goodbye')
+def goodbye():
+    """
+    Route pour la page de fin avec lien de completion.
+    Utilisée notamment lors du timeout des timers de page.
+    """
+    current_user = get_current_user()
+    if current_user and current_user.config.get("completion_link"):
+        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
+    else:
+        # Fallback si pas d'utilisateur connecté ou pas de completion_link
+        return render_template('goodbye.html', completion_link="")
+
 @app.route('/cat')
 def cat():
     return render_template('cat.html')  
