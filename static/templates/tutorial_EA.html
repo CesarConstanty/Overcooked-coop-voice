@@ -245,18 +245,7 @@
       // Initialiser le système de timer pour les tutoriels de bloc
       const timerMin = {{ timer_min|default(60) }};
       const timerMax = {{ timer_max|default(600) }};
-      const timerMinElapsed = {{ timer_min_elapsed|default(0) }};
-      const autoValidation = {{ auto_validation_survey|default(false)|tojson }};
-      
-      // Fonction d'autovalidation pour continuer vers planning
-      function autoValidateTutorial() {
-        console.log("Tutorial EA Timer expired - auto continuing to planning");
-        window.location.href = '/planning?from_condition_tutorial=true';
-      }
-      
-      // Initialiser le timer avec callback d'autovalidation si nécessaire
-      const callback = autoValidation ? autoValidateTutorial : null;
-      initPageTimer(timerMin, timerMax, '#start-bloc', timerMinElapsed, callback);
+      initPageTimer(timerMin, timerMax, '#start-bloc');
       
       $('#start-bloc').click(function() {
         window.location.href = '/planning?from_condition_tutorial=true';
