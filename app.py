@@ -33,6 +33,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import JSON
 from game import OvercookedGame, OvercookedTutorial, Game, OvercookedPsiturk, PlanningGame
 import game
+from page_tracker import PageTracker
 
 # Thoughts -- where I'll log potential issues/ideas as they come up
 # Should make game driver code more error robust -- if overcooked randomlly errors we should catch it and report it to user
@@ -92,6 +93,9 @@ GAMES = ThreadSafeDict()
 
 # Set of games IDs that are currently being played
 ACTIVE_GAMES = ThreadSafeSet()
+
+# Global dictionary to store PageTracker instances per user
+PAGE_TRACKERS = ThreadSafeDict()
 
 # Queue of games IDs that are waiting for additional players to join. Note that some of these IDs might
 # be stale (i.e. if FREE_MAP[id] = True)
@@ -213,6 +217,62 @@ def login_required_session(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
+
+#################################
+# Page Tracking Functions      #
+#################################
+
+def get_page_tracker(user_id: str, config_id: str) -> PageTracker:
+    """
+    Récupère ou crée un PageTracker pour un utilisateur donné.
+    
+    Args:
+        user_id: Identifiant de l'utilisateur
+        config_id: Identifiant de la configuration expérimentale
+        
+    Returns:
+        Instance PageTracker pour cet utilisateur
+    """
+    if user_id not in PAGE_TRACKERS:
+        PAGE_TRACKERS[user_id] = PageTracker(user_id, config_id)
+    return PAGE_TRACKERS[user_id]
+
+def track_page_view(page_name: str, user_id: str = None, config_id: str = None):
+    """
+    Enregistre la visite d'une page pour l'utilisateur actuel.
+    
+    Args:
+        page_name: Nom de la page visitée (ex: 'instructions.html')
+        user_id: ID utilisateur (optionnel, récupéré depuis session si absent)
+        config_id: ID config (optionnel, récupéré depuis session si absent)
+    """
+    try:
+        # Récupérer les IDs depuis session si non fournis
+        if not user_id:
+            user_id = session.get('uid')
+        if not config_id:
+            config_id = session.get('config_id', 'default')
+            
+        if user_id:
+            tracker = get_page_tracker(user_id, config_id)
+            tracker.start_page(page_name)
+            print(f"[PAGE_TRACKING] Utilisateur {user_id} : début de {page_name}")
+    except Exception as e:
+        print(f"[PAGE_TRACKING ERROR] {e}")
+
+def end_user_session(user_id: str):
+    """
+    Termine la session de suivi pour un utilisateur.
+    
+    Args:
+        user_id: Identifiant de l'utilisateur
+    """
+    try:
+        if user_id in PAGE_TRACKERS:
+            PAGE_TRACKERS[user_id].end_session()
+            print(f"[PAGE_TRACKING] Session terminée pour utilisateur {user_id}")
+    except Exception as e:
+        print(f"[PAGE_TRACKING ERROR] Fin de session {user_id}: {e}")
 
 #################################
 # Global Coordination Functions #
@@ -655,6 +715,10 @@ def index():
             db.session.add(new_user)
             db.session.commit()
             login_user_session(new_user)
+        
+        # Suivi temporel : enregistrer la visite de la page index
+        track_page_view('index.html', uid, config_id)
+        
         return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
     else:
         return render_template('UID_error.html')
@@ -712,13 +776,18 @@ def instructions():
                     tomato_value = config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13))
                     
 
+                    # Suivi temporel : enregistrer la visite de la page instructions_recipe
+                    track_page_view('instructions_recipe.html', uid, config.get("config_id"))
+
                     return render_template('instructions_recipe.html', 
                                             is_explained=is_explained,
                                             onion_time=onion_time,
                                             tomato_time=tomato_time,
                                             onion_value=onion_value,
                                             tomato_value=tomato_value,
-                                            config=config)
+                                            config=config,
+                                            timer_max=config.get('explications_generales_max', 600),
+                                            timer_min=config.get('explications_generales_min', 120))
                 #return redirect(url_for('qvg_survey'))
 
             else:
@@ -733,6 +802,9 @@ def instructions():
             except KeyError:
                 pass
             return render_template('leave.html', uid=uid, complete=False)
+    
+    # Suivi temporel : enregistrer la visite de la page instructions (GET)
+    track_page_view('instructions.html', uid, config.get("config_id"))
     
     # Affichage initial de la page d'instructions (GET)
     return render_template('instructions.html', 
@@ -751,6 +823,8 @@ def instructions():
 @app.route('/instructions_explained')
 def instructions_explained():
     uid = request.args.get('UID')
+    # Suivi temporel : enregistrer la visite de la page instructions expliquées
+    track_page_view('instructions_explained.html', uid)
     #agent_names = get_agent_names()
     return render_template('instructions_explained.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
 
@@ -891,6 +965,9 @@ def planning():
     current_condition = current_user.config["conditions"][bloc_key]
     current_trials = current_user.config["blocs"][bloc_key]
     
+    # Suivi temporel : enregistrer la visite de la page planning
+    track_page_view('planning.html', current_user.uid, current_user.config.get("config_id"))
+    
     return render_template(
         "planning.html",
         qpb=json.dumps(qpb),
@@ -923,21 +1000,20 @@ def transition():
     form["date"] = asctime(form["timestamp"])
 
     Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/' + uid + "/" + uid + "_"  + str(step) + 'QPB.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
+    file_name = f"trajectories/{uid}/{uid}_{step}QPB.json"
+    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
+    if os.path.exists(file_name):
+        print(f"Transition QPB déjà présent pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
     step += 1
     return render_template('goodbye.html', uid=uid, step=step, completion_link=current_user.config["completion_link"])
     # else :
     #   return render_template('bloc_transition.html', uid = uid, step = step)
-
-
-
-
-
 
 @app.route('/qex_ranking', methods=['GET'])
 def qex_ranking():
@@ -951,6 +1027,10 @@ def qex_ranking():
     
     preference_length = current_user.config.get("preference_length", 60)
     num_blocs = len(current_user.config.get("bloc_order", []))
+    
+    # Suivi temporel : enregistrer la visite du questionnaire de préférence
+    track_page_view('preference order_en.html', uid, config_id)
+    
     return render_template('preference order_en.html', preference_length=preference_length, num_blocs=num_blocs)
 
 @app.route('/submit_qex_ranking', methods=['POST'])
@@ -979,6 +1059,7 @@ def submit_qex_ranking():
     # --- QEX specific data extraction ---
     ranking_json_string = request.form.get('ranking_data')
     timeout_bool = request.form.get('timeout_bool', 'false') == 'true'
+    explanation_text = request.form.get('explanation_text', '')  # Get the explanation text
 
     if not ranking_json_string:
         print("Error: No 'ranking_data' received for QEX submission.")
@@ -990,6 +1071,7 @@ def submit_qex_ranking():
         ranking_list = json.loads(ranking_json_string)
         form_data["ranking_response"] = ranking_list # Store the QEX ranking here
         form_data["timeout_bool"] = timeout_bool # Store whether submission was by timeout
+        form_data["explanation_text"] = explanation_text # Store the explanation/comments text
 
     except json.JSONDecodeError:
         print(f"Error: Invalid JSON received for QEX 'ranking_data': {ranking_json_string}")
@@ -1028,6 +1110,10 @@ def qvg_survey():
     current_user = get_current_user()
     # Récupère la durée du timer depuis la config utilisateur
     qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
+    
+    # Suivi temporel : enregistrer la visite du questionnaire expérience jeux vidéo
+    track_page_view('experience_video_games_en.html', current_user.uid, current_user.config.get("config_id"))
+    
     return render_template('experience_video_games_en.html', qvg_length=qvg_length)
 
 @app.route('/submit_qvg_survey', methods=['POST'])
@@ -1077,13 +1163,17 @@ def submit_qvg_survey():
     # saving demographic and video game scale in prolific ID folder
     Path("trajectories/" + current_user.config["config_id"] + "/"+ uid + "/" + "Pre_experiment").mkdir(parents=True, exist_ok=True)
     file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "Pre_experiment" + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
-    try:
-        with open(file_name, 'w', encoding='utf-8') as f:
-            json.dump(form_data, f, ensure_ascii=False, indent=4)
-        print(f"Successfully saved QVG data for user {uid} at step {step} to {file_name}")
-    except Exception as e:
-        print(f"Error saving QVG data for user {uid} at step {step}: {e}")
-        return "Error saving QVG data", 500
+    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
+    if os.path.exists(file_name):
+        print(f"QVG déjà enregistré pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form_data, f, ensure_ascii=False, indent=4)
+            print(f"Successfully saved QVG data for user {uid} at step {step} to {file_name}")
+        except Exception as e:
+            print(f"Error saving QVG data for user {uid} at step {step}: {e}")
+            return "Error saving QVG data", 500
 
     
     # Determine the next page based on the new step value, similar to the /transition route
@@ -1099,6 +1189,10 @@ def submit_qvg_survey():
 def ptta_survey():
     current_user = get_current_user()
     ptta_length = current_user.config.get("ptta_length", 60)
+    
+    # Suivi temporel : enregistrer la visite du questionnaire PTTA
+    track_page_view('PTT_A_en.html', current_user.uid, current_user.config.get("config_id"))
+    
     return render_template('PTT_A_en.html',ptta_length=ptta_length)
 
 @app.route('/submit_ptta_survey', methods=['POST'])
@@ -1148,13 +1242,17 @@ def submit_ptta_survey():
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment/{uid}_{current_user.step}_PTTA.json"
-    try:
-        with open(file_name, 'w', encoding='utf-8') as f:
-            json.dump(form_data, f, ensure_ascii=False, indent=4)
-        print(f"Successfully saved PTT-A data for user {uid} at step {step} to {file_name}")
-    except Exception as e:
-        print(f"Error saving PTT-A data for user {uid} at step {step}: {e}")
-        return "Error saving PTT-A data", 500
+    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
+    if os.path.exists(file_name):
+        print(f"PTT-A déjà enregistré pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form_data, f, ensure_ascii=False, indent=4)
+            print(f"Successfully saved PTT-A data for user {uid} at step {step} to {file_name}")
+        except Exception as e:
+            print(f"Error saving PTT-A data for user {uid} at step {step}: {e}")
+            return "Error saving PTT-A data", 500
 
 
     return redirect(url_for('tutorial'))
@@ -1173,8 +1271,29 @@ def planning_design():
     layouts = [f[:-7] for f in os.listdir(layouts_path)
                if os.path.isfile(os.path.join(layouts_path, f))]
     layouts.sort()
+    
+    # Suivi temporel : enregistrer la visite de planning_design
+    track_page_view('planning_design.html', uid, 'design')
+    
     return render_template('planning_design.html', uid="design", agent_names=["Lazy", "Greedy", "Rational", "Random"], layouts=layouts)
 
+
+@app.route('/goodbye')
+def goodbye():
+    """
+    Route pour la page de fin avec lien de completion.
+    Utilisée notamment lors du timeout des timers de page.
+    """
+    current_user = get_current_user()
+    if current_user and current_user.config.get("completion_link"):
+        # Suivi temporel : enregistrer la visite de la page goodbye
+        track_page_view('goodbye.html', current_user.uid, current_user.config.get("config_id"))
+        # Terminer la session de suivi
+        end_user_session(current_user.uid)
+        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
+    else:
+        # Fallback si pas d'utilisateur connecté ou pas de completion_link
+        return render_template('goodbye.html', completion_link="")
 
 @app.route('/cat')
 def cat():
@@ -1191,10 +1310,18 @@ def tutorial():
     current_user.step = 0
     db.session.commit()
     psiturk = request.args.get('psiturk', False)
+    
+    # Récupérer la valeur du timer depuis la configuration utilisateur
+    timer_max = current_user.config.get('timer_tuto_max', 600)  # 600s par défaut si absent
+    
     if is_test != "test" :
-        return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+        # Suivi temporel : enregistrer la visite du tutoriel
+        track_page_view('tutorial.html', uid, current_user.config.get("config_id"))
+        return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
     else :
-        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG)
+        # Suivi temporel : enregistrer la visite du tutoriel de test
+        track_page_view('tutorialTest.html', uid, current_user.config.get("config_id"))
+        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
 
 
 @app.route('/condition_tutorial')
@@ -1281,13 +1408,18 @@ def condition_tutorial():
     
     print(f"Affichage du tutoriel {tutorial_template} pour la condition {condition_label} (bloc {bloc_key}, step {current_user.step})")
     
+    # Suivi temporel : enregistrer la visite du tutoriel de condition
+    track_page_view(tutorial_template, uid, current_user.config.get("config_id"))
+    
     # Retourner le template correspondant avec les variables nécessaires
     return render_template(
         tutorial_template, 
         uid=uid, 
         condition=condition_label,
         bloc_id=bloc_key,
-        step=current_user.step
+        step=current_user.step,
+        timer_max=current_user.config.get('explications_block_max', 600),
+        timer_min=current_user.config.get('explications_block_min', 60)
     )
 
 
@@ -1484,6 +1616,8 @@ def post_qpt(data):
     bloc_key = current_user.config["bloc_order"][current_user.step]
     trial = current_user.trial
 
+    # Les données sont sauvegardées via la routine habituelle de sauvegarde
+
     form = {}
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
@@ -1525,6 +1659,9 @@ def post_qpb(data):
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
+    
+    # Les données sont sauvegardées via la routine habituelle de sauvegarde
+    
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
@@ -1537,13 +1674,16 @@ def post_qpb(data):
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/" + "QPB").mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'AAT_L.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}AAT_L.json"
+    if os.path.exists(file_name):
+        print(f"QPB AAT_L déjà présent pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
     #current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
@@ -1556,6 +1696,9 @@ def post_hoffman(data):
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
+    
+    # Les données sont sauvegardées via la routine habituelle de sauvegarde
+    
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
@@ -1568,13 +1711,16 @@ def post_hoffman(data):
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/"+ "QPB").mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}HOFFMAN.json"
+    if os.path.exists(file_name):
+        print(f"HOFFMAN déjà présent pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
     if current_user.step <= 6 :
         current_user.step += 1 # Permet de passer au bloc suivant
         current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel

@@ -1,5 +1,5 @@
 {
-    "mode" : "test",
+    "mode" : "pre_test",
     "logfile" : "app.log",
     "ai_slowdown_enabled": true,
     "ai_base_speed": 4,
@@ -20,6 +20,75 @@
     "MAX_FPS" : 10,
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
+    },
+    "config_test" : {
+        "mechanic" : "recipe",
+        "fps" : 10,
+        "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar",
+        "show_counter_drop" : true,
+        "show_trial_time" : true,
+        "completion_link" : "https://app.prolific.co/submissions/complete?cc=7317FC6A",
+        "researcher" : {
+            "name": "xx",
+            "email": "xx",
+            "university" : "Aix-Marseille University",
+            "institution" : "ONERA, the French Aerospace Lab, DTIS department"
+        },
+        "supervisor" : {
+            "name": "xx",
+            "email": "xx",
+            "institution" : "ONERA, the French Aerospace Lab, DTIS department"
+        },
+        "gameTime" : 10,
+        "hoffman_length": 10,
+        "qpb_length" : 10,
+        "qpt_length" : 10,
+        "qvg_length" : 10,
+        "ptta_length" : 10,
+        "preference_length" : 10,
+        "explications_generales_max": 30,
+        "explications_generales_min": 5,
+        "explications_block_max": 15,
+        "explications_block_min": 5,
+        "timer_tuto_max": 600,
+        "playerZero" : "Planning",
+        "agent" : "Greedy",
+        "conditions" : {"1":"EVH", "0":"U", "2":"EA"},
+        "visual_intention_recipe_duration": 2000,
+        "visual_intention_asset_duration": 1500,
+        "visual_intention_next_duration": 1000,
+        "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
+        "blocs" : {
+            "0": ["marinII1T","L10_R54_V06"],
+            "1": ["marinII1T","L10_R54_V06_R90"],
+            "2": ["marinII1T","L10_R54_V06_R180"]
+        },
+        "shuffle_trials" : false,
+        "shuffle_blocs" : true,
+        "randomize_accountability_labels" : true,
+        "questionnaire_post_trial" : "agency_en.html",
+        "questionnaire_post_bloc":"AAT_L_en.json",
+        "questionnaire_hoffman":"hoffman fluency_en.json",
+        "tomato_value" : 2,
+        "onion_value" : 3,
+        "onion_time" : 9,
+        "tomato_time" : 6,
+        "order_bonus" : 2,
+        "max_num_ingredients" : 3,
+        "infinite_all_order" : false,
+        "Game_Trial_Timer" : true,
+        "ai_slowdown_enabled": true,
+        "ai_base_speed": 4,
+        "ai_slow_speed": 16,
+        "ai_slow_duration": 20,
+        "ai_trial_start_slowdown": true,
+        "ai_trial_start_duration": 30,
+        "ai_trial_start_speed": 100,
+        "ai_trial_start_first_only": false,
+        "ai_asset_slowdown_enabled": true,
+        "ai_asset_slow_speed": 16,
+        "ai_asset_slow_duration": 10,
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
     "pretest_experiment_1_V1_short_survey" : {
         "mechanic" : "recipe",
@@ -83,7 +152,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V1_short_game" : {
         "mechanic" : "recipe",
@@ -147,7 +220,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V1_short" : {
         "mechanic" : "recipe",
@@ -211,7 +288,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V1" : {
         "mechanic" : "recipe",
@@ -275,7 +356,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V2" : {
         "mechanic" : "recipe",
@@ -339,7 +424,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V3" : {
         "mechanic" : "recipe",
@@ -403,7 +492,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 15,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V4" : {
         "mechanic" : "recipe",
@@ -467,7 +560,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 15,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V5" : {
         "mechanic" : "recipe",
@@ -531,7 +628,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 25,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V6" : {
         "mechanic" : "recipe",
@@ -595,7 +696,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 26,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "pretest_experiment_1_V7" : {
         "mechanic" : "recipe",
@@ -659,7 +764,11 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
+        "explications_generales_max": 600,
+        "explications_generales_min": 120,
+        "explications_block_max": 600,
+        "explications_block_min": 60
     },
     "tutorial" : {
         "tutorialParams" : {

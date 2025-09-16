@@ -1,0 +1,40 @@
+{
+  "grid": "XXXXXXXX\nX1.X...X\nX.DX..YX\nX.X...PX\nXO....YX\nX.XTX..X\nX.X.2YSX\nXXXXXXXX",
+  "canonical_hash": "2fc954de0bb82848",
+  "object_positions": {
+    "1": [
+      1,
+      1
+    ],
+    "2": [
+      6,
+      4
+    ],
+    "O": [
+      4,
+      1
+    ],
+    "T": [
+      5,
+      3
+    ],
+    "P": [
+      3,
+      6
+    ],
+    "D": [
+      2,
+      2
+    ],
+    "S": [
+      6,
+      6
+    ]
+  },
+  "generation_metadata": {
+    "timestamp": 1758032928.4348497,
+    "n_empty": 20,
+    "n_walls": 34,
+    "dispersion_score": 0.8843537414965987
+  }
+}

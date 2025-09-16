@@ -144,23 +144,23 @@
 
             // Recipe mappings
             const recipeMapping = [
-              {id: "0o1t", label: "One tomato", soupKey: "soup_done_tomato_1_onion_0.png", audioFile: "recette_0o_1t.mp3"},
-              {id: "0o2t", label: "Two tomatoes", soupKey: "soup_done_tomato_2_onion_0.png", audioFile: "recette_0o_2t.mp3"},
-              {id: "0o3t", label: "Three tomatoes", soupKey: "soup_done_tomato_3_onion_0.png", audioFile: "recette_0o_3t.mp3"},
-              {id: "1o0t", label: "One onion", soupKey: "soup_done_tomato_0_onion_1.png", audioFile: "recette_1o_0t.mp3"},
-              {id: "2o0t", label: "Two onions", soupKey: "soup_done_tomato_0_onion_2.png", audioFile: "recette_2o_0t.mp3"},
-              {id: "3o0t", label: "Three onions", soupKey: "soup_done_tomato_0_onion_3.png", audioFile: "recette_3o_0t.mp3"},
-              {id: "1o1t", label: "One onion + One tomato", soupKey: "soup_done_tomato_1_onion_1.png", audioFile: "recette_1o_1t.mp3"},
-              {id: "1o2t", label: "One onion + Two tomatoes", soupKey: "soup_done_tomato_2_onion_1.png", audioFile: "recette_1o_2t.mp3"},
-              {id: "2o1t", label: "Two onions + One tomato", soupKey: "soup_done_tomato_1_onion_2.png", audioFile: "recette_2o_1t.mp3"}
+              {id: "0o1t", label: "One tomato", soupKey: "soup_done_tomato_1_onion_0.png", audioFile: "recette_0o_1t.mp3", buttonText: "Small tomato"},
+              {id: "0o2t", label: "Two tomatoes", soupKey: "soup_done_tomato_2_onion_0.png", audioFile: "recette_0o_2t.mp3", buttonText: "Tomatoes"},
+              {id: "0o3t", label: "Three tomatoes", soupKey: "soup_done_tomato_3_onion_0.png", audioFile: "recette_0o_3t.mp3", buttonText: "Big tomato"},
+              {id: "1o0t", label: "One onion", soupKey: "soup_done_tomato_0_onion_1.png", audioFile: "recette_1o_0t.mp3", buttonText: "Small onion"},
+              {id: "2o0t", label: "Two onions", soupKey: "soup_done_tomato_0_onion_2.png", audioFile: "recette_2o_0t.mp3", buttonText: "Onions"},
+              {id: "3o0t", label: "Three onions", soupKey: "soup_done_tomato_0_onion_3.png", audioFile: "recette_3o_0t.mp3", buttonText: "Big onion"},
+              {id: "1o1t", label: "One onion + One tomato", soupKey: "soup_done_tomato_1_onion_1.png", audioFile: "recette_1o_1t.mp3", buttonText: "Onion and tomato"},
+              {id: "1o2t", label: "One onion + Two tomatoes", soupKey: "soup_done_tomato_2_onion_1.png", audioFile: "recette_1o_2t.mp3", buttonText: "Tomatoes and onion"},
+              {id: "2o1t", label: "Two onions + One tomato", soupKey: "soup_done_tomato_1_onion_2.png", audioFile: "recette_2o_1t.mp3", buttonText: "Onions and tomato"}
             ];
 
             // Asset mappings
             const assetMapping = [
-              {id: "oignon", label: "Onion", type: "Asset", audioFile: "oignon.mp3", objectKey: "onion.png", atlas: "objects"},
-              {id: "tomate", label: "Tomato", type: "Asset", audioFile: "tomate.mp3", objectKey: "tomato.png", atlas: "objects"},
-              {id: "assiette", label: "Plate", type: "Asset", audioFile: "assiette.mp3", objectKey: "dish.png", atlas: "objects"},
-              {id: "service", label: "Serving", type: "Action", audioFile: "service.mp3", objectKey: "serve.png", atlas: "terrain"}
+              {id: "oignon", label: "Onion", type: "Asset", audioFile: "oignon.mp3", objectKey: "onion.png", atlas: "objects", buttonText: "onion"},
+              {id: "tomate", label: "Tomato", type: "Asset", audioFile: "tomate.mp3", objectKey: "tomato.png", atlas: "objects", buttonText: "tomato"},
+              {id: "assiette", label: "Plate", type: "Asset", audioFile: "assiette.mp3", objectKey: "dish.png", atlas: "objects", buttonText: "plate"},
+              {id: "service", label: "Serving", type: "Action", audioFile: "service.mp3", objectKey: "serve.png", atlas: "terrain", buttonText: "I serve"}
             ];
 
             // Populate recipes table
@@ -180,7 +180,7 @@
                 row.innerHTML = `
                   <td>${recipe.label} <span class="tag">Recipe</span></td>
                   <td style="text-align: center; padding: 25px;"></td>
-                  <td><button class="play" onclick="playOnly('a_${recipe.id}')">▶ Play</button><audio id="a_${recipe.id}" src="static/audio/${recipe.audioFile}"></audio></td>
+                  <td><button class="play" onclick="playOnly('a_${recipe.id}')">▶ ${recipe.buttonText}</button><audio id="a_${recipe.id}" src="static/audio/${recipe.audioFile}"></audio></td>
                 `;
                 row.cells[1].appendChild(canvas);
                 recipesTable.appendChild(row);
@@ -214,7 +214,7 @@
                 row.innerHTML = `
                   <td>${asset.label} <span class="tag">${asset.type}</span></td>
                   <td style="text-align: center; padding: 25px;"></td>
-                  <td><button class="play" onclick="playOnly('a_${asset.id}')">▶ Play</button><audio id="a_${asset.id}" src="static/audio/${asset.audioFile}"></audio></td>
+                  <td><button class="play" onclick="playOnly('a_${asset.id}')">▶ ${asset.buttonText}</button><audio id="a_${asset.id}" src="static/audio/${asset.audioFile}"></audio></td>
                 `;
                 row.cells[1].appendChild(canvas);
                 assetsTable.appendChild(row);
@@ -238,9 +238,15 @@
 
   <!-- Scripts -->
   <script src="static/lib/jquery-min.js"></script>
+  <script src="static/js/page-timer.js"></script>
   <script>
-    // Script pour gérer le bouton de démarrage du bloc
+    // Script pour gérer le bouton de démarrage du bloc avec timer
     $(document).ready(function() {
+      // Initialiser le système de timer pour les tutoriels de bloc
+      const timerMin = {{ timer_min|default(60) }};
+      const timerMax = {{ timer_max|default(600) }};
+      initPageTimer(timerMin, timerMax, '#start-bloc');
+      
       $('#start-bloc').click(function() {
         window.location.href = '/planning?from_condition_tutorial=true';
       });
