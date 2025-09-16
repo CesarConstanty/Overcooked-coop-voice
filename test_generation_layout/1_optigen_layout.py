@@ -7,7 +7,11 @@ import multiprocessing as mp
 from multiprocessing import Pool
 import time
 
-SIZE = 7  # Taille de la grille (modifiable)
+SIZE = 10  # Taille de la grille (modifiable)
+min_cases_vides = 40
+max_cases_vides = 51
+# Nombre maximum de layouts à générer par valeur de "cases vides" (par défaut None = illimité)
+MAX_LAYOUTS_PER_N_EMPTY = 10
 OUTPUT_TEMPLATE = "layouts_{}.json"
 filepath = "test_generation_layout/raw_layouts/"
 
@@ -245,6 +249,9 @@ def generate_layouts_backtracking_single(args):
     start_time = time.time()
     
     def backtrack(index, remaining_walls):
+        # Si une limite est définie et atteinte, arrêter toute la recherche
+        if MAX_LAYOUTS_PER_N_EMPTY is not None and len(solutions) >= MAX_LAYOUTS_PER_N_EMPTY:
+            return
         # Élagage précoce : pas assez d'espace
         if not has_enough_empty_space(layout, remaining_walls, coords, index):
             return
@@ -254,11 +261,16 @@ def generate_layouts_backtracking_single(args):
             return
             
         if remaining_walls == 0:
+            # Vérifier la connectivité et la canonicité, puis ajouter la solution
             if is_connected_full(layout):
                 canonical = get_canonical_form(layout)
                 if canonical not in seen:
                     seen.add(canonical)
                     solutions.append([row[:] for row in layout])
+
+                    # Si une limite est définie et atteinte, on arrête la recherche
+                    if MAX_LAYOUTS_PER_N_EMPTY is not None and len(solutions) >= MAX_LAYOUTS_PER_N_EMPTY:
+                        return
             return
         if index >= len(coords):
             return
@@ -356,7 +368,7 @@ if __name__ == "__main__":
     os.makedirs(filepath, exist_ok=True)
     
     # Lancer la génération parallèle
-    n_empty_range = range(17, 37)  # Test rapide: seulement 2 valeurs
+    n_empty_range = range(min_cases_vides, max_cases_vides)  # Test rapide: seulement 2 valeurs
     num_processes = min(mp.cpu_count(), 8)  # Limiter à 2 processus pour test
     
     results = generate_layouts_parallel(SIZE, n_empty_range, num_processes)

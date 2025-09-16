@@ -10,7 +10,7 @@ import time
 INPUT_DIR = "test_generation_layout/layouts_split"
 OUTPUT_BASE_DIR = "test_generation_layout/layouts_with_objects"
 DISTANCE_OBJETS = 16  # Distance totale souhaitée entre tous les objets 7*7 : 16 ; 8*8 : 24
-NUM_VARIATIONS = 10   # Nombre de variations par layout
+NUM_VARIATIONS = 1   # Nombre de variations par layout
 OBJECTS = ['1', '2', 'O', 'T', 'S', 'D', 'P']  # Objets à placer
 MAX_PROCESSES = None  # Nombre max de processus (None = auto-détection)
 MAX_LAYOUTS = None    # Limite le nombre de layouts à traiter (None = tous)

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 # Paramètres
-INPUT_FILE = "test_generation_layout/raw_layouts/layouts_18.json"  # fichier contenant les layouts en JSON
+INPUT_FILE = "test_generation_layout/raw_layouts/layouts_45.json"  # fichier contenant les layouts en JSON
 OUTPUT_BASE_DIR = "test_generation_layout/layouts_split"
 RECIPE_SOURCE_FILE = "ensemble_recettes.json"
 
