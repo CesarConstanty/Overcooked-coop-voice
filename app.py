@@ -1000,12 +1000,16 @@ def transition():
     form["date"] = asctime(form["timestamp"])
 
     Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/' + uid + "/" + uid + "_"  + str(step) + 'QPB.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
+    file_name = f"trajectories/{uid}/{uid}_{step}QPB.json"
+    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
+    if os.path.exists(file_name):
+        print(f"Transition QPB déjà présent pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
     step += 1
     return render_template('goodbye.html', uid=uid, step=step, completion_link=current_user.config["completion_link"])
     # else :
@@ -1162,13 +1166,17 @@ def submit_qvg_survey():
     # saving demographic and video game scale in prolific ID folder
     Path("trajectories/" + current_user.config["config_id"] + "/"+ uid + "/" + "Pre_experiment").mkdir(parents=True, exist_ok=True)
     file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "Pre_experiment" + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
-    try:
-        with open(file_name, 'w', encoding='utf-8') as f:
-            json.dump(form_data, f, ensure_ascii=False, indent=4)
-        print(f"Successfully saved QVG data for user {uid} at step {step} to {file_name}")
-    except Exception as e:
-        print(f"Error saving QVG data for user {uid} at step {step}: {e}")
-        return "Error saving QVG data", 500
+    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
+    if os.path.exists(file_name):
+        print(f"QVG déjà enregistré pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form_data, f, ensure_ascii=False, indent=4)
+            print(f"Successfully saved QVG data for user {uid} at step {step} to {file_name}")
+        except Exception as e:
+            print(f"Error saving QVG data for user {uid} at step {step}: {e}")
+            return "Error saving QVG data", 500
 
     
     # Determine the next page based on the new step value, similar to the /transition route
@@ -1237,13 +1245,17 @@ def submit_ptta_survey():
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment").mkdir(parents=True, exist_ok=True)
     # Using a clear naming convention: _PTTA.json
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment/{uid}_{current_user.step}_PTTA.json"
-    try:
-        with open(file_name, 'w', encoding='utf-8') as f:
-            json.dump(form_data, f, ensure_ascii=False, indent=4)
-        print(f"Successfully saved PTT-A data for user {uid} at step {step} to {file_name}")
-    except Exception as e:
-        print(f"Error saving PTT-A data for user {uid} at step {step}: {e}")
-        return "Error saving PTT-A data", 500
+    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
+    if os.path.exists(file_name):
+        print(f"PTT-A déjà enregistré pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form_data, f, ensure_ascii=False, indent=4)
+            print(f"Successfully saved PTT-A data for user {uid} at step {step} to {file_name}")
+        except Exception as e:
+            print(f"Error saving PTT-A data for user {uid} at step {step}: {e}")
+            return "Error saving PTT-A data", 500
 
 
     return redirect(url_for('tutorial'))
@@ -1665,13 +1677,16 @@ def post_qpb(data):
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/" + "QPB").mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'AAT_L.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}AAT_L.json"
+    if os.path.exists(file_name):
+        print(f"QPB AAT_L déjà présent pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
     #current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
@@ -1699,13 +1714,16 @@ def post_hoffman(data):
     form["timestamp"] = gmtime()
     form["date"] = asctime(form["timestamp"])
 
-    Path("trajectories/" + current_user.config["config_id"] +"/"+ uid + "/"+ "QPB").mkdir(parents=True, exist_ok=True)
-    try:
-        with open('trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "QPB" + "/" + uid + "_" + str(current_user.step) + 'HOFFMAN.json', 'w', encoding='utf-8') as f:
-            json.dump(form, f, ensure_ascii=False, indent=4)
-            f.close()
-    except KeyError:
-        pass
+    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
+    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}HOFFMAN.json"
+    if os.path.exists(file_name):
+        print(f"HOFFMAN déjà présent pour {file_name}, écriture ignorée.")
+    else:
+        try:
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(form, f, ensure_ascii=False, indent=4)
+        except KeyError:
+            pass
     if current_user.step <= 6 :
         current_user.step += 1 # Permet de passer au bloc suivant
         current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
