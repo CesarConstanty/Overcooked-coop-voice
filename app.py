@@ -1607,6 +1607,8 @@ def post_qpt(data):
     bloc_key = current_user.config["bloc_order"][current_user.step]
     trial = current_user.trial
 
+    # Les données sont sauvegardées via la routine habituelle de sauvegarde
+
     form = {}
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
@@ -1648,6 +1650,9 @@ def post_qpb(data):
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
+    
+    # Les données sont sauvegardées via la routine habituelle de sauvegarde
+    
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
@@ -1679,6 +1684,9 @@ def post_hoffman(data):
     sid = request.sid
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
+    
+    # Les données sont sauvegardées via la routine habituelle de sauvegarde
+    
     form = {}
     form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
     for key, value in data["survey_data"].items():
