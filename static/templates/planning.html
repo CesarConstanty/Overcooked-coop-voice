@@ -89,6 +89,35 @@
   strong {
     font-weight: 600;
   }
+
+  /* Custom CSS to reduce thickness of radio button choices */
+  .sd-item {
+    padding: calc(0.75 * var(--base-unit, 8px)) 0; /* Reduced from 1.5 * base-unit */
+  }
+  
+  .sd-item__decorator {
+    width: calc(2.25 * var(--base-unit, 8px)); /* Reduced from 3 * base-unit */
+    height: calc(2.25 * var(--base-unit, 8px)); /* Reduced from 3 * base-unit */
+  }
+  
+  .sd-radio--checked .sd-radio__decorator:after {
+    width: calc(0.75 * var(--base-unit, 8px)); /* Reduced from 1 * base-unit */
+    height: calc(0.75 * var(--base-unit, 8px)); /* Reduced from 1 * base-unit */
+  }
+  
+  .sd-checkbox__svg {
+    width: calc(1.875 * var(--base-unit, 8px)); /* Reduced from 2.5 * base-unit */
+    height: calc(1.875 * var(--base-unit, 8px)); /* Reduced from 2.5 * base-unit */
+  }
+  
+  .sd-item__control-label {
+    line-height: calc(2.25 * var(--base-unit, 8px)); /* Reduced from 3 * base-unit */
+    font-size: calc(1.75 * var(--base-unit, 8px)); /* Reduced from 2 * base-unit */
+  }
+  
+  .sd-selectbase__label {
+    gap: calc(0.75 * var(--base-unit, 8px)); /* Reduced from 1 * base-unit */
+  }
 </style>
 
 

@@ -1059,6 +1059,7 @@ def submit_qex_ranking():
     # --- QEX specific data extraction ---
     ranking_json_string = request.form.get('ranking_data')
     timeout_bool = request.form.get('timeout_bool', 'false') == 'true'
+    explanation_text = request.form.get('explanation_text', '')  # Get the explanation text
 
     if not ranking_json_string:
         print("Error: No 'ranking_data' received for QEX submission.")
@@ -1070,6 +1071,7 @@ def submit_qex_ranking():
         ranking_list = json.loads(ranking_json_string)
         form_data["ranking_response"] = ranking_list # Store the QEX ranking here
         form_data["timeout_bool"] = timeout_bool # Store whether submission was by timeout
+        form_data["explanation_text"] = explanation_text # Store the explanation/comments text
 
     except json.JSONDecodeError:
         print(f"Error: Invalid JSON received for QEX 'ranking_data': {ranking_json_string}")
