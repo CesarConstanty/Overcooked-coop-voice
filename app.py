@@ -1015,11 +1015,6 @@ def transition():
     # else :
     #   return render_template('bloc_transition.html', uid = uid, step = step)
 
-
-
-
-
-
 @app.route('/qex_ranking', methods=['GET'])
 def qex_ranking():
     current_user = get_current_user()

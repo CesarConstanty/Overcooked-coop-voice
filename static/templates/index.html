@@ -15,6 +15,9 @@
 
   <!-- Bootstrap core CSS -->
   <link href="static/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
   <!-- Favicons -->
   <link rel="apple-touch-icon" href="/docs/5.0/assets/img/favicons/apple-touch-icon.png" sizes="180x180">
@@ -69,112 +72,171 @@
     </header>
 
     <main>
-      <h1> Welcome to Overcooked human - artificial agent cooperation study</h1>
-      <hr class="col-3 col-md-2 mb-5">
-      <h2>Informed Consent form</h2>
-      <h3 class="western" style="margin-bottom: 0.19in">General Information</h3>
-      <p class="text-left"> The aim
-        of this study is to improve cooperative work between humans and artificial (robots...) partners.
-      We appreciate your interest in participating in this online task.
-      You have been invited to participate as you are between 18 and 35 years old. Please read through
-      this information before agreeing to participate (if you wish to) by
-      ticking the 'I consent' box below.
-      You may ask any questions before deciding to take part by contacting the
-      researcher (details below).
-      {% if user_config %}
-      The Principal Researcher is <a href=mailto::{{user_config['researcher']['email']}}>{{user_config['researcher']['name']}}</a>
-      , PhD student attached to the
-      {{user_config['researcher']['institution']}} and the {{user_config['supervisor']['institution']}} of {{user_config["researcher"]["university"]}}. This
-      project is being completed under the supervision of Pr. {{user_config['supervisor']['name']}} ({{user_config['supervisor']['institution']}})
-      and Dr. Bruno Berberian (ONERA).
-      {% else %}
-      The Principal Researcher is [Researcher Name]
-      , PhD student attached to the
-      [Institution] and the [Supervisor Institution] of [University]. This
-      project is being completed under the supervision of [Supervisor Name] ([Institution])
-      and Dr. Bruno Berberian (ONERA).
-      {% endif %}
-      You will be asked to
-      play a cooperative game inspired from <a href=https://en.wikipedia.org/wiki/Overcooked>Overcooked</a> . This
-      should take about 60 minutes. No background knowledge is required.
-      The data will improve the scientific knowledge about the content and the format
-      of the interaction between cooperating human and artificial agents.
-      The anonymised data will be used for validating or unvalidating hypotheses.</p>
-      <h3 class="western" style="margin-bottom: 0.19in">Do I have to take
-        part?</h3>
-      <p class="text-left">No.
-      Please note that participation is voluntary. If you do decide to take
-      part, you may withdraw at any point for any reason before submitting
-      your answers by closing the browser.
-      However, we are only able to reimburse participants
-      who complete all study activities.
-      <h3 class="western" style="margin-bottom: 0.19in">How will my data be
-        used?</h3>
-      We will
-      not collect any data that could directly identify you.
-      The responses you provide will be stored in a password-protected
-      server of the Laboratoire Parole Langage and may be
-      used in  academic publications, conference
-      presentations and reports for external organisations.
-      We would also like your permission to use the data in
-      future studies, and to share the anonymous data with other researchers (e.g. in
-      online databases).
-      The results will be written up for a PhD degree.</p>
-      <!--<h3 class="text-left">Who has reviewed
-        this study?</h3>
-      <p class="text-left">This
-      project has been reviewed by, and received ethics clearance through,
-      a subcommittee of the University of Oxford Central University
-      Research Ethics Committee [reference number].</p>-->
-      <h3 class="text-left">Who do I contact if
-        I have a concern or I wish to complain?</h3>
-      <p class="text-left">If you
-      have a concern about any aspect of this study, please speak to
-      {% if user_config %}
-      {{user_config['researcher']['name']}} (<a href="{{user_config['researcher']['email']}}">e-mail</a>) or his
-      supervisor {{user_config['supervisor']['name']}} (<a href="{{user_config['supervisor']['email']}}">e-mail</a>), and we will do our best
-      {% else %}
-      [Researcher Name] (<a href="[email]">e-mail</a>) or his
-      supervisor [Supervisor Name] (<a href="[email]">e-mail</a>), and we will do our best
-      {% endif %}
-      to answer your query. We will acknowledge your concern within 10
-      working days and give you an indication of how it will be dealt with.
-      If you remain unhappy or wish to make a formal complaint, please
-      {% if user_config %}
-      contact the {{user_config['researcher']['university']}} ethical committee
-      {% else %}
-      contact the [University] ethical committee
-      {% endif %}
-      who will seek to resolve the matter as soon as possible.</p>
-      <p class="text-left"><b>Please note that you may only participate in this study
-        if you are 18 years old or over.</b></p>
-      <p class="text-left">By ticking <b>"I consent"</b> among the following options,
-        I acknowledge I have read the information above and agree to participate with
-        the understanding that the data I submit will be processed accordingly, and I
-        certify I am over 18 years old </p>
-
-      <form class=text-center method="post" action="instructions">
-        <div class="form-group">
-          <div class="custom-control custom-checkbox">
-            <div class="custom-control custom-radio">
-              <input type="radio" id="consent" name="consentRadio" class="custom-control-input" value="accept" required>
-              <label class="custom-control-label" for="consent">I consent</label>
+      <h1 class="text-center mb-4">Welcome to Overcooked Human-AI Cooperation Study</h1>
+      <hr class="col-3 col-md-2 mb-5 mx-auto">
+      
+      <!-- Important Instructions Section -->
+      <div class="alert alert-info mb-4" role="alert">
+        <h4 class="alert-heading"><i class="fas fa-info-circle"></i> Important Instructions</h4>
+        <p><strong>Please read carefully before proceeding:</strong></p>
+        <ul class="mb-0">
+          <li><strong>Browser Navigation:</strong> Do not use your browser's back/forward buttons or reload the page unless you encounter a bug or problem, as this may invalidate your participation in the experiment.</li>
+          <li><strong>Timers:</strong> Be aware that there are timers on all pages of the experiment. Please respond within the allocated time, which is sufficient for you to understand and respond to what is being asked.</li>
+          <li><strong>Audio Equipment:</strong> Please ensure you are using functional audio equipment (headphones or speakers) as this is required for the experiment.</li>
+        </ul>
+      </div>
+      
+      <!-- Audio Equipment Verification Section -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-volume-up"></i> Audio Equipment Verification</h5>
+        </div>
+        <div class="card-body">
+          <p class="card-text mb-3">Before starting the experiment, please verify that your audio equipment is working properly by completing this audio verification test.</p>
+          
+          <div class="row align-items-end">
+            <div class="col-md-4 mb-3">
+              <button type="button" id="playAudioBtn" class="btn btn-outline-primary">
+                <i class="fas fa-play"></i> Play Audio Test
+              </button>
+              <audio id="captchaAudio" preload="auto">
+                <source src="static/audio/captcha_audio.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+              </audio>
             </div>
-            <div class="custom-control custom-radio">
-              <input type="radio" id="notConsent" name="consentRadio" class="custom-control-input" value="reject" required>
-              <label class="custom-control-label" for="notConsent">I reject the use of my data and will not take part to
-                the experiment</label>
+            <div class="col-md-4 mb-3">
+              <label for="captchaInput" class="form-label fw-bold">Enter the number you heard:</label>
+              <input type="number" id="captchaInput" class="form-control" placeholder="Enter number" max="999" min="0">
+            </div>
+            <div class="col-md-4 mb-3">
+              <div id="captchaFeedback" class="form-text"></div>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary">Submit</button>
         </div>
-      </form>
+      </div>
+
+      <!-- Start Experiment Section -->
+      <div class="text-center">
+        <form method="post" action="instructions">
+          <!-- Hidden consent field - automatically set to accept when captcha is validated -->
+          <input type="hidden" id="consentRadio" name="consentRadio" value="accept">
+          <button type="submit" id="submitBtn" class="btn btn-success btn-lg" disabled>
+            <i class="fas fa-arrow-right"></i> Start Experiment
+          </button>
+          <p class="text-muted mt-2 small">Complete the audio verification above to proceed</p>
+        </form>
+      </div>
     </main>
     <footer class="pt-5 my-5 text-muted border-top">
     </footer>
   </div>
 
   <script src="static/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Audio Captcha JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get DOM elements
+      const playAudioBtn = document.getElementById('playAudioBtn');
+      const captchaAudio = document.getElementById('captchaAudio');
+      const captchaInput = document.getElementById('captchaInput');
+      const captchaFeedback = document.getElementById('captchaFeedback');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      // Correct answer for the captcha
+      const correctAnswer = 55;
+      
+      // Track if captcha is validated
+      let captchaValidated = false;
+      
+      // Function to update submit button state
+      function updateSubmitButton() {
+        if (captchaValidated) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Start Experiment';
+          submitBtn.className = 'btn btn-success btn-lg';
+          document.querySelector('.text-muted').textContent = 'Audio verification complete! You may now start the experiment.';
+          document.querySelector('.text-muted').className = 'text-success mt-2 small';
+        } else {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fas fa-lock"></i> Complete Audio Verification';
+          submitBtn.className = 'btn btn-secondary btn-lg';
+          document.querySelector('.text-muted').textContent = 'Complete the audio verification above to proceed';
+          document.querySelector('.text-muted').className = 'text-muted mt-2 small';
+        }
+      }
+      
+      // Function to validate captcha input
+      function validateCaptcha() {
+        const userInput = parseInt(captchaInput.value);
+        
+        if (isNaN(userInput)) {
+          captchaFeedback.textContent = 'Please enter a valid number.';
+          captchaFeedback.className = 'form-text text-warning';
+          captchaValidated = false;
+        } else if (userInput === correctAnswer) {
+          captchaFeedback.textContent = '✓ Audio verification successful!';
+          captchaFeedback.className = 'form-text text-success';
+          captchaValidated = true;
+        } else {
+          captchaFeedback.textContent = '✗ Incorrect. Please listen to the audio again and try again.';
+          captchaFeedback.className = 'form-text text-danger';
+          captchaValidated = false;
+        }
+        
+        updateSubmitButton();
+      }
+      
+      // Play audio button event listener
+      playAudioBtn.addEventListener('click', function() {
+        playAudioBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Playing...';
+        playAudioBtn.disabled = true;
+        
+        captchaAudio.currentTime = 0; // Reset to beginning
+        captchaAudio.play().catch(function(error) {
+          console.error('Error playing audio:', error);
+          captchaFeedback.textContent = 'Error playing audio. Please check your audio settings.';
+          captchaFeedback.className = 'form-text text-danger';
+          playAudioBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+          playAudioBtn.className = 'btn btn-outline-danger';
+        });
+      });
+      
+      // Reset button when audio ends
+      captchaAudio.addEventListener('ended', function() {
+        playAudioBtn.innerHTML = '<i class="fas fa-play"></i> Play Audio Test';
+        playAudioBtn.disabled = false;
+        playAudioBtn.className = 'btn btn-outline-primary';
+      });
+      
+      // Input validation - only allow numbers
+      captchaInput.addEventListener('input', function(e) {
+        // Remove any non-numeric characters
+        this.value = this.value.replace(/[^0-9]/g, '');
+        
+        // Validate captcha when user types
+        if (this.value.length > 0) {
+          validateCaptcha();
+        } else {
+          captchaFeedback.textContent = '';
+          captchaValidated = false;
+          updateSubmitButton();
+        }
+      });
+      
+      // Prevent form submission if captcha not validated
+      document.querySelector('form').addEventListener('submit', function(e) {
+        if (!captchaValidated) {
+          e.preventDefault();
+          captchaFeedback.textContent = 'Please complete the audio verification first.';
+          captchaFeedback.className = 'form-text text-danger';
+        }
+      });
+      
+      // Initialize button state
+      updateSubmitButton();
+    });
+  </script>
 
 </body>
 
