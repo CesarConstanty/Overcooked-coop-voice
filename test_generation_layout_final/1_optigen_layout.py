@@ -6,14 +6,16 @@ import math
 import multiprocessing as mp
 from multiprocessing import Pool
 import time
+from utils import (generate_layout_id, compress_grid, extract_special_tiles, 
+                   get_evaluator_version, get_timestamp, write_ndjson, append_ndjson)
 
 SIZE = 10  # Taille de la grille (modifiable)
 min_cases_vides = 50
 max_cases_vides = 51
 # Nombre maximum de layouts à générer par valeur de "cases vides" (par défaut None = illimité)
 MAX_LAYOUTS_PER_N_EMPTY = 1000
-OUTPUT_TEMPLATE = "layouts_{}.json"
-filepath = "test_generation_layout/raw_layouts/"
+OUTPUT_FILE = "layouts.ndjson"
+filepath = "."  # Sortie dans le dossier courant test_generation_layout_final
 
 # ----------------------- UTILITAIRES -----------------------
 def print_grid(grid):
@@ -230,9 +232,9 @@ def estimate_connectivity_impact(grid, i, j, coords, current_index):
 def generate_layouts_backtracking_single(args):
     """
     Version de generate_layouts_backtracking adaptée pour multiprocessing.
-    Prend un tuple (size, n_empty, output_file) en argument.
+    Prend un tuple (size, n_empty, seed) en argument et retourne des layouts au format NDJSON.
     """
-    size, n_empty, output_file = args
+    size, n_empty, seed = args
     
     n_total = (size - 2) ** 2
     n_walls = n_total - n_empty
@@ -304,40 +306,57 @@ def generate_layouts_backtracking_single(args):
 
     backtrack(0, n_walls)
 
-    # Écriture du fichier
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    with open(output_file, 'w') as f:
-        for grid in solutions:
-            json.dump({"layout": grid}, f)
-            f.write('\n')
+    # Convertir les solutions au nouveau format NDJSON
+    ndjson_layouts = []
+    for i, grid in enumerate(solutions):
+        layout_id = generate_layout_id(grid, seed + i)
+        layout_name = f"gen_{size}x{size}_{n_empty}empty_{i:04d}"
+        
+        layout_data = {
+            "layout_id": layout_id,
+            "name": layout_name,
+            "grid": compress_grid(grid),
+            "special_tiles": extract_special_tiles(grid),
+            "meta": {
+                "seed": seed + i,
+                "generator_version": get_evaluator_version(),
+                "size": size,
+                "n_empty": n_empty,
+                "generation_time": get_timestamp()
+            }
+        }
+        ndjson_layouts.append(layout_data)
 
     end_time = time.time()
     execution_time = end_time - start_time
     
     print(f"[PID={os.getpid()}] [N_EMPTY={n_empty}] Layouts generated: {len(solutions)} (Time: {execution_time:.2f}s)")
     
-    return n_empty, len(solutions), execution_time
+    return n_empty, len(solutions), execution_time, ndjson_layouts
 
-def generate_layouts_parallel(size_range, n_empty_range, num_processes=None):
+def generate_layouts_parallel(size_range, n_empty_range, num_processes=None, seed=42):
     """
     Version parallélisée de la génération de layouts.
+    Génère tous les layouts dans un seul fichier NDJSON.
     
     Args:
         size_range: Actuellement utilisé SIZE constant, mais extensible
         n_empty_range: range des valeurs N_EMPTY à traiter
         num_processes: nombre de processus (None = auto-détection)
+        seed: seed de base pour la génération
     """
     if num_processes is None:
         num_processes = min(mp.cpu_count(), len(n_empty_range))
     
     print(f"Démarrage de la génération parallèle avec {num_processes} processus")
     print(f"Range N_EMPTY: {list(n_empty_range)}")
+    print(f"Sortie: {OUTPUT_FILE}")
     
-    # Préparer les arguments pour chaque processus
+    # Préparer les arguments pour chaque processus avec seeds différents
     tasks = []
-    for n_empty in n_empty_range:
-        output_file = os.path.join(filepath, OUTPUT_TEMPLATE.format(n_empty))
-        tasks.append((SIZE, n_empty, output_file))
+    for i, n_empty in enumerate(n_empty_range):
+        process_seed = seed + i * 10000  # Séparer les seeds par processus
+        tasks.append((SIZE, n_empty, process_seed))
     
     start_time = time.time()
     
@@ -348,27 +367,44 @@ def generate_layouts_parallel(size_range, n_empty_range, num_processes=None):
     end_time = time.time()
     total_time = end_time - start_time
     
+    # Collecter tous les layouts et les écrire dans un seul fichier NDJSON
+    all_layouts = []
+    total_layouts = 0
+    
+    for n_empty, count, exec_time, ndjson_layouts in results:
+        all_layouts.extend(ndjson_layouts)
+        total_layouts += count
+    
+    # Écrire le fichier NDJSON final
+    output_path = os.path.join(filepath, OUTPUT_FILE)
+    write_ndjson(all_layouts, output_path, compress=False)
+    
     # Résumé des résultats
-    total_layouts = sum(result[1] for result in results)
     print(f"\n=== RÉSUMÉ DE LA GÉNÉRATION PARALLÈLE ===")
     print(f"Temps total: {total_time:.2f}s")
     print(f"Layouts générés au total: {total_layouts}")
     print(f"Processus utilisés: {num_processes}")
+    print(f"Fichier de sortie: {output_path}")
     
-    for n_empty, count, exec_time in results:
+    for n_empty, count, exec_time, _ in results:
         print(f"  N_EMPTY={n_empty}: {count} layouts ({exec_time:.2f}s)")
     
     return results
 
 # ------------------ POINT D'ENTRÉE ------------------
 if __name__ == "__main__":
-    # NOUVELLE OPTIMISATION : Parallélisation de la boucle principale
+    # Génération de layouts au format NDJSON
     
-    # Créer le répertoire de sortie
+    # Créer le répertoire de sortie si nécessaire
     os.makedirs(filepath, exist_ok=True)
     
-    # Lancer la génération parallèle
-    n_empty_range = range(min_cases_vides, max_cases_vides)  # Test rapide: seulement 2 valeurs
-    num_processes = min(mp.cpu_count(), 8)  # Limiter à 2 processus pour test
+    # Lancer la génération parallèle avec seed déterministe
+    n_empty_range = range(min_cases_vides, max_cases_vides)
+    num_processes = min(mp.cpu_count(), 8)
+    seed = 42  # Seed déterministe pour reproductibilité
     
-    results = generate_layouts_parallel(SIZE, n_empty_range, num_processes)
+    print(f"Génération de layouts {SIZE}x{SIZE} au format NDJSON")
+    print(f"Seed: {seed}")
+    print(f"Range cases vides: {list(n_empty_range)}")
+    
+    results = generate_layouts_parallel(SIZE, n_empty_range, num_processes, seed)
