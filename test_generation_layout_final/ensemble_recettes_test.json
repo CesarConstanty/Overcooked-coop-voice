@@ -1,0 +1,1149 @@
+{
+  "configuration": {
+    "onion_value": 3,
+    "tomato_value": 2,
+    "onion_time": 9,
+    "tomato_time": 6,
+    "generation_date": "2025-09-19",
+    "purpose": "Layout generation for Overcooked cognitive science experiments",
+    "export_type": "selected_combinations"
+  },
+  "statistics": {
+    "total_combinations_exported": 84,
+    "recipes_per_combination": 6,
+    "unique_recipes_count": 9,
+    "diversity_optimized": true,
+    "value_range": {
+      "min": 26,
+      "max": 41,
+      "mean": 33.3
+    }
+  },
+  "all_unique_recipes": [
+    {
+      "ingredients": [
+        "onion"
+      ],
+      "recipe_value": 3,
+      "cooking_time": 9,
+      "ingredient_count": 1,
+      "onion_count": 1,
+      "tomato_count": 0
+    },
+    {
+      "ingredients": [
+        "tomato"
+      ],
+      "recipe_value": 2,
+      "cooking_time": 6,
+      "ingredient_count": 1,
+      "onion_count": 0,
+      "tomato_count": 1
+    },
+    {
+      "ingredients": [
+        "onion",
+        "onion"
+      ],
+      "recipe_value": 6,
+      "cooking_time": 18,
+      "ingredient_count": 2,
+      "onion_count": 2,
+      "tomato_count": 0
+    },
+    {
+      "ingredients": [
+        "onion",
+        "tomato"
+      ],
+      "recipe_value": 5,
+      "cooking_time": 15,
+      "ingredient_count": 2,
+      "onion_count": 1,
+      "tomato_count": 1
+    },
+    {
+      "ingredients": [
+        "tomato",
+        "tomato"
+      ],
+      "recipe_value": 4,
+      "cooking_time": 12,
+      "ingredient_count": 2,
+      "onion_count": 0,
+      "tomato_count": 2
+    },
+    {
+      "ingredients": [
+        "onion",
+        "onion",
+        "onion"
+      ],
+      "recipe_value": 9,
+      "cooking_time": 27,
+      "ingredient_count": 3,
+      "onion_count": 3,
+      "tomato_count": 0
+    },
+    {
+      "ingredients": [
+        "onion",
+        "onion",
+        "tomato"
+      ],
+      "recipe_value": 8,
+      "cooking_time": 24,
+      "ingredient_count": 3,
+      "onion_count": 2,
+      "tomato_count": 1
+    },
+    {
+      "ingredients": [
+        "onion",
+        "tomato",
+        "tomato"
+      ],
+      "recipe_value": 7,
+      "cooking_time": 21,
+      "ingredient_count": 3,
+      "onion_count": 1,
+      "tomato_count": 2
+    },
+    {
+      "ingredients": [
+        "tomato",
+        "tomato",
+        "tomato"
+      ],
+      "recipe_value": 6,
+      "cooking_time": 18,
+      "ingredient_count": 3,
+      "onion_count": 0,
+      "tomato_count": 3
+    }
+  ],
+  "recipe_combinations": [
+    {
+      "combination_id": 1,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        }
+      ],
+      "total_value": 29,
+      "total_cooking_time": 87,
+      "total_ingredients": 11
+    },
+    {
+      "combination_id": 2,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        }
+      ],
+      "total_value": 28,
+      "total_cooking_time": 84,
+      "total_ingredients": 11
+    },
+    {
+      "combination_id": 3,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 7,
+          "cooking_time": 21
+        }
+      ],
+      "total_value": 27,
+      "total_cooking_time": 81,
+      "total_ingredients": 11
+    },
+    {
+      "combination_id": 4,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 4,
+          "cooking_time": 12
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "tomato",
+            "tomato",
+            "tomato"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        }
+      ],
+      "total_value": 26,
+      "total_cooking_time": 78,
+      "total_ingredients": 11
+    },
+    {
+      "combination_id": 5,
+      "recipes": [
+        {
+          "recipe_id": 1,
+          "ingredients": [
+            "onion"
+          ],
+          "recipe_value": 3,
+          "cooking_time": 9
+        },
+        {
+          "recipe_id": 2,
+          "ingredients": [
+            "tomato"
+          ],
+          "recipe_value": 2,
+          "cooking_time": 6
+        },
+        {
+          "recipe_id": 3,
+          "ingredients": [
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 6,
+          "cooking_time": 18
+        },
+        {
+          "recipe_id": 4,
+          "ingredients": [
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 5,
+          "cooking_time": 15
+        },
+        {
+          "recipe_id": 5,
+          "ingredients": [
+            "onion",
+            "onion",
+            "onion"
+          ],
+          "recipe_value": 9,
+          "cooking_time": 27
+        },
+        {
+          "recipe_id": 6,
+          "ingredients": [
+            "onion",
+            "onion",
+            "tomato"
+          ],
+          "recipe_value": 8,
+          "cooking_time": 24
+        }
+      ],
+      "total_value": 33,
+      "total_cooking_time": 99,
+      "total_ingredients": 12
+    }
+  ],
+  "layout_integration_format": {
+    "recipe_list": [
+      [
+        "onion"
+      ],
+      [
+        "tomato"
+      ],
+      [
+        "onion",
+        "onion"
+      ],
+      [
+        "onion",
+        "tomato"
+      ],
+      [
+        "tomato",
+        "tomato"
+      ],
+      [
+        "onion",
+        "onion",
+        "onion"
+      ],
+      [
+        "onion",
+        "onion",
+        "tomato"
+      ],
+      [
+        "onion",
+        "tomato",
+        "tomato"
+      ],
+      [
+        "tomato",
+        "tomato",
+        "tomato"
+      ]
+    ],
+    "combination_indices": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        5,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        5,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        5,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        5,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        4,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        2,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        2,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        5,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        3,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        3,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        1,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        1,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        5,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        5,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        6,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        2,
+        3,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        3,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        2,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        2,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        0,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        0,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        0,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        0,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        5,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        6,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        4,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        1,
+        2,
+        3,
+        5,
+        6,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        5,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        1,
+        2,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        1,
+        2,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        1,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        1,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      [
+        2,
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      [
+        2,
+        3,
+        4,
+        5,
+        7,
+        8
+      ],
+      [
+        2,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      [
+        2,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        2,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    ]
+  }
+}

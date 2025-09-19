@@ -21,12 +21,12 @@ from utils import (read_ndjson, write_ndjson, append_ndjson, decompress_grid,
 
 # ===================== CONFIGURATION =====================
 # Option principale : ajouter les recettes aux layouts ou non
-ADD_RECIPES_TO_LAYOUTS = True  # True/False — si False, n'ajoute aucune recette aux layouts (layouts "nus")
+ADD_RECIPES_TO_LAYOUTS = False  # True/False — si False, n'ajoute aucune recette aux layouts (layouts "nus")
 
 # Paramètres configurables
 INPUT_FILE = "layouts.ndjson"  # Fichier NDJSON d'entrée
 OUTPUT_FILE = "layouts_with_objects.ndjson"  # Fichier NDJSON de sortie
-DISTANCE_OBJETS = 16  # Distance totale souhaitée entre tous les objets 7*7 : 16 ; 8*8 : 24
+DISTANCE_OBJETS = 20  # Distance totale souhaitée entre tous les objets 7*7 : 16 ; 8*8 : 24
 NUM_VARIATIONS = 1   # Nombre de variations par layout
 OBJECTS = ['1', '2', 'O', 'T', 'S', 'D', 'P']  # Objets à placer
 MAX_PROCESSES = None  # Nombre max de processus (None = auto-détection)
@@ -37,9 +37,34 @@ def extract_grid_from_layout_data(layout_data):
     """Extrait la grille décompressée depuis les données NDJSON"""
     return decompress_grid(layout_data['grid'])
 
+def get_valid_wall_positions(grid):
+    """
+    Retourne toutes les positions de murs (X) qui sont adjacentes à au moins une case vide.
+    Ces positions peuvent accueillir des objets en remplacement du X.
+    MODIFICATION: Tous les objets remplacent maintenant un X adjacente à une case vide.
+    """
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    valid_walls = []
+    
+    for i, row in enumerate(grid):
+        for j, cell in enumerate(row):
+            if cell == 'X':
+                # Vérifier qu'il y a au moins une case vide adjacente
+                has_adjacent_empty = False
+                for di, dj in directions:
+                    ni, nj = i + di, j + dj
+                    if (0 <= ni < len(grid) and 0 <= nj < len(grid[0]) and 
+                        grid[ni][nj] in ['.', ' ']):
+                        has_adjacent_empty = True
+                        break
+                
+                if has_adjacent_empty:
+                    valid_walls.append((i, j))
+    
+    return valid_walls
+
 def calculate_manhattan_distance(pos1, pos2):
     """Calcule la distance de Manhattan entre deux positions"""
-    return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
     return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
 def calculate_total_path_distance(positions):
@@ -60,156 +85,121 @@ def calculate_total_path_distance(positions):
     
     return min_distance
 
-def find_valid_x_positions(grid):
-    """Trouve toutes les positions contenant 'X' dans la grille"""
-    positions = []
-    for i, row in enumerate(grid):
-        for j, cell in enumerate(row):
-            if cell == 'X':
-                positions.append((i, j))
-    return positions
-
 def find_empty_positions(grid):
-    """Trouve toutes les positions contenant un espace vide dans la grille"""
-    positions = []
+    """Trouve toutes les positions vides dans la grille (marquées par '.' ou ' ')"""
+    empty_positions = []
     for i, row in enumerate(grid):
         for j, cell in enumerate(row):
-            if cell == ' ':
-                positions.append((i, j))
-    return positions
+            if cell == '.' or cell == ' ':  # Supporter les deux formats
+                empty_positions.append((i, j))
+    return empty_positions
+
 
 def is_edge_position(pos, grid):
-    """Vérifie si une position est sur une extrémité de la grille"""
+    """Vérifie si une position est sur le bord de la grille"""
     i, j = pos
-    max_i = len(grid) - 1
-    max_j = len(grid[0]) - 1 if grid else 0
+    return i == 0 or i == len(grid) - 1 or j == 0 or j == len(grid[0]) - 1
+
+def get_edge_wall_positions(grid):
+    """
+    Retourne les positions de murs (X) qui sont sur les extrémités/bords de la grille
+    et adjacentes à au moins une case vide.
+    """
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    edge_walls = []
     
-    # Une position est sur une extrémité si elle est sur le bord de la grille
-    return i == 0 or i == max_i or j == 0 or j == max_j
+    for i, row in enumerate(grid):
+        for j, cell in enumerate(row):
+            if cell == 'X' and is_edge_position((i, j), grid):
+                # Vérifier qu'il y a au moins une case vide adjacente
+                has_adjacent_empty = False
+                for di, dj in directions:
+                    ni, nj = i + di, j + dj
+                    if (0 <= ni < len(grid) and 0 <= nj < len(grid[0]) and 
+                        grid[ni][nj] in ['.', ' ']):
+                        has_adjacent_empty = True
+                        break
+                
+                if has_adjacent_empty:
+                    edge_walls.append((i, j))
+    
+    return edge_walls
+
 
 def get_valid_positions_for_object(grid, obj):
-    """Retourne les positions valides pour un objet donné avec toutes les contraintes"""
-    if obj in ['1', '2']:
-        # Les 1 et 2 doivent être placés sur d'anciennes cases vides (pas sur des X)
-        candidate_positions = find_empty_positions(grid)
-    else:
-        candidate_positions = find_valid_x_positions(grid)
+    """Retourne les positions valides pour placer un objet donné"""
+    
+    if obj == 'S':  # Serving areas : SEULEMENT sur les extrémités (bords de grille)
+        return get_edge_wall_positions(grid)
+    elif obj in ['1', '2']:  # Joueurs remplacent des cases vides, pas sur les bords
+        empty_positions = find_empty_positions(grid)
+        return [pos for pos in empty_positions if not is_edge_position(pos, grid)]
+    elif obj in ['O', 'T', 'D', 'P']:  # Autres objets : SEULEMENT murs X accessibles
+        return get_valid_wall_positions(grid)
+    else:  # Objets non spécifiés : murs X accessibles
+        return get_valid_wall_positions(grid)
 
-    # Filtrer les positions selon toutes les contraintes
-    valid_positions = []
-    for pos in candidate_positions:
-        if is_position_valid_for_placement(pos, grid, obj):
-            valid_positions.append(pos)
-    return valid_positions
 
 def has_adjacent_empty_space(pos, grid):
-    """Vérifie si une position a au moins une case vide adjacente (pas bloquée)"""
+    """Vérifie si une position a au moins un espace vide adjacent"""
     i, j = pos
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # haut, bas, gauche, droite
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     
     for di, dj in directions:
         ni, nj = i + di, j + dj
-        # Vérifier que la position adjacente est dans les limites
         if 0 <= ni < len(grid) and 0 <= nj < len(grid[0]):
-            # Vérifier si c'est un espace vide (espace ou autre case libre)
-            if grid[ni][nj] == ' ':
+            if grid[ni][nj] == '.' or grid[ni][nj] == ' ':
                 return True
-    
     return False
 
-def is_position_valid_for_placement(pos, grid, obj):
-    """Vérifie si une position est valide pour placer un objet donné"""
-    # Vérification 1: L'objet ne doit pas être sur une extrémité si c'est '1' ou '2'
-    if obj in ['1', '2'] and is_edge_position(pos, grid):
-        return False
-    
-    # Vérification 2: L'objet 'S' doit obligatoirement être sur une extrémité
-    if obj == 'S' and not is_edge_position(pos, grid):
-        return False
-    
-    # Vérification 3: L'objet ne doit pas être bloqué (doit avoir au moins un espace vide adjacent)
-    if not has_adjacent_empty_space(pos, grid):
-        return False
-    
-    return True
 
 def place_objects_with_distance_constraint(grid, target_distance, max_attempts=1000):
     """
-    Place les objets de manière à respecter la contrainte de distance.
-    Les objets '1' et '2' ne peuvent pas être placés sur les extrémités.
-    L'objet 'S' doit obligatoirement être placé sur une extrémité.
-    Retourne une nouvelle grille avec les objets placés.
+    Place tous les objets du jeu en respectant une contrainte de distance totale.
+    Adaptation pour le nouveau format de grille (cases vides = '.' ou ' ')
     """
-    # Vérifier qu'il y a assez de positions pour chaque type d'objet
-    all_x_positions = find_valid_x_positions(grid)
-    positions_for_1_2 = [pos for pos in all_x_positions if not is_edge_position(pos, grid)]
-    edge_positions = [pos for pos in all_x_positions if is_edge_position(pos, grid)]
+    attempts = 0
     
-    if len(positions_for_1_2) < 2:  # Besoin d'au moins 2 positions intérieures pour '1' et '2'
-        print(f"Pas assez de positions intérieures pour '1' et '2'. Disponible: {len(positions_for_1_2)}")
-        return None
-    
-    if len(edge_positions) < 1:  # Besoin d'au moins 1 position d'extrémité pour 'S'
-        print(f"Pas assez de positions d'extrémité pour 'S'. Disponible: {len(edge_positions)}")
-        return None
-    
-    if len(all_x_positions) < len(OBJECTS):
-        print(f"Pas assez de positions X disponibles. Besoin: {len(OBJECTS)}, Disponible: {len(all_x_positions)}")
-        return None
-    
-    best_grid = None
-    best_distance_diff = float('inf')
-    
-    for attempt in range(max_attempts):
-        # Copier la grille originale
-        new_grid = [row[:] for row in grid]
-        selected_positions = []
+    while attempts < max_attempts:
+        # Créer une copie de la grille pour cette tentative
+        test_grid = [row[:] for row in grid]
+        object_positions = {}
         
-        # Placer les objets avec leurs contraintes
+        # Essayer de placer chaque objet
+        all_placed = True
         for obj in OBJECTS:
-            valid_positions = get_valid_positions_for_object(grid, obj)
-            # Exclure les positions déjà occupées
-            available_positions = [pos for pos in valid_positions if pos not in selected_positions]
+            valid_positions = get_valid_positions_for_object(test_grid, obj)
             
-            if not available_positions:
-                # Pas de position disponible pour cet objet, essayer une autre combinaison
+            if not valid_positions:
+                all_placed = False
                 break
             
-            # Sélectionner une position aléatoire parmi les positions disponibles
-            selected_pos = random.choice(available_positions)
-            selected_positions.append(selected_pos)
+            # Choisir une position aléatoire valide
+            pos = random.choice(valid_positions)
+            test_grid[pos[0]][pos[1]] = obj
+            object_positions[obj] = pos
         
-        # Vérifier que tous les objets ont été placés
-        if len(selected_positions) != len(OBJECTS):
+        if not all_placed:
+            attempts += 1
             continue
         
         # Calculer la distance totale
-        total_distance = calculate_total_path_distance(selected_positions)
-        distance_diff = abs(total_distance - target_distance)
+        positions = list(object_positions.values())
+        total_distance = calculate_total_path_distance(positions)
         
-        # Si c'est exactement la distance souhaitée, on l'utilise
-        if total_distance == target_distance:
-            for pos, obj in zip(selected_positions, OBJECTS):
-                new_grid[pos[0]][pos[1]] = obj
-            return new_grid
+        # Vérifier si la distance est acceptable (avec une tolérance)
+        if abs(total_distance - target_distance) <= 2:
+            return test_grid, object_positions, total_distance
         
-        # Sinon, garder la meilleure approximation
-        if distance_diff < best_distance_diff:
-            best_distance_diff = distance_diff
-            best_grid = [row[:] for row in new_grid]
-            for pos, obj in zip(selected_positions, OBJECTS):
-                best_grid[pos[0]][pos[1]] = obj
+        attempts += 1
     
-    if best_grid is not None:
-        actual_distance = target_distance - best_distance_diff if best_distance_diff <= target_distance else target_distance + best_distance_diff
-        print(f"Meilleure approximation trouvée: distance = {actual_distance} (cible: {target_distance})")
-    
-    return best_grid
+    # Si aucune solution trouvée, retourner None
+    return None, None, None
+
 
 def grid_to_string(grid):
-    """Convertit une grille en chaîne de caractères pour le format .layout"""
-    grid_lines = [''.join(row) for row in grid]
-    return '\n                '.join(grid_lines)
+    """Convertit une grille 2D en string multi-lignes"""
+    return '\n'.join(''.join(row) for row in grid)
 
 
 def process_single_layout_variation(args):
@@ -221,29 +211,19 @@ def process_single_layout_variation(args):
         grid = extract_grid_from_layout_data(layout_data)
         
         # Placer les objets avec contrainte de distance
-        modified_grid = place_objects_with_distance_constraint(grid, distance_target)
+        result = place_objects_with_distance_constraint(grid, distance_target)
         
-        if modified_grid is None:
+        if result[0] is None:  # result = (grid, positions, distance)
             return None  # Échec du placement d'objets
         
-        # Créer le nouveau layout avec objets
-        new_layout_id = f"{layout_data['layout_id']}_obj_v{variation_num:02d}"
-        new_layout_name = f"{layout_data['name']}_with_objects_v{variation_num:02d}"
+        modified_grid, object_positions, actual_distance = result
+        
+        # Créer le nouveau layout avec objets (format simplifié avec distance)
+        new_layout_id = f"{layout_data['layout_id']}_d{actual_distance}_v{variation_num:02d}"
         
         result_layout = {
             "layout_id": new_layout_id,
-            "name": new_layout_name,
-            "grid": compress_grid(modified_grid),
-            "special_tiles": extract_special_tiles(modified_grid),
-            "meta": {
-                **layout_data['meta'],  # Hériter des métadonnées originales
-                "with_objects": True,
-                "variation_num": variation_num,
-                "distance_target": distance_target,
-                "add_recipes": add_recipes,
-                "processing_time": get_timestamp(),
-                "processor_version": get_evaluator_version()
-            }
+            "grid": compress_grid(modified_grid)
         }
         
         # Ajouter les recettes si demandé
@@ -253,7 +233,6 @@ def process_single_layout_variation(args):
                 result_layout["recipes"] = recipes
             except Exception as e:
                 print(f"Attention: Impossible de charger les recettes: {e}")
-                result_layout["meta"]["recipes_error"] = str(e)
         
         return result_layout
         
@@ -312,11 +291,20 @@ def process_layouts_with_args(args):
     """Traite tous les layouts au format NDJSON avec les arguments CLI"""
     
     print(f"=== TRAITEMENT DES LAYOUTS ===")
+    
+    # Convertir les chemins en absolus pour éviter les erreurs
+    args.input = os.path.abspath(args.input)
+    args.output = os.path.abspath(args.output)
+    
     print(f"Fichier d'entrée: {args.input}")
-    print(f"Fichier de sortie: {args.output}")
     print(f"Ajout de recettes: {'OUI' if args.add_recipes else 'NON (layouts nus)'}")
     print(f"Distance cible objets: {args.distance}")
     print(f"Variations par layout: {args.variations}")
+    
+    # Vérifier que le fichier d'entrée existe
+    if not os.path.exists(args.input):
+        print(f"❌ Erreur: Fichier d'entrée non trouvé: {args.input}")
+        return []
     
     # Charger les layouts depuis le fichier NDJSON
     print("Chargement des layouts...")
@@ -327,6 +315,14 @@ def process_layouts_with_args(args):
         print(f"Limitation à {args.max_layouts} layouts")
     
     print(f"Layouts à traiter: {len(layouts)}")
+    
+    # Calculer le nombre de cellules vides à partir du premier layout
+    if layouts:
+        first_grid = extract_grid_from_layout_data(layouts[0])
+        empty_cells = sum(row.count('.') + row.count(' ') for row in first_grid)
+        
+        print(f"Cellules vides détectées: {empty_cells}")
+        print(f"Fichier de sortie: {args.output}")
     
     # Préparer les tâches pour le multiprocessing
     tasks = []

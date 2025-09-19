@@ -9,13 +9,13 @@ import time
 from utils import (generate_layout_id, compress_grid, extract_special_tiles, 
                    get_evaluator_version, get_timestamp, write_ndjson, append_ndjson)
 
-SIZE = 10  # Taille de la grille (modifiable)
-min_cases_vides = 50
-max_cases_vides = 51
+SIZE = 8  # Taille de la grille (modifiable)
+min_cases_vides = 30
+max_cases_vides = 31
 # Nombre maximum de layouts à générer par valeur de "cases vides" (par défaut None = illimité)
-MAX_LAYOUTS_PER_N_EMPTY = 1000
+MAX_LAYOUTS_PER_N_EMPTY = 1000000
 OUTPUT_FILE = "layouts.ndjson"
-filepath = "."  # Sortie dans le dossier courant test_generation_layout_final
+filepath = "test_generation_layout_final"  # Sortie dans le dossier courant test_generation_layout_final
 
 # ----------------------- UTILITAIRES -----------------------
 def print_grid(grid):
@@ -310,20 +310,10 @@ def generate_layouts_backtracking_single(args):
     ndjson_layouts = []
     for i, grid in enumerate(solutions):
         layout_id = generate_layout_id(grid, seed + i)
-        layout_name = f"gen_{size}x{size}_{n_empty}empty_{i:04d}"
         
         layout_data = {
             "layout_id": layout_id,
-            "name": layout_name,
-            "grid": compress_grid(grid),
-            "special_tiles": extract_special_tiles(grid),
-            "meta": {
-                "seed": seed + i,
-                "generator_version": get_evaluator_version(),
-                "size": size,
-                "n_empty": n_empty,
-                "generation_time": get_timestamp()
-            }
+            "grid": compress_grid(grid)
         }
         ndjson_layouts.append(layout_data)
 
@@ -391,20 +381,122 @@ def generate_layouts_parallel(size_range, n_empty_range, num_processes=None, see
     
     return results
 
+def test_layout_constraints(grid, verbose=False):
+    """
+    Teste et affiche les résultats des contraintes de base pour un layout donné.
+    Les contraintes de serving area seront vérifiées lors de l'ajout d'objets.
+    """
+    size = len(grid)
+    results = {
+        'connected': is_connected_full(grid),
+        'no_2x2_blocks': True  # Sera vérifié
+    }
+    
+    # Vérifier les blocs 2x2
+    checker = Fast2x2Checker(size)
+    for i in range(size):
+        for j in range(size):
+            if grid[i][j] == 'X' and checker.creates_2x2_fast(grid, i, j):
+                results['no_2x2_blocks'] = False
+                break
+        if not results['no_2x2_blocks']:
+            break
+    
+    if verbose:
+        print("=== VALIDATION DES CONTRAINTES DE BASE ===")
+        print(f"✅ Connectivité: {results['connected']}")
+        print(f"✅ Pas de blocs 2x2: {results['no_2x2_blocks']}")
+        print("ℹ️  Contrainte serving area vérifiée lors de l'ajout d'objets")
+        print_grid(grid)
+    
+    return all(results.values())
+
 # ------------------ POINT D'ENTRÉE ------------------
 if __name__ == "__main__":
-    # Génération de layouts au format NDJSON
+    import argparse
+    import sys
+    
+    # Parser des arguments
+    parser = argparse.ArgumentParser(description="Générateur de layouts Overcooked avec contraintes")
+    parser.add_argument('recipes_file', nargs='?', default=None,
+                       help='Fichier de recettes (optionnel, ignoré)')
+    parser.add_argument('layouts_per_recipe', nargs='?', type=int, default=None,
+                       help='Nombre de layouts par recette (ignoré si --layouts-total utilisé)')
+    parser.add_argument('--grid-size', type=int, default=SIZE,
+                       help=f'Taille de la grille NxN (défaut: {SIZE})')
+    parser.add_argument('--layouts-total', type=int, default=None,
+                       help='Nombre total de layouts à générer')
+    parser.add_argument('--min-empty', type=int, default=min_cases_vides,
+                       help=f'Minimum de cases vides (défaut: {min_cases_vides})')
+    parser.add_argument('--max-empty', type=int, default=max_cases_vides,
+                       help=f'Maximum de cases vides (défaut: {max_cases_vides})')
+    parser.add_argument('--output', default=OUTPUT_FILE,
+                       help=f'Fichier de sortie (défaut: {OUTPUT_FILE})')
+    parser.add_argument('--processes', type=int, default=None,
+                       help='Nombre de processus (défaut: auto)')
+    parser.add_argument('--seed', type=int, default=42,
+                       help='Seed pour reproductibilité (défaut: 42)')
+    
+    args = parser.parse_args()
+    
+    # Validation des paramètres
+    if args.grid_size < 5 or args.grid_size > 20:
+        print("❌ Erreur: La taille de grille doit être entre 5 et 20")
+        sys.exit(1)
+    
+    if args.min_empty >= args.grid_size * args.grid_size:
+        print("❌ Erreur: Le nombre minimum de cases vides doit être inférieur à la taille totale de la grille")
+        sys.exit(1)
+    
+    # Utiliser les paramètres
+    SIZE = args.grid_size
+    min_cases_vides = args.min_empty
+    max_cases_vides = args.max_empty
+    OUTPUT_FILE = args.output
+    
+    # Adapter le nombre de cases vides à la taille de grille
+    total_cells = SIZE * SIZE
+    if args.min_empty == 50 and args.max_empty == 51 and SIZE != 10:
+        # Adapter automatiquement pour les autres tailles
+        empty_ratio = 50 / 100  # 50% de cases vides pour une grille 10x10
+        min_cases_vides = max(10, int(total_cells * empty_ratio))
+        max_cases_vides = min_cases_vides + 1
+        print(f"🔧 Adaptation automatique pour grille {SIZE}x{SIZE}:")
+        print(f"   Cases vides: {min_cases_vides}-{max_cases_vides} (ratio ~{empty_ratio:.0%})")
+    
+    # Déterminer le nombre de layouts à générer
+    if args.layouts_total:
+        # Mode: générer un nombre total spécifique
+        layouts_to_generate = args.layouts_total
+        # Répartir sur les différentes valeurs de cases vides
+        n_empty_range = range(min_cases_vides, max_cases_vides)
+        layouts_per_empty = max(1, layouts_to_generate // len(n_empty_range))
+        MAX_LAYOUTS_PER_N_EMPTY = layouts_per_empty
+        print(f"🎯 Mode total: {layouts_to_generate} layouts à générer")
+        print(f"   {layouts_per_empty} layouts par valeur de cases vides")
+    elif args.layouts_per_recipe:
+        # Mode hérité: layouts par recette
+        MAX_LAYOUTS_PER_N_EMPTY = args.layouts_per_recipe
+        print(f"🎯 Mode par recette: {args.layouts_per_recipe} layouts")
+    else:
+        # Mode par défaut
+        print(f"🎯 Mode par défaut: {MAX_LAYOUTS_PER_N_EMPTY} layouts")
     
     # Créer le répertoire de sortie si nécessaire
     os.makedirs(filepath, exist_ok=True)
     
+    # Calculer le nombre de processus
+    num_processes = args.processes if args.processes else min(mp.cpu_count(), 8)
+    
     # Lancer la génération parallèle avec seed déterministe
     n_empty_range = range(min_cases_vides, max_cases_vides)
-    num_processes = min(mp.cpu_count(), 8)
-    seed = 42  # Seed déterministe pour reproductibilité
     
     print(f"Génération de layouts {SIZE}x{SIZE} au format NDJSON")
-    print(f"Seed: {seed}")
+    print(f"Contraintes appliquées:")
+    print(f"  a) Serving areas sur extrémités uniquement")
+    print(f"  b) Toutes les cases vides connectées")
+    print(f"  c) Pas de carré de X de taille 2x2")
+    print(f"Seed: {args.seed}")
     print(f"Range cases vides: {list(n_empty_range)}")
     
-    results = generate_layouts_parallel(SIZE, n_empty_range, num_processes, seed)
+    results = generate_layouts_parallel(SIZE, n_empty_range, num_processes, args.seed)

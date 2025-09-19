@@ -215,7 +215,7 @@ def create_rotated_filename(original_filename: str, angle: int) -> str:
 
 def rotate_single_layout(input_path: str, output_dir: str, filename: str) -> Dict[str, bool]:
     """Effectue les rotations d'un seul layout"""
-    results = {"90": False, "180": False, "270": False}
+    results = {"90": False, "180": False}
     
     try:
         # Charger le layout original
@@ -225,8 +225,8 @@ def rotate_single_layout(input_path: str, output_dir: str, filename: str) -> Dic
         print(f"  📋 Grille originale:")
         print(f"     {original_grid.replace(chr(10), chr(10) + '     ')}")
         
-        # Effectuer les 3 rotations
-        for angle in [90, 180, 270]:
+        # Effectuer les 2 rotations demandées (90° et 180°)
+        for angle in [90, 180]:
             try:
                 # Effectuer la rotation
                 rotated_grid = rotate_grid(original_grid, angle)
@@ -280,7 +280,7 @@ def process_all_layouts(source_dir: str, output_dir: str) -> None:
     print(f"📂 Destination: {output_dir}")
     
     total_layouts = len(layout_files)
-    successful_rotations = {"90": 0, "180": 0, "270": 0}
+    successful_rotations = {"90": 0, "180": 0}
     
     # Traiter chaque layout
     for i, filename in enumerate(sorted(layout_files), 1):
@@ -308,13 +308,21 @@ def process_all_layouts(source_dir: str, output_dir: str) -> None:
 
 def test_single_rotation():
     """Test sur un seul layout pour vérification"""
-    source_dir = "/home/cesar/python-projects/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar"
-    test_file = "L26_R64_V08.layout"
+    source_dir = "/home/cesar/projet_python/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar"
+    test_file = "Ldd18_R04_V00.layout"  # Un des fichiers existants
     test_path = os.path.join(source_dir, test_file)
     
     if not os.path.exists(test_path):
         print(f"❌ Fichier de test introuvable: {test_path}")
-        return
+        # Essayer avec le premier fichier disponible
+        layout_files = [f for f in os.listdir(source_dir) if f.endswith('.layout')]
+        if layout_files:
+            test_file = layout_files[0]
+            test_path = os.path.join(source_dir, test_file)
+            print(f"🔄 Utilisation de {test_file} à la place")
+        else:
+            print("❌ Aucun fichier layout trouvé dans le dossier")
+            return
     
     print("🧪 TEST DE ROTATION")
     print("=" * 50)
@@ -344,9 +352,9 @@ def main():
     print("🔄 GÉNÉRATEUR DE ROTATIONS DE LAYOUTS OVERCOOKED")
     print("=" * 60)
     
-    # Chemins
-    source_dir = "/home/cesar/python-projects/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar"
-    output_dir = "/home/cesar/python-projects/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar_rotated"
+    # Chemins - sauvegarde dans le même dossier source
+    source_dir = "/home/cesar/projet_python/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar"
+    output_dir = "/home/cesar/projet_python/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar"  # Même dossier
     
     # Demander le mode d'exécution
     print("Mode d'exécution:")
@@ -366,7 +374,7 @@ def main():
         if os.path.exists(source_dir):
             layout_count = len([f for f in os.listdir(source_dir) if f.endswith('.layout')])
             print(f"📊 {layout_count} layouts seront traités")
-            print(f"🔄 {layout_count * 3} fichiers seront générés (3 rotations par layout)")
+            print(f"🔄 {layout_count * 2} fichiers seront générés (2 rotations par layout)")
         
         confirm = input("\n🚀 Continuer? (y/N): ").strip().lower()
         if confirm == 'y':

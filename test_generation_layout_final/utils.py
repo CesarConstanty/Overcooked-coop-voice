@@ -74,6 +74,60 @@ def decompress_grid(compressed: Dict[str, Any]) -> List[List[str]]:
     return grid
 
 
+def validate_layout_format(layout_data: Dict) -> bool:
+    """
+    Valide le format d'un layout NDJSON.
+    
+    Args:
+        layout_data: Données du layout à valider
+        
+    Returns:
+        True si le format est valide, False sinon
+    """
+    try:
+        # Vérifier les champs obligatoires
+        if not isinstance(layout_data, dict):
+            return False
+        
+        if 'layout_id' not in layout_data:
+            return False
+        
+        if 'grid' not in layout_data:
+            return False
+        
+        # Vérifier le format de la grille
+        grid_data = layout_data['grid']
+        if not isinstance(grid_data, dict):
+            return False
+        
+        required_grid_fields = ['format', 'data', 'rows', 'cols']
+        for field in required_grid_fields:
+            if field not in grid_data:
+                return False
+        
+        # Vérifier que le format est correct
+        if grid_data['format'] != 'flat_string':
+            return False
+        
+        # Vérifier que rows et cols sont des nombres
+        if not isinstance(grid_data['rows'], int) or not isinstance(grid_data['cols'], int):
+            return False
+        
+        # Vérifier que la data est une string
+        if not isinstance(grid_data['data'], str):
+            return False
+        
+        # Vérifier la cohérence taille data vs rows*cols
+        expected_length = grid_data['rows'] * grid_data['cols']
+        if len(grid_data['data']) != expected_length:
+            return False
+        
+        return True
+        
+    except Exception:
+        return False
+
+
 def extract_special_tiles(grid: List[List[str]]) -> Dict[str, List[Tuple[int, int]]]:
     """
     Extrait les positions des tuiles spéciales (X, objets).
@@ -222,32 +276,6 @@ def load_recipes(recipes_file: str = "ensemble_recettes.json") -> List[Dict[str,
     
     # Sinon, format déjà correct
     return data
-
-
-def validate_layout_format(layout_data: Dict[str, Any]) -> bool:
-    """
-    Valide qu'un layout respecte le format attendu.
-    
-    Args:
-        layout_data: Données du layout à valider
-        
-    Returns:
-        True si valide, False sinon
-    """
-    required_fields = ['layout_id', 'name', 'grid', 'special_tiles', 'meta']
-    
-    if not all(field in layout_data for field in required_fields):
-        return False
-    
-    # Vérifier que grid peut être décompressée
-    try:
-        grid = decompress_grid(layout_data['grid'])
-        if not grid or not grid[0]:
-            return False
-    except:
-        return False
-    
-    return True
 
 
 def validate_evaluation_format(eval_data: Dict[str, Any]) -> bool:

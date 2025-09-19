@@ -7,6 +7,7 @@ Génère toutes les combinaisons possibles selon les paramètres du fichier reci
 
 import json
 import itertools
+import sys
 from datetime import datetime
 from typing import List, Dict, Tuple, Any
 import numpy as np
@@ -228,7 +229,7 @@ class RecipeGenerator:
             "layout_integration_format": layout_format
         }
         
-        # Sauvegarder
+        # Sauvegarder dans le répertoire test_generation_layout_final
         try:
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
@@ -247,15 +248,37 @@ class RecipeGenerator:
 
 def main():
     """Fonction principale."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Générateur de combinaisons de recettes Overcooked")
+    parser.add_argument('--output', default='ensemble_recettes.json',
+                       help='Fichier de sortie (défaut: ensemble_recettes.json)')
+    parser.add_argument('--all-combinations', action='store_true',
+                       help='Générer toutes les 84 combinaisons possibles')
+    parser.add_argument('--num-combinations', type=int, default=None,
+                       help='Nombre de combinaisons à générer (défaut: toutes)')
+    
+    args = parser.parse_args()
+    
     try:
         # Créer le générateur
         generator = RecipeGenerator()
         
-        # Générer et exporter dans le dossier test_generation_layout_final
-        generator.export_to_json("ensemble_recettes.json")
+        # Modifier la configuration si nécessaire
+        if args.all_combinations:
+            # Forcer toutes les combinaisons (84)
+            generator.n_combinations = len(list(itertools.combinations(generator.all_recipes, generator.combination_size)))
+            print(f"🎯 Mode toutes combinaisons: {generator.n_combinations} combinaisons")
+        elif args.num_combinations:
+            generator.n_combinations = args.num_combinations
+            print(f"🎯 Mode personnalisé: {generator.n_combinations} combinaisons")
+        
+        # Générer et exporter
+        generator.export_to_json(args.output)
         
     except Exception as e:
         print(f"❌ Erreur: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
