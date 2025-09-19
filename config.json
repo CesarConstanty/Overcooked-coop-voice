@@ -59,9 +59,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -128,9 +128,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -192,9 +192,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -260,9 +260,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -320,6 +320,10 @@
         "qvg_length" : 5,
         "ptta_length" : 5,
         "preference_length" : 5,
+        "explications_generales_max": 600,
+        "explications_generales_min": 10,
+        "explications_block_max": 600,
+        "explications_block_min": 10,
         "playerZero" : "Planning",
         "agent" : "Greedy",
         "conditions" : {"0":"EVH", "1":"U", "2":"EA"},
@@ -328,9 +332,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -357,11 +361,7 @@
         "ai_asset_slowdown_enabled": true,
         "ai_asset_slow_speed": 16,
         "ai_asset_slow_duration": 10,
-        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
-        "explications_generales_max": 600,
-        "explications_generales_min": 120,
-        "explications_block_max": 600,
-        "explications_block_min": 60
+        "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
     "pretest_experiment_1_V1" : {
         "mechanic" : "recipe",
@@ -396,9 +396,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -464,9 +464,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -532,9 +532,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -600,9 +600,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -668,9 +668,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -736,9 +736,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -804,9 +804,9 @@
         "visual_intention_next_duration": 1000,
         "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00","marinII1T"],
-            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90","marinII1T_R90"],
-            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180","marinII1T_R180"]
+            "0": ["Ldd18_R04_V00","Ldd18_R11_V00","Ldd18_R27_V00","Ldd18_R71_V00","Ldd19_R54_V00","Ldd19_R64_V00","Ldd19_R82_V00","Ldd21_R75_V00","Ldd22_R03_V00","Ldd22_R29_V00","Ldd22_R69_V00","Ldd22_R78_V00"],
+            "1": ["Ldd18_R04_V00_R90","Ldd18_R11_V00_R90","Ldd18_R27_V00_R90","Ldd18_R71_V00_R90","Ldd19_R54_V00_R90","Ldd19_R64_V00_R90","Ldd19_R82_V00_R90","Ldd21_R75_V00_R90","Ldd22_R03_V00_R90","Ldd22_R29_V00_R90","Ldd22_R69_V00_R90","Ldd22_R78_V00_R90"],
+            "2": ["Ldd18_R04_V00_R180","Ldd18_R11_V00_R180","Ldd18_R27_V00_R180","Ldd18_R71_V00_R180","Ldd19_R54_V00_R180","Ldd19_R64_V00_R180","Ldd19_R82_V00_R180","Ldd21_R75_V00_R180","Ldd22_R03_V00_R180","Ldd22_R29_V00_R180","Ldd22_R69_V00_R180","Ldd22_R78_V00_R180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
