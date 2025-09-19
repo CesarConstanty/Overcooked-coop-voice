@@ -3,7 +3,7 @@ version: '3.11'
 services:
   overcooked:
     build: .
-    container_name: overcooked-app
+    container_name: overcooked
     ports:
       - "5000:5000"
     volumes:
