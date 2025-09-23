@@ -56,39 +56,7 @@ def rotate_layout(layout_name, config, base_bloc):
     to_layout_file(grid270, layout_name, layout_dir, '270')
     gridT = np.transpose(grid)
     to_layout_file(gridT, layout_name, layout_dir, 'T')
-    # rotated_counter_goals = np.argwhere(mdp.terrain_mtx == 'Y')
-    # mdp.counter_goals = [(x,y) for y,x in rotated_counter_goals]
-    # mdp.to_layout_file(layout_dir+'/'+layout_name+'90.layout')
-    # config["blocs"][str(int(base_bloc)+1)].append(layout_name+'90')
-    # grid = np.array(grid)
-    # mdp.terrain_mtx = np.rot90(base_grid,2)
-    # mdp.start_player_positions[0] = np.where(mdp.terrain_mtx=='1')[::-1]
-    # mdp.start_player_positions[1] = np.where(mdp.terrain_mtx=='2')[::-1]
-    # rotated_counter_goals = np.argwhere(mdp.terrain_mtx == 'Y')
-    # mdp.counter_goals = [(x,y) for y,x in rotated_counter_goals]
-    # mdp.to_layout_file(layout_dir+'/'+layout_name+'180.layout')
-    # config["blocs"][str(int(base_bloc)+2)].append(layout_name+'180')
-    # base_grid = np.array(base_grid)
-    # mdp.terrain_mtx = np.rot90(base_grid,3)
-    # mdp.start_player_positions[0] = np.where(mdp.terrain_mtx=='1')[::-1]
-    # mdp.start_player_positions[1] = np.where(mdp.terrain_mtx=='2')[::-1]
-    # rotated_counter_goals = np.argwhere(mdp.terrain_mtx == 'Y')
-    # mdp.counter_goals = [(x,y) for y,x in rotated_counter_goals]
-    # mdp.to_layout_file(layout_dir+'/'+layout_name+'270.layout')
-    # config["blocs"][str(int(base_bloc)+3)].append(layout_name+'270')
-    # mdp.terrain_mtx = np.transpose(base_grid)
-    # mdp.start_player_positions[0] = np.where(mdp.terrain_mtx=='1')[::-1]
-    # mdp.start_player_positions[1] = np.where(mdp.terrain_mtx=='2')[::-1]
-    # rotated_counter_goals = np.argwhere(mdp.terrain_mtx == 'Y')
-    # mdp.counter_goals = [(x,y) for y,x in rotated_counter_goals]
-    # mdp.to_layout_file(layout_dir+'/'+layout_name+'T.layout')
-    # config["blocs"][str(int(base_bloc)+4)].append(layout_name+'T')
-
-
-
-
-
-
+   
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("config")
