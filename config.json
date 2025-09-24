@@ -1041,9 +1041,9 @@
         "ai_asset_slow_duration": 10,
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"],
         "explications_generales_max": 600,
-        "explications_generales_min": 120,
+        "explications_generales_min": 5,
         "explications_block_max": 600,
-        "explications_block_min": 60
+        "explications_block_min": 5
     },
     "pretest_experiment_1_V1_short_game_V2" : {
         "mechanic" : "recipe",
