@@ -18,7 +18,7 @@ services:
 
       # Logs des erreurs éventuelles
       - ./data/logs:/overcooked/logs
-  # Persister les caches Python compilés
+      # Persister les caches Python compilés
       - ./data/pycache:/overcooked/__pycache__
       - ./data/overcooked_ai_py/pycache:/overcooked/overcooked_ai_py/__pycache__
     environment:
