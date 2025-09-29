@@ -162,6 +162,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.isPlaying = false;
         this.isPlayingRecipe = false;
         this.isPlayingAsset = false;
+        this.audioUnlockHandler = null;
+        this.audioUnlockEvents = ['pointerdown', 'touchstart', 'mousedown', 'click', 'keydown', 'keyup'];
         
         // Audio control parameters
         this.audioEnabled = true; // Global audio control
@@ -250,6 +252,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         // Initialize basic scene elements first
         this.sprites = {};
         this.drawLevel();
+        this.events.once('shutdown', () => this.teardownAudioUnlockListeners());
+        this.events.once('destroy', () => this.teardownAudioUnlockListeners());
         
         // Initialize WebAudio context and wait for buffers to load
         this.initializeAudioContext().then(() => {
@@ -278,18 +282,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         try {
             // Créer le contexte audio avec gestion de l'autoplay policy
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Résoudre les problèmes d'autoplay policy
-            if (this.audioContext.state === 'suspended') {
-                // console.log('AudioContext suspended, will resume on user interaction');
-                // Le contexte sera repris lors de la première interaction utilisateur
-                document.addEventListener('click', () => {
-                    if (this.audioContext.state === 'suspended') {
-                        this.audioContext.resume();
-                        // console.log('AudioContext resumed');
-                    }
-                }, { once: true });
-            }
+            this.setupAudioUnlockListeners();
+            this.tryResumeAudioContext();
             
             // Essayer d'abord la méthode principale
             await this.loadAudioBuffers();
@@ -303,10 +297,58 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             // console.log('WebAudio API initialized successfully');
         } catch (error) {
             // console.warn('WebAudio API not supported or failed to initialize, falling back to Phaser Audio:', error);
+            this.teardownAudioUnlockListeners();
             this.audioContext = null;
         }
     }
     
+    setupAudioUnlockListeners() {
+        if (this.audioUnlockHandler) {
+            return;
+        }
+
+        const handler = () => {
+            this.tryResumeAudioContext();
+            const contextUnlocked = !this.audioContext || this.audioContext.state !== 'suspended';
+            const phaserContext = this.sound && this.sound.context ? this.sound.context : null;
+            const phaserUnlocked = !(phaserContext && phaserContext.state === 'suspended');
+
+            if (contextUnlocked && phaserUnlocked) {
+                this.teardownAudioUnlockListeners();
+            }
+        };
+
+        this.audioUnlockHandler = handler;
+        this.audioUnlockEvents.forEach(evt => {
+            window.addEventListener(evt, handler, { passive: true });
+        });
+    }
+
+    teardownAudioUnlockListeners() {
+        if (!this.audioUnlockHandler) {
+            return;
+        }
+
+        this.audioUnlockEvents.forEach(evt => {
+            window.removeEventListener(evt, this.audioUnlockHandler);
+        });
+        this.audioUnlockHandler = null;
+    }
+
+    tryResumeAudioContext() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().catch(() => {});
+        }
+
+        if (this.sound && this.sound.context && this.sound.context.state === 'suspended') {
+            try {
+                this.sound.unlock();
+            } catch (e) {
+                // Ignore errors from unlock attempts
+            }
+        }
+    }
+
     /**
      * Load all audio files into buffers for WebAudio API
      */
@@ -407,6 +449,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             if (onComplete) onComplete();
             return;
         }
+
+        this.tryResumeAudioContext();
         
         // Pour les sons critiques (recettes), essayer d'attendre un court délai si les buffers ne sont pas prêts
         if ((audioKey.startsWith('recette_') || audioKey === 'annonce_recette') && !this.isAudioReady()) {

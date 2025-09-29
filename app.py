@@ -519,7 +519,7 @@ def index():
     user_sid = "None"
     try:
         config_id = request.args.get('CONFIG', default=None)
-        config = CONFIG[config_id]
+        config = deepcopy(CONFIG[config_id])
         config["config_id"] = config_id
         
         # NOUVEAU: Préserver les labels de condition originaux pour les tutoriels
@@ -832,6 +832,8 @@ def instructions_explained():
 @app.route('/planning', methods=['GET', 'POST'])
 def planning():
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     bloc_order = current_user.config.get("bloc_order", [])
     
@@ -986,6 +988,8 @@ def planning():
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     step = current_user.step
     bloc_key = current_user.config["bloc_order"][current_user.step]
@@ -1018,6 +1022,8 @@ def transition():
 @app.route('/qex_ranking', methods=['GET'])
 def qex_ranking():
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     step = current_user.step
     config_id = current_user.config["config_id"]
@@ -1036,6 +1042,8 @@ def qex_ranking():
 @app.route('/submit_qex_ranking', methods=['POST'])
 def submit_qex_ranking():
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     step = current_user.step 
     config_id = current_user.config["config_id"]
@@ -1108,6 +1116,8 @@ def qvg_survey():
     Renders the video game questionnaire (QVG) HTML page.
     """
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     # Récupère la durée du timer depuis la config utilisateur
     qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
     
@@ -1123,6 +1133,8 @@ def submit_qvg_survey():
     Extracts data, saves it to a JSON file, and progresses the user's step.
     """
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     step = current_user.step
 
@@ -1188,6 +1200,8 @@ def submit_qvg_survey():
 @app.route('/ptta_survey', methods=['GET'])
 def ptta_survey():
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     ptta_length = current_user.config.get("ptta_length", 60)
     
     # Suivi temporel : enregistrer la visite du questionnaire PTTA
@@ -1202,6 +1216,8 @@ def submit_ptta_survey():
     Extracts data, saves it to a JSON file, and progresses the user's step.
     """
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     step = current_user.step
 
@@ -1303,6 +1319,8 @@ def cat():
 @app.route('/tutorial')
 def tutorial():
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     step = 0
     # Remise à zéro des compteurs d'essai et de bloc pour l'expérience principale
@@ -1337,6 +1355,8 @@ def condition_tutorial():
     3. Affiche le tutoriel correspondant avec les bonnes variables
     """
     current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
     uid = current_user.uid
     bloc_order = current_user.config.get("bloc_order", [])
     
@@ -1636,6 +1656,9 @@ def post_qpt(data):
 
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPT").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{current_user.step}_{trial}_QPT.json"
+    total_trial = len(current_user.config["blocs"][bloc_key])
+    last_trial = trial >= (total_trial - 1)
+
     # Vérifie si le fichier existe déjà pour éviter un double enregistrement
     if not os.path.exists(file_name):
         try:
@@ -1644,13 +1667,20 @@ def post_qpt(data):
         except KeyError:
             pass
 
-        total_trial = len(current_user.config["blocs"][bloc_key])
-        if trial < total_trial-1:
+        if not last_trial:
             current_user.trial += 1
             db.session.commit()
-            socketio.emit("next_step", to=sid)
     else:
         print(f"QPT déjà enregistré pour {file_name}, pas de double incrémentation.")
+
+    if not last_trial and current_user.trial == trial:
+        current_user.trial = min(trial + 1, total_trial - 1)
+        db.session.commit()
+
+    if last_trial:
+        socketio.emit("qpb", to=sid)
+    else:
+        socketio.emit("next_step", to=sid)
 
 
 @socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
