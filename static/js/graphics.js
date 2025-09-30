@@ -1287,7 +1287,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
 
     _drawTimeLeft(time_left, sprites, board_height, board_width) {
-        time_left = "Time Left: "+time_left;
+        time_left = "Time Left : "+time_left+" s";
         //console.log(time_left);
         if (typeof(sprites['time_left']) !== 'undefined') {
             sprites['time_left'].setText(time_left);

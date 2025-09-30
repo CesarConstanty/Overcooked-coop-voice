@@ -53,22 +53,29 @@
     </div>
 
     <section class="card">
-      <p>Hello! Welcome to this video game all about... cooking! In this experiment you will play a chef in a restaurant specialising in soups!</p>
+      <p>Hello! Welcome to this video game all about... cooking! In this experiment you will play as a chef in a restaurant specialized in soups!</p>
     </section>
 
     <section class="card">
-      <h3>Layouts</h3>
-      <div class="center">
-        <p>This is what your kitchen (one level of the game) looks like:</p>
-        <figure>
-          <img src="static/images/basic_map_exchange_V2.png" alt="Kitchen layout" style="max-width:500px;">
-        </figure>
-        
-        <p>Here you will interact with several objects:</p>
-        <figure>
-          <img src="static/images/basic_map_exchange_V2_legend.png" alt="Kitchen objects legend" style="max-width:800px;">
-        </figure>
-      </div>
+      <h3>Your Goal</h3>
+      <p>For each game, you will have a list of recipes to make. The goal of the game is to complete all these recipes in the shortest time possible. Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.</p>
+      
+      <p>the <strong>All Orders</strong> list shows which recipes you need to complete: any prepared or served soup which is not on this list will not be counted and it will make you loose time.</p>
+      
+      <p>When a soup is served at the serving counter, it is automatically validated, and disappears from the <strong>All Orders</strong> list of the recipes you have to realize during the game.</p>
+      
+      <p><strong>Your goal</strong> is to make all the recipes in the All Orders lists <strong>AS FAST AS POSSIBLE</strong>.</p>
+      
+      <figure>
+        <img src="static/images/info-panel_recipe.png" alt="Recipe panel" style="max-width:400px;">
+      </figure>
+      
+      <p>In the example above, you have to complete 3 recipes:</p>
+      <ul>
+        <li>tomato + tomato + tomato</li>
+        <li>tomato + onion</li>
+        <li>onion + onion + tomato</li>
+      </ul>
     </section>
 
     <section class="card">
@@ -85,11 +92,11 @@
           <p>You can interact with objects by facing them and pressing <strong>spacebar</strong>. Here are some examples:</p>
           <ul>
             <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <strong>spacebar</strong>.</li>
-            <li>If you're holding an ingredient and face an empty counter, pressing <strong>spacebar</strong> puts the item down.</li>
-            <li>Face a pot and press <strong>spacebar</strong> to add an ingredient (if it's not full).</li>
+            <li>If you are holding an ingredient and facing an empty counter, pressing <strong>spacebar</strong> puts the item down.</li>
+            <li>Face a pot and press <strong>spacebar</strong> to add an ingredient (if it is not full).</li>
             <li>Face a non-empty pot while holding nothing and press <strong>spacebar</strong> to begin cooking.</li>
           </ul>
-          <p><u><strong>You cannot occupy the same location as your partner.</strong></u></p>
+          <p><u><strong>You cannot occupy the same location as the artificial agent.</strong></u></p>
         </div>
         
         <div class="flex-item">
@@ -98,8 +105,8 @@
             <img src="static/images/soup.png" alt="Soup cooking" style="max-width:250px;">
           </figure>
           <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to 3 ingredients.</p>
-          <p>A red number appears over the pot to indicate the cooking time. It counts upwards until the soup is done. Each onion adds {{ onion_time }} and each tomato adds {{ tomato_time }} to the cooking time. Remember that onions award more points than tomatoes but take longer to cook!</p>
-          <p>Once an ingredient is in the pot, you must cook it to remove it — whether or not it matches a valid order. Don't forget to hold a plate to collect the soup!</p>
+          <p>A red number appears over the pot to indicate the cooking time. It counts upwards until the soup is done. Each onion adds {{ onion_time }}s and each tomato adds {{ tomato_time }}s to the cooking time. Remember that onions are worth more points than tomatoes, but take longer to cook!</p>
+          <p>Once an ingredient is in the pot, you must cook it to remove it — whether or not it matches a valid order. Do not forget to hold a plate to collect the soup!</p>
         </div>
       </div>
 
@@ -124,25 +131,18 @@
     </section>
 
     <section class="card">
-      <h3>Your Goal</h3>
-      <p>For each game, you will have a list of recipes to make. The goal of the game is to achieve all these recipes in the shortest possible time. Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.</p>
-      
-      <p>The <strong>All Orders</strong> list shows which recipes you have to realize for the game. This is important because any soup served that is not on this list will not be counted and will just waste your time.</p>
-      
-      <p>When a soup is served at the serving counter, it is automatically validated, and disappears from the <strong>All Orders</strong> list of the recipes you have to realize during the game.</p>
-      
-      <p><strong>Your goal</strong> is to make all the recipes in the "All Orders" list <strong>AS FAST AS POSSIBLE</strong>.</p>
-      
-      <figure>
-        <img src="static/images/info-panel_recipe.png" alt="Recipe panel" style="max-width:400px;">
-      </figure>
-      
-      <p>For example, here you have to make 3 soups:</p>
-      <ul>
-        <li>tomato + tomato + tomato</li>
-        <li>tomato + onion</li>
-        <li>onion + onion + tomato</li>
-      </ul>
+      <h3>Layouts</h3>
+      <div class="center">
+        <p>This is an exemple of what the kitchen (one level of the game) looks like:</p>
+        <figure>
+          <img src="static/images/basic_map_exchange_V2.png" alt="Kitchen layout" style="max-width:500px;">
+        </figure>
+        
+        <p>Here you will interact with several objects:</p>
+        <figure>
+          <img src="static/images/basic_map_exchange_V2_legend.png" alt="Kitchen objects legend" style="max-width:800px;">
+        </figure>
+      </div>
     </section>
 
     <section class="card important">
@@ -153,31 +153,31 @@
       <h3>Questions</h3>
       
       <h5>After each GAME</h5>
-      <p>At the end of each game, you will be asked questions, it is very important that you understand what is asked:</p>
+      <p>At the end of each game, you will be asked 3 questions, it is very important that you understand what is asked:</p>
       
       <p>1) <strong>"How much control did you use?"</strong>: This refers to the actual influence you exerted on what happened. Think about how much of the outcome resulted from your direct actions or commands.</p>
       
-      <p>2) <strong>"How much control did you feel?"</strong>: This measures your subjective experience of control, how much it felt like you were the one guiding what happened.</p>
+      <p>2) <strong>"How much control did you feel?"</strong>: This measures your subjective experience of control, regardless of wether your are in control or not, think about how much did you feel to be the one guiding what happened.</p>
       
       <p>3) <strong>"Who is accountable for this result?"</strong>: Accountability is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent involved.</p>
       
-      <p>Your goal is to complete the requested recipes as quickly as possible. Once the game is complete, you will see how long it took. Then, you'll evaluate how responsible you feel for that outcome.</p>
+  <p>Your goal is to complete the requested recipes as quickly as possible. Once the game is complete, you will see how many points you earned from the served recipes. Then, you will evaluate how responsible you feel for that outcome.</p>
       
       <h5>After each BLOCK of games</h5>
       <p>At the end of each assignment block, you will be asked to complete two questionnaires about the games you have just completed.</p>
       
       <div class="important">
-        <h4 class="center">It is VERY IMPORTANT to answer the questions SERIOUSLY for the experiment to be valid.</h4>
+        <h4 class="center">It is VERY IMPORTANT to answer the questions SERIOUSLY for the experimental session to be valid.</h4>
       </div>
     </section>
 
     <section class="card">
       <h3>Course of the experiment</h3>
       <p>You will start by performing a tutorial to familiarize yourself with the interface.</p>
-      <p>You will start each block with a practice trial to learn how to play with the agent. This trial will look like other trials but we won't use the data collected.</p>
-      <p>Then you will start the experiment where you will complete 3 blocks containing 12 games each.</p>
+  <p>You will start each block with a practice trial to learn how to play with the agent. This trial will look like other trials but we will not use the data collected.</p>
+      <p>During the experiment where you will complete 3 blocks containing 12 games each.</p>
       <p>You will be able to take a small break between each block if you wish.</p>
-      <p>Keep in mind that every survey is meant to be completed in a certain amount of time.</p>
+      <p>Keep in mind that every survey is meant to be completed in a limited amount of time.</p>
     </section>
 
     <section class="card warning">
