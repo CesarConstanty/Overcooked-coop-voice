@@ -181,7 +181,7 @@ socket.on('start_game', function(data) {
     curr_trial = data.trial +1;
 
     let bloc_key = data.config.bloc_order[data.step];
-    $('#game-title').text(`Experiment in Progress, Bloc ${data.step + 1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[bloc_key]).length}`);
+    $('#game-title').text(`Experiment in Progress, Block ${data.step + 1}/${Object.keys(data.config.blocs).length}, Trial ${curr_trial}/${Object.keys(data.config.blocs[bloc_key]).length}`);
     $('#game-title').show(); 
     
     if (!window.spectating) {
@@ -203,7 +203,7 @@ socket.on('reset_game', function(data) {
         disable_key_listener();
     }
     curr_trial = data.trial + 1;
-    $('#game-title').text(`Experiment in Progress, Bloc ${data.step+1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[data.step]).length}`);
+    $('#game-title').text(`Experiment in Progress, Block ${data.step+1}/${Object.keys(data.config.blocs).length}, Trial ${curr_trial}/${Object.keys(data.config.blocs[data.step]).length}`);
     $("#reset-game").show();
     setTimeout(function() {
         //console.log(`[RESET_GAME] Resetting graphics for trial ${curr_trial} in block ${data.step + 1}`);

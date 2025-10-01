@@ -74,7 +74,7 @@ function drawState(state) {
 // Invoked at 'start_game' event déclenché par app.py, écouté par planning.js 
 // qui définie graphics_config avec les paramètres de la partie
 function graphics_start(graphics_config) {
-    scene_config.player_colors = graphics_config.player_colors;
+    //scene_config.player_colors = graphics_config.player_colors;
     scene_config.condition = graphics_config.condition;
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
