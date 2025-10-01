@@ -128,7 +128,7 @@ socket.on('start_game', function(data) {
         container_id : "overcooked",
         start_info : data.start_info,
         mechanic : data.config.mechanic,
-        player_colors : {0: 'blue', 1: 'green'}
+        player_colors : {0: 'green', 1: 'blue'}
     };
     $("#overcooked").empty();
     $('#game-over').hide();
@@ -163,7 +163,7 @@ socket.on('reset_game', function(data) {
     graphics_config = {
         container_id : "overcooked",
         start_info : data.state,
-        player_colors : {0: 'blue', 1: 'green'}
+        player_colors : {0: 'green', 1: 'blue'}
     };
     graphics_start(graphics_config);
     enable_key_listener();
