@@ -231,7 +231,7 @@ Exemples d'utilisation:
             exit(1)
             
         config = CONFIG[args.config]
-        layout_dir = config.get("layouts_dir", "/home/cesar/python-projects/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar")
+        layout_dir = config.get("layouts_dir", "/home/cesar/python-projects/Overcooked-coop-voice/overcooked_ai_py/data/layouts/generation_cesar_2")
         base_layouts = config["blocs"][str(args.base_bloc)]
         
         # En mode legacy, toutes les rotations sont appliquées
