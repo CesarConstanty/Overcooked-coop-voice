@@ -926,10 +926,10 @@
             "email": "xx",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 600,
+        "gameTime" : 75,
         "hoffman_length": 5,
         "qpb_length" : 5,
-        "qpt_length" : 5,
+        "qpt_length" : 15,
         "qvg_length" : 5,
         "ptta_length" : 5,
         "preference_length" : 600,
