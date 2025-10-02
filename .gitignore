@@ -153,3 +153,6 @@ test_generation_layout/layouts_split
 test_generation_layout/layouts_with_objects
 test_generation_layout/raw_layouts
 test_generation_layout/path_evaluation_results
+
+# Documentation
+documentation

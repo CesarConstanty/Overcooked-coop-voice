@@ -342,27 +342,32 @@ class PlanningAgent(Agent):
             # change the player positions if the other player were not to move
             if self.prev_state is not None and state.players_pos_and_or == self.prev_state.players_pos_and_or:
                 self.stuck_frames += 1
-                if self.agent_index == 0:
-                    joint_actions = list(itertools.product(
-                        Action.ALL_ACTIONS, [Action.STAY]))
-                elif self.agent_index == 1:
-                    joint_actions = list(itertools.product(
-                        [Action.STAY], Action.ALL_ACTIONS))
-                else:
-                    raise ValueError("Player index not recognized")
+                # Only activate anti-blocking after being stuck for 2 consecutive frames
+                if self.stuck_frames >= 2:
+                    if self.agent_index == 0:
+                        joint_actions = list(itertools.product(
+                            Action.ALL_ACTIONS, [Action.STAY]))
+                    elif self.agent_index == 1:
+                        joint_actions = list(itertools.product(
+                            [Action.STAY], Action.ALL_ACTIONS))
+                    else:
+                        raise ValueError("Player index not recognized")
 
-                unblocking_joint_actions = []
-                for j_a in joint_actions:
-                    new_state, _ = self.mlam.mdp.get_state_transition(
-                        state, j_a)
-                    if new_state.player_positions != self.prev_state.player_positions:
-                        unblocking_joint_actions.append(j_a)
-                # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
-                if len(unblocking_joint_actions) == 0:
-                    unblocking_joint_actions.append([Action.STAY, Action.STAY])
-                chosen_action = unblocking_joint_actions[np.random.choice(len(unblocking_joint_actions))][
-                    self.agent_index]
-                action_probs = self.a_probs_from_action(chosen_action)
+                    unblocking_joint_actions = []
+                    for j_a in joint_actions:
+                        new_state, _ = self.mlam.mdp.get_state_transition(
+                            state, j_a)
+                        if new_state.player_positions != self.prev_state.player_positions:
+                            unblocking_joint_actions.append(j_a)
+                    # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
+                    if len(unblocking_joint_actions) == 0:
+                        unblocking_joint_actions.append([Action.STAY, Action.STAY])
+                    chosen_action = unblocking_joint_actions[np.random.choice(len(unblocking_joint_actions))][
+                        self.agent_index]
+                    action_probs = self.a_probs_from_action(chosen_action)
+            else:
+                # Reset stuck counter when agent moves
+                self.stuck_frames = 0
 
             # NOTE: Assumes that calls to the action method are sequential
             self.prev_state = state
