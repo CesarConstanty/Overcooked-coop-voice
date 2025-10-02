@@ -1,5 +1,5 @@
 {
-    "mode" : "test",
+    "mode" : "pre_test",
     "logfile" : "app.log",
     "ai_slowdown_enabled": true,
     "ai_base_speed": 4,
@@ -904,7 +904,7 @@
         "ai_trial_start_speed": 100,
         "ai_trial_start_first_only": false,
         "ai_asset_slowdown_enabled": true,
-        "ai_asset_slow_speed": 16,
+        "ai_asset_slow_speed": 20,
         "ai_asset_slow_duration": 10,
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
