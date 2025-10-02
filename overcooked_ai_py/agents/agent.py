@@ -488,15 +488,27 @@ class PlanningAgent(Agent):
                         only_pot_states_ready_to_cook)
 
                 elif self.next_order_info["most_advanced_pot"]:
-                    if 'onion' in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                    # Prendre en compte l'objet que tient le joueur partenaire seulement si AI_see_asset est activé
+                    missing_ingredients = list(self.next_order_info["missing_ingredients_in_MA_pot"])
+                    
+                    # Si AI_see_asset est activé ET le partenaire tient un ingrédient, le considérer comme "apporté"
+                    if self.ai_see_asset and other_player.has_object():
+                        partner_obj = other_player.get_object()
+                        if partner_obj.name in missing_ingredients:
+                            missing_ingredients.remove(partner_obj.name)
+                    
+                    # Décider de l'action en fonction des ingrédients restants
+                    if len(missing_ingredients) == 0:
+                        # Plus d'ingrédients nécessaires → prendre une assiette
+                        self.intentions['goal'] = 'D'
+                        motion_goals = am.pickup_dish_actions(counter_objects)
+                    elif 'onion' in missing_ingredients:
                         self.intentions['goal'] = 'O'
                         motion_goals = am.pickup_onion_actions(counter_objects)
-                    elif 'tomato' in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                    elif 'tomato' in missing_ingredients:
                         self.intentions['goal'] = 'T'
-                        motion_goals = am.pickup_tomato_actions(
-                            counter_objects)
+                        motion_goals = am.pickup_tomato_actions(counter_objects)
                     else:
-                        #self.next_order = self.hl_action(state)
                         motion_goals = am.wait_actions(player)
                         motion_goals
                 else:
@@ -699,9 +711,10 @@ class RationalAgent(PlanningAgent):
         return cheapest_info
 
 class GreedyAgent(PlanningAgent):
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
+    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True, ai_see_asset=True):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "greedy"
+        self.ai_see_asset = ai_see_asset
         
         
     def hl_action(self, state):
@@ -749,8 +762,8 @@ class OptimizedGreedyAgent(GreedyAgent):
     Hérite de GreedyAgent mais avec une configuration plus robuste et rapide.
     """
     
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
-        super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
+    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True, ai_see_asset=True):
+        super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck, ai_see_asset)
         self.intentions["agent_name"] = "optimized_greedy"
         
     def set_mdp(self, mdp):
