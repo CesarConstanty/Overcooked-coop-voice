@@ -708,7 +708,7 @@ def index():
                 print(f"🎲 RANDOMIZE_ACCOUNTABILITY_LABELS=TRUE - Ordre randomisé: {accountability_labels}")
             else:
                 # RANDOMIZE_ACCOUNTABILITY_LABELS = FALSE : Ordre standard (moi, IA)
-                accountability_labels = ["Entièrement dû à moi", "Entièrement dû à l'IA"]
+                accountability_labels = ["Me", "The artificial agent"]
                 new_user.config["accountability_label_order"] = accountability_labels
                 print(f"📋 RANDOMIZE_ACCOUNTABILITY_LABELS=FALSE - Ordre standard: {accountability_labels}")
             
@@ -983,7 +983,7 @@ def planning():
         total_blocs=total_blocs,
         qpb_length=current_user.config.get("qpb_length", 300),
         hoffman_length=current_user.config.get("hoffman_length", 300),
-        accountability_labels=current_user.config.get("accountability_label_order", ["Entièrement dû à moi", "Entièrement dû à l'IA"])
+        accountability_labels=current_user.config.get("accountability_label_order", ["Me", "The artificial agent"])
     )
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
@@ -1641,6 +1641,16 @@ def post_qpt(data):
     form = {}
     mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
     form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
+    # Include the order in which accountability options were presented to the user
+    # (left -> middle -> right). The two end labels come from the user config
+    # (accountability_label_order) and the middle label is the team option shown
+    # in the template.
+    acc_labels = current_user.config.get("accountability_label_order", ["Me", "The artificial agent"]) 
+    if isinstance(acc_labels, list) and len(acc_labels) >= 2:
+        form["accountability_order"] = [acc_labels[0], "The team", acc_labels[1]]
+    else:
+        # Fallback to a sensible default (English labels)
+        form["accountability_order"] = ["Me", "The team", "The artificial agent"]
     
     condition = current_user.config["conditions"][bloc_key]
     form["timeout_bool"] = data["timeout_bool"]
