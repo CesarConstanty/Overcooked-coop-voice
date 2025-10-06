@@ -179,7 +179,7 @@
             "email": "xx",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 75,
+        "gameTime" : 60,
         "hoffman_length": 300,
         "qpb_length" : 300,
         "qpt_length" : 120,
@@ -233,7 +233,7 @@
     },
     "config_pretest_2" : {
         "mechanic" : "recipe",
-        "fps" : 10,
+        "fps" : 15,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
         "show_counter_drop" : true,
         "show_trial_time" : true,
