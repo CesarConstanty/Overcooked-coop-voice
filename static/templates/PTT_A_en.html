@@ -41,10 +41,26 @@
       padding-bottom: 0.5rem;
       border-bottom: 1px solid #f0f0f0;
     }
+    .likert-container {
+      margin-top: 1rem;
+    }
+    .likert-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #666;
+      font-style: italic;
+    }
+    .likert-labels .left-label {
+      text-align: left;
+    }
+    .likert-labels .right-label {
+      text-align: right;
+    }
     .likert {
       display: flex;
       justify-content: space-between;
-      margin-top: 1rem;
       gap: 0.5rem;
     }
     .likert label {
@@ -83,6 +99,14 @@
       .wrap { padding: 1rem; }
       h1 { font-size: 1.2rem; }
       .likert label { font-size: 0.95rem; }
+      .likert-labels {
+        font-size: 0.8rem;
+        margin-bottom: 0.3rem;
+      }
+      .likert-labels .left-label,
+      .likert-labels .right-label {
+        max-width: 45%;
+      }
     }
   </style>
 </head>
@@ -93,7 +117,7 @@
     <p>Automated technology is taking on more and more tasks in various areas of life. For example, robots are becoming more widely used in industry and in private households. Many means of transport (airplanes, trains, or cars) are also now increasingly automated.</p>
     <p>The term automated technology includes (among other things):</p>
     <ul>
-      <li>Automated means of transport (e.g., autonomous cars, trains, airplanes)</li>
+      <li>Automated means of transport (e.g., self-driving cars, trains, airplanes)</li>
       <li>Industrial robots (e.g., assembly robots, logistics robots)</li>
       <li>Service and assistance robots (e.g., vacuum cleaners, healthcare robots)</li>
       <li>AI-based programs (e.g., language assistants, image recognition)</li>
@@ -129,11 +153,17 @@
     items.forEach((text, i) => {
       const li = document.createElement('li');
       li.className = "question";
-      li.innerHTML = `<p>${text}</p><div class="likert">` +
+      li.innerHTML = `<p>${text}</p>` +
+        `<div class="likert-container">` +
+        `<div class="likert-labels">` +
+        `<span class="left-label">1 = Strongly disagree</span>` +
+        `<span class="right-label">7 = Strongly agree</span>` +
+        `</div>` +
+        `<div class="likert">` +
         Array.from({length: 7}, (_, j) =>
           `<label><input type="radio" name="q${i+1}" value="${j+1}" required>${j+1}</label>`
         ).join('') +
-        `</div>`;
+        `</div></div>`;
       container.appendChild(li);
     });
 

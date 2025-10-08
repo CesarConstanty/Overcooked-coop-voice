@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Visual communication</title>
+  <link rel="Favicon" href="static/favicon.ico" />
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(56,189,248,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:12px;border:1px solid var(--ring);vertical-align:middle}
+    th{background:#0b1325}
+    tr:nth-child(even){background:#111a2f}
+    .thumb{width:60px;height:60px;border-radius:8px;border:1px solid var(--ring);background:#0b1325;image-rendering:pixelated}
+    .tag{display:inline-block;font-size:12px;color:#0f172a;background:#38bdf8;border-radius:999px;padding:2px 8px;font-weight:700}
+    .group{background:rgba(56,189,248,.12);color:#e2e8f0}
+    .start-button{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:16px 32px;border-radius:12px;cursor:pointer;font-size:18px;margin:32px auto;display:block}
+    .start-button:hover{filter:brightness(1.05)}
+  </style>
+</head>
+<body>
+  <!-- Variables cachées pour les scripts -->
+  <div id="uid" style="display:none;">{{uid}}</div>
+  <div id="condition" style="display:none;">EVH</div>
+  <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
+  
+  <div class="wrap">
+    <div class="crumbs">Tutorial · Condition EVH</div>
+  <div class="title">Tutorial : <span style="color:var(--accent)">Visual</span> communication</div>
+
+    <section class="card">
+      <h2>Visual communication of intentions</h2>
+      <p>Here the artificial agent communicates its intentions using <strong>visual bubbles above its head</strong>. These bubbles clarify which recipe the agent is pursuing and which asset it is currently seeking in the game.</p>
+    </section>
+
+    <section class="card">
+      <h2>Sequence explanation</h2>
+      <p class="muted">The intentions will be communicated in the following order:</p>
+      <div class="flow">
+        <div class="step">Recipe</div>
+        <div class="arrow">→</div>
+        <div class="step">Asset</div>
+        <div class="arrow">→</div>
+        <div class="step">Following asset</div>
+        <div class="arrow">→</div>
+        <div class="step">Next recipe</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>In-game example of the artificial agent behaviour</h2>
+      <figure>
+        <img src="static/images/tutorial/EVH_Recipe_Asset_onion.gif" alt="Example of visual communication in-game"/>
+        <figcaption>Example — Visual communication.</figcaption>
+      </figure>
+    </section>
+
+    <section class="card">
+      <h2>Familiarize with visual messages</h2>
+      <p>Here below the <strong>complete list</strong> of visual cues the agent can display.</p>
+      <table>
+        <tr class="group"><th colspan="2">Recipes</th></tr>
+        <tr><th>Intention</th><th>Visual</th></tr>
+        <tbody id="recipes-table">
+          <!-- Recipes will be loaded dynamically -->
+        </tbody>
+
+        <tr class="group"><th colspan="2">Assets & Actions</th></tr>
+        <tr><th>Intention</th><th>Visual</th></tr>
+        <tbody id="assets-table">
+          <!-- Assets will be loaded dynamically -->
+        </tbody>
+      </table>
+
+      <script>
+        // Function to create sprite canvas from atlas
+        function createSpriteCanvas(atlasImg, frame) {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = frame.w;
+          canvas.height = frame.h;
+          
+          ctx.drawImage(
+            atlasImg,
+            frame.x, frame.y, frame.w, frame.h,
+            0, 0, frame.w, frame.h
+          );
+          
+          return canvas;
+        }
+
+        // Load and display soups and assets
+        async function loadSprites() {
+          try {
+            // Load JSON data
+            const [soupsData, objectsData, terrainData] = await Promise.all([
+              fetch('static/assets/soups.json').then(r => r.json()),
+              fetch('static/assets/objects.json').then(r => r.json()),
+              fetch('static/assets/terrain.json').then(r => r.json())
+            ]);
+
+            // Load atlas images
+            const soupsImg = new Image();
+            const objectsImg = new Image();
+            const terrainImg = new Image();
+            
+            await Promise.all([
+              new Promise(resolve => {
+                soupsImg.onload = resolve;
+                soupsImg.src = 'static/assets/soups.png';
+              }),
+              new Promise(resolve => {
+                objectsImg.onload = resolve;
+                objectsImg.src = 'static/assets/objects.png';
+              }),
+              new Promise(resolve => {
+                terrainImg.onload = resolve;
+                terrainImg.src = 'static/assets/terrain.png';
+            })
+            ]);
+
+            // Recipe mappings
+            const recipeMapping = [
+              {id: "0o1t", label: "One tomato", soupKey: "soup_done_tomato_1_onion_0.png"},
+              {id: "0o2t", label: "Two tomatoes", soupKey: "soup_done_tomato_2_onion_0.png"},
+              {id: "0o3t", label: "Three tomatoes", soupKey: "soup_done_tomato_3_onion_0.png"},
+              {id: "1o0t", label: "One onion", soupKey: "soup_done_tomato_0_onion_1.png"},
+              {id: "2o0t", label: "Two onions", soupKey: "soup_done_tomato_0_onion_2.png"},
+              {id: "3o0t", label: "Three onions", soupKey: "soup_done_tomato_0_onion_3.png"},
+              {id: "1o1t", label: "One onion + One tomato", soupKey: "soup_done_tomato_1_onion_1.png"},
+              {id: "1o2t", label: "One onion + Two tomatoes", soupKey: "soup_done_tomato_2_onion_1.png"},
+              {id: "2o1t", label: "Two onions + One tomato", soupKey: "soup_done_tomato_1_onion_2.png"}
+            ];
+
+            // Asset mappings
+            const assetMapping = [
+              {id: "onion", label: "Onion", type: "Asset", objectKey: "onion.png", atlas: "objects"},
+              {id: "tomato", label: "Tomato", type: "Asset", objectKey: "tomato.png", atlas: "objects"},
+              {id: "plate", label: "Plate", type: "Asset", objectKey: "dish.png", atlas: "objects"},
+              {id: "serving", label: "Serving", type: "Action", objectKey: "serve.png", atlas: "terrain"}
+            ];
+
+            // Populate recipes table
+            const recipesTable = document.getElementById('recipes-table');
+            recipeMapping.forEach(recipe => {
+              const soupFrame = soupsData.textures[0].frames.find(f => f.filename === recipe.soupKey);
+              if (soupFrame) {
+                const canvas = createSpriteCanvas(soupsImg, soupFrame.frame);
+                canvas.className = 'thumb';
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.transform = 'scale(1.5)';
+                canvas.style.transformOrigin = 'center';
+                canvas.style.width = '60px';
+                canvas.style.height = '60px';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td>${recipe.label} <span class="tag">Recipe</span></td>
+                  <td style="text-align: center; padding: 25px;"></td>
+                `;
+                row.cells[1].appendChild(canvas);
+                recipesTable.appendChild(row);
+              }
+            });
+
+            // Populate assets table
+            const assetsTable = document.getElementById('assets-table');
+            assetMapping.forEach(asset => {
+              let objectFrame, atlasImg;
+              
+              // Choose the correct atlas and frame structure based on asset type
+              if (asset.atlas === "terrain") {
+                objectFrame = terrainData.frames[asset.objectKey];
+                atlasImg = terrainImg;
+              } else {
+                objectFrame = objectsData.frames[asset.objectKey];
+                atlasImg = objectsImg;
+              }
+              
+              if (objectFrame) {
+                const canvas = createSpriteCanvas(atlasImg, objectFrame.frame);
+                canvas.className = 'thumb';
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.transform = 'scale(1.5)';
+                canvas.style.transformOrigin = 'center';
+                canvas.style.width = '60px';
+                canvas.style.height = '60px';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td>${asset.label} <span class="tag">${asset.type}</span></td>
+                  <td style="text-align: center; padding: 25px;"></td>
+                `;
+                row.cells[1].appendChild(canvas);
+                assetsTable.appendChild(row);
+              }
+            });
+
+          } catch (error) {
+            console.error('Error loading sprites:', error);
+          }
+        }
+
+        // Load sprites when page loads
+        document.addEventListener('DOMContentLoaded', loadSprites);
+      </script>
+    </section>
+    
+    <button id="start-game" class="start-button">
+      Start the game!
+    </button>
+  </div>
+
+  <script src="static/js/page-timer.js"></script>
+  <script>
+    // Initialiser le système de timer pour les tutoriels de bloc
+    const timerMin = {{ timer_min|default(60) }};
+    const timerMax = {{ timer_max|default(600) }};
+    initPageTimer(timerMin, timerMax, '#start-game');
+    
+    document.getElementById('start-game').addEventListener('click', function() {
+      window.location.href = '/planning?from_condition_tutorial=true';
+    });
+  </script>
+</body>
+</html>

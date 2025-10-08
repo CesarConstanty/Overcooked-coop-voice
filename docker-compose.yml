@@ -1,0 +1,26 @@
+version: '3.11'
+
+services:
+  overcooked:
+    build: .
+    container_name: overcooked
+    ports:
+      - "5000:5000"
+    volumes:
+      # Base de données SQLite identifiant les participants
+      - ./data/instance:/overcooked/instance
+      
+      # Résultats des participants 
+      - ./data/trajectories:/overcooked/trajectories
+      
+      # Cache des planificateurs IA
+      - ./data/overcooked_ai_py/data/planners:/overcooked/overcooked_ai_py/data/planners
+
+      # Logs des erreurs éventuelles
+      - ./data/logs:/overcooked/logs
+      # Persister les caches Python compilés
+      - ./data/pycache:/overcooked/__pycache__
+      - ./data/overcooked_ai_py/pycache:/overcooked/overcooked_ai_py/__pycache__
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped

@@ -342,27 +342,32 @@ class PlanningAgent(Agent):
             # change the player positions if the other player were not to move
             if self.prev_state is not None and state.players_pos_and_or == self.prev_state.players_pos_and_or:
                 self.stuck_frames += 1
-                if self.agent_index == 0:
-                    joint_actions = list(itertools.product(
-                        Action.ALL_ACTIONS, [Action.STAY]))
-                elif self.agent_index == 1:
-                    joint_actions = list(itertools.product(
-                        [Action.STAY], Action.ALL_ACTIONS))
-                else:
-                    raise ValueError("Player index not recognized")
+                # Only activate anti-blocking after being stuck for 2 consecutive frames
+                if self.stuck_frames >= 2:
+                    if self.agent_index == 0:
+                        joint_actions = list(itertools.product(
+                            Action.ALL_ACTIONS, [Action.STAY]))
+                    elif self.agent_index == 1:
+                        joint_actions = list(itertools.product(
+                            [Action.STAY], Action.ALL_ACTIONS))
+                    else:
+                        raise ValueError("Player index not recognized")
 
-                unblocking_joint_actions = []
-                for j_a in joint_actions:
-                    new_state, _ = self.mlam.mdp.get_state_transition(
-                        state, j_a)
-                    if new_state.player_positions != self.prev_state.player_positions:
-                        unblocking_joint_actions.append(j_a)
-                # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
-                if len(unblocking_joint_actions) == 0:
-                    unblocking_joint_actions.append([Action.STAY, Action.STAY])
-                chosen_action = unblocking_joint_actions[np.random.choice(len(unblocking_joint_actions))][
-                    self.agent_index]
-                action_probs = self.a_probs_from_action(chosen_action)
+                    unblocking_joint_actions = []
+                    for j_a in joint_actions:
+                        new_state, _ = self.mlam.mdp.get_state_transition(
+                            state, j_a)
+                        if new_state.player_positions != self.prev_state.player_positions:
+                            unblocking_joint_actions.append(j_a)
+                    # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
+                    if len(unblocking_joint_actions) == 0:
+                        unblocking_joint_actions.append([Action.STAY, Action.STAY])
+                    chosen_action = unblocking_joint_actions[np.random.choice(len(unblocking_joint_actions))][
+                        self.agent_index]
+                    action_probs = self.a_probs_from_action(chosen_action)
+            else:
+                # Reset stuck counter when agent moves
+                self.stuck_frames = 0
 
             # NOTE: Assumes that calls to the action method are sequential
             self.prev_state = state
@@ -483,15 +488,27 @@ class PlanningAgent(Agent):
                         only_pot_states_ready_to_cook)
 
                 elif self.next_order_info["most_advanced_pot"]:
-                    if 'onion' in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                    # Prendre en compte l'objet que tient le joueur partenaire seulement si AI_see_asset est activé
+                    missing_ingredients = list(self.next_order_info["missing_ingredients_in_MA_pot"])
+                    
+                    # Si AI_see_asset est activé ET le partenaire tient un ingrédient, le considérer comme "apporté"
+                    if self.ai_see_asset and other_player.has_object():
+                        partner_obj = other_player.get_object()
+                        if partner_obj.name in missing_ingredients:
+                            missing_ingredients.remove(partner_obj.name)
+                    
+                    # Décider de l'action en fonction des ingrédients restants
+                    if len(missing_ingredients) == 0:
+                        # Plus d'ingrédients nécessaires → prendre une assiette
+                        self.intentions['goal'] = 'D'
+                        motion_goals = am.pickup_dish_actions(counter_objects)
+                    elif 'onion' in missing_ingredients:
                         self.intentions['goal'] = 'O'
                         motion_goals = am.pickup_onion_actions(counter_objects)
-                    elif 'tomato' in self.next_order_info["missing_ingredients_in_MA_pot"]:
+                    elif 'tomato' in missing_ingredients:
                         self.intentions['goal'] = 'T'
-                        motion_goals = am.pickup_tomato_actions(
-                            counter_objects)
+                        motion_goals = am.pickup_tomato_actions(counter_objects)
                     else:
-                        #self.next_order = self.hl_action(state)
                         motion_goals = am.wait_actions(player)
                         motion_goals
                 else:
@@ -694,9 +711,10 @@ class RationalAgent(PlanningAgent):
         return cheapest_info
 
 class GreedyAgent(PlanningAgent):
-    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True):
+    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True, ai_see_asset=True):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "greedy"
+        self.ai_see_asset = ai_see_asset
         
         
     def hl_action(self, state):
@@ -736,6 +754,97 @@ class LazyAgent(PlanningAgent):
             self.hl_goal = shortest
         return shortest
 
+
+
+class OptimizedGreedyAgent(GreedyAgent):
+    """
+    GreedyAgent optimisé pour l'évaluation de layouts.
+    Hérite de GreedyAgent mais avec une configuration plus robuste et rapide.
+    """
+    
+    def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True, ai_see_asset=True):
+        super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck, ai_see_asset)
+        self.intentions["agent_name"] = "optimized_greedy"
+        
+    def set_mdp(self, mdp):
+        """Configuration optimisée du MDP avec gestion d'erreur robuste"""
+        try:
+            super().set_mdp(mdp)
+        except Exception as e:
+            # Configuration minimale en cas d'erreur
+            self.mdp = mdp
+            # Créer un MLAM minimal si nécessaire
+            if not hasattr(self, 'mlam') or self.mlam is None:
+                try:
+                    from overcooked_ai_py.planning.planners import MediumLevelActionManager, NO_COUNTERS_PARAMS
+                    self.mlam = MediumLevelActionManager.from_pickle_or_compute(
+                        mdp, 
+                        NO_COUNTERS_PARAMS,
+                        force_compute=False,
+                        info=False
+                    )
+                except:
+                    # Dernier recours: configuration manuelle minimale
+                    self.mlam = None
+                    
+    def action(self, state):
+        """Action avec gestion d'erreur robuste"""
+        try:
+            return super().action(state)
+        except Exception as e:
+            # Fallback vers action aléatoire intelligente en cas d'erreur
+            return self._fallback_action(state)
+            
+    def _fallback_action(self, state):
+        """Action de secours intelligente"""
+        player = state.players[self.agent_index]
+        
+        # Actions possibles
+        possible_actions = [Action.NORTH, Action.SOUTH, Action.EAST, Action.WEST, Action.INTERACT, Action.STAY]
+        
+        # Essayer d'interagir si adjacent à quelque chose d'utile
+        if self._should_interact(state, player):
+            return Action.INTERACT, {"action_probs": self.a_probs_from_action(Action.INTERACT)}
+        
+        # Sinon, mouvement aléatoire
+        movement_actions = [Action.NORTH, Action.SOUTH, Action.EAST, Action.WEST]
+        action = movement_actions[np.random.randint(len(movement_actions))]
+        return action, {"action_probs": self.a_probs_from_action(action)}
+        
+    def _should_interact(self, state, player):
+        """Détermine si le joueur devrait interagir"""
+        try:
+            # Positions adjacentes
+            pos = player.position
+            adjacent_positions = [
+                (pos[0] - 1, pos[1]),  # Nord
+                (pos[0] + 1, pos[1]),  # Sud  
+                (pos[0], pos[1] - 1),  # Ouest
+                (pos[0], pos[1] + 1),  # Est
+            ]
+            
+            for adj_pos in adjacent_positions:
+                if (0 <= adj_pos[0] < len(self.mdp.terrain_mtx) and 
+                    0 <= adj_pos[1] < len(self.mdp.terrain_mtx[0])):
+                    
+                    cell_type = self.mdp.terrain_mtx[adj_pos[0]][adj_pos[1]]
+                    
+                    # Logique d'interaction basique
+                    if player.held_object is None:
+                        # Peut ramasser depuis distributeurs ou pots
+                        if cell_type in ['T', 'O', 'D', 'P']:
+                            return True
+                    else:
+                        # Le joueur tient quelque chose
+                        if hasattr(player.held_object, 'name'):
+                            obj_name = player.held_object.name
+                            # Peut déposer dans pot ou servir
+                            if ((cell_type == 'P' and obj_name in ['onion', 'tomato']) or
+                                (cell_type == 'S' and obj_name == 'soup')):
+                                return True
+            return False
+        except:
+            return False
 
 
 class SampleAgent(Agent):

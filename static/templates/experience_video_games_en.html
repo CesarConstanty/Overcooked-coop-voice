@@ -142,11 +142,11 @@
   <tr>
     <td style="text-align: center;">
       <input type="radio" name="laterality" value="left" required id="laterality_left">
-      <label for="laterality_left" style="margin-right:1.5rem;">Left</label>
+      <label for="laterality_left" style="margin-right:1.5rem;">Left handed</label>
     </td>
     <td style="text-align: center;">
       <input type="radio" name="laterality" value="right" id="laterality_right">
-      <label for="laterality_right">Right</label>
+            <label for="laterality_right">Right handed</label>
     </td>
     <td style="text-align: center;">
       <input type="radio" name="knows_overcooked" value="yes" required id="overcooked_yes">
@@ -162,7 +162,7 @@
   <tr>
     <td style="text-align: left;">Age:</td>
     <td style="text-align: center;">
-      <input type="number" name="age" min="0" required style="width: 60px;">
+            <input type="number" name="age" min="18" max="70" required style="width: 60px;">
     </td>
     <td style="text-align: left;">How many hours did you play this game?</td>
     <td style="text-align: center;">
@@ -205,6 +205,7 @@
       <div class="question">
         <label>How often do you play video games?</label>
         <div class="radio-group">
+          <label><input type="radio" name="frequency" value="never" required> Never</label>
           <label><input type="radio" name="frequency" value="daily" required> Daily</label>
           <label><input type="radio" name="frequency" value="weekly"> Weekly</label>
           <label><input type="radio" name="frequency" value="monthly"> Monthly</label>
@@ -215,6 +216,7 @@
         <label for="fav_genre">Favorite game genre:</label>
         <select id="fav_genre" name="fav_genre" required>
           <option value="">Select…</option>
+          <option value="None">None of those options</option>
           <option value="Action">Action – fast-paced games that require quick reflexes (e.g., DOOM, Devil May Cry)</option>
           <option value="Adventure">Adventure – story-driven games with exploration and puzzles (e.g., The Legend of Zelda)</option>
           <option value="RPG">Role-Playing Games (RPGs) – games where players develop characters and follow narratives (e.g., Skyrim, Final Fantasy)</option>

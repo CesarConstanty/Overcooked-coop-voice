@@ -1,80 +1,107 @@
-from threading import Lock
+#!/usr/bin/env python3
+"""
+Utilities pour l'application Overcooked
+"""
 
-class ThreadSafeSet(set):
+import threading
+import json
 
-    def __init__(self, *args, **kwargs):
-        super(ThreadSafeSet, self).__init__(*args, **kwargs)
-        self.lock = Lock()
-        
-
-    def add(self, *args):
-        with self.lock:
-            retval = super(ThreadSafeSet, self).add(*args)
-        return retval
-
-    def clear(self, *args):
-        with self.lock:
-            retval = super(ThreadSafeSet, self).clear(*args)
-        return retval
-
-    def pop(self, *args):
-        with self.lock:
-            if len(self):
-                retval = super(ThreadSafeSet, self).pop(*args)
-            else:
-                retval = None
-        return retval
-
-    def remove(self, item):
-        with self.lock:
-            if item in self:
-                retval = super(ThreadSafeSet, self).remove(item)
-            else:
-                retval = None
-        return retval
 
 class ThreadSafeDict(dict):
-
+    """
+    Dictionnaire thread-safe pour les opérations concurrentes
+    """
     def __init__(self, *args, **kwargs):
-        super(ThreadSafeDict, self).__init__(*args, **kwargs)
-        self.lock = Lock()
-
-    def clear(self, *args, **kwargs):
-        with self.lock:
-            retval = super(ThreadSafeDict, self).clear(*args, **kwargs)
-        return retval
-
-    def pop(self, *args, **kwargs):
-        with self.lock:
-            retval = super(ThreadSafeDict, self).pop(*args, **kwargs)
-        return retval
-
-    def __setitem__(self, *args, **kwargs):
-        with self.lock:
-            retval = super(ThreadSafeDict, self).__setitem__(*args, **kwargs)
-        return retval
-
-    def __delitem__(self, item):
-        with self.lock:
-            if item in self:
-                retval = super(ThreadSafeDict, self).__delitem__(item)
-            else:
-                retval = None
-        return retval
-
-def questionnaire_to_surveyjs(questionnaire, current_step, pagify):
-    if pagify:
-        survey_object = {"pages":[]}
-        for key, value in questionnaire.items():
-            # Use .get("steps", []) to safely retrieve steps, defaulting to an empty list
-            # if "steps" key is not present.
-            if current_step in value.get("steps", []):
-                survey_object["pages"].append({"elements":[value]})
-    else:
-        # Use .get("steps", []) here as well
-        survey_object={"elements" :[
-            value for key, value in questionnaire.items()
-            if current_step in value.get("steps", [])
-        ]}
+        super().__init__(*args, **kwargs)
+        self._lock = threading.RLock()
     
-    return survey_object
+    def __getitem__(self, key):
+        with self._lock:
+            return super().__getitem__(key)
+    
+    def __setitem__(self, key, value):
+        with self._lock:
+            super().__setitem__(key, value)
+    
+    def __delitem__(self, key):
+        with self._lock:
+            super().__delitem__(key)
+    
+    def __contains__(self, key):
+        with self._lock:
+            return super().__contains__(key)
+    
+    def get(self, key, default=None):
+        with self._lock:
+            return super().get(key, default)
+    
+    def pop(self, key, default=None):
+        with self._lock:
+            return super().pop(key, default)
+    
+    def keys(self):
+        with self._lock:
+            return list(super().keys())
+    
+    def values(self):
+        with self._lock:
+            return list(super().values())
+    
+    def items(self):
+        with self._lock:
+            return list(super().items())
+
+
+class ThreadSafeSet(set):
+    """
+    Set thread-safe pour les opérations concurrentes
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lock = threading.RLock()
+    
+    def add(self, item):
+        with self._lock:
+            super().add(item)
+    
+    def remove(self, item):
+        with self._lock:
+            super().remove(item)
+    
+    def discard(self, item):
+        with self._lock:
+            super().discard(item)
+    
+    def __contains__(self, item):
+        with self._lock:
+            return super().__contains__(item)
+    
+    def __len__(self):
+        with self._lock:
+            return super().__len__()
+    
+    def pop(self):
+        with self._lock:
+            return super().pop()
+    
+    def clear(self):
+        with self._lock:
+            super().clear()
+
+
+def questionnaire_to_surveyjs(questionnaire_data):
+    """
+    Convertit les données de questionnaire au format SurveyJS
+    """
+    if isinstance(questionnaire_data, str):
+        try:
+            questionnaire_data = json.loads(questionnaire_data)
+        except json.JSONDecodeError:
+            return questionnaire_data
+    
+    # Si c'est déjà au bon format, retourne tel quel
+    if isinstance(questionnaire_data, dict):
+        return questionnaire_data
+    
+    # Sinon retourne tel quel
+    return questionnaire_data

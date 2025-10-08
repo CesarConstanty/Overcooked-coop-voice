@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Behavioural communication</title>
+  <link rel="Favicon" href="static/favicon.ico" />
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#6c757d}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(108,117,125,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    .start-button{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:16px 32px;border-radius:12px;cursor:pointer;font-size:18px;margin:32px auto;display:block}
+    .start-button:hover{filter:brightness(1.05)}
+    .highlight-box{background:rgba(108,117,125,.1);border-left:4px solid var(--accent);padding:1rem;margin:1rem 0;border-radius:4px}
+  </style>
+</head>
+<body>
+  <!-- Variables cachées pour les scripts -->
+  <div id="uid" style="display:none;">{{uid}}</div>
+  <div id="condition" style="display:none;">U</div>
+  <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
+  
+  <div class="wrap">
+    <div class="crumbs">Tutorial · Condition U</div>
+  <div class="title">Tutorial : <span style="color:var(--accent)">Behavioural</span> communication</div>
+
+    <section class="card">
+      <h2>Behavioural communication only</h2>
+      <p>Here the artificial agent <strong>does not provide explicit communication</strong> about its intentions. You must rely solely on observing the agent's behaviour and actions to understand what it is trying to accomplish.</p>
+    </section>
+
+    <section class="card">
+      <h2>Communication approach</h2>
+      <p class="muted">The agent will communicate through:</p>
+      <div class="flow">
+        <div class="step">Direct Actions</div>
+        <div class="arrow">→</div>
+        <div class="step">Movement Patterns</div>
+        <div class="arrow">→</div>
+        <div class="step">Object Interactions</div>
+        <div class="arrow">→</div>
+        <div class="step">Task Behavior</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>In-game example of the artificial agent behaviour</h2>
+      <figure>
+        <img src="static/images/tutorial/U_plate_picking.gif" alt="Example of behavioural communication in-game"/>
+        <figcaption>Example — Behavioural communication through actions.</figcaption>
+      </figure>
+    </section>
+
+    <section class="card">
+      <h2>Key observation points</h2>
+      <div class="highlight-box">
+        <h5>What to observe:</h5>
+        <ul>
+          <li><strong>Agent movement:</strong> Where the agent goes indicates its current objective</li>
+          <li><strong>Object interactions:</strong> What the agent picks up or uses reveals its recipe intentions</li>
+          <li><strong>Timing patterns:</strong> When the agent acts can indicate priority and coordination needs</li>
+          <li><strong>Spatial behavior:</strong> How the agent positions itself shows its next planned actions</li>
+        </ul>
+      </div>
+      
+      <p><strong>Strategy:</strong> Pay close attention to the agent's actions and adapt your behavior to complement its apparent goals. Successful coordination relies on your ability to interpret and predict the agent's intentions through observation.</p>
+      
+      <!-- Game objects preview -->
+      <div style="margin-top: 20px; text-align: center;">
+        <h5>Game Objects to Observe:</h5>
+        <div id="objects-preview" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+          <!-- Objects will be loaded here -->
+        </div>
+      </div>
+
+      <script>
+        // Function to create sprite canvas from atlas
+        function createSpriteCanvas(atlasImg, frame) {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = frame.w;
+          canvas.height = frame.h;
+          
+          ctx.drawImage(
+            atlasImg,
+            frame.x, frame.y, frame.w, frame.h,
+            0, 0, frame.w, frame.h
+          );
+          
+          return canvas;
+        }
+
+        // Load and display key objects
+        async function loadObjectsPreview() {
+          try {
+            const objectsData = await fetch('static/assets/objects.json').then(r => r.json());
+            const objectsImg = new Image();
+            
+            await new Promise(resolve => {
+              objectsImg.onload = resolve;
+              objectsImg.src = 'static/assets/objects.png';
+            });
+
+            const keyObjects = [
+              {label: "Onion", objectKey: "onion.png"},
+              {label: "Tomato", objectKey: "tomato.png"},
+              {label: "Plate", objectKey: "dish.png"}
+            ];
+
+            const preview = document.getElementById('objects-preview');
+            keyObjects.forEach(obj => {
+              const objectFrame = objectsData.frames[obj.objectKey];
+              if (objectFrame) {
+                const canvas = createSpriteCanvas(objectsImg, objectFrame.frame);
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.transform = 'scale(1.5)';
+                canvas.style.border = '1px solid var(--ring)';
+                canvas.style.borderRadius = '4px';
+                canvas.style.background = '#0b1325';
+                canvas.style.width = '45px';
+                canvas.style.height = '45px';
+                canvas.title = obj.label;
+                
+                const container = document.createElement('div');
+                container.style.textAlign = 'center';
+                container.appendChild(canvas);
+                
+                const label = document.createElement('div');
+                label.textContent = obj.label;
+                label.style.fontSize = '12px';
+                label.style.color = 'var(--muted)';
+                label.style.marginTop = '5px';
+                container.appendChild(label);
+                
+                preview.appendChild(container);
+              }
+            });
+
+          } catch (error) {
+            console.error('Error loading objects preview:', error);
+          }
+        }
+
+        // Load objects when page loads
+        document.addEventListener('DOMContentLoaded', loadObjectsPreview);
+      </script>
+    </section>
+    
+    <button id="start-bloc" class="start-button">
+      Start the game!
+    </button>
+  </div>
+
+  <!-- Scripts -->
+  <script src="static/lib/jquery-min.js"></script>
+  <script src="static/js/page-timer.js"></script>
+  <script>
+    // Script pour gérer le bouton de démarrage du bloc avec timer
+    $(document).ready(function() {
+      // Initialiser le système de timer pour les tutoriels de bloc
+      const timerMin = {{ timer_min|default(60) }};
+      const timerMax = {{ timer_max|default(600) }};
+      initPageTimer(timerMin, timerMax, '#start-bloc');
+      
+      $('#start-bloc').click(function() {
+        window.location.href = '/planning?from_condition_tutorial=true';
+      });
+    });
+  </script>
+</body>
+</html>

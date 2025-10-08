@@ -913,6 +913,8 @@ class OvercookedGridworld(object):
         self.tomato_value = kwargs.get("tomato_value", 13)
         self.onion_time = kwargs.get("onion_time", 15)
         self.tomato_time = kwargs.get("tomato_time", 7)
+        # Stocker le type de layout (symétrique ou complémentaire)
+        self.layout_type = kwargs.get("layout_type", "symetrique")
 
 
     @staticmethod
@@ -1044,7 +1046,10 @@ class OvercookedGridworld(object):
             f.write("\t\"onion_value\":" +str(self.onion_value) +",\n")
             f.write("\t\"tomato_value\":" +str(self.tomato_value) +",\n")
             f.write("\t\"onion_time\":" +str(self.onion_time) +",\n")
-            f.write("\t\"tomato_time\":" +str(self.tomato_time) +",\n")       
+            f.write("\t\"tomato_time\":" +str(self.tomato_time) +",\n")
+            # Ajouter le type de layout s'il est défini
+            layout_type = getattr(self, 'layout_type', 'symetrique')  # Par défaut symétrique
+            f.write("\t\"layout_type\":\"" + str(layout_type) + "\",\n")
             f.write("}")
         f.close()
         pass

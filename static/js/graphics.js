@@ -11,7 +11,7 @@ Added state potential to HUD
 
 
 
-console.log("executing graphics");
+// console.log("executing graphics");
 var ANIMATION_DURATION = 50;
 
 var DIRECTION_TO_NAME = {
@@ -74,6 +74,7 @@ function drawState(state) {
 // Invoked at 'start_game' event déclenché par app.py, écouté par planning.js 
 // qui définie graphics_config avec les paramètres de la partie
 function graphics_start(graphics_config) {
+    //scene_config.player_colors = graphics_config.player_colors;
     scene_config.condition = graphics_config.condition;
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
@@ -96,6 +97,21 @@ function graphics_reset(graphics_config) {
     game_config.scene.tileSize = 600/start_info.terrain[0].length;
     game_config.scene.start_state = start_info.state;
     game_config.scene.condition = graphics_config.condition;
+
+    // Clear audio intention queues and history at end of current trial
+    const scene = graphics.game.scene.getScene('PlayGame');
+    scene.soundQueueAsset = [];
+    scene.soundQueueRecipe = [];
+    scene.lastAssetIntentions = null;
+    scene.lastRecipeIntentions = null;
+    scene.lastIntentions = null;
+    scene.currentRecipe = null;
+    
+    // Stop all audio
+    if (scene.stopAllAudio) {
+        scene.stopAllAudio();
+    }
+
     game_config.scene.scene.restart();
 }
 
@@ -110,12 +126,12 @@ class GraphicsManager { // initialise et gère les graphismes du jeu
         game_config.width = 600 + scene_config.hud_size ;//scene_config.tileSize*scene_config.terrain[0].length + scene_config.hud_size;
         game_config.height = 600;//scene_config.tileSize*scene_config.terrain.length  //+ scene_config.hud_size;
         game_config.parent = graphics_config.container_id;
-        console.log(game_config)       
+        // console.log(game_config)       
         try{
             this.game = new Phaser.Game(game_config);
         }
         catch(error){
-            console.log(error);
+            // console.log(error);
             location.reload();
         }        
     }
@@ -139,11 +155,26 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.hud_size = config.hud_size;
         this.assets_loc = config.assets_loc;
         this.audio_loc = config.audio_loc;
-        this.audio = new Audio(); // Definition audio
-        this.isPlaying = false; // Definition si le son est en cours de lecture
-        this.soundQueueAsset = []; // Queue to manage sound asset intention
-        this.soundQueueRecipe = []; // Queue to manage sound recipe intention
-        this.lastIntentions = null; // Store the last intentions
+        
+        // WebAudio API setup
+        this.audioContext = null;
+        this.audioBuffers = new Map(); // Cache pour les buffers audio
+        this.audioSources = []; // Track active audio sources
+        this.isPlaying = false;
+        this.isPlayingRecipe = false;
+        this.isPlayingAsset = false;
+        this.audioUnlockHandler = null;
+        this.audioUnlockEvents = ['pointerdown', 'touchstart', 'mousedown', 'click', 'keydown', 'keyup'];
+        
+        // Audio control parameters
+        this.audioEnabled = true; // Global audio control
+        this.recipeAudioEnabled = true; // Recipe audio control
+        this.assetAudioEnabled = true; // Asset audio control
+        
+        // Queue management
+        this.soundQueueAsset = [];
+        this.soundQueueRecipe = [];
+        this.lastIntentions = null;
         this.hud_size = config.hud_size;
         this.hud_data = {
             potential : config.start_state.potential,
@@ -155,7 +186,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         this.condition = config.condition;
         this.mechanic = config.mechanic;
-        console.log(config);
+        // console.log(config);
         this.Game_Trial_Timer = config.Game_Trial_Timer;
         this.show_counter_drop = config.show_counter_drop;
         this.currentRecipe = null; // Property to store the current recipe
@@ -194,19 +225,371 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this.assets_loc + "types.png",
             this.assets_loc + "types.json")}
 
-        // Pour les fichiers audio
-        this.load.audio('comptoir', this.audio_loc + 'comptoir.mp3');
-        this.load.audio('marmite', this.audio_loc + 'marmite.mp3');
-        this.load.audio('oignon', this.audio_loc + 'oignon.mp3');
-        this.load.audio('tomate', this.audio_loc + 'tomate.mp3');
-        this.load.audio('assiette', this.audio_loc + 'assiette.mp3');
-        this.load.audio('service', this.audio_loc + 'service.mp3');
+        // Pour les fichiers audio - Preload all audio files
+        const audioFiles = [
+            'comptoir.mp3', 'marmite.mp3', 'oignon.mp3', 'tomate.mp3', 
+            'assiette.mp3', 'service.mp3', 'annonce_recette.mp3',
+            'recette_0o_1t.mp3', 'recette_0o_2t.mp3', 'recette_0o_3t.mp3',
+            'recette_1o_0t.mp3', 'recette_1o_1t.mp3', 'recette_1o_2t.mp3',
+            'recette_2o_0t.mp3', 'recette_2o_1t.mp3', 'recette_3o_0t.mp3'
+        ];
+        
+        audioFiles.forEach(filename => {
+            const audioKey = filename.replace('.mp3', '');
+            
+            // Ajouter une vérification de chargement
+            this.load.audio(audioKey, this.audio_loc + filename);
+            
+            // Ajouter un event listener pour détecter les erreurs de chargement
+            this.load.on('fileerror', (key) => {
+                if (key === audioKey) {
+                    // console.warn(`Failed to load audio file: ${filename}`);
+                }
+            });
+        });
     }
 
     create() {
+        // Initialize basic scene elements first
         this.sprites = {};
         this.drawLevel();
+        this.events.once('shutdown', () => this.teardownAudioUnlockListeners());
+        this.events.once('destroy', () => this.teardownAudioUnlockListeners());
+        
+        // Initialize WebAudio context and wait for buffers to load
+        this.initializeAudioContext().then(() => {
+            // console.log('Audio system fully initialized - game ready');
+            // Émettre un événement pour signaler que l'audio est prêt
+            this.events.emit('audio-ready');
+        }).catch((error) => {
+            // console.warn('Audio initialization failed, using Phaser fallback:', error);
+            this.events.emit('audio-ready'); // Continuer même en cas d'erreur
+        });
+        
+        // Debug audio system après initialisation (en mode développement uniquement)
+        setTimeout(() => {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                this.debugAudioSystem();
+            }
+        }, 1500); // Délai légèrement augmenté pour permettre l'initialisation async
+        
         //this._drawState(this.state, this.sprites);
+    }
+    
+    /**
+     * Initialize WebAudio context and load audio buffers
+     */
+    async initializeAudioContext() {
+        try {
+            // Créer le contexte audio avec gestion de l'autoplay policy
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.setupAudioUnlockListeners();
+            this.tryResumeAudioContext();
+            
+            // Essayer d'abord la méthode principale
+            await this.loadAudioBuffers();
+            
+            // Si peu de buffers ont été chargés, essayer la méthode alternative
+            if (this.audioBuffers.size < 5) {
+                // console.log('Primary loading method failed, trying alternative...');
+                await this.loadAudioBuffersAlternative();
+            }
+            
+            // console.log('WebAudio API initialized successfully');
+        } catch (error) {
+            // console.warn('WebAudio API not supported or failed to initialize, falling back to Phaser Audio:', error);
+            this.teardownAudioUnlockListeners();
+            this.audioContext = null;
+        }
+    }
+    
+    setupAudioUnlockListeners() {
+        if (this.audioUnlockHandler) {
+            return;
+        }
+
+        const handler = () => {
+            this.tryResumeAudioContext();
+            const contextUnlocked = !this.audioContext || this.audioContext.state !== 'suspended';
+            const phaserContext = this.sound && this.sound.context ? this.sound.context : null;
+            const phaserUnlocked = !(phaserContext && phaserContext.state === 'suspended');
+
+            if (contextUnlocked && phaserUnlocked) {
+                this.teardownAudioUnlockListeners();
+            }
+        };
+
+        this.audioUnlockHandler = handler;
+        this.audioUnlockEvents.forEach(evt => {
+            window.addEventListener(evt, handler, { passive: true });
+        });
+    }
+
+    teardownAudioUnlockListeners() {
+        if (!this.audioUnlockHandler) {
+            return;
+        }
+
+        this.audioUnlockEvents.forEach(evt => {
+            window.removeEventListener(evt, this.audioUnlockHandler);
+        });
+        this.audioUnlockHandler = null;
+    }
+
+    tryResumeAudioContext() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().catch(() => {});
+        }
+
+        if (this.sound && this.sound.context && this.sound.context.state === 'suspended') {
+            try {
+                this.sound.unlock();
+            } catch (e) {
+                // Ignore errors from unlock attempts
+            }
+        }
+    }
+
+    /**
+     * Load all audio files into buffers for WebAudio API
+     */
+    async loadAudioBuffers() {
+        const audioFiles = [
+            'comptoir', 'marmite', 'oignon', 'tomate', 
+            'assiette', 'service', 'annonce_recette',
+            'recette_0o_1t', 'recette_0o_2t', 'recette_0o_3t',
+            'recette_1o_0t', 'recette_1o_1t', 'recette_1o_2t',
+            'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
+        ];
+        
+        // Attendre que Phaser ait fini de charger tous les fichiers audio
+        await new Promise((resolve) => {
+            if (this.load.isLoading()) {
+                this.load.once('complete', resolve);
+            } else {
+                resolve();
+            }
+        });
+        
+        for (const audioKey of audioFiles) {
+            try {
+                // Vérifier si le cache audio existe et contient le fichier
+                if (this.cache.audio.exists(audioKey)) {
+                    // Essayer de récupérer l'ArrayBuffer directement via fetch
+                    try {
+                        const response = await fetch(this.audio_loc + audioKey + '.mp3');
+                        const arrayBuffer = await response.arrayBuffer();
+                        const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice());
+                        this.audioBuffers.set(audioKey, decodedBuffer);
+                        // console.log(`Successfully loaded audio buffer for ${audioKey}`);
+                    } catch (fetchError) {
+                        // console.warn(`Direct fetch failed for ${audioKey}, trying Phaser cache:`, fetchError);
+                        
+                        // Fallback: essayer d'accéder aux données Phaser
+                        const audioBuffer = this.cache.audio.get(audioKey);
+                        if (audioBuffer && audioBuffer.data) {
+                            const decodedBuffer = await this.audioContext.decodeAudioData(audioBuffer.data.slice());
+                            this.audioBuffers.set(audioKey, decodedBuffer);
+                            // console.log(`Successfully loaded audio buffer from Phaser cache for ${audioKey}`);
+                        } else {
+                            // console.warn(`Audio buffer data missing for ${audioKey}, will use Phaser fallback`);
+                        }
+                    }
+                } else {
+                    // console.warn(`Audio file ${audioKey} not found in cache, will use Phaser fallback`);
+                }
+            } catch (error) {
+                // console.warn(`Failed to load audio buffer for ${audioKey}:`, error, 'Will use Phaser fallback');
+            }
+        }
+        
+        // console.log(`WebAudio buffers loaded: ${this.audioBuffers.size}/${audioFiles.length}`);
+    }
+    
+    /**
+     * Alternative method to load audio buffers more aggressively
+     */
+    async loadAudioBuffersAlternative() {
+        const audioFiles = [
+            'comptoir', 'marmite', 'oignon', 'tomate', 
+            'assiette', 'service', 'annonce_recette',
+            'recette_0o_1t', 'recette_0o_2t', 'recette_0o_3t',
+            'recette_1o_0t', 'recette_1o_1t', 'recette_1o_2t',
+            'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
+        ];
+        
+        // console.log('Loading audio buffers using alternative method...');
+        
+        const promises = audioFiles.map(async (audioKey) => {
+            try {
+                const response = await fetch(this.audio_loc + audioKey + '.mp3');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                this.audioBuffers.set(audioKey, decodedBuffer);
+                // console.log(`✓ Loaded ${audioKey} via fetch`);
+                return true;
+            } catch (error) {
+                // console.warn(`✗ Failed to load ${audioKey} via fetch:`, error);
+                return false;
+            }
+        });
+        
+        await Promise.allSettled(promises);
+        // console.log(`Alternative method: ${this.audioBuffers.size}/${audioFiles.length} buffers loaded`);
+    }
+    
+    /**
+     * Play audio using WebAudio API or fallback to Phaser audio
+     */
+    playAudio(audioKey, playbackRate = 1, volume = 1.0, onComplete = null) {
+        if (!this.audioEnabled) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        this.tryResumeAudioContext();
+        
+        // Pour les sons critiques (recettes), essayer d'attendre un court délai si les buffers ne sont pas prêts
+        if ((audioKey.startsWith('recette_') || audioKey === 'annonce_recette') && !this.isAudioReady()) {
+            // Attendre maximum 500ms pour que l'audio soit prêt
+            this.waitForAudioReady(500).then(() => {
+                this._playAudioInternal(audioKey, playbackRate, volume, onComplete);
+            });
+            return;
+        }
+        
+        // Jouer immédiatement
+        this._playAudioInternal(audioKey, playbackRate, volume, onComplete);
+    }
+    
+    /**
+     * Internal method to play audio (synchronous)
+     */
+    _playAudioInternal(audioKey, playbackRate, volume, onComplete) {
+        if (this.audioContext && this.audioBuffers.has(audioKey)) {
+            return this.playWebAudio(audioKey, playbackRate, volume, onComplete);
+        } else {
+            return this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
+        }
+    }
+    
+    /**
+     * Play audio using WebAudio API
+     */
+    playWebAudio(audioKey, playbackRate, volume, onComplete) {
+        try {
+            // Vérifier l'état du contexte audio
+            if (this.audioContext.state === 'suspended') {
+                // console.log('AudioContext suspended, resuming...');
+                this.audioContext.resume().then(() => {
+                    this.playWebAudio(audioKey, playbackRate, volume, onComplete);
+                }).catch(() => {
+                    // console.warn('Failed to resume AudioContext, falling back to Phaser audio');
+                    this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
+                });
+                return;
+            }
+            
+            if (!this.audioBuffers.has(audioKey)) {
+                // console.warn(`Audio buffer not found for ${audioKey}, falling back to Phaser audio`);
+                return this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
+            }
+            
+            const source = this.audioContext.createBufferSource();
+            const gainNode = this.audioContext.createGain();
+            
+            source.buffer = this.audioBuffers.get(audioKey);
+            source.playbackRate.value = playbackRate;
+            gainNode.gain.value = volume;
+            
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            source.onended = () => {
+                this.audioSources = this.audioSources.filter(s => s !== source);
+                if (onComplete) onComplete();
+            };
+            
+            this.audioSources.push(source);
+            source.start();
+            
+            return source;
+        } catch (error) {
+            // console.warn('WebAudio playback failed, falling back to Phaser audio:', error);
+            return this.playPhaserAudio(audioKey, playbackRate, volume, onComplete);
+        }
+    }
+    
+    /**
+     * Play audio using Phaser audio system (fallback)
+     */
+    playPhaserAudio(audioKey, playbackRate, volume, onComplete) {
+        try {
+            const sound = this.sound.add(audioKey);
+            sound.setRate(playbackRate);
+            sound.setVolume(volume);
+            
+            if (onComplete) {
+                sound.once('complete', onComplete);
+            }
+            
+            sound.play();
+            return sound;
+        } catch (error) {
+            // console.warn('Phaser audio playback failed:', error);
+            if (onComplete) onComplete();
+            return null;
+        }
+    }
+    
+    /**
+     * Stop all playing audio
+     */
+    stopAllAudio() {
+        // Stop WebAudio sources
+        this.audioSources.forEach(source => {
+            try {
+                source.stop();
+            } catch (e) {
+                // Source may already be stopped
+            }
+        });
+        this.audioSources = [];
+        
+        // Stop Phaser sounds
+        this.sound.stopAll();
+        
+        this.isPlaying = false;
+        this.isPlayingRecipe = false;
+        this.isPlayingAsset = false;
+    }
+    
+    /**
+     * Set audio enable/disable states
+     */
+    setAudioEnabled(enabled) {
+        this.audioEnabled = enabled;
+        if (!enabled) {
+            this.stopAllAudio();
+        }
+    }
+    
+    setRecipeAudioEnabled(enabled) {
+        this.recipeAudioEnabled = enabled;
+        if (!enabled && this.isPlayingRecipe) {
+            this.stopAllAudio();
+        }
+    }
+    
+    setAssetAudioEnabled(enabled) {
+        this.assetAudioEnabled = enabled;
+        if (!enabled && this.isPlayingAsset) {
+            this.stopAllAudio();
+        }
     }
 
     update() {
@@ -338,17 +721,23 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                     sprites['recipe_goal'].destroy();
                 }
                 if(this.condition.recipe_head){
-                    let spriteFrame = this._ingredientsToSpriteFrame(chef.intentions.recipe, "done");
-                    let order_goalSprite = this.add.sprite(
-                        this.tileSize*x,
-                        this.tileSize*y - 40,
-                        "soups",
-                        spriteFrame
-                    );
-                    order_goalSprite.depth = 2
-                    order_goalSprite.setDisplaySize(this.tileSize, this.tileSize)
-                    order_goalSprite.setOrigin(0);
-                    sprites['recipe_goal'] = order_goalSprite
+                    if(this.condition.visual_bubbles && this.hud_data) {
+                        // Mode EVH : bulles visuelles avec durées (seulement si hud_data disponible)
+                        this._displayVisualBubbles(chef, sprites, x, y, this.hud_data);
+                    } else if (!this.condition.visual_bubbles) {
+                        // Mode recipe_head classique permanent
+                        let spriteFrame = this._ingredientsToSpriteFrame(chef.intentions.recipe, "done");
+                        let order_goalSprite = this.add.sprite(
+                            this.tileSize*x,
+                            this.tileSize*y - 40,
+                            "soups",
+                            spriteFrame
+                        );
+                        order_goalSprite.depth = 2
+                        order_goalSprite.setDisplaySize(this.tileSize, this.tileSize)
+                        order_goalSprite.setOrigin(0);
+                        sprites['recipe_goal'] = order_goalSprite
+                    }
                 }              
             };
             if (typeof(sprites['chefs'][pi]) === 'undefined') {
@@ -491,36 +880,16 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 sprites['objects'][objpos] = {objsprite};
             }
         }        
-        // Afficher et intention audio des ingrédients de la recette en cours creuser
-        if (this.condition.recipe_sound) {
-        // Traiter les différents ingrédients qui composent la recette
-            if (typeof(state.players[0].intentions) !== 'undefined') {
-                let chef = state.players[0];
-                let ingredients = chef.intentions.recipe;
-                this._playRecipeSounds(ingredients)/*;
-
-                // Afficher les ingrédients qui composent la recette voulue par l'agent (vérifier la cohérence)
-                let ingredients_str = ingredients.join(", ");
-                if (typeof(sprites['recipe_ingredients']) !== 'undefined') {
-                    sprites['recipe_ingredients'].setText("Ingredients: " + ingredients_str);
-                } else {
-                    sprites['recipe_ingredients'] = this.add.text(
-                        this.game.config.width - this.hud_size + 5, this.game.config.height - 50,
-                        "Ingredients: " + ingredients_str,
-                        {
-                            font: "20px Arial",
-                            fill: "black",
-                            align: "left"
-                        }
-                    );
-                }*/
-            }
-            
-        }
+        // Note: Les sons de recettes sont maintenant gérés dans _drawHUD pour éviter les doublons
+        // quand recipe_sound et asset_sound sont tous les deux activés
     }
 
 // Jouer des sons pour les ingrédients des recettes
     _playRecipeSounds(ingredients) {
+        if (!this.recipeAudioEnabled || !this.audioEnabled) {
+            return;
+        }
+        
         // Ne joue le son que si la recette a changé
         let newRecipe = ingredients.join(",");
         if (this.currentRecipe === newRecipe) {
@@ -528,36 +897,26 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         this.currentRecipe = newRecipe;
 
-        // Génère le nom du fichier son pour la recette
-        let recipeSound = this._getRecipeSoundFile(ingredients);
-
-        // Vide la file et ajoute le son spécifique à la recette
-        this.soundQueueRecipe = [];
-        this.soundQueueRecipe.push(recipeSound);
-
-        const playNextSoundRecipe = () => {
-            if (this.isPlaying || this.soundQueueRecipe.length === 0) {
+        // Lecture de l'annonce "prochaine recette" avant le son de recette
+        const recipeSound = this._getRecipeSoundFile(ingredients);
+        
+        const playRecipeSound = () => {
+            if (!this.recipeAudioEnabled || !this.audioEnabled || !recipeSound) {
+                this.isPlayingRecipe = false;
                 return;
             }
-            let soundKey = this.soundQueueRecipe.shift();
-            this.audio.src = this.audio_loc + soundKey;
-            this.audio.playbackRate = 1;
-            this.audio.play().then(() => {
-                this.isPlaying = true;
-                this.audio.onended = () => {
-                    this.isPlaying = false;
-                    playNextSoundRecipe();
-                };
-            }).catch(error => {
-                if (error.name !== 'AbortError') {
-                    console.error("Audio play failed:", error);
-                }
-                this.isPlaying = false;
-                playNextSoundRecipe();
+            
+            this.playAudio(recipeSound.replace('.mp3', ''), 1, 1.0, () => {
+                this.isPlayingRecipe = false;
             });
         };
-
-        playNextSoundRecipe();
+        
+        // 1. Joue l'annonce de recette
+        this.isPlayingRecipe = true;
+        this.playAudio('annonce_recette', 1, 1.0, () => {
+            // 2. Joue ensuite le son de recette
+            playRecipeSound();
+        });
     }
 
     _getRecipeSoundFile(ingredients) {
@@ -583,33 +942,35 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawScore(hud_data.score, sprites, board_height, board_width);
         }
         if (typeof(hud_data.potential) !== 'undefined' && hud_data.potential !== null) {
-            console.log(hud_data.potential)
+            // console.log(hud_data.potential)
             this._drawPotential(hud_data.potential, sprites, board_height, board_width); // fonction inconnue
         }
         if (typeof(hud_data.intentions) !== 'undefined' && hud_data.intentions !== null) {
-            // Nouvelle fonction pour séquencer les sons recette puis asset
+            // Gestion centralisée des intentions audio pour éviter les doublons
             if (this.condition.recipe_sound && this.condition.asset_sound){
+                // Cas 1: Sons de recettes ET d'assets - séquence complète
                 this._playIntentionsAudioSequence(hud_data, sprites, board_height, board_width, state);
             }
-            else {
-                if (this.condition.recipe_sound) {
-                // Traiter les différents ingrédients qui composent la recette
-                    if (typeof(state.players[0].intentions) !== 'undefined') {
-                        let chef = state.players[0];
-                        let ingredients = chef.intentions.recipe;
-                        this._playRecipeSounds(ingredients)
-                    }
-                }
-                if (this.condition.asset_sound){
-                    this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // joue le son relatifs aux intentions d'assets
+            else if (this.condition.recipe_sound && !this.condition.asset_sound) {
+                // Cas 2: Sons de recettes uniquement
+                if (typeof(state.players[0].intentions) !== 'undefined') {
+                    let chef = state.players[0];
+                    let ingredients = chef.intentions.recipe;
+                    this._playRecipeSounds(ingredients)
                 }
             }
+            else if (!this.condition.recipe_sound && this.condition.asset_sound) {
+                // Cas 3: Sons d'assets uniquement
+                this._soundIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
+            }
+            // Cas 4: Aucun son (recipe_sound=false, asset_sound=false) - rien à faire
+            
+            // Affichage HUD (indépendant des sons)
             if (this.condition.asset_hud){
-                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width); // affiche les intentions d'assets
+                this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }                   
-            //this._drawAgentType(hud_data.intentions.agent_name, sprites, board_height, board_width)   
-            if (typeof(hud_data.all_orders) !== 'undefined'  && this.condition.recipe_hud ) {
-                this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe); // surligne la recette que l'agent a l'intention de faire
+            if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
+                this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe);
             }        
         }
     }
@@ -708,6 +1069,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
 // Ajout de la fonction permettant de jouer le son des intentions (objectif de l'agent en terme d'asset)
     _soundIntentions(intentions, sprites, board_height, board_width) {
+        if (!this.assetAudioEnabled || !this.audioEnabled) {
+            return;
+        }
+        
         const terrain_to_sound = {
             ' ': '',
             'X': 'comptoir',
@@ -729,52 +1094,85 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
             // Clear the sound queue before adding new sounds
             this.soundQueueAsset = [];
-            //console.log("Intentions:", intentions); // Log the intentions
 
             // Update with new sounds
             for (let i = 0; i < intentions.length; i++) {
                 let soundKey = terrain_to_sound[intentions[i]];
                 if (soundKey) {
                     this.soundQueueAsset.push(soundKey);
-                    //console.log("taille sound queue add", this.soundQueueAsset.length);
-                    //console.log("Added sound to queue:", soundKey); // Log the added sound
                 }
             }
 
-            const playNextSoundAsset = () => {
-                if (this.soundQueueAsset.length === 0) {
-                    this.isPlaying = false;
-                    //console.log("Sound queue is empty, stopping playback."); // Log when the queue is empty
-                    return;
-                }
-                let soundKey = this.soundQueueAsset.shift();
-                //console.log("valeur soundKey apres remove liste", soundKey);
-                //console.log("taille sound queue remove", this.soundQueueAsset.length);
-                let sound = this.sound.add(soundKey);
-                sound.setRate(1);
-                sound.setVolume(1.0);
-                //console.log("Playing sound:", soundKey); // Log the sound being played
-
-                sound.play();
-                sound.once('complete', () => {
-                    this.isPlaying = false;
-                    //console.log("Audio play ended"); // Log when audio play ends
-                    playNextSoundAsset();
-                });
-            };
-
-            // Start playing the first sound if not already playing
-            if (!this.isPlaying) {
-                playNextSoundAsset();
-            }
+            // Play sounds from queue
+            this.playAssetSoundsFromQueue();
         }
+    }
+    
+    /**
+     * Play asset sounds from queue using WebAudio API
+     */
+    playAssetSoundsFromQueue() {
+        if (!this.assetAudioEnabled || !this.audioEnabled || this.soundQueueAsset.length === 0) {
+            this.isPlayingAsset = false;
+            return;
+        }
+        
+        this.isPlayingAsset = true;
+        
+        const playNextSound = () => {
+            if (this.soundQueueAsset.length === 0) {
+                this.isPlayingAsset = false;
+                return;
+            }
+            
+            const soundKey = this.soundQueueAsset.shift();
+            this.playAudio(soundKey, 1, 1.0, () => {
+                playNextSound();
+            });
+        };
+        
+        playNextSound();
+    }
+    
+    /**
+     * Check if audio system is fully ready
+     */
+    isAudioReady() {
+        return this.audioBuffers && this.audioBuffers.size > 0;
+    }
+    
+    /**
+     * Wait for audio system to be ready
+     */
+    waitForAudioReady(maxWaitMs = 500) {
+        return new Promise((resolve) => {
+            if (this.isAudioReady()) {
+                resolve();
+                return;
+            }
+            
+            // Listen for audio-ready event
+            const onReady = () => {
+                clearTimeout(timeoutId);
+                resolve();
+            };
+            
+            this.events.once('audio-ready', onReady);
+            
+            // Fallback timeout - beaucoup plus court
+            const timeoutId = setTimeout(() => {
+                // console.warn(`Audio ready timeout reached after ${maxWaitMs}ms, proceeding with Phaser fallback`);
+                this.events.off('audio-ready', onReady);
+                resolve();
+            }, maxWaitMs);
+        });
     }
 
     _drawGoalIntentions(intentions, sprites, board_height, board_width) {
         let terrain_to_img = {
             ' ': 'floor.png',
             'X': 'counter.png',
-            'P': 'pot.png',
+            //'P': 'pot.png',
             'O': 'onions.png',
             'T': 'tomatoes.png',
             'D': 'dishes.png',
@@ -890,7 +1288,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
 
     _drawTimeLeft(time_left, sprites, board_height, board_width) {
-        time_left = "Time Left: "+time_left;
+        time_left = "Time Left : "+time_left+" s";
         //console.log(time_left);
         if (typeof(sprites['time_left']) !== 'undefined') {
             sprites['time_left'].setText(time_left);
@@ -933,8 +1331,12 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      * Si l'intention de recette change, recommence la séquence.
      */
     _playIntentionsAudioSequence(hud_data, sprites, board_height, board_width, state) {
+        if (!this.recipeAudioEnabled || !this.assetAudioEnabled || !this.audioEnabled) {
+            return;
+        }
+        
         // Empêche de relancer la séquence si elle est déjà en cours
-        if (this.isPlaying) return;
+        if (this.isPlayingRecipe || this.isPlayingAsset) return;
 
         // Récupère l'intention de recette courante
         let chef = state.players[0];
@@ -959,58 +1361,21 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.lastAssetIntentions = [...assetIntentions];
 
         // 1. Joue annonce_recette.mp3
-        this.isPlaying = true;
-        this.audio.src = this.audio_loc + "annonce_recette.mp3";
-        this.audio.playbackRate = 1;
-        this.audio.play().then(() => {
-            this.audio.onended = () => {
-                // 2. Joue le son de la recette complète
-                if (ingredients.length > 0) {
-                    let recipeSound = this._getRecipeSoundFile(ingredients);
-                    this.audio.src = this.audio_loc + recipeSound;
-                    this.audio.playbackRate = 1;
-                    this.audio.play().then(() => {
-                        this.audio.onended = () => {
-                            this.isPlaying = false;
-                            // 3. Joue les intentions d'assets successives
-                            if (assetIntentions.length > 0) {
-                                this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
-                            }
-                        };
-                    }).catch(error => {
-                        this.isPlaying = false;
-                        if (assetIntentions.length > 0) {
-                            this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
-                        }
-                    });
-                } else {
-                    this.isPlaying = false;
-                    if (assetIntentions.length > 0) {
-                        this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
-                    }
-                }
-            };
-        }).catch(error => {
-            this.isPlaying = false;
-            // Si erreur sur annonce, on tente quand même la suite
+        this.isPlayingRecipe = true;
+        this.playAudio('annonce_recette', 1.0, 1.0, () => {
+            // 2. Joue le son de la recette complète
             if (ingredients.length > 0) {
                 let recipeSound = this._getRecipeSoundFile(ingredients);
-                this.audio.src = this.audio_loc + recipeSound;
-                this.audio.playbackRate = 1;
-                this.audio.play().then(() => {
-                    this.audio.onended = () => {
-                        this.isPlaying = false;
-                        if (assetIntentions.length > 0) {
-                            this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
-                        }
-                    };
-                }).catch(() => {
-                    this.isPlaying = false;
+                let recipeSoundKey = recipeSound.replace('.mp3', '');
+                this.playAudio(recipeSoundKey, 1, 1.0, () => {
+                    this.isPlayingRecipe = false;
+                    // 3. Joue les intentions d'assets successives
                     if (assetIntentions.length > 0) {
                         this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
                     }
                 });
             } else {
+                this.isPlayingRecipe = false;
                 if (assetIntentions.length > 0) {
                     this._playAssetIntentionsSounds(assetIntentions, sprites, board_height, board_width);
                 }
@@ -1023,45 +1388,308 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      * Cette fonction ne relance la séquence que si la recette n'a pas changé.
      */
     _playAssetIntentionsSounds(intentions, sprites, board_height, board_width) {
-    const terrain_to_sound = {
-        ' ': '',
-        'X': 'comptoir',
-        //'P': 'marmite',
-        'O': 'oignon',
-        'T': 'tomate',
-        'D': 'assiette',
-        'S': 'service'
-    };
-    // vérifie que intention n'est ni nulle ni vide
-    if (!intentions || intentions.length === 0) return;
-
-    // Met à jour immédiatement la référence des intentions d'asset
-    this.lastAssetIntentions = [...intentions];
-
-    // Vide la file d'attente pour ne jouer que les intentions actuelles
-    this.soundQueueAsset = [];
-    for (let i = 0; i < intentions.length; i++) {
-        let soundKey = terrain_to_sound[intentions[i]];
-        if (soundKey) {
-            this.soundQueueAsset.push(soundKey);
-        }
-    }
-    const playNextSoundAsset = () => {
-        if (this.soundQueueAsset.length === 0) {
-            this.isPlaying = false;
+        if (!this.assetAudioEnabled || !this.audioEnabled) {
             return;
         }
-        let soundKey = this.soundQueueAsset.shift();
-        let sound = this.sound.add(soundKey);
-        sound.setRate(1);
-        sound.setVolume(1.0);
-        this.isPlaying = true;
-        sound.play();
-        sound.once('complete', () => {
-            this.isPlaying = false;
-            playNextSoundAsset();
+        
+        const terrain_to_sound = {
+            ' ': '',
+            'X': 'comptoir',
+            //'P': 'marmite',
+            'O': 'oignon',
+            'T': 'tomate',
+            'D': 'assiette',
+            'S': 'service'
+        };
+        
+        // vérifie que intention n'est ni nulle ni vide
+        if (!intentions || intentions.length === 0) return;
+
+        // Met à jour immédiatement la référence des intentions d'asset
+        this.lastAssetIntentions = [...intentions];
+
+        // Vide la file d'attente pour ne jouer que les intentions actuelles
+        this.soundQueueAsset = [];
+        for (let i = 0; i < intentions.length; i++) {
+            let soundKey = terrain_to_sound[intentions[i]];
+            if (soundKey) {
+                this.soundQueueAsset.push(soundKey);
+            }
+        }
+        
+        // Play sounds from queue using WebAudio API
+        this.playAssetSoundsFromQueue();
+    }
+
+    /**
+     * Debug method to check audio system status
+     */
+    debugAudioSystem() {
+        console.group('Audio System Debug');
+        // console.log('Audio enabled:', this.audioEnabled);
+        // console.log('Recipe audio enabled:', this.recipeAudioEnabled);
+        // console.log('Asset audio enabled:', this.assetAudioEnabled);
+        // console.log('WebAudio context:', this.audioContext ? this.audioContext.state : 'null');
+        // console.log('Audio buffers loaded:', this.audioBuffers.size);
+        // console.log('Available audio buffers:', Array.from(this.audioBuffers.keys()));
+        
+        // Vérifier les fichiers dans le cache Phaser
+        const audioFiles = [
+            'comptoir', 'marmite', 'oignon', 'tomate', 
+            'assiette', 'service', 'annonce_recette',
+            'recette_0o_1t', 'recette_0o_2t', 'recette_0o_3t',
+            'recette_1o_0t', 'recette_1o_1t', 'recette_1o_2t',
+            'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
+        ];
+        
+        console.log('Phaser audio cache status:');
+        audioFiles.forEach(key => {
+            const exists = this.cache.audio.exists(key);
+            const buffer = exists ? this.cache.audio.get(key) : null;
+            // console.log(`  ${key}: exists=${exists}, hasBuffer=${buffer && buffer.buffer ? true : false}`);
         });
-    };
-    playNextSoundAsset();
-}
+        
+        console.groupEnd();
+    }
+
+    /**
+     * Display visual bubbles for EVH condition
+     */
+    _displayVisualBubbles(chef, sprites, x, y, hud_data) {
+        // Vérifications de sécurité
+        if (!chef || !chef.intentions || !hud_data || !this.condition) {
+            return;
+        }
+        
+        // Initialiser les variables de bulle si nécessaire
+        if (!this.bubbleSequence) {
+            this.bubbleSequence = [];
+            this.currentBubbleIndex = 0;
+            this.bubbleTimer = null;
+            this.currentBubbleSprite = null;
+            this.currentBubbleBackground = null;  // Pour le fond blanc des assets
+            this.lastRecipe = null;        // Séparer le tracking de la recette
+            this.lastAssets = null;        // Séparer le tracking des assets
+        }
+
+        // Récupérer les intentions actuelles avec vérifications
+        let currentRecipe = (chef.intentions && chef.intentions.recipe) ? chef.intentions.recipe : [];
+        let currentAssets = (hud_data.intentions && hud_data.intentions.goal) ? [...hud_data.intentions.goal] : [];
+        
+        // Créer des identifiants séparés pour recette et assets
+        let recipeId = JSON.stringify(currentRecipe);
+        let assetsId = JSON.stringify(currentAssets);
+        
+        // Vérifier si la recette a changé (début ou changement de recette)
+        let recipeChanged = (this.lastRecipe !== recipeId);
+        // Vérifier si les assets ont changé
+        let assetsChanged = (this.lastAssets !== assetsId);
+        
+        // Logic de déclenchement selon les consignes :
+        // 1. Recette au début de partie OU quand elle change
+        // 2. Assets quand ils changent (mais PAS redéclencher la recette)
+        
+        if (recipeChanged || (assetsChanged && !recipeChanged)) {
+            // Mettre à jour les trackers
+            if (recipeChanged) this.lastRecipe = recipeId;
+            if (assetsChanged) this.lastAssets = assetsId;
+            
+            // Construire la nouvelle séquence selon le cas
+            let newSequence = [];
+            
+            if (recipeChanged && currentRecipe && currentRecipe.length > 0) {
+                // CAS 1: Recette a changé -> afficher recette PUIS assets
+                newSequence.push({
+                    type: 'recipe',
+                    data: currentRecipe,
+                    duration: (this.condition.visual_intention_recipe_duration || 2000)
+                });
+                
+                // Puis ajouter les assets après la recette
+                if (currentAssets && currentAssets.length > 0) {
+                    currentAssets.forEach(asset => {
+                        newSequence.push({
+                            type: 'asset',
+                            data: asset,
+                            duration: (this.condition.visual_intention_asset_duration || 1500)
+                        });
+                    });
+                }
+            } else if (assetsChanged && !recipeChanged && currentAssets && currentAssets.length > 0) {
+                // CAS 2: Seuls les assets ont changé -> afficher SEULEMENT les nouveaux assets
+                currentAssets.forEach(asset => {
+                    newSequence.push({
+                        type: 'asset',
+                        data: asset,
+                        duration: (this.condition.visual_intention_asset_duration || 1500)
+                    });
+                });
+            }
+            
+            // Démarrer la nouvelle séquence
+            if (newSequence.length > 0) {
+                this._startBubbleSequence(newSequence, sprites, x, y);
+            } else {
+                this._clearBubbleSequence();
+            }
+        } else {
+            // Aucun changement -> juste mettre à jour la position si une bulle est affichée
+            this._updateBubblePosition(x, y);
+        }
+    }
+
+    /**
+     * Start the visual bubble sequence
+     */
+    _startBubbleSequence(sequence, sprites, x, y) {
+        // Vérifications de sécurité
+        if (!sequence || sequence.length === 0 || !sprites) {
+            return;
+        }
+        
+        // Arrêter la séquence précédente
+        this._clearBubbleSequence();
+
+        // Stocker la nouvelle séquence
+        this.bubbleSequence = sequence;
+        this.currentBubbleIndex = 0;
+
+        // Démarrer l'affichage
+        this._showNextBubble(sprites, x, y);
+    }
+
+    /**
+     * Show the next bubble in sequence
+     */
+    _showNextBubble(sprites, x, y) {
+        if (this.currentBubbleIndex >= this.bubbleSequence.length) {
+            this._clearBubbleSequence();
+            return;
+        }
+
+        let currentBubble = this.bubbleSequence[this.currentBubbleIndex];
+        
+        // Créer le sprite approprié
+        if (currentBubble.type === 'recipe' || currentBubble.type === 'next_recipe') {
+            this._createRecipeBubble(currentBubble.data, sprites, x, y);
+        } else if (currentBubble.type === 'asset') {
+            this._createAssetBubble(currentBubble.data, sprites, x, y);
+        }
+
+        // Programmer la bulle suivante
+        this.bubbleTimer = setTimeout(() => {
+            this.currentBubbleIndex++;
+            this._showNextBubble(sprites, x, y);
+        }, currentBubble.duration);
+    }
+
+    /**
+     * Create a recipe bubble sprite
+     */
+    _createRecipeBubble(recipeData, sprites, x, y) {
+        this._clearCurrentBubble();
+        
+        let spriteFrame = this._ingredientsToSpriteFrame(recipeData, "done");
+        this.currentBubbleSprite = this.add.sprite(
+            this.tileSize * x + this.tileSize/2,
+            this.tileSize * y - 40,
+            "soups",
+            spriteFrame
+        );
+        this.currentBubbleSprite.depth = 10;
+        this.currentBubbleSprite.setDisplaySize(this.tileSize, this.tileSize);
+        this.currentBubbleSprite.setOrigin(0.5);
+    }
+
+    /**
+     * Create an asset bubble sprite avec fond blanc circulaire pour lisibilité
+     */
+    _createAssetBubble(assetData, sprites, x, y) {
+        this._clearCurrentBubble();
+        
+        // Mapping vers les bonnes frames et atlas
+        const assetToSprite = {
+            'O': { atlas: 'objects', frame: 'onion.png' },
+            'T': { atlas: 'objects', frame: 'tomato.png' },  
+            'D': { atlas: 'objects', frame: 'dish.png' },
+            'S': { atlas: 'tiles', frame: 'serve.png' }    // Zone de service depuis tiles (qui charge terrain.json)
+        };
+        
+        let spriteInfo = assetToSprite[assetData];
+        if (spriteInfo) {
+            // Position de la bulle
+            let bubbleX = this.tileSize * x + this.tileSize/2;
+            let bubbleY = this.tileSize * y - 40;
+            
+            // 1. Créer le fond blanc circulaire pour lisibilité
+            this.currentBubbleBackground = this.add.graphics();
+            this.currentBubbleBackground.fillStyle(0xFFFFFF, 0.9);  // Blanc avec légère transparence
+            this.currentBubbleBackground.lineStyle(2, 0x000000, 0.3); // Bordure noire légère
+            this.currentBubbleBackground.fillCircle(bubbleX, bubbleY, this.tileSize/4);
+            this.currentBubbleBackground.strokeCircle(bubbleX, bubbleY, this.tileSize/4);
+            this.currentBubbleBackground.depth = 9; // Derrière le sprite principal
+            
+            // 2. Créer le sprite de l'asset par-dessus le fond
+            this.currentBubbleSprite = this.add.sprite(
+                bubbleX,
+                bubbleY,
+                spriteInfo.atlas,
+                spriteInfo.frame
+            );
+            this.currentBubbleSprite.depth = 10;
+            this.currentBubbleSprite.setDisplaySize(this.tileSize * 0.7, this.tileSize * 0.7); // Légèrement plus petit que le fond
+            this.currentBubbleSprite.setOrigin(0.5);
+        }
+    }
+
+    /**
+     * Update bubble position when player moves
+     */
+    _updateBubblePosition(x, y) {
+        if (this.currentBubbleSprite) {
+            let newX = this.tileSize * x + this.tileSize/2;
+            let newY = this.tileSize * y - 40;
+            
+            // Déplacer le sprite principal
+            this.currentBubbleSprite.setPosition(newX, newY);
+            
+            // Déplacer aussi le fond s'il existe
+            if (this.currentBubbleBackground) {
+                this.currentBubbleBackground.clear();
+                this.currentBubbleBackground.fillStyle(0xFFFFFF, 0.9);
+                this.currentBubbleBackground.lineStyle(2, 0x000000, 0.3);
+                this.currentBubbleBackground.fillCircle(newX, newY, this.tileSize/4);
+                this.currentBubbleBackground.strokeCircle(newX, newY, this.tileSize/4);
+            }
+        }
+    }
+
+    /**
+     * Clear current bubble sprite
+     */
+    _clearCurrentBubble() {
+        // Nettoyer le sprite principal
+        if (this.currentBubbleSprite) {
+            this.currentBubbleSprite.destroy();
+            this.currentBubbleSprite = null;
+        }
+        
+        // Nettoyer le fond s'il existe
+        if (this.currentBubbleBackground) {
+            this.currentBubbleBackground.destroy();
+            this.currentBubbleBackground = null;
+        }
+    }
+
+    /**
+     * Clear entire bubble sequence
+     */
+    _clearBubbleSequence() {
+        if (this.bubbleTimer) {
+            clearTimeout(this.bubbleTimer);
+            this.bubbleTimer = null;
+        }
+        this._clearCurrentBubble();
+        this.currentBubbleIndex = 0;
+    }
 }

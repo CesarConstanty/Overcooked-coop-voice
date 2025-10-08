@@ -181,7 +181,7 @@ socket.on('start_game', function(data) {
     curr_trial = data.trial +1;
 
     let bloc_key = data.config.bloc_order[data.step];
-    $('#game-title').text(`Experiment in Progress, Bloc ${data.step + 1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[bloc_key]).length}`);
+    $('#game-title').text(`Experiment in Progress, Block ${data.step + 1}/${Object.keys(data.config.blocs).length}, Trial ${curr_trial}/${Object.keys(data.config.blocs[bloc_key]).length}`);
     $('#game-title').show(); 
     
     if (!window.spectating) {
@@ -203,7 +203,7 @@ socket.on('reset_game', function(data) {
         disable_key_listener();
     }
     curr_trial = data.trial + 1;
-    $('#game-title').text(`Experiment in Progress, Bloc ${data.step+1}/${Object.keys(data.config.blocs).length}, essai ${curr_trial}/${Object.keys(data.config.blocs[data.step]).length}`);
+    $('#game-title').text(`Experiment in Progress, Block ${data.step+1}/${Object.keys(data.config.blocs).length}, Trial ${curr_trial}/${Object.keys(data.config.blocs[data.step]).length}`);
     $("#reset-game").show();
     setTimeout(function() {
         //console.log(`[RESET_GAME] Resetting graphics for trial ${curr_trial} in block ${data.step + 1}`);
@@ -238,7 +238,21 @@ socket.on('end_game', function(data) {
     }
     let bloc = $('#bloc').text();
     let step = $('#step').text();
-    $('#overcooked-container').append(`<h4>Now we are going to ask you a few questions about your feeling during the last games</>`);
+    
+    // Vérifier si c'est un questionnaire post-trial ou post-bloc
+    if (data.show_post_trial_questionnaire && !data.is_last_trial_in_bloc) {
+        // Questionnaire post-trial
+        console.log(`[POST_TRIAL] Affichage du questionnaire post-trial pour l'essai ${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc}`);
+        $('#overcooked-container').append(`<h4>Please answer few questions about the game you just completed (${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc})</h4>`);
+    } else if (data.is_last_trial_in_bloc) {
+        // Questionnaire post-bloc
+        console.log(`[POST_BLOC] Affichage du questionnaire post-bloc après ${data.total_trials_in_bloc} essais`);
+        $('#overcooked-container').append(`<h4>For the upcoming questions, consider the whole block of games and how the agent communicated its intentions to you.</h4>`);
+    } else {
+        // Cas par défaut
+        $('#overcooked-container').append(`<h4>For the upcoming questions, consider the whole block of games and how the agent communicated its intentions to you.</h4>`);
+    }
+    
     $('#game-title').hide();
     $('#game-over').show();
     $('#overcooked').hide();
