@@ -73,13 +73,25 @@ function drawState(state) {
 
 // Invoked at 'start_game' event déclenché par app.py, écouté par planning.js 
 // qui définie graphics_config avec les paramètres de la partie
+// CORRECTIF 3: Préchargement garanti avant le premier essai
 function graphics_start(graphics_config) {
     //scene_config.player_colors = graphics_config.player_colors;
     scene_config.condition = graphics_config.condition;
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
+    
+    // Créer le gestionnaire graphique
     graphics = new GraphicsManager(game_config, scene_config, graphics_config);
+    
+    // CORRECTIF 3: Attendre que l'audio soit prêt avant de permettre l'interaction
+    const scene = graphics.game.scene.getScene('PlayGame');
+    if (scene) {
+        console.log('[AUDIO] Ensuring audio is ready at game start...');
+        scene.waitForAudioReady(2000).then(() => {
+            console.log('[AUDIO] Audio fully loaded - game ready to play');
+        });
+    }
 };
 
 // Invoked at 'end_game' event
@@ -112,7 +124,16 @@ function graphics_reset(graphics_config) {
         scene.stopAllAudio();
     }
 
-    game_config.scene.scene.restart();
+    // CORRECTIF 4: Vérifier que l'audio est prêt avant de redémarrer la scène
+    if (scene && !scene.isAudioReady()) {
+        console.log('[AUDIO] Waiting for audio system before trial reset...');
+        scene.waitForAudioReady(1500).then(() => {
+            console.log('[AUDIO] Audio ready, restarting scene for new trial');
+            game_config.scene.scene.restart();
+        });
+    } else {
+        game_config.scene.scene.restart();
+    }
 }
 
 class GraphicsManager { // initialise et gère les graphismes du jeu
@@ -256,14 +277,17 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.events.once('shutdown', () => this.teardownAudioUnlockListeners());
         this.events.once('destroy', () => this.teardownAudioUnlockListeners());
         
-        // Initialize WebAudio context and wait for buffers to load
+        // CORRECTIF 1: Initialisation précoce et bloquante du système audio
+        // Attendre que l'audio soit complètement initialisé AVANT de continuer
+        this.audioInitialized = false;
         this.initializeAudioContext().then(() => {
-            // console.log('Audio system fully initialized - game ready');
-            // Émettre un événement pour signaler que l'audio est prêt
+            console.log('[AUDIO] Audio system fully initialized - game ready');
+            this.audioInitialized = true;
             this.events.emit('audio-ready');
         }).catch((error) => {
-            // console.warn('Audio initialization failed, using Phaser fallback:', error);
-            this.events.emit('audio-ready'); // Continuer même en cas d'erreur
+            console.warn('[AUDIO] Audio initialization failed, using Phaser fallback:', error);
+            this.audioInitialized = true; // Continuer avec fallback
+            this.events.emit('audio-ready');
         });
         
         // Debug audio system après initialisation (en mode développement uniquement)
@@ -271,33 +295,39 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 this.debugAudioSystem();
             }
-        }, 1500); // Délai légèrement augmenté pour permettre l'initialisation async
+        }, 2000); // Délai augmenté pour permettre l'initialisation complète
         
         //this._drawState(this.state, this.sprites);
     }
     
     /**
      * Initialize WebAudio context and load audio buffers
+     * CORRECTIF 1B: Initialisation plus robuste et parallélisée
      */
     async initializeAudioContext() {
         try {
+            console.log('[AUDIO] Initializing WebAudio context...');
+            
             // Créer le contexte audio avec gestion de l'autoplay policy
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.setupAudioUnlockListeners();
             this.tryResumeAudioContext();
             
-            // Essayer d'abord la méthode principale
-            await this.loadAudioBuffers();
+            // CORRECTIF 1B: Essayer les deux méthodes en parallèle pour maximiser les chances
+            const [result1, result2] = await Promise.allSettled([
+                this.loadAudioBuffers(),
+                this.loadAudioBuffersAlternative()
+            ]);
             
-            // Si peu de buffers ont été chargés, essayer la méthode alternative
-            if (this.audioBuffers.size < 5) {
-                // console.log('Primary loading method failed, trying alternative...');
-                await this.loadAudioBuffersAlternative();
+            console.log(`[AUDIO] Loaded ${this.audioBuffers.size}/16 audio buffers`);
+            
+            if (this.audioBuffers.size === 0) {
+                console.warn('[AUDIO] No WebAudio buffers loaded, will use Phaser fallback');
             }
             
-            // console.log('WebAudio API initialized successfully');
+            console.log('[AUDIO] WebAudio API initialized successfully');
         } catch (error) {
-            // console.warn('WebAudio API not supported or failed to initialize, falling back to Phaser Audio:', error);
+            console.warn('[AUDIO] WebAudio API initialization failed, falling back to Phaser Audio:', error);
             this.teardownAudioUnlockListeners();
             this.audioContext = null;
         }
@@ -352,6 +382,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
     /**
      * Load all audio files into buffers for WebAudio API
+     * CORRECTIF 1C: Chargement parallélisé et plus robuste
      */
     async loadAudioBuffers() {
         const audioFiles = [
@@ -371,7 +402,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             }
         });
         
-        for (const audioKey of audioFiles) {
+        // CORRECTIF 1C: Charger tous les fichiers en parallèle pour gagner du temps
+        const promises = audioFiles.map(async (audioKey) => {
             try {
                 // Vérifier si le cache audio existe et contient le fichier
                 if (this.cache.audio.exists(audioKey)) {
@@ -381,33 +413,38 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                         const arrayBuffer = await response.arrayBuffer();
                         const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice());
                         this.audioBuffers.set(audioKey, decodedBuffer);
-                        // console.log(`Successfully loaded audio buffer for ${audioKey}`);
+                        console.log(`[AUDIO] ✓ Loaded ${audioKey} via fetch`);
+                        return true;
                     } catch (fetchError) {
-                        // console.warn(`Direct fetch failed for ${audioKey}, trying Phaser cache:`, fetchError);
-                        
                         // Fallback: essayer d'accéder aux données Phaser
                         const audioBuffer = this.cache.audio.get(audioKey);
                         if (audioBuffer && audioBuffer.data) {
                             const decodedBuffer = await this.audioContext.decodeAudioData(audioBuffer.data.slice());
                             this.audioBuffers.set(audioKey, decodedBuffer);
-                            // console.log(`Successfully loaded audio buffer from Phaser cache for ${audioKey}`);
+                            console.log(`[AUDIO] ✓ Loaded ${audioKey} from Phaser cache`);
+                            return true;
                         } else {
-                            // console.warn(`Audio buffer data missing for ${audioKey}, will use Phaser fallback`);
+                            console.warn(`[AUDIO] ✗ Buffer data missing for ${audioKey}`);
+                            return false;
                         }
                     }
                 } else {
-                    // console.warn(`Audio file ${audioKey} not found in cache, will use Phaser fallback`);
+                    console.warn(`[AUDIO] ✗ ${audioKey} not found in cache`);
+                    return false;
                 }
             } catch (error) {
-                // console.warn(`Failed to load audio buffer for ${audioKey}:`, error, 'Will use Phaser fallback');
+                console.warn(`[AUDIO] ✗ Failed to load ${audioKey}:`, error);
+                return false;
             }
-        }
+        });
         
-        // console.log(`WebAudio buffers loaded: ${this.audioBuffers.size}/${audioFiles.length}`);
+        await Promise.allSettled(promises);
+        console.log(`[AUDIO] Method 1: ${this.audioBuffers.size}/${audioFiles.length} buffers loaded`);
     }
     
     /**
      * Alternative method to load audio buffers more aggressively
+     * CORRECTIF 1D: Méthode alternative avec retry et logging amélioré
      */
     async loadAudioBuffersAlternative() {
         const audioFiles = [
@@ -418,9 +455,14 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
         ];
         
-        // console.log('Loading audio buffers using alternative method...');
+        console.log('[AUDIO] Loading audio buffers using alternative method...');
         
         const promises = audioFiles.map(async (audioKey) => {
+            // Éviter de recharger si déjà présent
+            if (this.audioBuffers.has(audioKey)) {
+                return true;
+            }
+            
             try {
                 const response = await fetch(this.audio_loc + audioKey + '.mp3');
                 if (!response.ok) {
@@ -430,20 +472,21 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 const arrayBuffer = await response.arrayBuffer();
                 const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
                 this.audioBuffers.set(audioKey, decodedBuffer);
-                // console.log(`✓ Loaded ${audioKey} via fetch`);
+                console.log(`[AUDIO] ✓ Loaded ${audioKey} (alternative method)`);
                 return true;
             } catch (error) {
-                // console.warn(`✗ Failed to load ${audioKey} via fetch:`, error);
+                console.warn(`[AUDIO] ✗ Failed to load ${audioKey} (alternative):`, error);
                 return false;
             }
         });
         
         await Promise.allSettled(promises);
-        // console.log(`Alternative method: ${this.audioBuffers.size}/${audioFiles.length} buffers loaded`);
+        console.log(`[AUDIO] Method 2: ${this.audioBuffers.size}/${audioFiles.length} total buffers loaded`);
     }
     
     /**
      * Play audio using WebAudio API or fallback to Phaser audio
+     * CORRECTIF 2: Attente systématique pour TOUS les sons si audio pas prêt
      */
     playAudio(audioKey, playbackRate = 1, volume = 1.0, onComplete = null) {
         if (!this.audioEnabled) {
@@ -453,16 +496,19 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
         this.tryResumeAudioContext();
         
-        // Pour les sons critiques (recettes), essayer d'attendre un court délai si les buffers ne sont pas prêts
-        if ((audioKey.startsWith('recette_') || audioKey === 'annonce_recette') && !this.isAudioReady()) {
-            // Attendre maximum 500ms pour que l'audio soit prêt
-            this.waitForAudioReady(500).then(() => {
+        // CORRECTIF 2: Attendre pour TOUS les sons si les buffers ne sont pas prêts
+        // (pas seulement pour les sons de recettes)
+        if (!this.isAudioReady()) {
+            console.log(`[AUDIO] Waiting for audio system to be ready before playing ${audioKey}`);
+            // Attendre maximum 1000ms pour que l'audio soit prêt (augmenté de 500ms)
+            this.waitForAudioReady(1000).then(() => {
+                console.log(`[AUDIO] Audio ready, now playing ${audioKey}`);
                 this._playAudioInternal(audioKey, playbackRate, volume, onComplete);
             });
             return;
         }
         
-        // Jouer immédiatement
+        // Jouer immédiatement si audio est prêt
         this._playAudioInternal(audioKey, playbackRate, volume, onComplete);
     }
     
@@ -1143,25 +1189,29 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     
     /**
      * Wait for audio system to be ready
+     * CORRECTIF 2B: Timeout augmenté et logging amélioré
      */
-    waitForAudioReady(maxWaitMs = 500) {
+    waitForAudioReady(maxWaitMs = 1000) {
         return new Promise((resolve) => {
             if (this.isAudioReady()) {
                 resolve();
                 return;
             }
             
+            console.log(`[AUDIO] Waiting for audio buffers to load (max ${maxWaitMs}ms)...`);
+            
             // Listen for audio-ready event
             const onReady = () => {
                 clearTimeout(timeoutId);
+                console.log('[AUDIO] Audio ready event received');
                 resolve();
             };
             
             this.events.once('audio-ready', onReady);
             
-            // Fallback timeout - beaucoup plus court
+            // Fallback timeout - augmenté à 1000ms par défaut
             const timeoutId = setTimeout(() => {
-                // console.warn(`Audio ready timeout reached after ${maxWaitMs}ms, proceeding with Phaser fallback`);
+                console.warn(`[AUDIO] Timeout reached after ${maxWaitMs}ms, proceeding with Phaser fallback`);
                 this.events.off('audio-ready', onReady);
                 resolve();
             }, maxWaitMs);
@@ -1423,15 +1473,31 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
     /**
      * Debug method to check audio system status
+     * CORRECTIF DIAGNOSTIC: Logging amélioré pour faciliter le débogage
      */
     debugAudioSystem() {
-        console.group('Audio System Debug');
-        // console.log('Audio enabled:', this.audioEnabled);
-        // console.log('Recipe audio enabled:', this.recipeAudioEnabled);
-        // console.log('Asset audio enabled:', this.assetAudioEnabled);
-        // console.log('WebAudio context:', this.audioContext ? this.audioContext.state : 'null');
-        // console.log('Audio buffers loaded:', this.audioBuffers.size);
-        // console.log('Available audio buffers:', Array.from(this.audioBuffers.keys()));
+        console.log('\n=== 🔊 Audio System Debug Report ===');
+        console.log('📊 WebAudio Context:');
+        console.log('  - Context:', this.audioContext ? '✓ Created' : '✗ Not created');
+        console.log('  - State:', this.audioContext ? this.audioContext.state : 'N/A');
+        console.log('  - Sample Rate:', this.audioContext ? this.audioContext.sampleRate + ' Hz' : 'N/A');
+        
+        console.log('\n📦 Audio Buffers:');
+        console.log(`  - Loaded: ${this.audioBuffers.size}/16 buffers`);
+        console.log(`  - Ready: ${this.isAudioReady() ? '✓ YES' : '✗ NO'}`);
+        console.log('  - Available:', Array.from(this.audioBuffers.keys()).join(', '));
+        
+        console.log('\n🎛️ Audio Controls:');
+        console.log('  - Global Audio:', this.audioEnabled ? '✓ Enabled' : '✗ Disabled');
+        console.log('  - Recipe Audio:', this.recipeAudioEnabled ? '✓ Enabled' : '✗ Disabled');
+        console.log('  - Asset Audio:', this.assetAudioEnabled ? '✓ Enabled' : '✗ Disabled');
+        
+        console.log('\n▶️ Playback Status:');
+        console.log('  - Is Playing (any):', this.isPlaying ? '✓ YES' : '✗ NO');
+        console.log('  - Is Playing Recipe:', this.isPlayingRecipe ? '✓ YES' : '✗ NO');
+        console.log('  - Is Playing Asset:', this.isPlayingAsset ? '✓ YES' : '✗ NO');
+        console.log('  - Active Sources:', this.audioSources.length);
+        console.log('  - Asset Queue Length:', this.soundQueueAsset.length);
         
         // Vérifier les fichiers dans le cache Phaser
         const audioFiles = [
@@ -1442,14 +1508,18 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
         ];
         
-        console.log('Phaser audio cache status:');
+        console.log('\n🎵 Phaser Sound System:');
+        console.log('  - Total Sounds:', this.sound.sounds.length);
+        console.log('  - Context State:', this.sound.context ? this.sound.context.state : 'N/A');
+        console.log('  - Cache Status:');
         audioFiles.forEach(key => {
             const exists = this.cache.audio.exists(key);
-            const buffer = exists ? this.cache.audio.get(key) : null;
-            // console.log(`  ${key}: exists=${exists}, hasBuffer=${buffer && buffer.buffer ? true : false}`);
+            const inBuffer = this.audioBuffers.has(key);
+            const status = inBuffer ? '✓ WebAudio' : (exists ? '○ Phaser only' : '✗ Missing');
+            console.log(`      ${status} ${key}`);
         });
         
-        console.groupEnd();
+        console.log('===================================\n');
     }
 
     /**

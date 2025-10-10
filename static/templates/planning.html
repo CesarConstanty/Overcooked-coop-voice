@@ -128,6 +128,7 @@
   <div id="uid" style="display:none;">{{uid}}</div>
   <div id="step" style="display:none;">{{ step }}</div>
   <div id="condition" style="display:none;">{{condition}}</div>
+  <div id="bloc" style="display:none;">{{ bloc }}</div>
   <div id="config" style="display:none;">{{config}}</div>
   <div id="trials" style="display:none;">{{trials}}</div>
   <div id="total_blocs" style="display:none;">{{ total_blocs }}</div>
@@ -147,6 +148,18 @@
   <div id="overcooked-container" class="text-center">
     <h4 id="game-title" style="display:none;">Game in Progress - Block {{step}}/3 - Trial ?/12</h4>
     <h4 id="game-over" style="display:none;">You successfully completed all the trials in this block!</h4>
+    <div id="start-overlay" class="my-4" role="presentation">
+      <div class="card shadow-sm mx-auto" style="max-width: 420px;">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Ready to start?</h5>
+          <p class="card-text text-muted" id="start-instructions">Click the button below when you're ready to launch the experiment.</p>
+          <div class="d-flex align-items-center justify-content-center mb-3" id="start-countdown" style="display:none;">
+            <span class="badge badge-pill badge-secondary px-3 py-2" aria-live="polite">Auto start in <span id="countdown-value">5</span>s</span>
+          </div>
+          <button id="start-game" class="btn btn-primary btn-lg btn-block" type="button">Start Game</button>
+        </div>
+      </div>
+    </div>
     <div id="overcooked"></div>
     <div id="error-exit" style="display:none;">Game ended unexpectedly (probably due to another user disconnecting)</div>
   </div>

@@ -16,40 +16,125 @@ let step = 0;
 var curr_trial = 0;
 var condition = "U";
 
+let startCountdownId = null;
+let startCountdownRemaining = 0;
+let startTriggered = false;
 
 
+
+function getConfigParams() {
+    let paramsText = $('#config').text();
+    let params = {};
+    if (paramsText) {
+        try {
+            params = JSON.parse(paramsText);
+        } catch (error) {
+            console.error('Unable to parse config params', error);
+        }
+    }
+    return params;
+}
+
+function showStartOverlay(message) {
+    if (message) {
+        $('#start-instructions').text(message);
+    }
+    startTriggered = false;
+    $('#start-game').prop('disabled', false);
+    $('#start-overlay').show();
+    beginStartCountdown();
+}
+
+function hideStartOverlay() {
+    clearStartCountdown();
+    $('#start-overlay').hide();
+}
+
+function clearStartCountdown() {
+    if (startCountdownId !== null) {
+        clearInterval(startCountdownId);
+        startCountdownId = null;
+    }
+    $('#start-countdown').hide();
+}
+
+function beginStartCountdown() {
+    const $countdownContainer = $('#start-countdown');
+    const $countdownValue = $('#countdown-value');
+    if ($countdownContainer.length === 0 || $countdownValue.length === 0) {
+        return;
+    }
+
+    clearStartCountdown();
+    startCountdownRemaining = 5;
+    $countdownValue.text(startCountdownRemaining);
+    $countdownContainer.show();
+
+    startCountdownId = setInterval(function () {
+        startCountdownRemaining -= 1;
+
+        if (startCountdownRemaining <= 0) {
+            clearStartCountdown();
+            triggerGameStart('auto');
+        } else {
+            $countdownValue.text(startCountdownRemaining);
+        }
+    }, 1000);
+}
+
+function triggerGameStart(source) {
+    if (startTriggered) {
+        return;
+    }
+
+    startTriggered = true;
+    clearStartCountdown();
+
+    const $startButton = $('#start-game');
+    const $startInstructions = $('#start-instructions');
+
+    $startButton.prop('disabled', true);
+    if (source === 'auto') {
+        $startInstructions.text('Launching automatically, please wait...');
+    } else {
+        $startInstructions.text('Preparing game, please wait...');
+    }
+
+    const params = getConfigParams();
+    const uid = $('#uid').text();
+    const blocValue = $('#bloc').text();
+    const conditionValue = $('#condition').text();
+
+    if (uid) {
+        params.player_uid = uid;
+    }
+    if (blocValue) {
+        params.bloc = blocValue;
+    }
+    if (conditionValue) {
+        params.condition = conditionValue;
+        condition = conditionValue;
+    }
+
+    const data = {
+        params: params,
+        game_name: "planning",
+        create_if_not_found: false
+    };
+
+    socket.emit("create", data);
+    $('#waiting').show();
+    $('#lobby').hide();
+    hideStartOverlay();
+}
 
 $(function() { // le $ signifie que la fonction attend que le document html soit chargé
-    $('#create').click(function () { // fonction qui déclenche la création d'un nouveau jeu
-        console.log('Create button clicked'); // n'affiche rien dans la console
-        console.log('Event details:', event);
-        let params = JSON.parse($('#config').text()); // extraction des paramètres du jeu
-        let uid = $('#uid').text();
-        params.player_uid = uid; // ajout de paramètres supplémentaires
-        params.bloc = bloc;
-        params.condition = condition;
-        data = {
-            "params" : params, // stock uid/bloc/essaie dans un dictionnaire
-            "game_name" : "planning", // stipule l'utilisation de la classe PlanningGame
-            "create_if_not_found" : false
-        };
-        console.log(data);
-        socket.emit("create", data); // emet l'évènement socketIO create reçu par app.py
-        $('#waiting').show(); // mise à jour de certains élèments de l'interface
-        $('#join').hide();
-        $('#join').attr("disabled", true);
-        $('#create').hide();
-        $('#create').attr("disabled", true)
-        $("#instructions").hide();
-        $('#tutorial').hide();
-    });
-});
+    const $startButton = $('#start-game');
+    const $startInstructions = $('#start-instructions');
 
-$(function() {
-    $('#join').click(function() {
-        socket.emit("join", {});
-        $('#join').attr("disabled", true);
-        $('#create').attr("disabled", true);
+    $startButton.on('click', function (event) {
+        event.preventDefault();
+        triggerGameStart('manual');
     });
 });
 
@@ -92,21 +177,15 @@ window.intervalID = -1;
 window.spectating = true;
 
 socket.on("connect", function () {
-    let params = $('#config')//JSON.parse($('#config').text());
-    params.condition = $('#condition')
-    data = {
-        "params": params,
-        "game_name": "planning",
-        "create_if_not_found": false
-    };
-    socket.emit("create", data);
-    $('#waiting').show();
-    $('#join').hide();
-    $('#join').attr("disabled", true);
-    $('#create').hide();
-    $('#create').attr("disabled", true)
-    $("#instructions").hide();
-    $('#tutorial').hide();
+    $('#waiting').hide();
+    $('#lobby').hide();
+    $('#leave').hide();
+    $('#leave').attr("disabled", true);
+    const conditionValue = $('#condition').text();
+    if (conditionValue) {
+        condition = conditionValue;
+    }
+    showStartOverlay('Click the button below when you are ready to start the experiment.');
 });
 
 socket.on('waiting', function (data) {
@@ -142,10 +221,8 @@ socket.on('creation_failed', function(data) {
     $("#instructions").show();
     $('#tutorial').show();
     $('#waiting').hide();
-    $('#join').show();
-    $('#join').attr("disabled", false);
-    $('#create').show();
-    $('#create').attr("disabled", false);
+    $('#start-instructions').text('Game creation failed, please try again.');
+    showStartOverlay();
     console.log("creation")
     $('#overcooked').append(`<h4>Sorry, game creation code failed with error: ${JSON.stringify(err)}</>`);
 });
@@ -178,6 +255,7 @@ socket.on('start_game', function(data) {
     $('#tutorial').hide();
     $('#leave').show();
     $('#leave').attr("disabled", false)
+    hideStartOverlay();
     curr_trial = data.trial +1;
 
     let bloc_key = data.config.bloc_order[data.step];
@@ -270,16 +348,14 @@ socket.on('end_lobby', function() {
     // Hide lobby
     console.log("end_lobby");
     $('#lobby').hide();
-    $("#join").show();
-    $('#join').attr("disabled", false);
-    $("#create").show();
-    $('#create').attr("disabled", false)
-    $("#leave").hide();
-    $('#leave').attr("disabled", true)
-    $("#instructions").show();
+    $('#waiting').hide();
+    $('#leave').hide();
+    $('#leave').attr("disabled", true);
+    $('#instructions').show();
     $('#tutorial').show();
 
-    // Stop trying to join
+    showStartOverlay('You have left the lobby. Click the button to start a new game.');
+
     clearInterval(window.intervalID);
     window.intervalID = -1;
 })

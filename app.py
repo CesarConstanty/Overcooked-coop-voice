@@ -978,6 +978,7 @@ def planning():
         uid=current_user.uid,
         step=current_user.step,
         condition=current_condition,
+    bloc=bloc_key,
         config=json.dumps(current_user.config),
         trials=json.dumps(current_trials),
         total_blocs=total_blocs,

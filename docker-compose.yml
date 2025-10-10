@@ -14,7 +14,7 @@ services:
       - ./data/trajectories:/overcooked/trajectories
       
       # Cache des planificateurs IA
-      - ./data/overcooked_ai_py/data/planners:/overcooked/overcooked_ai_py/data/planners
+      #- ./data/overcooked_ai_py/data/planners:/overcooked/overcooked_ai_py/data/planners
 
       # Logs des erreurs éventuelles
       - ./data/logs:/overcooked/logs
