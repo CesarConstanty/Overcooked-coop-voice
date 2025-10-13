@@ -35,8 +35,8 @@
   },
   "Q3": {
     "name": "Q3",
-    "title": "I had to carry the weight to make the human-artificial agent team better.",
-    "cat": "Robot Relative Contribution",
+    "title": "I was the most important team member.",
+    "cat": "Relative Contribution",
     "reversed": "True",
     "type": "radiogroup",
     "colCount": 5,
@@ -52,8 +52,8 @@
   },
   "Q4": {
     "name": "Q4",
-    "title": "The artificial agent contributed equally to the team performance.",
-    "cat": "Robot Relative Contribution",
+    "title": "The artificial agent was the most important team member",
+    "cat": "Relative Contribution",
     "reversed": "False",
     "type": "radiogroup",
     "colCount": 5,
@@ -69,74 +69,6 @@
   },
   "Q5": {
     "name": "Q5",
-    "title": "I was the most important team member on the team.",
-    "cat": "Robot Relative Contribution",
-    "reversed": "True",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q6": {
-    "name": "Q6",
-    "title": "The artificial agent was the most important team member on the team.",
-    "cat": "Robot Relative Contribution",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q7": {
-    "name": "Q7",
-    "title": "I trusted the artificial agent to do the right thing at the right time.",
-    "cat": "Trust",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q8": {
-    "name": "Q8",
-    "title": "The artificial agent was trustworthy.",
-    "cat": "Trust and Positive Teammate Traits",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q9": {
-    "name": "Q9",
     "title": "The artificial agent was intelligent.",
     "cat": "Positive Teammate Traits",
     "reversed": "False",
@@ -152,10 +84,10 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   },
-  "Q10": {
-    "name": "Q10",
+  "Q6": {
+    "name": "Q6",
     "title": "The artificial agent was committed to the task.",
-    "cat": "Positive Teammate Traits",
+    "cat": "Working Alliance",
     "reversed": "False",
     "type": "radiogroup",
     "colCount": 5,
@@ -169,8 +101,8 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   },
-  "Q11": {
-    "name": "Q11",
+  "Q7": {
+    "name": "Q7",
     "title": "I feel uncomfortable with the artificial agent.",
     "cat": "Working Alliance",
     "reversed": "True",
@@ -186,9 +118,9 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   },
-  "Q12": {
-    "name": "Q12",
-    "title": "I believe the artificial agent likes me.",
+  "Q8": {
+    "name": "Q8",
+    "title": "The artificial agent and i understand each other.",
     "cat": "Working Alliance",
     "reversed": "False",
     "type": "radiogroup",
@@ -203,10 +135,78 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   },
+  "Q9": {
+    "name": "Q9",
+    "title": "I am confident in the artificial agent's ability to help me",
+    "cat": "Working Alliance",
+    "reversed": "False",
+    "type": "radiogroup",
+    "colCount": 5,
+    "isRequired": true,
+    "choices": [
+      { "value": "0", "text": "Strongly Disagree" },
+      { "value": "1", "text": "Disagree" },
+      { "value": "2", "text": "Neutral" },
+      { "value": "3", "text": "Agree" },
+      { "value": "4", "text": "Strongly Agree" }
+    ],
+    "steps": [0, 1, 2, 3, 4]
+  },
+  "Q10": {
+    "name": "Q10",
+    "title": "I found the artificial agent helpful.",
+    "cat": "Usability",
+    "reversed": "False",
+    "type": "radiogroup",
+    "colCount": 5,
+    "isRequired": true,
+    "choices": [
+      { "value": "0", "text": "Strongly Disagree" },
+      { "value": "1", "text": "Disagree" },
+      { "value": "2", "text": "Neutral" },
+      { "value": "3", "text": "Agree" },
+      { "value": "4", "text": "Strongly Agree" }
+    ],
+    "steps": [0, 1, 2, 3, 4]
+  },
+  "Q11": {
+    "name": "Q11",
+    "title": "I trusted the artificial agent to do the right thing at the right time",
+    "cat": "Trust",
+    "reversed": "False",
+    "type": "radiogroup",
+    "colCount": 5,
+    "isRequired": true,
+    "choices": [
+      { "value": "0", "text": "Strongly Disagree" },
+      { "value": "1", "text": "Disagree" },
+      { "value": "2", "text": "Neutral" },
+      { "value": "3", "text": "Agree" },
+      { "value": "4", "text": "Strongly Agree" }
+    ],
+    "steps": [0, 1, 2, 3, 4]
+  },
+  "Q12": {
+    "name": "Q12",
+    "title": "I did not trust the artificial agent to do the right thing at the right time.",
+    "cat": "Trust",
+    "reversed": "True",
+    "type": "radiogroup",
+    "colCount": 5,
+    "isRequired": true,
+    "choices": [
+      { "value": "0", "text": "Strongly Disagree" },
+      { "value": "1", "text": "Disagree" },
+      { "value": "2", "text": "Neutral" },
+      { "value": "3", "text": "Agree" },
+      { "value": "4", "text": "Strongly Agree" }
+    ],
+    "steps": [0, 1, 2, 3, 4]
+  },
   "Q13": {
     "name": "Q13",
-    "title": "The artificial agent and I respect each other.",
-    "cat": "Working Alliance",
+    "title": "The robot was trustworthy.",
+    "cat": "Trust",
     "reversed": "False",
     "type": "radiogroup",
     "colCount": 5,
@@ -222,57 +222,6 @@
   },
   "Q14": {
     "name": "Q14",
-    "title": "I am confident in the artificial agent’s ability to help me.",
-    "cat": "Working Alliance",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q15": {
-    "name": "Q15",
-    "title": "I feel that the artificial agent appreciates me.",
-    "cat": "Working Alliance",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q16": {
-    "name": "Q16",
-    "title": "The artificial agent and I trust each other.",
-    "cat": "Working Alliance",
-    "reversed": "False",
-    "type": "radiogroup",
-    "colCount": 5,
-    "isRequired": true,
-    "choices": [
-      { "value": "0", "text": "Strongly Disagree" },
-      { "value": "1", "text": "Disagree" },
-      { "value": "2", "text": "Neutral" },
-      { "value": "3", "text": "Agree" },
-      { "value": "4", "text": "Strongly Agree" }
-    ],
-    "steps": [0, 1, 2, 3, 4]
-  },
-  "Q17": {
-    "name": "Q17",
     "title": "The artificial agent perceives accurately what my goals are.",
     "cat": "Goal",
     "reversed": "False",
@@ -288,9 +237,9 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   },
-  "Q18": {
-    "name": "Q18",
-    "title": "The artificial agent does not understand what I am trying to accomplish.",
+  "Q15": {
+    "name": "Q15",
+    "title": "The artificial agent does not understand what i am trying to accomplish.",
     "cat": "Goal",
     "reversed": "True",
     "type": "radiogroup",
@@ -305,10 +254,10 @@
     ],
     "steps": [0, 1, 2, 3, 4]
   },
-  "Q19": {
-    "name": "Q19",
-    "title": "The artificial agent and I are working towards mutually agreed upon goals.",
-    "cat": "Goal",
+  "Q16": {
+    "name": "Q16",
+    "title": "I will reuse this agent on the same task.",
+    "cat": "Acceptability",
     "reversed": "False",
     "type": "radiogroup",
     "colCount": 5,
