@@ -168,6 +168,10 @@ class PageTracker:
         """Infère le type d'étape depuis le nom de la page."""
         page_lower = page_name.lower()
         
+        # Détection des événements START_GAME
+        if page_name.startswith('[START_GAME]'):
+            return "Début partie effective"
+        
         # Mapping optimisé
         page_mappings = {
             'index.html': "Page d'accueil",
@@ -293,6 +297,20 @@ class PageTracker:
             
             # Activités dans les blocs de jeu - calcul séquentiel depuis l'activité précédente
             elif self._is_game_session(filename):
+                # Chercher d'abord le START_GAME correspondant à ce jeu
+                parts = filename.replace('.json', '').split('_')
+                if len(parts) >= 3:
+                    bloc = parts[-2]
+                    trial = parts[-1]
+                    start_game_event = f'[START_GAME] Bloc {bloc}, Essai {trial}'
+                    ref_start = self._find_activity_start_time(start_game_event)
+                    
+                    if ref_start:
+                        # Si START_GAME existe, la durée du jeu commence à partir de là
+                        ref_time = datetime.fromisoformat(ref_start)
+                        return (activity_time - ref_time).total_seconds()
+                
+                # Fallback sur l'ancienne logique si pas de START_GAME
                 if self._is_first_trial_of_block(filename):
                     # Premier essai du bloc [time needed] : depuis planning.html
                     ref_entry = self._find_reference_page('planning.html')
@@ -305,11 +323,22 @@ class PageTracker:
             
             elif '_QPT.json' in filename:
                 # QPT [time needed] : depuis le début du jeu correspondant
-                game_filename = filename.replace('_QPT.json', '.json')
-                ref_start = self._find_activity_start_time(f'[ACTIVITÉ] {game_filename}')
-                if ref_start:
-                    ref_time = datetime.fromisoformat(ref_start)
-                    return (activity_time - ref_time).total_seconds()
+                # Priorité : chercher le START_GAME correspondant, sinon le fichier de jeu
+                parts = filename.replace('_QPT.json', '').split('_')
+                if len(parts) >= 3:
+                    bloc = parts[-2]
+                    trial = parts[-1]
+                    start_game_event = f'[START_GAME] Bloc {bloc}, Essai {trial}'
+                    ref_start = self._find_activity_start_time(start_game_event)
+                    
+                    # Fallback sur le fichier de jeu si pas de START_GAME
+                    if not ref_start:
+                        game_filename = filename.replace('_QPT.json', '.json')
+                        ref_start = self._find_activity_start_time(f'[ACTIVITÉ] {game_filename}')
+                    
+                    if ref_start:
+                        ref_time = datetime.fromisoformat(ref_start)
+                        return (activity_time - ref_time).total_seconds()
             
             elif 'AAT_L.json' in filename:
                 # ATTL [time needed] : depuis le dernier QPT du bloc

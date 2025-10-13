@@ -103,6 +103,7 @@ function triggerGameStart(source) {
     const params = getConfigParams();
     const uid = $('#uid').text();
     const blocValue = $('#bloc').text();
+    const stepValue = $('#step').text();
     const conditionValue = $('#condition').text();
 
     if (uid) {
@@ -115,6 +116,13 @@ function triggerGameStart(source) {
         params.condition = conditionValue;
         condition = conditionValue;
     }
+
+    // Émettre l'événement de tracking pour le début de la partie
+    socket.emit('start_button_clicked', {
+        step: stepValue || '0',
+        trial: blocValue || '0',
+        triggered_by: source === 'auto' ? 'countdown' : 'click'
+    });
 
     const data = {
         params: params,

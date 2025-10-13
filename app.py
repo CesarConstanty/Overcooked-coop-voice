@@ -1605,6 +1605,33 @@ def on_connect():       # utilise le user_id pour gérer ces connexions
     USERS[user_id] = Lock()
 
 
+@socketio.on('start_button_clicked')
+def on_start_button_clicked(data):
+    """
+    Capte l'événement du clic sur le bouton 'Start Game' ou la fin du countdown.
+    Permet de mesurer précisément le début de la partie effective.
+    
+    Args:
+        data: {'step': int, 'trial': int, 'triggered_by': 'click' or 'countdown'}
+    """
+    current_user = get_current_user()
+    if not current_user:
+        return
+    
+    uid = current_user.uid
+    config_id = current_user.config.get("config_id")
+    step = data.get('step', current_user.step)
+    trial = data.get('trial', current_user.trial)
+    trigger = data.get('triggered_by', 'click')  # 'click' ou 'countdown'
+    
+    # Créer un nom d'événement unique pour tracer ce moment précis
+    event_name = f"[START_GAME] Bloc {step}, Essai {trial} ({trigger})"
+    
+    # Enregistrer cet événement dans le tracker
+    track_page_view(event_name, uid, config_id)
+    
+    print(f"[{uid}] Start Game - Bloc {step}, Essai {trial}, Trigger: {trigger}")
+
 
 @socketio.on('disconnect')
 def on_disconnect():
