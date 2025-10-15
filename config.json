@@ -791,7 +791,7 @@
         "ai_asset_slow_duration": 10,
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
-    "config_12" : {
+    "config_experiment" : {
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -809,7 +809,7 @@
             "email": "bruno.berberian@onera.fr",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 60,
+        "gameTime" : 75,
         "hoffman_length": 300,
         "qpb_length" : 300,
         "qpt_length" : 120,
@@ -823,7 +823,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"1":"EVH", "0":"U", "2":"EA"},
+        "conditions" : {"0":"EVH", "1":"U", "2":"EA"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
