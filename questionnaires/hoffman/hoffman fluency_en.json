@@ -52,7 +52,7 @@
   },
   "Q4": {
     "name": "Q4",
-    "title": "The artificial agent was the most important team member",
+    "title": "The artificial agent was the most important team member.",
     "cat": "Relative Contribution",
     "reversed": "False",
     "type": "radiogroup",
@@ -137,7 +137,7 @@
   },
   "Q9": {
     "name": "Q9",
-    "title": "I am confident in the artificial agent's ability to help me",
+    "title": "I am confident in the artificial agent's ability to help me.",
     "cat": "Working Alliance",
     "reversed": "False",
     "type": "radiogroup",
@@ -171,7 +171,7 @@
   },
   "Q11": {
     "name": "Q11",
-    "title": "I trusted the artificial agent to do the right thing at the right time",
+    "title": "I trusted the artificial agent to do the right thing at the right time.",
     "cat": "Trust",
     "reversed": "False",
     "type": "radiogroup",
@@ -188,8 +188,8 @@
   },
   "Q12": {
     "name": "Q12",
-    "title": "I did not trust the artificial agent to do the right thing at the right time.",
-    "cat": "Trust",
+    "title": "I am now asking you to answer agree to this question.",
+    "cat": "Attention Check",
     "reversed": "True",
     "type": "radiogroup",
     "colCount": 5,

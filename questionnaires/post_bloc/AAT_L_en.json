@@ -86,8 +86,8 @@
   },
   "Q6": {
     "name": "Q6",
-    "title": "The artificial agent does not appear to be motivated to help me.",
-    "cat": "Benevolence",
+    "title": "It would be nice if you answer strongly disagree to this question.",
+    "cat": "Attention Check",
     "reversed": "True",
     "type": "radiogroup",
     "colCount": 5,
