@@ -42,7 +42,8 @@ function showStartOverlay(message) {
     startTriggered = false;
     $('#start-game').prop('disabled', false);
     $('#start-overlay').show();
-    beginStartCountdown();
+    // Countdown automatique supprimé - L'utilisateur doit cliquer manuellement
+    // beginStartCountdown();
 }
 
 function hideStartOverlay() {

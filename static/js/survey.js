@@ -110,24 +110,12 @@ socket.on('qpt', function (data, callback) {
     window.qptCallback = callback;
     window.curr_trial_id = data.trial;
 
-    // Timer
-    let timer = data.qpt_length || 30;
-    $("#qpt_timer").text(timer + " seconds left");
+    // Timer supprimé - Pas de limite de temps pour QPT
+    $("#qpt_timer").text(""); // Pas d'affichage de timer
     if (qptTimerInterval) {
         clearInterval(qptTimerInterval);
         qptTimerInterval = null;
     }
-    qptTimerInterval = setInterval(function() {
-        timer -= 1;
-        $("#qpt_timer").text(timer + " seconds left");
-        if (timer <= 0) {
-            clearInterval(qptTimerInterval);
-            qptTimerInterval = null;
-            if ($("#qpt").is(":visible") && !qptSubmitted) {
-                sendQptForm(true); // timeout_bool = true
-            }
-        }
-    }, 1000);
 });
 
 // Gestion du bouton submit QPT natif
@@ -193,44 +181,19 @@ socket.on('qpb', function () {
     $("#QpbDisplay").show();
     $("#qpb").show();
     
-    // Démarre le timer QPB maintenant que le questionnaire est affiché
+    // Timer supprimé - Pas de limite de temps pour QPB
     if (window.qpb_model) {
         qpbSubmitted = false;
-        let qpb_timer_val = parseInt($("#qpb_timer_value").text()) || 30;
-        let timer = qpb_timer_val;
         
-        // Ajoute un affichage du timer si besoin
-        if ($("#QpbDisplay").find("#qpb_timer_display").length === 0) {
-            $("#QpbDisplay").prepend('<div id="qpb_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
+        // Pas d'affichage de timer
+        if ($("#QpbDisplay").find("#qpb_timer_display").length > 0) {
+            $("#QpbDisplay").find("#qpb_timer_display").remove();
         }
-        $("#qpb_timer_display").text(timer + " seconds left");
 
         if (qpbTimerInterval) {
             clearInterval(qpbTimerInterval);
             qpbTimerInterval = null;
         }
-        qpbTimerInterval = setInterval(function () {
-            timer -= 1;
-            $("#qpb_timer_display").text(timer + " seconds left");
-            if (timer <= 0) {
-                clearInterval(qpbTimerInterval);
-                qpbTimerInterval = null;
-                if (!qpbSubmitted) {
-                    // Remplit les questions non répondues avec "nan"
-                    let data = window.qpb_model.data;
-                    let qpb_elements_raw = $('#qpb_elements').text();
-                    let qpb_elements = JSON.parse(qpb_elements_raw);
-                    qpb_elements.elements.forEach(function (q) {
-                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
-                            data[q.name] = "nan";
-                        }
-                    });
-                    qpbSubmitted = true;
-                    window.qpb_model.onComplete.clear(); // Empêche double envoi
-                    socket.emit("post_qpb", { "survey_data": data });
-                }
-            }
-        }, 1000);
     }
 });
 
@@ -242,43 +205,18 @@ socket.on('hoffman', function () {
     $("#HoffmanDisplay").show();
     $("#hoffman").show();
     
-    // Démarre le timer Hoffman maintenant que le questionnaire est affiché
+    // Timer supprimé - Pas de limite de temps pour Hoffman
     if (window.hoffman_model) {
         hoffmanSubmitted = false;
-        let hoffman_timer_val = parseInt($("#hoffman_timer_value").text()) || 30;
-        let timer = hoffman_timer_val;
         
-        // Ajoute un affichage du timer si besoin
-        if ($("#HoffmanDisplay").find("#hoffman_timer_display").length === 0) {
-            $("#HoffmanDisplay").prepend('<div id="hoffman_timer_display" style="text-align:center; font-size:1.1em; color:#3a7bd5; margin-bottom:1em;"></div>');
+        // Pas d'affichage de timer
+        if ($("#HoffmanDisplay").find("#hoffman_timer_display").length > 0) {
+            $("#HoffmanDisplay").find("#hoffman_timer_display").remove();
         }
-        $("#hoffman_timer_display").text(timer + " seconds left");
 
         if (hoffmanTimerInterval) {
             clearInterval(hoffmanTimerInterval);
             hoffmanTimerInterval = null;
         }
-        hoffmanTimerInterval = setInterval(function () {
-            timer -= 1;
-            $("#hoffman_timer_display").text(timer + " seconds left");
-            if (timer <= 0) {
-                clearInterval(hoffmanTimerInterval);
-                hoffmanTimerInterval = null;
-                if (!hoffmanSubmitted) {
-                    // Remplit les questions non répondues avec "nan"
-                    let data = window.hoffman_model.data;
-                    let hoffman_elements_raw = $('#hoffman_elements').text();
-                    let hoffman_elements = JSON.parse(hoffman_elements_raw);
-                    hoffman_elements.elements.forEach(function (q) {
-                        if (q && q.name && (data[q.name] === undefined || data[q.name] === null || data[q.name] === "")) {
-                            data[q.name] = "nan";
-                        }
-                    });
-                    hoffmanSubmitted = true;
-                    window.hoffman_model.onComplete.clear(); // Empêche double envoi
-                    socket.emit("post_hoffman", { "survey_data": data });
-                }
-            }
-        }, 1000);
     }
 });

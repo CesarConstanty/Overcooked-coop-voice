@@ -167,48 +167,8 @@
       container.appendChild(li);
     });
 
-    // Récupère la durée du timer passée par Flask
-    const timer_PTTA = {{ ptta_length|default(60)}};
-    let timeLeft = timer_PTTA;
-    let timerInterval = null;
+    // Timer supprimé - Pas de limite de temps pour PTTA
     let pttaSubmitted = false;
-
-    function updateTimerDisplay() {
-      const timerDiv = document.getElementById('ptta-timer');
-      if (timerDiv) timerDiv.textContent = `Time left: ${timeLeft}s`;
-    }
-
-    function collectFormDataWithNan() {
-      const formData = {};
-      const inputs = form.querySelectorAll('input[type="radio"]');
-      const names = new Set();
-      inputs.forEach(input => names.add(input.name));
-      names.forEach(name => {
-        const checked = form.querySelector(`input[name="${name}"]:checked`);
-        formData[name] = checked ? checked.value : "nan";
-      });
-      return formData;
-    }
-
-    function submitPTTAByTimer() {
-      if (pttaSubmitted) return;
-      pttaSubmitted = true;
-      pttaDataInput.value = JSON.stringify(collectFormDataWithNan());
-      submitBtn.disabled = true;
-      form.submit();
-    }
-
-    function startPTTATimer() {
-      updateTimerDisplay();
-      timerInterval = setInterval(() => {
-        timeLeft -= 1;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          submitPTTAByTimer();
-        }
-      }, 1000);
-    }
 
     const form = document.getElementById('pttaForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -261,19 +221,12 @@
         return;
       }
       pttaSubmitted = true;
-      clearInterval(timerInterval);
+      // Timer supprimé - Plus de clearInterval
       pttaDataInput.value = JSON.stringify(collectFormData());
       submitBtn.disabled = true;
     });
 
-    // Ajout de l'affichage du timer dans le HTML
-    document.addEventListener('DOMContentLoaded', () => {
-      const timerDiv = document.createElement('div');
-      timerDiv.id = 'ptta-timer';
-      timerDiv.style = 'font-weight:bold; color:#b00; text-align:right; margin-bottom:1rem;';
-      form.parentNode.insertBefore(timerDiv, form);
-      startPTTATimer();
-    });
+    // Timer supprimé - Plus d'affichage du timer
   </script>
 </body>
 </html>

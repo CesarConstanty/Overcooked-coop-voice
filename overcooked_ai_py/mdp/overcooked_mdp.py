@@ -1226,6 +1226,8 @@ class OvercookedGridworld(object):
                 player.set_object(obj)
 
             elif terrain_type == 'T' and player.held_object is None:
+                self.log_object_pickup(events_infos, new_state, "tomato", pot_states, player_idx)
+
                 # Tomato pickup from dispenser
                 player.set_object(ObjectState('tomato', pos))
 
