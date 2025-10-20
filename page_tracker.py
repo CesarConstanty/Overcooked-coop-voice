@@ -303,7 +303,7 @@ class PageTracker:
                     bloc = parts[-2]
                     trial = parts[-1]
                     start_game_event = f'[START_GAME] Bloc {bloc}, Essai {trial}'
-                    ref_start = self._find_activity_start_time(start_game_event)
+                    ref_start = self._find_activity_start_time(start_game_event, use_prefix=True)
                     
                     if ref_start:
                         # Si START_GAME existe, la durée du jeu commence à partir de là
@@ -329,7 +329,7 @@ class PageTracker:
                     bloc = parts[-2]
                     trial = parts[-1]
                     start_game_event = f'[START_GAME] Bloc {bloc}, Essai {trial}'
-                    ref_start = self._find_activity_start_time(start_game_event)
+                    ref_start = self._find_activity_start_time(start_game_event, use_prefix=True)
                     
                     # Fallback sur le fichier de jeu si pas de START_GAME
                     if not ref_start:
@@ -475,11 +475,21 @@ class PageTracker:
                 print(f"[{self.participant_id}] Erreur calcul durée page: {e}")
                 last_page_entry['duration_sec'] = 0
     
-    def _find_activity_start_time(self, activity_name: str) -> Optional[str]:
-        """Retourne le start_time d'une activité spécifique."""
+    def _find_activity_start_time(self, activity_name: str, use_prefix: bool = False) -> Optional[str]:
+        """Retourne le start_time d'une activité spécifique.
+        
+        Args:
+            activity_name: Nom exact ou préfixe de l'activité
+            use_prefix: Si True, cherche par préfixe (pour START_GAME avec trigger variable)
+        """
         for entry in self.page_history:
-            if entry.get('page') == activity_name:
-                return entry.get('start_time')
+            page = entry.get('page', '')
+            if use_prefix:
+                if page.startswith(activity_name):
+                    return entry.get('start_time')
+            else:
+                if page == activity_name:
+                    return entry.get('start_time')
         return None
     
     def _find_reference_page(self, page_name: str) -> Optional[Dict]:
