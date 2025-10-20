@@ -35,8 +35,10 @@ class PageTimer {
             // Créer l'affichage du timer minimum au-dessus du bouton
             this.createMinTimerDisplay();
             
-            // Créer l'affichage du timer maximum (discret)
-            this.createMaxTimerDisplay();
+            // Créer l'affichage du timer maximum SEULEMENT si maxSeconds > 0
+            if (this.maxSeconds > 0) {
+                this.createMaxTimerDisplay();
+            }
             
             // Désactiver le bouton initialement
             this.disableNextButton();
@@ -172,7 +174,8 @@ class PageTimer {
     }
     
     updateMaxTimer() {
-        if (!this.maxTimerDisplay) return;
+        // Ne rien faire si maxSeconds est 0 (pas de limite de temps)
+        if (!this.maxTimerDisplay || this.maxSeconds <= 0) return;
         
         const maxRemaining = Math.max(0, this.maxSeconds - this.currentTime);
         
@@ -276,8 +279,8 @@ class PageTimer {
                 this.enableNextButton();
             }
             
-            // Vérifier si le timer maximum est écoulé
-            if (this.currentTime >= this.maxSeconds) {
+            // Vérifier si le timer maximum est écoulé (seulement si maxSeconds > 0)
+            if (this.maxSeconds > 0 && this.currentTime >= this.maxSeconds) {
                 this.redirectToGoodbye();
             }
         }, 1000);
