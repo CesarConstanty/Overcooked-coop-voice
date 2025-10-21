@@ -791,7 +791,7 @@
         "ai_asset_slow_duration": 10,
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
-    "config_experiment" : {
+    "config_experiment_a" : {
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
