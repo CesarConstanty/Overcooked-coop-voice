@@ -42,6 +42,10 @@
   <!-- Project Scripts -->
   <script src="static/js/graphics.js"></script>
   <script src="static/js/planning.js"></script>
+  <script>
+    // Mode développement pour validation sans remplir les questionnaires
+    window.DEV_MODE = {{ dev_mode|default(false)|tojson }};
+  </script>
   <script src="static/js/survey.js"></script>
 
   <!-- Data Containers -->
@@ -153,9 +157,11 @@
         <div class="card-body">
           <h5 class="card-title mb-3">Ready to start?</h5>
           <p class="card-text text-muted" id="start-instructions">Click the button below when you are ready to start the experiment.</p>
+          <!-- Countdown automatique supprimé
           <div class="d-flex align-items-center justify-content-center mb-3" id="start-countdown" style="display:none;">
             <span class="badge badge-pill badge-secondary px-3 py-2" aria-live="polite">Auto start in <span id="countdown-value">5</span>s</span>
           </div>
+          -->
           <button id="start-game" class="btn btn-primary btn-lg btn-block" type="button">Start Game</button>
         </div>
       </div>

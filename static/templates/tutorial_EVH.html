@@ -228,8 +228,9 @@
   <script src="static/js/page-timer.js"></script>
   <script>
     // Initialiser le système de timer pour les tutoriels de bloc
+    // Timer maximum supprimé - seulement le timer minimum est conservé
     const timerMin = {{ timer_min|default(60) }};
-    const timerMax = {{ timer_max|default(600) }};
+    const timerMax = 0;  // Pas de limite de temps maximum
     initPageTimer(timerMin, timerMax, '#start-game');
     
     document.getElementById('start-game').addEventListener('click', function() {

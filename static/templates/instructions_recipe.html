@@ -197,8 +197,9 @@
   <script src="static/js/page-timer.js"></script>
   <script>
     // Initialiser le système de timer pour les instructions générales
+    // Timer maximum supprimé - seulement le timer minimum est conservé
     const timerMin = {{ timer_min|default(120) }};
-    const timerMax = {{ timer_max|default(600) }};
+    const timerMax = 0;  // Pas de limite de temps maximum
     initPageTimer(timerMin, timerMax, '.start-button');
   </script>
 </body>

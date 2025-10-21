@@ -119,7 +119,7 @@
 <body>
   <div class="wrap">
     <h1>Video Game Experience Questionnaire</h1>
-    <div id="qvg-timer" style="font-weight:bold; color:#b00; text-align:right; margin-bottom:1rem;"></div>
+    <!-- Timer supprimé pour permettre un temps de réponse illimité -->
     <h6>Please answer the following questions about your experience with video games.</h6>
     <form id="vgexpForm" method="POST" action="/submit_qvg_survey">
       <input type="hidden" name="qvg_data" id="qvgDataInput">
@@ -292,58 +292,9 @@
     </form>
   </div>
   <script>
-    // Récupère la durée du timer passée par Flask
-    const timer_QVG = {{ qvg_length|default(60)}};
-    let timeLeft = timer_QVG;
-    let timerInterval = null;
+    // Timer supprimé pour permettre un temps de réponse illimité
     let qvgSubmitted = false;
-
-    function updateTimerDisplay() {
-      const timerDiv = document.getElementById('qvg-timer');
-      timerDiv.textContent = `Time left: ${timeLeft}s`;
-    }
-
-    function collectFormDataWithNan() {
-      const data = {};
-      // Table fields
-      data.laterality = form.laterality ? (form.laterality.value || "nan") : "nan";
-      data.knows_overcooked = form.knows_overcooked ? (form.knows_overcooked.value || "nan") : "nan";
-      data.age = form.age ? (form.age.value || "nan") : "nan";
-      data.hours_played = form.hours_played ? (form.hours_played.value || "nan") : "nan";
-      data.education_level = form.education_level ? (form.education_level.value || "nan") : "nan";
-      data.gender = form.gender ? (form.gender.value || "nan") : "nan";
-      // Other questions
-      data.frequency = form.frequency ? (form.frequency.value || "nan") : "nan";
-      data.fav_genre = form.fav_genre ? (form.fav_genre.value || "nan") : "nan";
-      data.coop = form.coop ? (form.coop.value || "nan") : "nan";
-      data.times_played = form.times_played ? (form.times_played.value || "nan") : "nan";
-      data.daily_time = form.daily_time ? (form.daily_time.value || "nan") : "nan";
-      data.active_player = form.active_player ? (form.active_player.value || "nan") : "nan";
-      data.intensive_period = form.intensive_period ? (form.intensive_period.value || "nan") : "nan";
-      return data;
-    }
-
-    function submitQVGByTimer() {
-      if (qvgSubmitted) return;
-      qvgSubmitted = true;
-      // Remplit les champs manquants par "nan"
-      qvgDataInput.value = JSON.stringify(collectFormDataWithNan());
-      // Désactive le bouton pour éviter double soumission
-      submitBtn.disabled = true;
-      form.submit();
-    }
-
-    function startQVGTimer() {
-      updateTimerDisplay();
-      timerInterval = setInterval(() => {
-        timeLeft -= 1;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          submitQVGByTimer();
-        }
-      }, 1000);
-    }
+    const DEV_MODE = {{ dev_mode|default(false)|tojson }};
 
     // === LOGIQUE EXISTANTE ===
     const form = document.getElementById('vgexpForm');
@@ -371,6 +322,9 @@
     }
 
     function checkFormValidity() {
+      // En mode dev, toujours valide
+      if (DEV_MODE) return true;
+      
       const requiredInputs = form.querySelectorAll('input[required], select[required], textarea[required]');
       let allFilled = true;
       requiredInputs.forEach(input => {
@@ -408,13 +362,20 @@
         return;
       }
       qvgSubmitted = true;
-      clearInterval(timerInterval);
+      // Timer supprimé - pas besoin de clearInterval
       qvgDataInput.value = JSON.stringify(collectFormData());
       submitBtn.disabled = true;
     });
 
-    // Lance le timer au chargement
-    startQVGTimer();
+    // Initialisation: activer le bouton et supprimer les contraintes si mode dev
+    if (DEV_MODE) {
+      submitBtn.disabled = false;
+      // Supprimer tous les attributs "required" pour désactiver la validation HTML native
+      form.querySelectorAll('[required]').forEach(input => {
+        input.removeAttribute('required');
+      });
+      console.log('[DEV MODE] Validation automatique activée pour QVG - Attributs required supprimés');
+    }
   </script>
 </body>
 </html>

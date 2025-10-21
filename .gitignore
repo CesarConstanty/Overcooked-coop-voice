@@ -156,3 +156,4 @@ test_generation_layout/path_evaluation_results
 
 # Documentation
 documentation
+*.md
