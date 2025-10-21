@@ -4,7 +4,20 @@ Added state potential to HUD
 
 */
 
+// ============================================================================
+// SYSTÈME DE CACHE AUDIO GLOBAL - Optimisation du chargement
+// ============================================================================
+// Ce cache persiste entre tous les essais pour éviter de recharger les fichiers
+window.GLOBAL_AUDIO_CACHE = window.GLOBAL_AUDIO_CACHE || {
+    buffers: new Map(),           // AudioBuffers décodés (WebAudio API)
+    loadingPromise: null,         // Promise de chargement en cours
+    isLoaded: false,              // Flag indiquant si le cache est prêt
+    audioContext: null            // Contexte audio partagé
+};
 
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
 
 // How long a graphics update should take in milliseconds
 // Note that the server updates at 30 fps
@@ -227,6 +240,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
     preload() {
         this.previous_cookingupdate_time = this.time.now
+        
+        // Charger les textures visuelles (avec vérification de cache)
         if(!this.textures.exists("tiles")){this.load.atlas("tiles",
             this.assets_loc + "terrain.png",
             this.assets_loc + "terrain.json");}
@@ -246,28 +261,24 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this.assets_loc + "types.png",
             this.assets_loc + "types.json")}
 
-        // Pour les fichiers audio - Preload all audio files
-        const audioFiles = [
-            'comptoir.mp3', 'marmite.mp3', 'oignon.mp3', 'tomate.mp3', 
-            'assiette.mp3', 'service.mp3', 'annonce_recette.mp3',
-            'recette_0o_1t.mp3', 'recette_0o_2t.mp3', 'recette_0o_3t.mp3',
-            'recette_1o_0t.mp3', 'recette_1o_1t.mp3', 'recette_1o_2t.mp3',
-            'recette_2o_0t.mp3', 'recette_2o_1t.mp3', 'recette_3o_0t.mp3'
-        ];
-        
-        audioFiles.forEach(filename => {
-            const audioKey = filename.replace('.mp3', '');
+        // OPTIMISATION: Ne charger les fichiers audio QUE si le cache global n'est pas déjà prêt
+        if (!window.GLOBAL_AUDIO_CACHE.isLoaded) {
+            console.log('[AUDIO CACHE] Premier chargement des fichiers audio...');
+            const audioFiles = [
+                'comptoir.mp3', 'marmite.mp3', 'oignon.mp3', 'tomate.mp3', 
+                'assiette.mp3', 'service.mp3', 'annonce_recette.mp3',
+                'recette_0o_1t.mp3', 'recette_0o_2t.mp3', 'recette_0o_3t.mp3',
+                'recette_1o_0t.mp3', 'recette_1o_1t.mp3', 'recette_1o_2t.mp3',
+                'recette_2o_0t.mp3', 'recette_2o_1t.mp3', 'recette_3o_0t.mp3'
+            ];
             
-            // Ajouter une vérification de chargement
-            this.load.audio(audioKey, this.audio_loc + filename);
-            
-            // Ajouter un event listener pour détecter les erreurs de chargement
-            this.load.on('fileerror', (key) => {
-                if (key === audioKey) {
-                    // console.warn(`Failed to load audio file: ${filename}`);
-                }
+            audioFiles.forEach(filename => {
+                const audioKey = filename.replace('.mp3', '');
+                this.load.audio(audioKey, this.audio_loc + filename);
             });
-        });
+        } else {
+            console.log('[AUDIO CACHE] Utilisation du cache audio existant - skip reloading');
+        }
     }
 
     create() {
@@ -302,24 +313,45 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     
     /**
      * Initialize WebAudio context and load audio buffers
-     * CORRECTIF 1B: Initialisation plus robuste et parallélisée
+     * OPTIMISATION: Utilise le cache global pour éviter de recharger entre les essais
      */
     async initializeAudioContext() {
         try {
             console.log('[AUDIO] Initializing WebAudio context...');
             
-            // Créer le contexte audio avec gestion de l'autoplay policy
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // OPTIMISATION: Réutiliser le contexte audio global si disponible
+            if (window.GLOBAL_AUDIO_CACHE.audioContext && window.GLOBAL_AUDIO_CACHE.audioContext.state !== 'closed') {
+                console.log('[AUDIO CACHE] Réutilisation du contexte audio existant');
+                this.audioContext = window.GLOBAL_AUDIO_CACHE.audioContext;
+            } else {
+                console.log('[AUDIO CACHE] Création d\'un nouveau contexte audio');
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                window.GLOBAL_AUDIO_CACHE.audioContext = this.audioContext;
+            }
+            
             this.setupAudioUnlockListeners();
             this.tryResumeAudioContext();
             
-            // CORRECTIF 1B: Essayer les deux méthodes en parallèle pour maximiser les chances
-            const [result1, result2] = await Promise.allSettled([
-                this.loadAudioBuffers(),
-                this.loadAudioBuffersAlternative()
-            ]);
-            
-            console.log(`[AUDIO] Loaded ${this.audioBuffers.size}/16 audio buffers`);
+            // OPTIMISATION: Utiliser le cache global pour les buffers audio
+            if (window.GLOBAL_AUDIO_CACHE.isLoaded && window.GLOBAL_AUDIO_CACHE.buffers.size > 0) {
+                console.log(`[AUDIO CACHE] ✓ Réutilisation des ${window.GLOBAL_AUDIO_CACHE.buffers.size} buffers en cache`);
+                this.audioBuffers = window.GLOBAL_AUDIO_CACHE.buffers;
+            } else {
+                // Premier chargement - charger et mettre en cache
+                console.log('[AUDIO CACHE] Premier chargement des buffers audio...');
+                
+                // CORRECTIF 1B: Essayer les deux méthodes en parallèle pour maximiser les chances
+                const [result1, result2] = await Promise.allSettled([
+                    this.loadAudioBuffers(),
+                    this.loadAudioBuffersAlternative()
+                ]);
+                
+                // Sauvegarder dans le cache global
+                window.GLOBAL_AUDIO_CACHE.buffers = this.audioBuffers;
+                window.GLOBAL_AUDIO_CACHE.isLoaded = true;
+                
+                console.log(`[AUDIO CACHE] ✓ ${this.audioBuffers.size}/16 buffers chargés et mis en cache globalement`);
+            }
             
             if (this.audioBuffers.size === 0) {
                 console.warn('[AUDIO] No WebAudio buffers loaded, will use Phaser fallback');
@@ -382,7 +414,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
     /**
      * Load all audio files into buffers for WebAudio API
-     * CORRECTIF 1C: Chargement parallélisé et plus robuste
+     * OPTIMISATION: Évite de recharger si déjà dans le cache global
      */
     async loadAudioBuffers() {
         const audioFiles = [
@@ -402,8 +434,14 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             }
         });
         
-        // CORRECTIF 1C: Charger tous les fichiers en parallèle pour gagner du temps
+        // CORRECTIF 1C + OPTIMISATION: Charger tous les fichiers en parallèle avec cache
         const promises = audioFiles.map(async (audioKey) => {
+            // OPTIMISATION: Éviter de recharger si déjà en cache global
+            if (window.GLOBAL_AUDIO_CACHE.buffers.has(audioKey)) {
+                this.audioBuffers.set(audioKey, window.GLOBAL_AUDIO_CACHE.buffers.get(audioKey));
+                return true;
+            }
+            
             try {
                 // Vérifier si le cache audio existe et contient le fichier
                 if (this.cache.audio.exists(audioKey)) {
@@ -444,7 +482,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     
     /**
      * Alternative method to load audio buffers more aggressively
-     * CORRECTIF 1D: Méthode alternative avec retry et logging amélioré
+     * OPTIMISATION: Utilise aussi le cache global
      */
     async loadAudioBuffersAlternative() {
         const audioFiles = [
@@ -458,8 +496,11 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         console.log('[AUDIO] Loading audio buffers using alternative method...');
         
         const promises = audioFiles.map(async (audioKey) => {
-            // Éviter de recharger si déjà présent
-            if (this.audioBuffers.has(audioKey)) {
+            // OPTIMISATION: Vérifier cache global et local
+            if (this.audioBuffers.has(audioKey) || window.GLOBAL_AUDIO_CACHE.buffers.has(audioKey)) {
+                if (window.GLOBAL_AUDIO_CACHE.buffers.has(audioKey) && !this.audioBuffers.has(audioKey)) {
+                    this.audioBuffers.set(audioKey, window.GLOBAL_AUDIO_CACHE.buffers.get(audioKey));
+                }
                 return true;
             }
             

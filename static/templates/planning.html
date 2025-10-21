@@ -42,6 +42,10 @@
   <!-- Project Scripts -->
   <script src="static/js/graphics.js"></script>
   <script src="static/js/planning.js"></script>
+  <script>
+    // Mode développement pour validation sans remplir les questionnaires
+    window.DEV_MODE = {{ dev_mode|default(false)|tojson }};
+  </script>
   <script src="static/js/survey.js"></script>
 
   <!-- Data Containers -->

@@ -1,5 +1,11 @@
 console.log("executing survey_manager");
 
+// Récupération du mode dev (défini dans planning.html)
+const DEV_MODE = window.DEV_MODE || false;
+if (DEV_MODE) {
+    console.log("🔧 MODE DÉVELOPPEMENT ACTIVÉ - Validation sans remplir les questionnaires autorisée");
+}
+
 class CallBackTrigger {
     constructor(callback, trial_id) {
         this.callback = callback;
@@ -41,6 +47,17 @@ socket.on("connect", function () {
     }
     if (qpb_elements && qpb_elements.elements && qpb_elements.elements.length > 0) {
         var qpb_model = new Survey.Model(qpb_elements);
+        
+        // En mode dev, désactiver la validation requise
+        if (DEV_MODE) {
+            qpb_model.clearInvisibleValues = "none";
+            // Supprimer les propriétés "required" de toutes les questions
+            qpb_model.getAllQuestions().forEach(q => {
+                q.isRequired = false;
+            });
+            console.log("🔧 QPB: Validation requise désactivée en mode dev");
+        }
+        
         qpb_model.onComplete.add(function (sender) {
             qpbSubmitted = true;
             if (qpbTimerInterval) {
@@ -69,6 +86,17 @@ socket.on("connect", function () {
     }
     if (hoffman_elements && hoffman_elements.elements && hoffman_elements.elements.length > 0) {
         var hoffman_model = new Survey.Model(hoffman_elements);
+        
+        // En mode dev, désactiver la validation requise
+        if (DEV_MODE) {
+            hoffman_model.clearInvisibleValues = "none";
+            // Supprimer les propriétés "required" de toutes les questions
+            hoffman_model.getAllQuestions().forEach(q => {
+                q.isRequired = false;
+            });
+            console.log("🔧 Hoffman: Validation requise désactivée en mode dev");
+        }
+        
         hoffman_model.onComplete.add(function (sender) {
             hoffmanSubmitted = true;
             if (hoffmanTimerInterval) {
@@ -147,6 +175,12 @@ $(document).on('submit', '#qptForm', function(e) {
 
 // Vérifie si tous les sliders ont été touchés pour activer le bouton submit
 function checkQptFormComplete() {
+    // En mode dev, toujours activer le bouton
+    if (DEV_MODE) {
+        $("#qptForm button[type=submit]").prop("disabled", false);
+        return;
+    }
+    
     let complete = true;
     $('#qptForm input[type=range]').each(function() {
         if ($(this).attr('data-touched') !== "true") {

@@ -169,12 +169,16 @@
 
     // Timer supprimé - Pas de limite de temps pour PTTA
     let pttaSubmitted = false;
+    const DEV_MODE = {{ dev_mode|default(false)|tojson }};
 
     const form = document.getElementById('pttaForm');
     const submitBtn = document.getElementById('submitBtn');
     const pttaDataInput = document.getElementById('pttaDataInput');
 
     function checkFormValidity() {
+      // En mode dev, toujours valide
+      if (DEV_MODE) return true;
+      
       const requiredRadioGroups = form.querySelectorAll('input[type="radio"][required]');
       const questionNames = new Set();
       requiredRadioGroups.forEach(input => questionNames.add(input.name));
@@ -226,7 +230,15 @@
       submitBtn.disabled = true;
     });
 
-    // Timer supprimé - Plus d'affichage du timer
+    // Initialisation: activer le bouton et supprimer les contraintes si mode dev
+    if (DEV_MODE) {
+      submitBtn.disabled = false;
+      // Supprimer tous les attributs "required" pour désactiver la validation HTML native
+      form.querySelectorAll('[required]').forEach(input => {
+        input.removeAttribute('required');
+      });
+      console.log('[DEV MODE] Validation automatique activée pour PTTA - Attributs required supprimés');
+    }
   </script>
 </body>
 </html>

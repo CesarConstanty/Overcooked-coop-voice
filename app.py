@@ -978,13 +978,14 @@ def planning():
         uid=current_user.uid,
         step=current_user.step,
         condition=current_condition,
-    bloc=bloc_key,
+        bloc=bloc_key,
         config=json.dumps(current_user.config),
         trials=json.dumps(current_trials),
         total_blocs=total_blocs,
         qpb_length=current_user.config.get("qpb_length", 300),
         hoffman_length=current_user.config.get("hoffman_length", 300),
-        accountability_labels=current_user.config.get("accountability_label_order", ["Me", "The artificial agent"])
+        accountability_labels=current_user.config.get("accountability_label_order", ["Me", "The artificial agent"]),
+        dev_mode=current_user.config.get("dev", False)
     )
 @app.route('/transition', methods=['GET', 'POST'])
 def transition():
@@ -1121,11 +1122,12 @@ def qvg_survey():
         return redirect(url_for('index'))
     # Récupère la durée du timer depuis la config utilisateur
     qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
+    dev_mode = current_user.config.get("dev", False)
     
     # Suivi temporel : enregistrer la visite du questionnaire expérience jeux vidéo
     track_page_view('experience_video_games_en.html', current_user.uid, current_user.config.get("config_id"))
     
-    return render_template('experience_video_games_en.html', qvg_length=qvg_length)
+    return render_template('experience_video_games_en.html', qvg_length=qvg_length, dev_mode=dev_mode)
 
 @app.route('/submit_qvg_survey', methods=['POST'])
 def submit_qvg_survey():
@@ -1204,11 +1206,12 @@ def ptta_survey():
     if not current_user:
         return redirect(url_for('index'))
     ptta_length = current_user.config.get("ptta_length", 60)
+    dev_mode = current_user.config.get("dev", False)
     
     # Suivi temporel : enregistrer la visite du questionnaire PTTA
     track_page_view('PTT_A_en.html', current_user.uid, current_user.config.get("config_id"))
     
-    return render_template('PTT_A_en.html',ptta_length=ptta_length)
+    return render_template('PTT_A_en.html', ptta_length=ptta_length, dev_mode=dev_mode)
 
 @app.route('/submit_ptta_survey', methods=['POST'])
 def submit_ptta_survey():

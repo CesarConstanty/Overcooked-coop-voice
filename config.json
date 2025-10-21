@@ -862,6 +862,7 @@
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
     "config_12_short" : {
+        "dev": true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -883,7 +884,7 @@
         "hoffman_length": 5,
         "qpb_length" : 5,
         "qpt_length" : 5,
-        "qvg_length" : 5,
+        "qvg_length" : 0,
         "ptta_length" : 5,
         "preference_length" : 15,
         "explications_generales_max": 600,
@@ -932,6 +933,7 @@
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
     "config_12_shortsurvey" : {
+        "dev": true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -1002,6 +1004,7 @@
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S"]
     },
     "config_12_testvoice" : {
+        "dev": true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
