@@ -141,7 +141,7 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #app.config.update(SECRET_KEY='osd(99092=36&462134kjKDhuIS_d23', ENV='development')
-socketio = SocketIO(app, cors_allowed_origins="*", logger=app.config['DEBUG'], ping_interval=5, ping_timeout=5)
+socketio = SocketIO(app, cors_allowed_origins="*", logger=app.config['DEBUG'], ping_interval=60, ping_timeout=60)
 # Système d'authentification désactivé - utilisation de sessions simples
 # login_manager = LoginManager()
 # login_manager.init_app(app)
