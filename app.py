@@ -157,7 +157,10 @@ print("check app.log")
 exit()
 
 
-    __tablename__ = 'user'
+def log_by_user(user_id, msg):
+    app.logger.warning(f"[{user_id}] >> {msg}")
+
+
     uid = db.Column(db.String, primary_key=True)
     config = db.Column(JSON)
     step = db.Column(db.Integer) # Le bloc en cours
