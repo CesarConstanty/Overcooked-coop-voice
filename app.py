@@ -152,8 +152,10 @@ handler = logging.FileHandler(LOGFILE)
 handler.setLevel(logging.ERROR)
 app.logger.addHandler(handler)
 
+app.logger.error("tutu")
+print("check app.log")
+exit()
 
-class User(db.Model):
 
     __tablename__ = 'user'
     uid = db.Column(db.String, primary_key=True)
