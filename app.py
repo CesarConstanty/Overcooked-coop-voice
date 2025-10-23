@@ -149,7 +149,7 @@ db = SQLAlchemy()
 db.init_app(app)
 # Attach handler for logging errors to file
 handler = logging.FileHandler(LOGFILE)
-handler.setLevel(logging.ERROR)
+handler.setLevel(logging.WARNING)
 app.logger.addHandler(handler)
 
 app.logger.error("tutu")
