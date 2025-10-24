@@ -6,6 +6,7 @@ et calcul automatique des durées d'activités.
 
 Auteur: AI Assistant
 Date: Septembre 2025
+Version: 2.0 - Intégration avec app.logger
 """
 
 import json
@@ -15,6 +16,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+import logging
 
 
 class PageTracker:
@@ -28,19 +30,23 @@ class PageTracker:
     - Évite les doublons
     """
     
-    def __init__(self, participant_id: str, config_name: str):
+    def __init__(self, participant_id: str, config_name: str, logger=None):
         """
         Initialise le tracker pour un participant donné.
         
         Args:
             participant_id: Identifiant unique du participant
             config_name: Nom de la configuration expérimentale
+            logger: Instance de logger (utilise app.logger si fourni)
         """
         self.participant_id = participant_id
         self.config_name = config_name
         self.current_page = None
         self.current_start_time = None
         self.page_history: List[Dict] = []
+        
+        # Logger (utilise app.logger ou logger par défaut)
+        self.logger = logger or logging.getLogger(__name__)
         
         # Configuration des chemins
         self.trajectory_dir = Path(f"trajectories/{config_name}/{participant_id}")
@@ -53,6 +59,8 @@ class PageTracker:
         self._monitoring_thread = None
         self._thread_lock = threading.Lock()
         
+        self.logger.info(f"[PAGE_TRACKER_INIT] uid={participant_id} | config={config_name} | json_file={self.json_file}")
+        
         # Charger les données existantes
         self._load_existing_data()
         self._scan_existing_files()
@@ -61,6 +69,7 @@ class PageTracker:
         """Scanne les fichiers existants au démarrage et les traite."""
         try:
             all_files = list(self.trajectory_dir.rglob("*.json"))
+            self.logger.info(f"[PAGE_TRACKER_SCAN] uid={self.participant_id} | found={len(all_files)} files")
             
             for file_path in all_files:
                 if file_path.name.endswith("_suivis_passation.json"):
@@ -71,9 +80,10 @@ class PageTracker:
                 if file_path_str not in self.processed_files:
                     self._process_new_file(file_path_str)
                     self.processed_files.add(file_path_str)
+                    self.logger.debug(f"[PAGE_TRACKER_FILE_PROCESSED] uid={self.participant_id} | file={file_path.name}")
                     
         except Exception as e:
-            print(f"[{self.participant_id}] Erreur scan initial: {e}")
+            self.logger.error(f"[PAGE_TRACKER_SCAN_ERROR] uid={self.participant_id} | error={str(e)}")
             self.processed_files = set()
     
     def _classify_file_step_type(self, file_path: str) -> str:
@@ -425,6 +435,7 @@ class PageTracker:
         current_time = datetime.now().isoformat()
         
         # Terminer la page précédente
+        previous_page = self.current_page
         if self.current_page and self.current_start_time:
             self._end_current_page(current_time)
         
@@ -442,6 +453,9 @@ class PageTracker:
             "duration_sec": None
         }
         self.page_history.append(page_entry)
+        
+        # Log la transition de page
+        self.logger.info(f"[PAGE_TRACKER_PAGE_START] uid={self.participant_id} | page={page_name} | step_type={step_type} | previous_page={previous_page}")
         
         # Démarrer la surveillance si pas déjà active
         self.start_monitoring()
@@ -470,9 +484,9 @@ class PageTracker:
                 # Éviter les durées négatives dues à des problèmes de synchronisation
                 last_page_entry['duration_sec'] = round(max(0, duration), 2)
                 
-                print(f"[{self.participant_id}] Page {self.current_page}: {duration:.2f}s")
+                self.logger.info(f"[PAGE_TRACKER_PAGE_END] uid={self.participant_id} | page={self.current_page} | duration={duration:.2f}s")
             except ValueError as e:
-                print(f"[{self.participant_id}] Erreur calcul durée page: {e}")
+                self.logger.error(f"[PAGE_TRACKER_PAGE_DURATION_ERROR] uid={self.participant_id} | page={self.current_page} | error={str(e)}")
                 last_page_entry['duration_sec'] = 0
     
     def _find_activity_start_time(self, activity_name: str, use_prefix: bool = False) -> Optional[str]:
@@ -628,7 +642,7 @@ class PageTracker:
                     self.current_start_time = last_entry['start_time']
                     
             except Exception as e:
-                print(f"[{self.participant_id}] Erreur chargement données: {e}")
+                self.logger.error(f"[PAGE_TRACKER_LOAD_ERROR] uid={self.participant_id} | error={str(e)}")
                 self.page_history = []
     
     def start_monitoring(self):
@@ -696,8 +710,13 @@ class PageTracker:
             
             with open(self.json_file, 'w', encoding='utf-8') as f:
                 json.dump(organized_data, f, ensure_ascii=False, indent=2)
+            
+            # Vérifier et logger la taille du fichier sauvegardé
+            file_size = os.path.getsize(self.json_file)
+            self.logger.info(f"[PAGE_TRACKER_SAVE] uid={self.participant_id} | file={self.json_file.name} | size_bytes={file_size} | entries={len(organized_data)}")
+            
         except Exception as e:
-            print(f"[{self.participant_id}] Erreur sauvegarde: {e}")
+            self.logger.error(f"[PAGE_TRACKER_SAVE_ERROR] uid={self.participant_id} | file={self.json_file.name} | error={str(e)}", exc_info=True)
     
     def _organize_data_by_pages(self) -> List[Dict]:
         """
