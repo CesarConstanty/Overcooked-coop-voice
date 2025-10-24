@@ -2048,10 +2048,19 @@ def post_qpt(data):
         
         if success:
             file_size = os.path.getsize(file_name)
-            log_user_action(uid, "QPT_FILE_SAVED", status="success", step=current_user.step, trial=trial, file_path=file_name, file_size=file_size)
+            # Log avec les données complètes du QPT
+            qpt_data_str = json.dumps(form.get("answer", {}), ensure_ascii=False)
+            log_user_action(uid, "QPT_FILE_SAVED", 
+                          status="success", 
+                          step=current_user.step, 
+                          trial=trial, 
+                          file_path=file_name, 
+                          file_size=file_size,
+                          qpt_data=qpt_data_str)
             log_data_operation('write', uid, file_name, True, 
                              size_bytes=file_size,
-                             file_type='QPT')
+                             file_type='QPT',
+                             data_content=qpt_data_str)
         else:
             app.logger.error(f"[QPT_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | trial={trial} | file={file_name}")
             log_user_action(uid, "QPT_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, trial=trial, file_path=file_name)
