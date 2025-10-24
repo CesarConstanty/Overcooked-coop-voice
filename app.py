@@ -1935,8 +1935,11 @@ def on_start_button_clicked(data):
     
     uid = current_user.uid
     config_id = current_user.config.get("config_id")
-    step = data.get('step', current_user.step)
-    trial = data.get('trial', current_user.trial)
+    
+    # Utiliser les valeurs actuelles du serveur (source de vérité)
+    # au lieu des valeurs envoyées par le client qui peuvent être obsolètes
+    step = current_user.step
+    trial = current_user.trial
     trigger = data.get('triggered_by', 'click')  # 'click' ou 'countdown'
     
     # Log structuré de l'interaction utilisateur avec bouton Start Game
@@ -2048,15 +2051,21 @@ def post_qpt(data):
         
         if success:
             file_size = os.path.getsize(file_name)
-            # Log avec les données complètes du QPT
-            qpt_data_str = json.dumps(form.get("answer", {}), ensure_ascii=False)
+            # Log avec les données complètes du QPT incluant accountability_order
+            qpt_log_data = {
+                "answers": form.get("answer", {}),
+                "accountability_order": form.get("accountability_order", []),
+                "timeout": form.get("timeout_bool", False)
+            }
+            qpt_data_str = json.dumps(qpt_log_data, ensure_ascii=False)
             log_user_action(uid, "QPT_FILE_SAVED", 
                           status="success", 
                           step=current_user.step, 
                           trial=trial, 
                           file_path=file_name, 
                           file_size=file_size,
-                          qpt_data=qpt_data_str)
+                          qpt_data=qpt_data_str,
+                          accountability_order=str(form.get("accountability_order", [])))
             log_data_operation('write', uid, file_name, True, 
                              size_bytes=file_size,
                              file_type='QPT',

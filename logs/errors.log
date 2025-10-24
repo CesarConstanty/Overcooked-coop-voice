@@ -1,0 +1,3 @@
+[2025-10-24 17:21:05] WARNING | UID:test_log_fast | CFG:config_experiment_a | app | Thread:140275757995904 | safe_json_write:297 | [FILE_WRITE] Fichier existe - ÉCRASEMENT ÉVITÉ | uid=test_log_fast | path=trajectories/config_experiment_a/test_log_fast/CONSENT.json
+[2025-10-24 17:21:05] ERROR | UID:test_log_fast | CFG:config_experiment_a | app | Thread:140275757995904 | instructions:957 | [CONSENT_FILE] WRITE_FAILED | uid=test_log_fast | file=trajectories/config_experiment_a/test_log_fast/CONSENT.json
+[2025-10-24 17:35:18] ERROR | UID:test_log_fast | CFG:config_experiment_a | app | Thread:140015728690944 | _load_existing_data:645 | [PAGE_TRACKER_LOAD_ERROR] uid=test_log_fast | error='start_time'
