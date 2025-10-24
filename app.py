@@ -945,12 +945,17 @@ def instructions():
         if form.get("consentRadio") == "accept":
             log_user_action(uid, 'CONSENT_ACCEPTED', config_id=config_id)
             Path("trajectories/" + config_id + "/"+ uid).mkdir(parents=True, exist_ok=True)
-            try:
-                with open('trajectories/' + config_id + "/" +uid + '/CONSENT.json', 'w', encoding='utf-8') as f:
-                    json.dump(form, f, ensure_ascii=False, indent=4)
-                    f.close()
-            except KeyError:
-                pass
+            
+            file_name = 'trajectories/' + config_id + "/" + uid + '/CONSENT.json'
+            success = safe_json_write(file_name, form, uid)
+            
+            if success:
+                file_size = os.path.getsize(file_name)
+                log_user_action(uid, "CONSENT_FILE_SAVED", status="success", file_path=file_name, file_size=file_size, config_id=config_id)
+                log_data_operation("write", uid, file_name, True, file_type="CONSENT", size_bytes=file_size)
+            else:
+                app.logger.error(f"[CONSENT_FILE] WRITE_FAILED | uid={uid} | file={file_name}")
+                log_user_action(uid, "CONSENT_FILE_SAVED", status="failed", reason="write_error", file_path=file_name)
             if condition:
                 if mechanic_type == "recipe":
                     # Récupérer les valeurs depuis la config ou les defaults
@@ -978,13 +983,20 @@ def instructions():
                 return render_template('condition_error.html')
 
         else:
+            log_user_action(uid, 'CONSENT_REFUSED', config_id=config_id)
             Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
-            try:
-                with open('trajectories/' + uid + '/NOT_CONSENT.json', 'w', encoding='utf-8') as f:
-                    json.dump(form, f, ensure_ascii=False, indent=4)
-                    f.close()
-            except KeyError:
-                pass
+            
+            file_name = 'trajectories/' + uid + '/NOT_CONSENT.json'
+            success = safe_json_write(file_name, form, uid)
+            
+            if success:
+                file_size = os.path.getsize(file_name)
+                log_user_action(uid, "NOT_CONSENT_FILE_SAVED", status="success", file_path=file_name, file_size=file_size)
+                log_data_operation("write", uid, file_name, True, file_type="NOT_CONSENT", size_bytes=file_size)
+            else:
+                app.logger.error(f"[NOT_CONSENT_FILE] WRITE_FAILED | uid={uid} | file={file_name}")
+                log_user_action(uid, "NOT_CONSENT_FILE_SAVED", status="failed", reason="write_error", file_path=file_name)
+            
             return render_template('leave.html', uid=uid, complete=False)
     
     # Suivi temporel : enregistrer la visite de la page instructions (GET)
@@ -1201,15 +1213,23 @@ def transition():
 
     Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{uid}/{uid}_{step}QPB.json"
+    
     # Ne pas écraser si le fichier existe déjà : conserver la première soumission
     if os.path.exists(file_name):
-        print(f"Transition QPB déjà présent pour {file_name}, écriture ignorée.")
+        file_size = os.path.getsize(file_name)
+        app.logger.warning(f"[QPB_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={step} | file={file_name} | size={file_size}")
+        log_user_action(uid, "QPB_SUBMIT", status="skipped", reason="file_exists", step=step, file_path=file_name)
     else:
-        try:
-            with open(file_name, 'w', encoding='utf-8') as f:
-                json.dump(form, f, ensure_ascii=False, indent=4)
-        except KeyError:
-            pass
+        success = safe_json_write(file_name, form, uid)
+        
+        if success:
+            file_size = os.path.getsize(file_name)
+            log_user_action(uid, "QPB_SUBMIT", status="success", step=step, file_path=file_name, file_size=file_size)
+            log_data_operation("write", uid, file_name, True, file_type="QPB", size_bytes=file_size)
+        else:
+            app.logger.error(f"[QPB_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={step} | file={file_name}")
+            log_user_action(uid, "QPB_SUBMIT", status="failed", reason="write_error", step=step, file_path=file_name)
+    
     step += 1
     return render_template('goodbye.html', uid=uid, step=step, completion_link=current_user.config["completion_link"])
     # else :
@@ -1273,9 +1293,9 @@ def submit_qex_ranking():
     explanation_text = request.form.get('explanation_text', '')  # Get the explanation text
 
     if not ranking_json_string:
-        print("Error: No 'ranking_data' received for QEX submission.")
-        
-        return redirect(url_for('planning')) # Or a specific error page
+        app.logger.error(f"[QEX_SUBMIT] FAILED | uid={uid} | step={step} | reason=no_ranking_data")
+        log_user_action(uid, "QEX_SUBMIT", status="failed", reason="no_ranking_data", step=step)
+        return redirect(url_for('planning'))
 
     try:
         # Parse the JSON string back into a Python list
@@ -1283,9 +1303,14 @@ def submit_qex_ranking():
         form_data["ranking_response"] = ranking_list # Store the QEX ranking here
         form_data["timeout_bool"] = timeout_bool # Store whether submission was by timeout
         form_data["explanation_text"] = explanation_text # Store the explanation/comments text
+        
+        # Log réception données valides
+        num_items = len(ranking_list) if isinstance(ranking_list, list) else 0
+        log_user_action(uid, "QEX_DATA_RECEIVED", step=step, num_items=num_items, timeout=timeout_bool)
 
-    except json.JSONDecodeError:
-        print(f"Error: Invalid JSON received for QEX 'ranking_data': {ranking_json_string}")
+    except json.JSONDecodeError as e:
+        app.logger.error(f"[QEX_SUBMIT] JSON_DECODE_ERROR | uid={uid} | step={step} | error={str(e)}")
+        log_user_action(uid, "QEX_SUBMIT", status="failed", reason="invalid_json", step=step)
         return "Error: Invalid ranking data format for QEX", 400
 
     # --- Save the QEX data to a JSON file ---
@@ -1293,13 +1318,16 @@ def submit_qex_ranking():
     config_id = current_user.config["config_id"]
     Path(f"trajectories/{config_id}/{uid}/Post_experiment").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
-    try:
-        with open(file_name, 'w', encoding='utf-8') as f:
-            json.dump(form_data, f, ensure_ascii=False, indent=4)
-        print(f"Successfully saved QEX data for user {uid} at step {step} to {file_name}")
-    except Exception as e: 
-        print(f"Error saving QEX data for user {uid} at step {step}: {e}")
-        
+    
+    success = safe_json_write(file_name, form_data, uid)
+    
+    if success:
+        file_size = os.path.getsize(file_name)
+        log_user_action(uid, "QEX_SUBMIT", status="success", step=step, file_path=file_name, file_size=file_size, num_items=num_items)
+        log_data_operation("write", uid, file_name, True, file_type="QEX", size_bytes=file_size)
+    else:
+        app.logger.error(f"[QEX_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={step} | file={file_name}")
+        log_user_action(uid, "QEX_SUBMIT", status="failed", reason="write_error", step=step, file_path=file_name)
         return "Error saving QEX data", 500
 
     
@@ -2011,26 +2039,33 @@ def post_qpt(data):
     last_trial = trial >= (total_trial - 1)
 
     # Vérifie si le fichier existe déjà pour éviter un double enregistrement
-    if not os.path.exists(file_name):
-        try:
-            with open(file_name, 'w', encoding='utf-8') as f:
-                json.dump(form, f, ensure_ascii=False, indent=4)
-            log_data_operation('WRITE', uid, file_name, True, 
-                             size_bytes=os.path.getsize(file_name),
-                             data_type='QPT')
-        except KeyError:
-            log_data_operation('WRITE', uid, file_name, False, 
-                             error='KeyError during QPT save',
-                             data_type='QPT')
+    if os.path.exists(file_name):
+        file_size = os.path.getsize(file_name)
+        app.logger.warning(f"[QPT_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={current_user.step} | trial={trial} | file={file_name} | size={file_size}")
+        log_user_action(uid, "QPT_FILE_SAVED", status="skipped", reason="file_exists", step=current_user.step, trial=trial, file_path=file_name)
+    else:
+        success = safe_json_write(file_name, form, uid)
+        
+        if success:
+            file_size = os.path.getsize(file_name)
+            log_user_action(uid, "QPT_FILE_SAVED", status="success", step=current_user.step, trial=trial, file_path=file_name, file_size=file_size)
+            log_data_operation('write', uid, file_name, True, 
+                             size_bytes=file_size,
+                             file_type='QPT')
+        else:
+            app.logger.error(f"[QPT_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | trial={trial} | file={file_name}")
+            log_user_action(uid, "QPT_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, trial=trial, file_path=file_name)
+            log_data_operation('write', uid, file_name, False, 
+                             error='Error during QPT save',
+                             file_type='QPT')
 
+    if not os.path.exists(file_name) or os.path.getsize(file_name) == 0:
+        # Fichier n'existe pas ou est vide, donc on incrémente
         if not last_trial:
             current_user.trial += 1
             db.session.commit()
             log_user_action(uid, 'TRIAL_INCREMENT_AFTER_QPT', 
                            new_trial=current_user.trial)
-    else:
-        log_user_action(uid, 'QPT_ALREADY_EXISTS', file=file_name)
-        print(f"QPT déjà enregistré pour {file_name}, pas de double incrémentation.")
 
     if not last_trial and current_user.trial == trial:
         current_user.trial = min(trial + 1, total_trial - 1)
@@ -2073,20 +2108,26 @@ def post_qpb(data):
 
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}AAT_L.json"
+    
     if os.path.exists(file_name):
-        log_user_action(uid, 'QPB_ALREADY_EXISTS', file=file_name)
-        print(f"QPB AAT_L déjà présent pour {file_name}, écriture ignorée.")
+        file_size = os.path.getsize(file_name)
+        app.logger.warning(f"[QPB_POST_BLOC] FILE_ALREADY_EXISTS | uid={uid} | step={current_user.step} | file={file_name} | size={file_size}")
+        log_user_action(uid, "QPB_POST_BLOC_FILE_SAVED", status="skipped", reason="file_exists", step=current_user.step, file_path=file_name)
     else:
-        try:
-            with open(file_name, 'w', encoding='utf-8') as f:
-                json.dump(form, f, ensure_ascii=False, indent=4)
-            log_data_operation('WRITE', uid, file_name, True, 
-                             size_bytes=os.path.getsize(file_name),
-                             data_type='QPB')
-        except KeyError:
-            log_data_operation('WRITE', uid, file_name, False, 
-                             error='KeyError during QPB save',
-                             data_type='QPB')
+        success = safe_json_write(file_name, form, uid)
+        
+        if success:
+            file_size = os.path.getsize(file_name)
+            log_user_action(uid, "QPB_POST_BLOC_FILE_SAVED", status="success", step=current_user.step, file_path=file_name, file_size=file_size)
+            log_data_operation('write', uid, file_name, True, 
+                             size_bytes=file_size,
+                             file_type='QPB_POST_BLOC')
+        else:
+            app.logger.error(f"[QPB_POST_BLOC] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | file={file_name}")
+            log_user_action(uid, "QPB_POST_BLOC_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, file_path=file_name)
+            log_data_operation('write', uid, file_name, False, 
+                             error='Error during QPB save',
+                             file_type='QPB_POST_BLOC')
     #current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
@@ -2121,20 +2162,26 @@ def post_hoffman(data):
 
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}HOFFMAN.json"
+    
     if os.path.exists(file_name):
-        log_user_action(uid, 'HOFFMAN_ALREADY_EXISTS', file=file_name)
-        print(f"HOFFMAN déjà présent pour {file_name}, écriture ignorée.")
+        file_size = os.path.getsize(file_name)
+        app.logger.warning(f"[HOFFMAN_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={current_user.step} | file={file_name} | size={file_size}")
+        log_user_action(uid, "HOFFMAN_FILE_SAVED", status="skipped", reason="file_exists", step=current_user.step, file_path=file_name)
     else:
-        try:
-            with open(file_name, 'w', encoding='utf-8') as f:
-                json.dump(form, f, ensure_ascii=False, indent=4)
-            log_data_operation('WRITE', uid, file_name, True, 
-                             size_bytes=os.path.getsize(file_name),
-                             data_type='HOFFMAN')
-        except KeyError:
-            log_data_operation('WRITE', uid, file_name, False, 
-                             error='KeyError during HOFFMAN save',
-                             data_type='HOFFMAN')
+        success = safe_json_write(file_name, form, uid)
+        
+        if success:
+            file_size = os.path.getsize(file_name)
+            log_user_action(uid, "HOFFMAN_FILE_SAVED", status="success", step=current_user.step, file_path=file_name, file_size=file_size)
+            log_data_operation('write', uid, file_name, True, 
+                             size_bytes=file_size,
+                             file_type='HOFFMAN')
+        else:
+            app.logger.error(f"[HOFFMAN_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | file={file_name}")
+            log_user_action(uid, "HOFFMAN_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, file_path=file_name)
+            log_data_operation('write', uid, file_name, False, 
+                             error='Error during HOFFMAN save',
+                             file_type='HOFFMAN')
     if current_user.step <= 6 :
         old_step = current_user.step
         current_user.step += 1 # Permet de passer au bloc suivant
@@ -2214,20 +2261,60 @@ def trial_save_routine(data):
                     config["trial_config_data"] = config_for_trial
         
         file_path = 'trajectories/'+ data["config"].get("config_id") + "/" + data["uid"] + "/" + data['trial_id']+'.json'
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data_copy, f, ensure_ascii=False, indent=4)
-        f.close()
         
-        log_data_operation('WRITE', uid, file_path, True, 
-                         size_bytes=os.path.getsize(file_path),
-                         data_type='TRIAL_DATA',
-                         trial_id=trial_id)
+        # Vérifier si le fichier existe déjà
+        if os.path.exists(file_path):
+            file_size = os.path.getsize(file_path)
+            log_user_action(uid, 'TRIAL_FILE_ALREADY_EXISTS', 
+                          trial_id=trial_id, 
+                          file_path=file_path, 
+                          file_size=file_size,
+                          status='skipped')
+            log_data_operation('WRITE', uid, file_path, True, 
+                             size_bytes=file_size,
+                             data_type='TRIAL_DATA',
+                             trial_id=trial_id,
+                             status='skipped',
+                             reason='file_already_exists')
+            return
+        
+        # Écrire le fichier avec safe_json_write
+        success = safe_json_write(file_path, data_copy, uid)
+        
+        if success:
+            file_size = os.path.getsize(file_path)
+            log_user_action(uid, 'TRIAL_FILE_SAVED', 
+                          trial_id=trial_id, 
+                          file_path=file_path, 
+                          file_size=file_size,
+                          status='success')
+            log_data_operation('WRITE', uid, file_path, True, 
+                             size_bytes=file_size,
+                             data_type='TRIAL_DATA',
+                             trial_id=trial_id,
+                             status='success')
+        else:
+            log_user_action(uid, 'TRIAL_FILE_SAVE_FAILED', 
+                          trial_id=trial_id, 
+                          file_path=file_path,
+                          status='failed',
+                          reason='write_error')
+            log_data_operation('WRITE', uid, file_path, False, 
+                             data_type='TRIAL_DATA',
+                             trial_id=trial_id,
+                             status='failed',
+                             reason='write_error')
         
     except KeyError as e:
+        log_user_action(uid, 'TRIAL_FILE_SAVE_FAILED', 
+                       trial_id=trial_id,
+                       status='failed',
+                       error=f'KeyError: {str(e)}')
         log_data_operation('WRITE', uid, 'UNKNOWN', False, 
                          error=f'KeyError: {str(e)}',
                          data_type='TRIAL_DATA',
-                         trial_id=trial_id)
+                         trial_id=trial_id,
+                         status='failed')
 
 #############
 # Game Loop #
