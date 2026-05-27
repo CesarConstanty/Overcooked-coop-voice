@@ -18,9 +18,8 @@ import queue
 import atexit
 from socketio.exceptions import TimeoutError as SocketIOTimeOutError
 import json
-import logging
 import glob
-from time import gmtime, asctime, sleep, time
+from time import gmtime, asctime
 from threading import Lock
 from copy import deepcopy
 from utils import ThreadSafeSet, ThreadSafeDict, questionnaire_to_surveyjs
@@ -49,9 +48,6 @@ CONF_PATH = os.getenv('CONF_PATH', 'config.json')
 TRIALS_PATH = os.getenv('CONF_PATH', 'trials.json')
 with open(CONF_PATH, 'r') as f:
     CONFIG = json.load(f)
-
-# Where errors will be logged
-LOGFILE = CONFIG['logfile']
 
 # Available layout names
 LAYOUTS = CONFIG['layouts']
@@ -147,171 +143,19 @@ socketio = SocketIO(app, cors_allowed_origins="*", logger=app.config['DEBUG'], p
 # login_manager.init_app(app)
 db = SQLAlchemy()
 db.init_app(app)
-# =====================================================
-# SYSTÈME DE LOGGING MULTI-NIVEAUX
-# =====================================================
-from logging.handlers import RotatingFileHandler
-import os as os_module
-
-# Créer le répertoire logs s'il n'existe pas
-os_module.makedirs('logs', exist_ok=True)
-
-# =====================================================
-# FILTRE DE CONTEXTE POUR INJECTER UID
-# =====================================================
-class ContextFilter(logging.Filter):
-    """
-    Filtre qui injecte l'UID de session dans tous les logs si disponible.
-    Permet de corréler facilement tous les logs d'un utilisateur.
-    """
-    def filter(self, record):
-        # Essayer de récupérer l'UID depuis la session Flask
-        try:
-            from flask import session
-            record.uid = session.get('uid', 'NO_UID')
-            record.config_id = session.get('config_id', 'NO_CONFIG')
-        except:
-            record.uid = 'NO_UID'
-            record.config_id = 'NO_CONFIG'
-        return True
-
-# 1. Handler pour TOUTES les actions (DEBUG et plus)
-all_handler = RotatingFileHandler(
-    'logs/all_actions.log',
-    maxBytes=10485760,  # 10MB
-    backupCount=10
-)
-all_handler.setLevel(logging.DEBUG)
-
-# 2. Handler pour les erreurs uniquement (WARNING et plus)
-error_handler = RotatingFileHandler(
-    'logs/errors.log',
-    maxBytes=10485760,
-    backupCount=10
-)
-error_handler.setLevel(logging.WARNING)
-
-# 3. Handler pour les actions utilisateurs (INFO et plus)
-user_handler = RotatingFileHandler(
-    'logs/user_actions.log',
-    maxBytes=10485760,
-    backupCount=10
-)
-user_handler.setLevel(logging.INFO)
-
-# Format détaillé avec contexte complet incluant UID
-detailed_formatter = logging.Formatter(
-    '[%(asctime)s] %(levelname)s | UID:%(uid)s | CFG:%(config_id)s | %(name)s | Thread:%(thread)d | %(funcName)s:%(lineno)d | %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-
-all_handler.setFormatter(detailed_formatter)
-error_handler.setFormatter(detailed_formatter)
-user_handler.setFormatter(detailed_formatter)
-
-# Ajouter le filtre de contexte à tous les handlers
-context_filter = ContextFilter()
-all_handler.addFilter(context_filter)
-error_handler.addFilter(context_filter)
-user_handler.addFilter(context_filter)
-
-# Attacher tous les handlers
-app.logger.addHandler(all_handler)
-app.logger.addHandler(error_handler)
-app.logger.addHandler(user_handler)
-app.logger.setLevel(logging.DEBUG)
-
-app.logger.info("="*80)
-app.logger.info("APPLICATION DÉMARRÉE - Système de logging initialisé")
-app.logger.info("="*80)
-
-
-# =====================================================
-# FONCTIONS UTILITAIRES DE LOGGING
-# =====================================================
-
-def log_user_action(user_id, action, **context):
-    """
-    Log standardisé pour tracer les actions utilisateur.
-    
-    Args:
-        user_id: ID de l'utilisateur
-        action: Type d'action (ex: 'LOGIN', 'START_GAME', 'SAVE_DATA')
-        **context: Contexte additionnel (step, trial, etc.)
-    """
-    context_str = " | ".join([f"{k}={v}" for k, v in context.items()])
-    app.logger.info(f"[USER_ACTION] {action} | uid={user_id} | {context_str}")
-
-
-def log_data_operation(operation, user_id, file_path, success, **details):
-    """
-    Log spécialisé pour les opérations de données (lecture/écriture fichiers).
-    
-    Args:
-        operation: Type d'opération ('READ', 'WRITE', 'DELETE')
-        user_id: ID de l'utilisateur
-        file_path: Chemin du fichier
-        success: Booléen indiquant le succès
-        **details: Détails additionnels (size, error, etc.)
-    """
-    status = "✓ SUCCESS" if success else "✗ FAILED"
-    details_str = " | ".join([f"{k}={v}" for k, v in details.items()])
-    level = logging.INFO if success else logging.ERROR
-    app.logger.log(level, f"[FILE_{operation}] {status} | uid={user_id} | path={file_path} | {details_str}")
-
-
-def log_db_operation(operation, user_id, success, **details):
-    """
-    Log spécialisé pour les opérations base de données.
-    
-    Args:
-        operation: Type d'opération ('CREATE', 'UPDATE', 'DELETE', 'QUERY')
-        user_id: ID de l'utilisateur
-        success: Booléen indiquant le succès
-        **details: Détails additionnels
-    """
-    status = "✓" if success else "✗"
-    details_str = " | ".join([f"{k}={v}" for k, v in details.items()])
-    level = logging.INFO if success else logging.ERROR
-    app.logger.log(level, f"[DB_{operation}] {status} | uid={user_id} | {details_str}")
-
-
 def safe_json_write(file_path, data, user_id=None):
     """
-    Écriture sécurisée de fichier JSON avec logging complet.
-    
-    Args:
-        file_path: Chemin du fichier
-        data: Données à écrire
-        user_id: ID utilisateur (pour logging)
-        
-    Returns:
-        bool: True si succès, False sinon
+    Écriture sécurisée de fichier JSON.
+    Retourne False si le fichier existe déjà, True en cas de succès.
     """
     try:
-        # Log tentative
-        app.logger.debug(f"[FILE_WRITE] Tentative | uid={user_id} | path={file_path} | data_keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}")
-        
-        # Vérifier si fichier existe déjà
-        if os_module.path.exists(file_path):
-            app.logger.warning(f"[FILE_WRITE] Fichier existe - ÉCRASEMENT ÉVITÉ | uid={user_id} | path={file_path}")
+        if os.path.exists(file_path):
             return False
-        
-        # Créer répertoires si nécessaire
-        os_module.makedirs(os_module.path.dirname(file_path), exist_ok=True)
-        
-        # Écriture
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
-        
-        # Vérification et log succès
-        file_size = os_module.path.getsize(file_path)
-        log_data_operation('WRITE', user_id, file_path, True, size_bytes=file_size)
         return True
-        
-    except Exception as e:
-        log_data_operation('WRITE', user_id, file_path, False, error=str(e), error_type=type(e).__name__)
-        app.logger.error(f"[FILE_WRITE] Exception complète | uid={user_id} | path={file_path}", exc_info=True)
+    except Exception:
         return False
 
 
@@ -398,8 +242,7 @@ def get_page_tracker(user_id: str, config_id: str) -> PageTracker:
         Instance PageTracker pour cet utilisateur
     """
     if user_id not in PAGE_TRACKERS:
-        # Passer app.logger au PageTracker pour logging intégré
-        PAGE_TRACKERS[user_id] = PageTracker(user_id, config_id, logger=app.logger)
+        PAGE_TRACKERS[user_id] = PageTracker(user_id, config_id)
     return PAGE_TRACKERS[user_id]
 
 def track_page_view(page_name: str, user_id: str = None, config_id: str = None):
@@ -421,13 +264,8 @@ def track_page_view(page_name: str, user_id: str = None, config_id: str = None):
         if user_id:
             tracker = get_page_tracker(user_id, config_id)
             tracker.start_page(page_name)
-            
-            # Log également dans app.logger pour corrélation
-            log_user_action(user_id, 'PAGE_VIEW', 
-                           page=page_name, 
-                           config_id=config_id)
-    except Exception as e:
-        app.logger.error(f"[PAGE_TRACKING_ERROR] uid={user_id} | page={page_name} | error={str(e)}", exc_info=True)
+    except Exception:
+        pass
 
 def end_user_session(user_id: str):
     """
@@ -439,9 +277,8 @@ def end_user_session(user_id: str):
     try:
         if user_id in PAGE_TRACKERS:
             PAGE_TRACKERS[user_id].end_session()
-            log_user_action(user_id, 'PAGE_TRACKING_SESSION_END')
-    except Exception as e:
-        app.logger.error(f"[PAGE_TRACKING_SESSION_END_ERROR] uid={user_id} | error={str(e)}", exc_info=True)
+    except Exception:
+        pass
 
 #################################
 # Global Coordination Functions #
@@ -687,12 +524,6 @@ def index():
     uid = request.args.get('PROLIFIC_PID', default=None)
     user_sid = "None"
     
-    # LOG: Entrée dans la route index
-    log_user_action('UNKNOWN', 'ROUTE_INDEX_ENTER', 
-                    prolific_pid=uid, 
-                    config=request.args.get('CONFIG'),
-                    ip=request.remote_addr)
-    
     try:
         config_id = request.args.get('CONFIG', default=None)
         config = deepcopy(CONFIG[config_id])
@@ -807,7 +638,6 @@ def index():
             }
 
     except KeyError:
-        log_user_action('UNKNOWN', 'ROUTE_INDEX_ERROR', error='Invalid CONFIG parameter')
         return render_template('UID_error.html')
 
     if uid:
@@ -818,10 +648,8 @@ def index():
     if uid:
         user = User.query.filter_by(uid=uid).first()
         if user:
-            log_user_action(uid, 'USER_RETURNING', step=user.step, trial=user.trial, config_id=config_id)
             login_user_session(user)
         else:
-            log_user_action(uid, 'USER_NEW_CREATION', config_id=config_id)
             new_user = User(uid=uid, config=config, step=0, trial=0)
             
             # Gestion des questionnaires post-trial (depuis old_app.py)
@@ -909,11 +737,7 @@ def instructions():
     uid = request.args.get('PROLIFIC_PID') or request.args.get('TEST_UID') or session.get('uid')
     config_id = request.args.get('CONFIG') or session.get('config_id')
     
-    log_user_action(uid or 'UNKNOWN', 'ROUTE_INSTRUCTIONS_ENTER', 
-                    method=request.method, config_id=config_id)
-    
     if not uid or not config_id:
-        log_user_action('UNKNOWN', 'ROUTE_INSTRUCTIONS_ERROR', error='Missing UID or CONFIG')
         return render_template('UID_error.html')
     
     # Récupérer la configuration depuis le fichier global
@@ -943,19 +767,11 @@ def instructions():
         #form["IPadress"] = request.remote_addr
         #
         if form.get("consentRadio") == "accept":
-            log_user_action(uid, 'CONSENT_ACCEPTED', config_id=config_id)
             Path("trajectories/" + config_id + "/"+ uid).mkdir(parents=True, exist_ok=True)
             
             file_name = 'trajectories/' + config_id + "/" + uid + '/CONSENT.json'
             success = safe_json_write(file_name, form, uid)
             
-            if success:
-                file_size = os.path.getsize(file_name)
-                log_user_action(uid, "CONSENT_FILE_SAVED", status="success", file_path=file_name, file_size=file_size, config_id=config_id)
-                log_data_operation("write", uid, file_name, True, file_type="CONSENT", size_bytes=file_size)
-            else:
-                app.logger.error(f"[CONSENT_FILE] WRITE_FAILED | uid={uid} | file={file_name}")
-                log_user_action(uid, "CONSENT_FILE_SAVED", status="failed", reason="write_error", file_path=file_name)
             if condition:
                 if mechanic_type == "recipe":
                     # Récupérer les valeurs depuis la config ou les defaults
@@ -983,19 +799,10 @@ def instructions():
                 return render_template('condition_error.html')
 
         else:
-            log_user_action(uid, 'CONSENT_REFUSED', config_id=config_id)
             Path("trajectories/" + uid).mkdir(parents=True, exist_ok=True)
             
             file_name = 'trajectories/' + uid + '/NOT_CONSENT.json'
-            success = safe_json_write(file_name, form, uid)
-            
-            if success:
-                file_size = os.path.getsize(file_name)
-                log_user_action(uid, "NOT_CONSENT_FILE_SAVED", status="success", file_path=file_name, file_size=file_size)
-                log_data_operation("write", uid, file_name, True, file_type="NOT_CONSENT", size_bytes=file_size)
-            else:
-                app.logger.error(f"[NOT_CONSENT_FILE] WRITE_FAILED | uid={uid} | file={file_name}")
-                log_user_action(uid, "NOT_CONSENT_FILE_SAVED", status="failed", reason="write_error", file_path=file_name)
+            safe_json_write(file_name, form, uid)
             
             return render_template('leave.html', uid=uid, complete=False)
     
@@ -1029,21 +836,12 @@ def instructions_explained():
 def planning():
     current_user = get_current_user()
     if not current_user:
-        log_user_action('UNKNOWN', 'ROUTE_PLANNING_NO_USER')
         return redirect(url_for('index'))
     uid = current_user.uid
-    
-    log_user_action(uid, 'ROUTE_PLANNING_ENTER', 
-                    step=current_user.step, 
-                    trial=current_user.trial,
-                    method=request.method)
     
     bloc_order = current_user.config.get("bloc_order", [])
     
     if current_user.step >= len(bloc_order):
-        log_user_action(uid, 'ROUTE_PLANNING_COMPLETE', 
-                       step=current_user.step, 
-                       total_blocs=len(bloc_order))
         print(f"Utilisateur {uid} terminé tous les blocs (step {current_user.step}), redirection vers qex_ranking")
         return redirect(url_for('qex_ranking'))
     
@@ -1216,19 +1014,9 @@ def transition():
     
     # Ne pas écraser si le fichier existe déjà : conserver la première soumission
     if os.path.exists(file_name):
-        file_size = os.path.getsize(file_name)
-        app.logger.warning(f"[QPB_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={step} | file={file_name} | size={file_size}")
-        log_user_action(uid, "QPB_SUBMIT", status="skipped", reason="file_exists", step=step, file_path=file_name)
+        pass
     else:
-        success = safe_json_write(file_name, form, uid)
-        
-        if success:
-            file_size = os.path.getsize(file_name)
-            log_user_action(uid, "QPB_SUBMIT", status="success", step=step, file_path=file_name, file_size=file_size)
-            log_data_operation("write", uid, file_name, True, file_type="QPB", size_bytes=file_size)
-        else:
-            app.logger.error(f"[QPB_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={step} | file={file_name}")
-            log_user_action(uid, "QPB_SUBMIT", status="failed", reason="write_error", step=step, file_path=file_name)
+        safe_json_write(file_name, form, uid)
     
     step += 1
     return render_template('goodbye.html', uid=uid, step=step, completion_link=current_user.config["completion_link"])
@@ -1239,19 +1027,13 @@ def transition():
 def qex_ranking():
     current_user = get_current_user()
     if not current_user:
-        log_user_action('UNKNOWN', 'ROUTE_QEX_NO_USER')
         return redirect(url_for('index'))
     uid = current_user.uid
-    
-    log_user_action(uid, 'ROUTE_QEX_ENTER', 
-                    step=current_user.step, 
-                    trial=current_user.trial)
     
     step = current_user.step
     config_id = current_user.config["config_id"]
     file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
     if os.path.exists(file_name):
-        log_user_action(uid, 'QEX_ALREADY_COMPLETED', file=file_name)
         return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
     
     preference_length = current_user.config.get("preference_length", 60)
@@ -1293,8 +1075,6 @@ def submit_qex_ranking():
     explanation_text = request.form.get('explanation_text', '')  # Get the explanation text
 
     if not ranking_json_string:
-        app.logger.error(f"[QEX_SUBMIT] FAILED | uid={uid} | step={step} | reason=no_ranking_data")
-        log_user_action(uid, "QEX_SUBMIT", status="failed", reason="no_ranking_data", step=step)
         return redirect(url_for('planning'))
 
     try:
@@ -1303,14 +1083,8 @@ def submit_qex_ranking():
         form_data["ranking_response"] = ranking_list # Store the QEX ranking here
         form_data["timeout_bool"] = timeout_bool # Store whether submission was by timeout
         form_data["explanation_text"] = explanation_text # Store the explanation/comments text
-        
-        # Log réception données valides
-        num_items = len(ranking_list) if isinstance(ranking_list, list) else 0
-        log_user_action(uid, "QEX_DATA_RECEIVED", step=step, num_items=num_items, timeout=timeout_bool)
 
-    except json.JSONDecodeError as e:
-        app.logger.error(f"[QEX_SUBMIT] JSON_DECODE_ERROR | uid={uid} | step={step} | error={str(e)}")
-        log_user_action(uid, "QEX_SUBMIT", status="failed", reason="invalid_json", step=step)
+    except json.JSONDecodeError:
         return "Error: Invalid ranking data format for QEX", 400
 
     # --- Save the QEX data to a JSON file ---
@@ -1321,13 +1095,7 @@ def submit_qex_ranking():
     
     success = safe_json_write(file_name, form_data, uid)
     
-    if success:
-        file_size = os.path.getsize(file_name)
-        log_user_action(uid, "QEX_SUBMIT", status="success", step=step, file_path=file_name, file_size=file_size, num_items=num_items)
-        log_data_operation("write", uid, file_name, True, file_type="QEX", size_bytes=file_size)
-    else:
-        app.logger.error(f"[QEX_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={step} | file={file_name}")
-        log_user_action(uid, "QEX_SUBMIT", status="failed", reason="write_error", step=step, file_path=file_name)
+    if not success and not os.path.exists(file_name):
         return "Error saving QEX data", 500
 
     
@@ -1352,16 +1120,6 @@ def qvg_survey():
     # Récupère la durée du timer depuis la config utilisateur
     qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
     dev_mode = current_user.config.get("dev", False)
-    
-    # Log de l'accès au questionnaire QVG
-    log_user_action(
-        current_user.uid,
-        "ROUTE_QVG_ENTER",
-        config_id=current_user.config.get("config_id"),
-        step=current_user.step,
-        qvg_length=qvg_length,
-        dev_mode=dev_mode
-    )
     
     # Suivi temporel : enregistrer la visite du questionnaire expérience jeux vidéo
     track_page_view('experience_video_games_en.html', current_user.uid, current_user.config.get("config_id"))
@@ -1399,22 +1157,14 @@ def submit_qvg_survey():
     qvg_json_string = request.form.get('qvg_data')
 
     if not qvg_json_string:
-        app.logger.error(f"[QVG_SUBMIT] FAILED | uid={uid} | step={step} | reason=no_qvg_data")
-        log_user_action(uid, "QVG_SUBMIT", status="failed", reason="no_qvg_data", step=step)
         return redirect(url_for('planning'))
 
     try:
         # Parse the JSON string back into a Python dictionary
         qvg_response_data = json.loads(qvg_json_string)
         form_data["qvg_response"] = qvg_response_data # Store the QVG responses here
-        
-        # Log réception données valides
-        num_responses = len(qvg_response_data) if isinstance(qvg_response_data, dict) else 0
-        log_user_action(uid, "QVG_DATA_RECEIVED", step=step, num_responses=num_responses)
 
-    except json.JSONDecodeError as e:
-        app.logger.error(f"[QVG_SUBMIT] JSON_DECODE_ERROR | uid={uid} | step={step} | error={str(e)}")
-        log_user_action(uid, "QVG_SUBMIT", status="failed", reason="invalid_json", step=step)
+    except json.JSONDecodeError:
         return "Error: Invalid QVG data format", 400
 
     # --- Save the QVG data to a JSON file ---
@@ -1423,21 +1173,8 @@ def submit_qvg_survey():
     file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "Pre_experiment" + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
     
     # Ne pas écraser si le fichier existe déjà : conserver la première soumission
-    if os.path.exists(file_name):
-        file_size = os.path.getsize(file_name)
-        app.logger.warning(f"[QVG_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={step} | file={file_name} | size={file_size}")
-        log_user_action(uid, "QVG_SUBMIT", status="skipped", reason="file_exists", step=step, file_path=file_name)
-    else:
-        success = safe_json_write(file_name, form_data, uid)
-        
-        if success:
-            file_size = os.path.getsize(file_name)
-            log_user_action(uid, "QVG_SUBMIT", status="success", step=step, file_path=file_name, file_size=file_size, num_responses=num_responses)
-            log_data_operation("write", uid, file_name, True, file_type="QVG", size_bytes=file_size)
-        else:
-            app.logger.error(f"[QVG_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={step} | file={file_name}")
-            log_user_action(uid, "QVG_SUBMIT", status="failed", reason="write_error", step=step, file_path=file_name)
-            return "Error saving QVG data", 500
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form_data, uid)
 
     
     # Determine the next page based on the new step value, similar to the /transition route
@@ -1456,16 +1193,6 @@ def ptta_survey():
         return redirect(url_for('index'))
     ptta_length = current_user.config.get("ptta_length", 60)
     dev_mode = current_user.config.get("dev", False)
-    
-    # Log de l'accès au questionnaire PTTA
-    log_user_action(
-        current_user.uid,
-        "ROUTE_PTTA_ENTER",
-        config_id=current_user.config.get("config_id"),
-        step=current_user.step,
-        ptta_length=ptta_length,
-        dev_mode=dev_mode
-    )
     
     # Suivi temporel : enregistrer la visite du questionnaire PTTA
     track_page_view('PTT_A_en.html', current_user.uid, current_user.config.get("config_id"))
@@ -1503,22 +1230,14 @@ def submit_ptta_survey():
     ptta_json_string = request.form.get('ptta_data')
 
     if not ptta_json_string:
-        app.logger.error(f"[PTTA_SUBMIT] FAILED | uid={uid} | step={step} | reason=no_ptta_data")
-        log_user_action(uid, "PTTA_SUBMIT", status="failed", reason="no_ptta_data", step=step)
         return redirect(url_for('planning'))
 
     try:
         # Parse the JSON string back into a Python dictionary
         ptta_response_data = json.loads(ptta_json_string)
         form_data["ptta_response"] = ptta_response_data # Store the PTT-A responses here
-        
-        # Log réception données valides
-        num_responses = len(ptta_response_data) if isinstance(ptta_response_data, dict) else 0
-        log_user_action(uid, "PTTA_DATA_RECEIVED", step=step, num_responses=num_responses)
 
-    except json.JSONDecodeError as e:
-        app.logger.error(f"[PTTA_SUBMIT] JSON_DECODE_ERROR | uid={uid} | step={step} | error={str(e)}")
-        log_user_action(uid, "PTTA_SUBMIT", status="failed", reason="invalid_json", step=step)
+    except json.JSONDecodeError:
         return "Error: Invalid PTT-A data format", 400
 
     # --- Save the PTT-A data to a JSON file ---
@@ -1528,21 +1247,8 @@ def submit_ptta_survey():
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment/{uid}_{current_user.step}_PTTA.json"
     
     # Ne pas écraser si le fichier existe déjà : conserver la première soumission
-    if os.path.exists(file_name):
-        file_size = os.path.getsize(file_name)
-        app.logger.warning(f"[PTTA_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={step} | file={file_name} | size={file_size}")
-        log_user_action(uid, "PTTA_SUBMIT", status="skipped", reason="file_exists", step=step, file_path=file_name)
-    else:
-        success = safe_json_write(file_name, form_data, uid)
-        
-        if success:
-            file_size = os.path.getsize(file_name)
-            log_user_action(uid, "PTTA_SUBMIT", status="success", step=step, file_path=file_name, file_size=file_size, num_responses=num_responses)
-            log_data_operation("write", uid, file_name, True, file_type="PTTA", size_bytes=file_size)
-        else:
-            app.logger.error(f"[PTTA_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={step} | file={file_name}")
-            log_user_action(uid, "PTTA_SUBMIT", status="failed", reason="write_error", step=step, file_path=file_name)
-            return "Error saving PTT-A data", 500
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form_data, uid)
 
 
     return redirect(url_for('tutorial'))
@@ -1594,13 +1300,8 @@ def cat():
 def tutorial():
     current_user = get_current_user()
     if not current_user:
-        log_user_action('UNKNOWN', 'ROUTE_TUTORIAL_NO_USER')
         return redirect(url_for('index'))
     uid = current_user.uid
-    
-    log_user_action(uid, 'ROUTE_TUTORIAL_ENTER', 
-                    step=current_user.step, 
-                    trial=current_user.trial)
     
     step = 0
     # Remise à zéro des compteurs d'essai et de bloc pour l'expérience principale
@@ -1776,17 +1477,11 @@ def on_create(data):
     current_user = get_current_user()
     user_id = current_user.uid
     
-    log_user_action(user_id, 'SOCKETIO_CREATE', 
-                    step=current_user.step, 
-                    trial=current_user.trial,
-                    game_name=data.get('game_name', 'overcooked'))
     
     #print(data)
     curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
     if curr_game:
         # Cannot create if currently in a game
-        log_user_action(user_id, 'SOCKETIO_CREATE_BLOCKED', 
-                       reason='Already in game', game_id=curr_game.id)
         return
     if data.get("planning_design", None):
         #data.pop("planning_design")
@@ -1799,11 +1494,6 @@ def on_create(data):
             "0": data['params']['condition']}
     params = data.get('params', {})
     game_name = data.get('game_name', 'overcooked')
-    
-    log_user_action(user_id, 'GAME_CREATE_START', 
-                    game_name=game_name,
-                    step=int(current_user.step), 
-                    trial=int(current_user.trial))
     
     # Déclenche la création du jeu avec les données fournies
     _create_game(
@@ -1822,10 +1512,6 @@ def on_join(data):
     current_user = get_current_user()
     user_id = current_user.uid
     
-    log_user_action(user_id, 'SOCKETIO_JOIN', 
-                    step=current_user.step, 
-                    trial=current_user.trial,
-                    create_if_not_found=data.get("create_if_not_found", True))
     
     with USERS[user_id]:
         create_if_not_found = data.get("create_if_not_found", True)
@@ -1873,18 +1559,13 @@ def on_leave(data):
     current_user = get_current_user()
     user_id = current_user.uid
     
-    log_user_action(user_id, 'SOCKETIO_LEAVE', 
-                    step=current_user.step, 
-                    trial=current_user.trial)
     
     with USERS[user_id]:
         was_active = _leave_game(user_id)
 
         if was_active:
-            log_user_action(user_id, 'LEFT_ACTIVE_GAME')
             emit('end_game', {"status": Game.Status.DONE, "data": {}}, to=current_user.uid)
         else:
-            log_user_action(user_id, 'LEFT_LOBBY')
             emit('end_lobby', to=current_user.uid)
 
 
@@ -1896,11 +1577,8 @@ def on_action(data):
 
     game = get_curr_game(user_id)
     if not game:
-        log_user_action(user_id, 'ACTION_NO_GAME', action=action)
         return
 
-    # Log action (debug level pour éviter trop de bruit)
-    app.logger.debug(f"[GAME_ACTION] uid={user_id} | action={action} | game={game.id}")
     game.enqueue_action(user_id, action)
 
 
@@ -1909,10 +1587,6 @@ def on_connect():       # utilise le user_id pour gérer ces connexions
     current_user = get_current_user()
     user_id = current_user.uid
     
-    log_user_action(user_id, 'SOCKETIO_CONNECT', 
-                    sid=request.sid,
-                    step=getattr(current_user, 'step', 'unknown'),
-                    trial=getattr(current_user, 'trial', 'unknown'))
     
     if user_id in USERS:
         return
@@ -1942,16 +1616,6 @@ def on_start_button_clicked(data):
     trial = current_user.trial
     trigger = data.get('triggered_by', 'click')  # 'click' ou 'countdown'
     
-    # Log structuré de l'interaction utilisateur avec bouton Start Game
-    log_user_action(
-        uid,
-        "START_GAME_BUTTON_CLICKED",
-        config_id=config_id,
-        step=step,
-        trial=trial,
-        triggered_by=trigger
-    )
-    
     # Créer un nom d'événement unique pour tracer ce moment précis
     event_name = f"[START_GAME] Bloc {step}, Essai {trial} ({trigger})"
     
@@ -1965,9 +1629,6 @@ def on_disconnect():
     current_user = get_current_user()
     user_id = current_user.uid
     
-    log_user_action(user_id, 'SOCKETIO_DISCONNECT', 
-                    step=getattr(current_user, 'step', 'unknown'),
-                    trial=getattr(current_user, 'trial', 'unknown'))
     
     if user_id not in USERS:
         return
@@ -1982,13 +1643,8 @@ def on_new_trial():
     user_id = current_user.uid
     game = get_curr_game(user_id)
     if not game:
-        log_user_action(user_id, 'NEW_TRIAL_NO_GAME')
         return
     
-    log_user_action(user_id, 'NEW_TRIAL', 
-                    old_trial=current_user.trial, 
-                    new_trial=game.curr_trial_in_game,
-                    step=current_user.step)
     
     current_user.trial = game.curr_trial_in_game
     db.session.commit()
@@ -2002,11 +1658,6 @@ def post_qpt(data):
     bloc_key = current_user.config["bloc_order"][current_user.step]
     trial = current_user.trial
 
-    log_user_action(uid, 'QPT_SUBMIT', 
-                    step=current_user.step, 
-                    trial=trial, 
-                    bloc=bloc_key,
-                    timeout=data.get("timeout_bool", False))
 
     # Les données sont sauvegardées via la routine habituelle de sauvegarde
 
@@ -2042,58 +1693,20 @@ def post_qpt(data):
     last_trial = trial >= (total_trial - 1)
 
     # Vérifie si le fichier existe déjà pour éviter un double enregistrement
-    if os.path.exists(file_name):
-        file_size = os.path.getsize(file_name)
-        app.logger.warning(f"[QPT_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={current_user.step} | trial={trial} | file={file_name} | size={file_size}")
-        log_user_action(uid, "QPT_FILE_SAVED", status="skipped", reason="file_exists", step=current_user.step, trial=trial, file_path=file_name)
-    else:
-        success = safe_json_write(file_name, form, uid)
-        
-        if success:
-            file_size = os.path.getsize(file_name)
-            # Log avec les données complètes du QPT incluant accountability_order
-            qpt_log_data = {
-                "answers": form.get("answer", {}),
-                "accountability_order": form.get("accountability_order", []),
-                "timeout": form.get("timeout_bool", False)
-            }
-            qpt_data_str = json.dumps(qpt_log_data, ensure_ascii=False)
-            log_user_action(uid, "QPT_FILE_SAVED", 
-                          status="success", 
-                          step=current_user.step, 
-                          trial=trial, 
-                          file_path=file_name, 
-                          file_size=file_size,
-                          qpt_data=qpt_data_str,
-                          accountability_order=str(form.get("accountability_order", [])))
-            log_data_operation('write', uid, file_name, True, 
-                             size_bytes=file_size,
-                             file_type='QPT',
-                             data_content=qpt_data_str)
-        else:
-            app.logger.error(f"[QPT_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | trial={trial} | file={file_name}")
-            log_user_action(uid, "QPT_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, trial=trial, file_path=file_name)
-            log_data_operation('write', uid, file_name, False, 
-                             error='Error during QPT save',
-                             file_type='QPT')
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
 
     if not os.path.exists(file_name) or os.path.getsize(file_name) == 0:
         # Fichier n'existe pas ou est vide, donc on incrémente
         if not last_trial:
             current_user.trial += 1
             db.session.commit()
-            log_user_action(uid, 'TRIAL_INCREMENT_AFTER_QPT', 
-                           new_trial=current_user.trial)
 
     if not last_trial and current_user.trial == trial:
         current_user.trial = min(trial + 1, total_trial - 1)
         db.session.commit()
-        log_user_action(uid, 'TRIAL_INCREMENT_ADJUST', 
-                       old_trial=trial, 
-                       new_trial=current_user.trial)
 
     if last_trial:
-        log_user_action(uid, 'LAST_TRIAL_COMPLETE', step=current_user.step)
         socketio.emit("qpb", to=sid)
     else:
         socketio.emit("next_step", to=sid)
@@ -2106,9 +1719,6 @@ def post_qpb(data):
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
     
-    log_user_action(uid, 'QPB_SUBMIT', 
-                    step=current_user.step, 
-                    bloc=bloc_key)
     
     # Les données sont sauvegardées via la routine habituelle de sauvegarde
     
@@ -2127,29 +1737,11 @@ def post_qpb(data):
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}AAT_L.json"
     
-    if os.path.exists(file_name):
-        file_size = os.path.getsize(file_name)
-        app.logger.warning(f"[QPB_POST_BLOC] FILE_ALREADY_EXISTS | uid={uid} | step={current_user.step} | file={file_name} | size={file_size}")
-        log_user_action(uid, "QPB_POST_BLOC_FILE_SAVED", status="skipped", reason="file_exists", step=current_user.step, file_path=file_name)
-    else:
-        success = safe_json_write(file_name, form, uid)
-        
-        if success:
-            file_size = os.path.getsize(file_name)
-            log_user_action(uid, "QPB_POST_BLOC_FILE_SAVED", status="success", step=current_user.step, file_path=file_name, file_size=file_size)
-            log_data_operation('write', uid, file_name, True, 
-                             size_bytes=file_size,
-                             file_type='QPB_POST_BLOC')
-        else:
-            app.logger.error(f"[QPB_POST_BLOC] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | file={file_name}")
-            log_user_action(uid, "QPB_POST_BLOC_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, file_path=file_name)
-            log_data_operation('write', uid, file_name, False, 
-                             error='Error during QPB save',
-                             file_type='QPB_POST_BLOC')
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
     #current_user.step += 1 # Permet de passer au bloc suivant
     current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
     db.session.commit()
-    log_user_action(uid, 'BLOC_COMPLETE_TRIAL_RESET', step=current_user.step)
     #socketio.emit("next_step", to=sid)
     socketio.emit("hoffman", to=sid)
 
@@ -2160,9 +1752,6 @@ def post_hoffman(data):
     uid = current_user.uid
     bloc_key = current_user.config["bloc_order"][current_user.step]
     
-    log_user_action(uid, 'HOFFMAN_SUBMIT', 
-                    step=current_user.step, 
-                    bloc=bloc_key)
     
     # Les données sont sauvegardées via la routine habituelle de sauvegarde
     
@@ -2181,32 +1770,12 @@ def post_hoffman(data):
     Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
     file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}HOFFMAN.json"
     
-    if os.path.exists(file_name):
-        file_size = os.path.getsize(file_name)
-        app.logger.warning(f"[HOFFMAN_SUBMIT] FILE_ALREADY_EXISTS | uid={uid} | step={current_user.step} | file={file_name} | size={file_size}")
-        log_user_action(uid, "HOFFMAN_FILE_SAVED", status="skipped", reason="file_exists", step=current_user.step, file_path=file_name)
-    else:
-        success = safe_json_write(file_name, form, uid)
-        
-        if success:
-            file_size = os.path.getsize(file_name)
-            log_user_action(uid, "HOFFMAN_FILE_SAVED", status="success", step=current_user.step, file_path=file_name, file_size=file_size)
-            log_data_operation('write', uid, file_name, True, 
-                             size_bytes=file_size,
-                             file_type='HOFFMAN')
-        else:
-            app.logger.error(f"[HOFFMAN_SUBMIT] FILE_WRITE_FAILED | uid={uid} | step={current_user.step} | file={file_name}")
-            log_user_action(uid, "HOFFMAN_FILE_SAVED", status="failed", reason="write_error", step=current_user.step, file_path=file_name)
-            log_data_operation('write', uid, file_name, False, 
-                             error='Error during HOFFMAN save',
-                             file_type='HOFFMAN')
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
     if current_user.step <= 6 :
         old_step = current_user.step
         current_user.step += 1 # Permet de passer au bloc suivant
         current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
-        log_user_action(uid, 'STEP_INCREMENT', 
-                       old_step=old_step, 
-                       new_step=current_user.step)
     db.session.commit()
     socketio.emit("next_step", to=sid)
 
@@ -2227,13 +1796,11 @@ def trial_save_routine(data):
     uid = data.get("uid", "UNKNOWN")
     trial_id = data.get("trial_id", "UNKNOWN")
     
-    log_user_action(uid, 'TRIAL_SAVE_START', trial_id=trial_id)
     
     try:
         Path("trajectories/" + data["config"].get("config_id")+ "/" + data["uid"]
                             ).mkdir(parents=True, exist_ok=True)
     except TypeError:
-        log_user_action(uid, 'TRIAL_SAVE_ERROR', error='TypeError creating path')
         return
     try:
         # Créer une copie des données pour modification
@@ -2282,57 +1849,13 @@ def trial_save_routine(data):
         
         # Vérifier si le fichier existe déjà
         if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            log_user_action(uid, 'TRIAL_FILE_ALREADY_EXISTS', 
-                          trial_id=trial_id, 
-                          file_path=file_path, 
-                          file_size=file_size,
-                          status='skipped')
-            log_data_operation('WRITE', uid, file_path, True, 
-                             size_bytes=file_size,
-                             data_type='TRIAL_DATA',
-                             trial_id=trial_id,
-                             status='skipped',
-                             reason='file_already_exists')
             return
         
         # Écrire le fichier avec safe_json_write
-        success = safe_json_write(file_path, data_copy, uid)
+        safe_json_write(file_path, data_copy, uid)
         
-        if success:
-            file_size = os.path.getsize(file_path)
-            log_user_action(uid, 'TRIAL_FILE_SAVED', 
-                          trial_id=trial_id, 
-                          file_path=file_path, 
-                          file_size=file_size,
-                          status='success')
-            log_data_operation('WRITE', uid, file_path, True, 
-                             size_bytes=file_size,
-                             data_type='TRIAL_DATA',
-                             trial_id=trial_id,
-                             status='success')
-        else:
-            log_user_action(uid, 'TRIAL_FILE_SAVE_FAILED', 
-                          trial_id=trial_id, 
-                          file_path=file_path,
-                          status='failed',
-                          reason='write_error')
-            log_data_operation('WRITE', uid, file_path, False, 
-                             data_type='TRIAL_DATA',
-                             trial_id=trial_id,
-                             status='failed',
-                             reason='write_error')
-        
-    except KeyError as e:
-        log_user_action(uid, 'TRIAL_FILE_SAVE_FAILED', 
-                       trial_id=trial_id,
-                       status='failed',
-                       error=f'KeyError: {str(e)}')
-        log_data_operation('WRITE', uid, 'UNKNOWN', False, 
-                         error=f'KeyError: {str(e)}',
-                         data_type='TRIAL_DATA',
-                         trial_id=trial_id,
-                         status='failed')
+    except KeyError:
+        pass
 
 #############
 # Game Loop #
@@ -2342,10 +1865,7 @@ def trial_save_routine(data):
 # qui permet de mettre à jour les informations de la partie
 def play_game(game, fps=15):
     status = Game.Status.ACTIVE
-    start_time = time()
     
-    # Log le démarrage de la partie
-    app.logger.info(f"[GAME_START] game_id={game.id} | fps={fps} | start_time={start_time}")
     print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
     
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
@@ -2381,11 +1901,6 @@ def play_game(game, fps=15):
             socketio.emit('state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
     with game.lock:
-        end_time = time()
-        duration = end_time - start_time
-        
-        # Log la fin de la partie avec la durée
-        app.logger.info(f"[GAME_END] game_id={game.id} | status={status} | duration={duration:.2f}s | start={start_time} | end={end_time}")
         
         if status != Game.Status.INACTIVE:
             game.deactivate()
@@ -2405,13 +1920,11 @@ def play_game(game, fps=15):
                     }, room=game.id)
                     socketio.emit("qpb", room=game.id)
             except SocketIOTimeOutError:
-                app.logger.warning(f"[GAME_TIMEOUT] game_id={game.id} | Player not on for end game")
                 print("Player " + str(game.id) + " is not on")
                 if not isinstance(game, OvercookedTutorial):
                     socketio.emit("qpb", room=game.id)
             socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
     
-    app.logger.info(f"[GAME_CLEANUP] game_id={game.id} | status={status} | duration={duration:.2f}s")
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
