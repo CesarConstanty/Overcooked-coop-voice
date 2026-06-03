@@ -665,6 +665,14 @@ class OvercookedGame(Game):
         state_dict['score'] = self.score
         state_dict['time_left'] = max(
             self.max_time - (time() - self.start_time), 0)
+        # [ASYMMETRIC DISPENSERS] Le client humain (joueur 0) ne voit que les items des dispensers 'A'
+        # TODO: réactiver ce filtre après les tests visuels (supprimer le commentaire ci-dessous)
+        # if self.mdp.has_asymmetric_dispensers():
+        #     b_positions = {tuple(p) for p in self.mdp.get_player1_dispenser_locations()}
+        #     state_dict['state']['dispenser_items'] = [
+        #         entry for entry in state_dict['state'].get('dispenser_items', [])
+        #         if (entry[0], entry[1]) not in b_positions
+        #     ]
 #        print ("valeur de la variable state_dict['state'] : ", state_dict['state'])
         return state_dict
 
@@ -1055,8 +1063,14 @@ class PlanningGame(OvercookedGame):
             self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['intentions'] = self.get_intentions(self.planning_agent_id)
-        
-        # Ajouter des informations sur les questionnaires pour le client
+        # [ASYMMETRIC DISPENSERS] Le client humain (joueur 0) ne voit que les items des dispensers 'A'
+        # TODO: réactiver ce filtre après les tests visuels (supprimer le commentaire ci-dessous)
+        # if self.mdp.has_asymmetric_dispensers():
+        #     b_positions = {tuple(p) for p in self.mdp.get_player1_dispenser_locations()}
+        #     state_dict['state']['dispenser_items'] = [
+        #         entry for entry in state_dict['state'].get('dispenser_items', [])
+        #         if (entry[0], entry[1]) not in b_positions
+        #     ]
         state_dict['show_post_trial_questionnaire'] = self.should_show_post_trial_questionnaire()
         state_dict['is_last_trial_in_bloc'] = self.is_last_trial_in_bloc()
         state_dict['curr_trial_in_game'] = self.curr_trial_in_game

@@ -907,9 +907,11 @@ class MediumLevelActionManager(object):
         player_actions = []
         counter_pickup_objects = self.mdp.get_counter_objects_dict(state, self.counter_pickup)
         if not player.has_object():
-            onion_pickup = self.pickup_onion_actions(counter_pickup_objects)
-            tomato_pickup = self.pickup_tomato_actions(counter_pickup_objects)
-            dish_pickup = self.pickup_dish_actions(counter_pickup_objects)
+            # [ASYMMETRIC DISPENSERS] Déterminer l'index du joueur pour les dispensers exclusifs
+            player_idx = next((i for i, p in enumerate(state.players) if p is player), None)
+            onion_pickup = self.pickup_onion_actions(counter_pickup_objects, state=state, player_idx=player_idx)
+            tomato_pickup = self.pickup_tomato_actions(counter_pickup_objects, state=state, player_idx=player_idx)
+            dish_pickup = self.pickup_dish_actions(counter_pickup_objects, state=state, player_idx=player_idx)
             soup_pickup = self.pickup_counter_soup_actions(counter_pickup_objects)
 
             pot_states_dict = self.mdp.get_pot_states(state)
@@ -945,27 +947,48 @@ class MediumLevelActionManager(object):
             # Trying to mimic a "WAIT" action by adding the closest allowed feature to the avaliable actions
             # This is because motion plans that aren't facing terrain features (non counter, non empty spots)
             # are not considered valid
-            player_actions.extend(self.go_to_closest_feature_actions(player))
+            # [ASYMMETRIC DISPENSERS] passer state et player_idx pour inclure les dispensers exclusifs
+            player_idx = next((i for i, p in enumerate(state.players) if p is player), None)
+            player_actions.extend(self.go_to_closest_feature_actions(player, state=state, player_idx=player_idx))
 
         is_valid_goal_given_start = lambda goal: self.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, goal)    
         player_actions = list(filter(is_valid_goal_given_start, player_actions))
         return player_actions
 
-    def pickup_onion_actions(self, counter_objects, only_use_dispensers=False):
+    # [ASYMMETRIC DISPENSERS] Helper : positions des dispensers exclusifs d'un joueur contenant un item donné
+    def _get_asymmetric_dispenser_locations_for_item(self, state, player_idx, item_name):
+        if state is None or not self.mdp.has_asymmetric_dispensers():
+            return []
+        if player_idx == 0:
+            player_locs = set(map(tuple, self.mdp.get_player0_dispenser_locations()))
+        elif player_idx == 1:
+            player_locs = set(map(tuple, self.mdp.get_player1_dispenser_locations()))
+        else:
+            return []
+        return [pos for pos, item in state.dispenser_items.items()
+                if item == item_name and pos in player_locs]
+
+    def pickup_onion_actions(self, counter_objects, only_use_dispensers=False, state=None, player_idx=None):
         """If only_use_dispensers is True, then only take onions from the dispensers"""
         onion_pickup_locations = self.mdp.get_onion_dispenser_locations()
+        # [ASYMMETRIC DISPENSERS] Ajouter les dispensers exclusifs contenant des oignons
+        onion_pickup_locations += self._get_asymmetric_dispenser_locations_for_item(state, player_idx, 'onion')
         if not only_use_dispensers:
             onion_pickup_locations += counter_objects['onion']
         return self._get_ml_actions_for_positions(onion_pickup_locations)
 
-    def pickup_tomato_actions(self, counter_objects):
+    def pickup_tomato_actions(self, counter_objects, state=None, player_idx=None):
         tomato_dispenser_locations = self.mdp.get_tomato_dispenser_locations()
+        # [ASYMMETRIC DISPENSERS] Ajouter les dispensers exclusifs contenant des tomates
+        tomato_dispenser_locations += self._get_asymmetric_dispenser_locations_for_item(state, player_idx, 'tomato')
         tomato_pickup_locations = tomato_dispenser_locations + counter_objects['tomato']
         return self._get_ml_actions_for_positions(tomato_pickup_locations)
 
-    def pickup_dish_actions(self, counter_objects, only_use_dispensers=False):
+    def pickup_dish_actions(self, counter_objects, only_use_dispensers=False, state=None, player_idx=None):
         """If only_use_dispensers is True, then only take dishes from the dispensers"""
         dish_pickup_locations = self.mdp.get_dish_dispenser_locations()
+        # [ASYMMETRIC DISPENSERS] Ajouter les dispensers exclusifs contenant des assiettes
+        dish_pickup_locations += self._get_asymmetric_dispenser_locations_for_item(state, player_idx, 'dish')
         if not only_use_dispensers:
             dish_pickup_locations += counter_objects['dish']
         return self._get_ml_actions_for_positions(dish_pickup_locations)
@@ -1009,9 +1032,15 @@ class MediumLevelActionManager(object):
             nearly_ready_pot_locations = nearly_ready_pot_locations + pot_states_dict['empty'] + partially_full_pots
         return self._get_ml_actions_for_positions(ready_pot_locations + nearly_ready_pot_locations)
 
-    def go_to_closest_feature_actions(self, player):
+    def go_to_closest_feature_actions(self, player, state=None, player_idx=None):
         feature_locations = self.mdp.get_onion_dispenser_locations() + self.mdp.get_tomato_dispenser_locations() + \
                             self.mdp.get_pot_locations() + self.mdp.get_dish_dispenser_locations()
+        # [ASYMMETRIC DISPENSERS] Inclure les dispensers exclusifs du joueur comme features de navigation
+        if state is not None and self.mdp.has_asymmetric_dispensers():
+            for item in ('onion', 'tomato', 'dish'):
+                feature_locations += self._get_asymmetric_dispenser_locations_for_item(state, player_idx, item)
+        if not feature_locations:
+            return []
         closest_feature_pos = self.motion_planner.min_cost_to_feature(player.pos_and_or, feature_locations, with_argmin=True)[1]
         return self._get_ml_actions_for_positions([closest_feature_pos])
 

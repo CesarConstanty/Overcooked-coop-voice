@@ -133,8 +133,14 @@ class OvercookedScene extends Phaser.Scene {
             'O': 'onions.png',
             'T': 'tomatoes.png',
             'D': 'dishes.png',
-            'S': 'serve.png'
+            'S': 'serve.png',
+            // [ASYMMETRIC DISPENSERS] A = dispenser exclusif joueur 0 (humain), B = exclusif joueur 1 (IA)
+            // Frame initiale : counter.png — mise à jour dynamiquement dans _drawState selon l'item courant
+            'A': 'counter.png',
+            'B': 'counter.png'
         };
+        // [ASYMMETRIC DISPENSERS] Stocker les sprites des tuiles A/B pour mise à jour dynamique de leur frame
+        this.asymmetric_dispenser_tiles = {};
         let pos_dict = this.terrain;
         for (let row in pos_dict) {
             if (!pos_dict.hasOwnProperty(row)) {continue}
@@ -149,6 +155,10 @@ class OvercookedScene extends Phaser.Scene {
                 );
                 tile.setDisplaySize(this.tileSize, this.tileSize);
                 tile.setOrigin(0);
+                // [ASYMMETRIC DISPENSERS] Mémoriser les sprites des tuiles A et B
+                if (ttype === 'A' || ttype === 'B') {
+                    this.asymmetric_dispenser_tiles[`${x},${y}`] = tile;
+                }
             }
         }
     }
@@ -325,6 +335,32 @@ class OvercookedScene extends Phaser.Scene {
                 objsprite.depth = 1;
                 objsprite.setOrigin(0);
                 sprites['objects'][objpos] = {objsprite};
+            }
+        }
+
+        // [ASYMMETRIC DISPENSERS] Mettre à jour le frame de la tuile A/B selon l'item courant
+        // Utilise la même atlas "tiles" que les vrais dispensers O/T/D
+        const dispenser_item_to_tile_frame = {
+            'onion': 'onions.png',
+            'tomato': 'tomatoes.png',
+            'dish': 'dishes.png'
+        };
+        if (typeof(this.asymmetric_dispenser_tiles) !== 'undefined') {
+            // Réinitialiser tous les dispensers asymétriques à counter.png
+            // (couvre le cas de B dont le joueur humain ne reçoit pas les données)
+            for (let key in this.asymmetric_dispenser_tiles) {
+                this.asymmetric_dispenser_tiles[key].setFrame('counter.png');
+            }
+            // Mettre à jour les dispensers dont on connaît l'item (A pour le joueur humain)
+            if (typeof(state.dispenser_items) !== 'undefined' && state.dispenser_items !== null) {
+                for (let entry of state.dispenser_items) {
+                    let [dx, dy, item_name] = entry;
+                    let frame = dispenser_item_to_tile_frame[item_name];
+                    let key = `${dx},${dy}`;
+                    if (frame && this.asymmetric_dispenser_tiles[key]) {
+                        this.asymmetric_dispenser_tiles[key].setFrame(frame);
+                    }
+                }
             }
         }
 

@@ -709,7 +709,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 'T': 'tomatoes.png',
                 'D': 'dishes.png',
                 'S': 'serve.png',
-                'Y': 'exchange.png'
+                'Y': 'exchange.png',
+                // [ASYMMETRIC DISPENSERS] A = joueur 0 (humain), B = joueur 1 (IA)
+                'A': 'counter.png',
+                'B': 'counter.png'
             };
         } else {
             terrain_to_img = {
@@ -720,10 +723,15 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 'T': 'tomatoes.png',
                 'D': 'dishes.png',
                 'S': 'serve.png',
-                'Y': 'counter.png'
+                'Y': 'counter.png',
+                // [ASYMMETRIC DISPENSERS] A = joueur 0 (humain), B = joueur 1 (IA)
+                'A': 'counter.png',
+                'B': 'counter.png'
             };
         }
 
+        // [ASYMMETRIC DISPENSERS] Mémoriser les sprites des tuiles A/B pour mise à jour dynamique
+        this.asymmetric_dispenser_tiles = {};
         let pos_dict = this.terrain;
         for (let row in pos_dict) {
             if (!pos_dict.hasOwnProperty(row)) {continue}
@@ -738,6 +746,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 );
                 tile.setDisplaySize(this.tileSize, this.tileSize);
                 tile.setOrigin(0);
+                if (ttype === 'A' || ttype === 'B') {
+                    this.asymmetric_dispenser_tiles[`${x},${y}`] = tile;
+                }
             }
         }
     }
@@ -966,7 +977,32 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 objsprite.setOrigin(0);
                 sprites['objects'][objpos] = {objsprite};
             }
-        }        
+        }
+
+        // [ASYMMETRIC DISPENSERS] Mettre à jour le frame de la tuile A/B selon l'item courant
+        if (typeof(this.asymmetric_dispenser_tiles) !== 'undefined') {
+            const dispenser_item_to_tile_frame = {
+                'onion': 'onions.png',
+                'tomato': 'tomatoes.png',
+                'dish': 'dishes.png'
+            };
+            // Réinitialiser à counter.png (couvre le cas de B invisible pour le joueur humain)
+            for (let key in this.asymmetric_dispenser_tiles) {
+                this.asymmetric_dispenser_tiles[key].setFrame('counter.png');
+            }
+            // Appliquer le frame de l'item connu (A pour le joueur humain)
+            if (typeof(state.dispenser_items) !== 'undefined' && state.dispenser_items !== null) {
+                for (let entry of state.dispenser_items) {
+                    let [dx, dy, item_name] = entry;
+                    let frame = dispenser_item_to_tile_frame[item_name];
+                    let key = `${dx},${dy}`;
+                    if (frame && this.asymmetric_dispenser_tiles[key]) {
+                        this.asymmetric_dispenser_tiles[key].setFrame(frame);
+                    }
+                }
+            }
+        }
+
         // Note: Les sons de recettes sont maintenant gérés dans _drawHUD pour éviter les doublons
         // quand recipe_sound et asset_sound sont tous les deux activés
     }

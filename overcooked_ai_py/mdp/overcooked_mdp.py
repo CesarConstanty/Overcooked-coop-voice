@@ -1,5 +1,5 @@
 from email.policy import default
-import itertools, copy, warnings
+import itertools, copy, warnings, random
 import numpy as np
 from functools import reduce
 from collections import defaultdict, Counter
@@ -609,7 +609,8 @@ class PlayerState(object):
 
 class OvercookedState(object):
     """A state in OvercookedGridworld."""
-    def __init__(self, players, objects, bonus_orders=[], all_orders=[], timestep=0, config=None, **kwargs):
+    def __init__(self, players, objects, bonus_orders=[], all_orders=[], timestep=0, config=None,
+                 dispenser_items=None, **kwargs):  # [ASYMMETRIC DISPENSERS]
         """
         players (list(PlayerState)): Currently active PlayerStates (index corresponds to number)
         objects (dict({tuple:list(ObjectState)})):  Dictionary mapping positions (x, y) to ObjectStates. 
@@ -630,6 +631,8 @@ class OvercookedState(object):
         self._all_orders = all_orders
         self.timestep = timestep
         self.config = config or {}
+        # [ASYMMETRIC DISPENSERS] {(x,y): item_name} — item courant de chaque dispenser joueur-spécifique
+        self.dispenser_items = dict(dispenser_items) if dispenser_items else {}
 
         # Ajout conditionnel selon la config
         if self.config.get("infinite_all_order", False):
@@ -758,10 +761,11 @@ class OvercookedState(object):
     def deepcopy(self):
         return OvercookedState(
             players=[player.deepcopy() for player in self.players],
-            objects={pos:obj.deepcopy() for pos, obj in self.objects.items()}, 
+            objects={pos:obj.deepcopy() for pos, obj in self.objects.items()},
             bonus_orders=[order.to_dict() for order in self.bonus_orders],
             all_orders=[order.to_dict() for order in self.all_orders],
-            timestep=self.timestep)
+            timestep=self.timestep,
+            dispenser_items=dict(self.dispenser_items))  # [ASYMMETRIC DISPENSERS]
 
     def time_independent_equal(self, other):
         order_lists_equal = self.all_orders == other.all_orders and self.bonus_orders == other.bonus_orders
@@ -790,7 +794,9 @@ class OvercookedState(object):
             "objects": [obj.to_dict() for obj in self.objects.values()],
             "bonus_orders": [order.to_dict() for order in self.bonus_orders],
             "all_orders" : [order.to_dict() for order in self.all_orders],
-            "timestep" : self.timestep
+            "timestep" : self.timestep,
+            # [ASYMMETRIC DISPENSERS] sérialisé comme liste [[x, y, item], ...] (clés tuple non JSON-sérialisables)
+            "dispenser_items": [[pos[0], pos[1], item] for pos, item in self.dispenser_items.items()]
         }
 
     @staticmethod
@@ -799,6 +805,9 @@ class OvercookedState(object):
         state_dict["players"] = [PlayerState.from_dict(p) for p in state_dict["players"]]
         object_list = [SoupState.from_dict(o) for o in state_dict["objects"]]
         state_dict["objects"] = { ob.position : ob for ob in object_list }
+        # [ASYMMETRIC DISPENSERS] Reconstruire le dict avec des clés tuple
+        dispenser_items_raw = state_dict.pop("dispenser_items", [])
+        state_dict["dispenser_items"] = {tuple(entry[:2]): entry[2] for entry in dispenser_items_raw}
         return OvercookedState(**state_dict)
 
 
@@ -915,6 +924,8 @@ class OvercookedGridworld(object):
         self.tomato_time = kwargs.get("tomato_time", 7)
         # Stocker le type de layout (symétrique ou complémentaire)
         self.layout_type = kwargs.get("layout_type", "symetrique")
+        # [ASYMMETRIC DISPENSERS] Pool d'objets distribuables par les dispensers joueur-spécifiques
+        self.dispenser_pool = kwargs.get("dispenser_pool", ["onion", "tomato", "dish"])
 
 
     @staticmethod
@@ -1084,6 +1095,10 @@ class OvercookedGridworld(object):
         start_state = OvercookedState.from_player_positions(
             self.start_player_positions, bonus_orders=self.start_bonus_orders, all_orders=self.start_all_orders
         )
+        # [ASYMMETRIC DISPENSERS] Initialiser un item aléatoire pour chaque dispenser joueur-spécifique
+        if self.has_asymmetric_dispensers() and self.dispenser_pool:
+            for pos in self.get_player0_dispenser_locations() + self.get_player1_dispenser_locations():
+                start_state.dispenser_items[pos] = random.choice(self.dispenser_pool)
         return start_state
 
     def get_random_start_state_fn(self, random_start_pos=False, rnd_obj_prob_thresh=0.0):
@@ -1241,6 +1256,19 @@ class OvercookedGridworld(object):
                 # Perform dish pickup from dispenser
                 obj = ObjectState('dish', pos)
                 player.set_object(obj)
+
+            # [ASYMMETRIC DISPENSERS] A = dispenser exclusif joueur 0, B = exclusif joueur 1
+            elif terrain_type in ('A', 'B') and player.held_object is None:
+                allowed_idx = 0 if terrain_type == 'A' else 1
+                if player_idx == allowed_idx:
+                    item_name = new_state.dispenser_items.get(i_pos)
+                    if item_name:
+                        self.log_object_pickup(events_infos, new_state, item_name, pot_states, player_idx)
+                        player.set_object(ObjectState(item_name, pos))
+                        # Recharge aléatoire depuis la pool configurée
+                        if self.dispenser_pool:
+                            new_state.dispenser_items[i_pos] = random.choice(self.dispenser_pool)
+                # Accès refusé pour l'autre joueur : silencieux, aucun effet
 
             elif terrain_type == 'P' and not player.has_object():
                 # Cooking soup
@@ -1444,6 +1472,19 @@ class OvercookedGridworld(object):
 
     def get_tomato_dispenser_locations(self):
         return list(self.terrain_pos_dict['T'])
+
+    # [ASYMMETRIC DISPENSERS] Dispensers exclusifs par joueur
+    def get_player0_dispenser_locations(self):
+        """Positions des dispensers accessibles uniquement au joueur 0 (humain)."""
+        return list(self.terrain_pos_dict.get('A', []))
+
+    def get_player1_dispenser_locations(self):
+        """Positions des dispensers accessibles uniquement au joueur 1 (IA)."""
+        return list(self.terrain_pos_dict.get('B', []))
+
+    def has_asymmetric_dispensers(self):
+        """Retourne True si le layout contient des dispensers joueur-spécifiques (A ou B)."""
+        return bool(self.terrain_pos_dict.get('A')) or bool(self.terrain_pos_dict.get('B'))
 
     def get_serving_locations(self):
         return list(self.terrain_pos_dict['S'])
@@ -1668,7 +1709,7 @@ class OvercookedGridworld(object):
 
         # Borders must not be free spaces
         def is_not_free(c):
-            return c in 'XOPDSTY'
+            return c in 'XOPDSTYAB'
 
         for y in range(height):
             assert is_not_free(grid[y][0]), 'Left border must not be free'
@@ -1685,12 +1726,15 @@ class OvercookedGridworld(object):
         layout_digits = list(sorted(map(int, layout_digits)))
         assert layout_digits == list(range(1, num_players + 1)), "Some players were missing"
 
-        assert all(c in 'XOPDSTY123456789 ' for c in all_elements), 'Invalid character in grid'
+        assert all(c in 'XOPDSTYAB123456789 ' for c in all_elements), 'Invalid character in grid'
         assert all_elements.count('1') == 1, "'1' must be present exactly once"
         assert all_elements.count('D') >= 1, "'D' must be present at least once"
         assert all_elements.count('S') >= 1, "'S' must be present at least once"
         assert all_elements.count('P') >= 1, "'P' must be present at least once"
-        assert all_elements.count('O') >= 1 or all_elements.count('T') >= 1, "'O' or 'T' must be present at least once"
+        # [ASYMMETRIC DISPENSERS] 'A'/'B' dispensers count as valid ingredient sources
+        assert (all_elements.count('O') >= 1 or all_elements.count('T') >= 1
+                or all_elements.count('A') >= 1 or all_elements.count('B') >= 1), \
+            "'O', 'T', 'A' or 'B' must be present at least once"
 
 
     ################################

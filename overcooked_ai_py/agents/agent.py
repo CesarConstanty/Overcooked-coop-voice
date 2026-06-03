@@ -473,7 +473,7 @@ class PlanningAgent(Agent):
 
             if soup_nearly_ready and not other_has_dish:
                 self.intentions['goal'] = 'D'
-                motion_goals = am.pickup_dish_actions(counter_objects)
+                motion_goals = am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
             else:
                 self.next_order_info = self.hl_action(state)
                 self.intentions["recipe"] = self.next_order_info["recipe"].ingredients
@@ -501,18 +501,18 @@ class PlanningAgent(Agent):
                     if len(missing_ingredients) == 0:
                         # Plus d'ingrédients nécessaires → prendre une assiette
                         self.intentions['goal'] = 'D'
-                        motion_goals = am.pickup_dish_actions(counter_objects)
+                        motion_goals = am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
                     elif 'onion' in missing_ingredients:
                         self.intentions['goal'] = 'O'
-                        motion_goals = am.pickup_onion_actions(counter_objects)
+                        motion_goals = am.pickup_onion_actions(counter_objects, state=state, player_idx=self.agent_index)
                     elif 'tomato' in missing_ingredients:
                         self.intentions['goal'] = 'T'
-                        motion_goals = am.pickup_tomato_actions(counter_objects)
+                        motion_goals = am.pickup_tomato_actions(counter_objects, state=state, player_idx=self.agent_index)
                     else:
                         motion_goals = am.wait_actions(player)
                         motion_goals
                 else:
-                    motion_goals = am.go_to_closest_feature_actions(player)
+                    motion_goals = am.go_to_closest_feature_actions(player, state=state, player_idx=self.agent_index)
                     motion_goals
 
         else:
