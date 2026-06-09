@@ -766,7 +766,7 @@ class PlanningGame(OvercookedGame):
         self.triplet_display_max = float(self.config.get('triplet_display_max', 30))
         # Runtime triplet state (properly initialised in activate())
         self.order_triplets = None
-        self.master_remaining_orders = None
+        self.orders_served = 0
         self.current_triplet_index = 0
         self.triplet_start_time = None
         self.triplet_duration = 0
@@ -884,22 +884,16 @@ class PlanningGame(OvercookedGame):
     # Triplet helpers
     # ------------------------------------------------------------------
 
-    def _get_current_triplet_ingredient_keys(self):
-        """Set of sorted-ingredient tuples for the current triplet slot."""
+    def _get_current_triplet_orders(self):
+        """Fresh orders for the current triplet slot, always from start_all_orders."""
+        if not self.order_triplets:
+            return []
         idx = self.current_triplet_index % len(self.order_triplets)
-        keys = set()
+        orders = []
         for i in self.order_triplets[idx]:
             if i < len(self.mdp.start_all_orders):
-                keys.add(tuple(sorted(self.mdp.start_all_orders[i]['ingredients'])))
-        return keys
-
-    def _get_current_triplet_orders(self):
-        """Unserved orders in master list that belong to the current triplet, as Recipe objects."""
-        if not self.order_triplets or not self.master_remaining_orders:
-            return []
-        keys = self._get_current_triplet_ingredient_keys()
-        return [Recipe.from_dict(o) for o in self.master_remaining_orders
-                if tuple(sorted(o['ingredients'])) in keys]
+                orders.append(Recipe.from_dict(self.mdp.start_all_orders[i]))
+        return orders
 
     def _advance_triplet(self):
         """Move to the next triplet and pick a new random display duration."""
@@ -996,7 +990,7 @@ class PlanningGame(OvercookedGame):
         # Reset triplet state for this trial's layout (super().activate() loads new mdp)
         self.order_triplets = getattr(self.mdp, 'order_triplets', None)
         if self.order_triplets:
-            self.master_remaining_orders = list(self.mdp.start_all_orders)
+            self.orders_served = 0
             self.current_triplet_index = 0
             self.triplet_start_time = None
             self.triplet_duration = random.uniform(self.triplet_display_min, self.triplet_display_max)
@@ -1024,7 +1018,6 @@ class PlanningGame(OvercookedGame):
 
         # Triplet system: restrict state.all_orders to current triplet before each tick
         before_triplet_count = None
-        before_triplet_keys = None
         if self.order_triplets:
             if self.triplet_start_time is None:
                 self.triplet_start_time = time()
@@ -1034,26 +1027,16 @@ class PlanningGame(OvercookedGame):
             # Ensure only current triplet orders are visible / scoreable
             self.state._all_orders = self._get_current_triplet_orders()
             before_triplet_count = len(self.state._all_orders)
-            before_triplet_keys = frozenset(
-                tuple(sorted(o.ingredients)) for o in self.state._all_orders
-            )
 
         # Apply MDP logic
         prev_state, joint_action, info = super(
             PlanningGame, self).apply_actions()
         self.infos.append(info['event_infos'])
 
-        # Triplet system: if an order was served, sync master list and advance triplet
+        # Triplet system: if an order was served, advance triplet
         if self.order_triplets and before_triplet_count is not None:
             if len(self.state._all_orders) < before_triplet_count:
-                after_keys = frozenset(
-                    tuple(sorted(o.ingredients)) for o in self.state._all_orders
-                )
-                served_keys = before_triplet_keys - after_keys
-                self.master_remaining_orders = [
-                    o for o in self.master_remaining_orders
-                    if tuple(sorted(o['ingredients'])) not in served_keys
-                ]
+                self.orders_served += 1
                 self._advance_triplet()
         
         if joint_action[1] != (0, 0):
@@ -1068,7 +1051,7 @@ class PlanningGame(OvercookedGame):
         # Log data to send to psiturk client
         curr_reward = sum(info['sparse_reward_by_agent'])
         if self.order_triplets:
-            ach_orders = len(self.mdp.start_all_orders) - len(self.master_remaining_orders)
+            ach_orders = self.orders_served
         else:
             ach_orders = len(self.mdp.start_all_orders) - len(self.state.all_orders)
         transition = {

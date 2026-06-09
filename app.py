@@ -1876,6 +1876,8 @@ def play_game(game, fps=15):
         if status == Game.Status.RESET:
             with game.lock:
                 data = game.data
+            if not isinstance(data, dict):
+                data = {}
             try:
                 trial_save_routine(data)
                 # Affiche le questionnaire agency à chaque fin de trial SAUF pour le tutoriel
