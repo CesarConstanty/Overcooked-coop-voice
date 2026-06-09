@@ -1793,6 +1793,8 @@ def trial_save_routine(data):
     Sauvegarder les données relative à un essai dans un fichier json
     dont nom sous la forme id_bloc_essai
     '''
+    if not isinstance(data, dict):
+        return
     uid = data.get("uid", "UNKNOWN")
     trial_id = data.get("trial_id", "UNKNOWN")
     
@@ -1905,6 +1907,8 @@ def play_game(game, fps=15):
         if status != Game.Status.INACTIVE:
             game.deactivate()
         data = game.data
+        if not isinstance(data, dict):
+            data = {}
         trial_save_routine(data)
         if status == Game.Status.DONE:
             try:

@@ -249,6 +249,8 @@ socket.on('start_game', function(data) {
         mechanic : data.config.mechanic,
         Game_Trial_Timer : data.config.Game_Trial_Timer,
         show_counter_drop : data.config.show_counter_drop,
+        triplet_display_min : data.config.triplet_display_min || 10,
+        triplet_display_max : data.config.triplet_display_max || 30,
     };
     window.spectating = data.spectating;
     $('#error-exit').hide();
@@ -299,7 +301,9 @@ socket.on('reset_game', function(data) {
             container_id : "overcooked",
             start_info : data.state, 
             condition : data.condition,
-            Game_Trial_Timer : data.config.Game_Trial_Timer
+            Game_Trial_Timer : data.config.Game_Trial_Timer,
+            triplet_display_min : data.config.triplet_display_min || 10,
+            triplet_display_max : data.config.triplet_display_max || 30,
         };
         if (!window.spectating) {
             enable_key_listener();

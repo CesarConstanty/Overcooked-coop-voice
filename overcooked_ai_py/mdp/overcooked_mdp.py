@@ -926,6 +926,8 @@ class OvercookedGridworld(object):
         self.layout_type = kwargs.get("layout_type", "symetrique")
         # [ASYMMETRIC DISPENSERS] Pool d'objets distribuables par les dispensers joueur-spécifiques
         self.dispenser_pool = kwargs.get("dispenser_pool", ["onion", "tomato", "dish"])
+        # Pre-defined groups of 3 recipe indices for display rotation
+        self.order_triplets = kwargs.get("order_triplets", None)
 
 
     @staticmethod

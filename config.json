@@ -78,6 +78,8 @@
         "max_num_ingredients" : 3,
         "infinite_all_order" : false,
         "Game_Trial_Timer" : true,
+        "triplet_display_min" : 10,
+        "triplet_display_max" : 30,
         "ai_slowdown_enabled": true,
         "AI_see_asset" : true,
         "ai_base_speed": 4,

@@ -521,7 +521,9 @@ class PlanningAgent(Agent):
             try :
                 self.next_order_info["missing_ingredients_in_MA_pot"] = all_recipes[self.next_order_info["recipe"]]["missing_ingredients_in_MA_pot"]
             except KeyError:
-                pass
+                # Recipe triplet changed — the cached recipe is no longer valid; replan.
+                if all_recipes:
+                    self.next_order_info = self.hl_action(state)
 
             if player_obj.name == 'onion':
                 # self.next_order_info["min_cost_to_complete"] == any([10000, 0]):

@@ -3,7 +3,7 @@ from email.policy import default
 from threading import Lock, Thread
 from queue import Queue, LifoQueue, Empty, Full
 from time import time
-from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
+from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Recipe
 from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
 from overcooked_ai_py.mdp.actions import Action, Direction
 from overcooked_ai_py.planning.planners import MediumLevelActionManager, MotionPlanner, NO_COUNTERS_PARAMS, COUNTERS_MLG_PARAMS
@@ -681,6 +681,7 @@ class OvercookedGame(Game):
         obj_dict['counter_goals'] = self.mdp.counter_goals
         obj_dict['terrain'] = self.mdp.terrain_mtx if self._is_active else None
         obj_dict['state'] = self.get_state() if self._is_active else None
+        obj_dict['order_triplets'] = self.mdp.order_triplets
         return obj_dict
 
     def get_policy(self, npc_id, idx=0):
@@ -759,6 +760,16 @@ class PlanningGame(OvercookedGame):
         
         # Set initial AI speed after parent initialization
         self.ticks_per_ai_action = self.base_ticks_per_ai_action
+
+        # Triplet display system — configuration (constant throughout experiment)
+        self.triplet_display_min = float(self.config.get('triplet_display_min', 10))
+        self.triplet_display_max = float(self.config.get('triplet_display_max', 30))
+        # Runtime triplet state (properly initialised in activate())
+        self.order_triplets = None
+        self.master_remaining_orders = None
+        self.current_triplet_index = 0
+        self.triplet_start_time = None
+        self.triplet_duration = 0
 
     def _update_ai_speed(self):
         """Update AI speed based on slowdown state (PlanningGame only)."""
@@ -869,11 +880,43 @@ class PlanningGame(OvercookedGame):
                 print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No planning agent available for asset check")
                 
 
+    # ------------------------------------------------------------------
+    # Triplet helpers
+    # ------------------------------------------------------------------
+
+    def _get_current_triplet_ingredient_keys(self):
+        """Set of sorted-ingredient tuples for the current triplet slot."""
+        idx = self.current_triplet_index % len(self.order_triplets)
+        keys = set()
+        for i in self.order_triplets[idx]:
+            if i < len(self.mdp.start_all_orders):
+                keys.add(tuple(sorted(self.mdp.start_all_orders[i]['ingredients'])))
+        return keys
+
+    def _get_current_triplet_orders(self):
+        """Unserved orders in master list that belong to the current triplet, as Recipe objects."""
+        if not self.order_triplets or not self.master_remaining_orders:
+            return []
+        keys = self._get_current_triplet_ingredient_keys()
+        return [Recipe.from_dict(o) for o in self.master_remaining_orders
+                if tuple(sorted(o['ingredients'])) in keys]
+
+    def _advance_triplet(self):
+        """Move to the next triplet and pick a new random display duration."""
+        self.current_triplet_index += 1
+        self.triplet_start_time = time()
+        self.triplet_duration = random.uniform(self.triplet_display_min, self.triplet_display_max)
+        self.state._all_orders = self._get_current_triplet_orders()
+
+    # ------------------------------------------------------------------
+
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
-            #print(self.state.all_orders)
+            if self.order_triplets:
+                # With triplets the trial is always time-bounded
+                return time() - self.start_time >= self.max_time
             return len(self.state.all_orders) == 0 or time() - self.start_time >= self.max_time
-        else :
+        else:
             return time() - self.start_time >= self.max_time
     
     def needs_reset(self):
@@ -949,6 +992,17 @@ class PlanningGame(OvercookedGame):
                     print(f"[AI_SLOWDOWN] First trial of block {self.step} - extended orientation time")
         
         super().activate()
+
+        # Reset triplet state for this trial's layout (super().activate() loads new mdp)
+        self.order_triplets = getattr(self.mdp, 'order_triplets', None)
+        if self.order_triplets:
+            self.master_remaining_orders = list(self.mdp.start_all_orders)
+            self.current_triplet_index = 0
+            self.triplet_start_time = None
+            self.triplet_duration = random.uniform(self.triplet_display_min, self.triplet_display_max)
+            # Apply first triplet immediately so to_json() sends the correct subset
+            self.state._all_orders = self._get_current_triplet_orders()
+
         self.trial_id = self.participant_uid + '_' + \
             str(self.step) + "_" + str(self.curr_trial_in_game)
 
@@ -967,11 +1021,40 @@ class PlanningGame(OvercookedGame):
         self._check_recipe_intention_change()
         self._check_asset_intention_change()
         self._update_ai_speed()
-        
+
+        # Triplet system: restrict state.all_orders to current triplet before each tick
+        before_triplet_count = None
+        before_triplet_keys = None
+        if self.order_triplets:
+            if self.triplet_start_time is None:
+                self.triplet_start_time = time()
+            # Rotate triplet when timer expires
+            if time() - self.triplet_start_time >= self.triplet_duration:
+                self._advance_triplet()
+            # Ensure only current triplet orders are visible / scoreable
+            self.state._all_orders = self._get_current_triplet_orders()
+            before_triplet_count = len(self.state._all_orders)
+            before_triplet_keys = frozenset(
+                tuple(sorted(o.ingredients)) for o in self.state._all_orders
+            )
+
         # Apply MDP logic
         prev_state, joint_action, info = super(
             PlanningGame, self).apply_actions()
         self.infos.append(info['event_infos'])
+
+        # Triplet system: if an order was served, sync master list and advance triplet
+        if self.order_triplets and before_triplet_count is not None:
+            if len(self.state._all_orders) < before_triplet_count:
+                after_keys = frozenset(
+                    tuple(sorted(o.ingredients)) for o in self.state._all_orders
+                )
+                served_keys = before_triplet_keys - after_keys
+                self.master_remaining_orders = [
+                    o for o in self.master_remaining_orders
+                    if tuple(sorted(o['ingredients'])) not in served_keys
+                ]
+                self._advance_triplet()
         
         if joint_action[1] != (0, 0):
             self.human_action_count += 1
@@ -984,8 +1067,10 @@ class PlanningGame(OvercookedGame):
 
         # Log data to send to psiturk client
         curr_reward = sum(info['sparse_reward_by_agent'])
-        ach_orders = len(self.mdp.start_all_orders) - \
-            len(self.state.all_orders)
+        if self.order_triplets:
+            ach_orders = len(self.mdp.start_all_orders) - len(self.master_remaining_orders)
+        else:
+            ach_orders = len(self.mdp.start_all_orders) - len(self.state.all_orders)
         transition = {
             "joint_action": json.dumps(joint_action),
             "reward": curr_reward,
@@ -1058,6 +1143,20 @@ class PlanningGame(OvercookedGame):
             print(f"[TIMER_DEBUG] Trial {self.curr_trial_in_game+1}: max_time={self.max_time}, elapsed={elapsed_time:.2f}, time_left={time_left}")
         
         state_dict['time_left'] = time_left
+        # Triplet timer
+        if self.order_triplets and self.triplet_start_time is not None:
+            triplet_elapsed = time() - self.triplet_start_time
+            state_dict['triplet_time_left'] = max(0, round(self.triplet_duration - triplet_elapsed))
+            # Full triplet for display: always 3 recipes from layout, regardless of served status
+            idx = self.current_triplet_index % len(self.order_triplets)
+            state_dict['triplet_display_orders'] = [
+                self.mdp.start_all_orders[i]
+                for i in self.order_triplets[idx]
+                if i < len(self.mdp.start_all_orders)
+            ]
+        else:
+            state_dict['triplet_time_left'] = None
+            state_dict['triplet_display_orders'] = None
         state_dict['intentions'] = self.get_intentions(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)

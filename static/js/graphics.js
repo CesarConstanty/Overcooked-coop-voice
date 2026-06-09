@@ -155,6 +155,7 @@ class GraphicsManager { // initialise et gère les graphismes du jeu
         start_info.counter_goals.forEach(element => start_info.terrain[element[1]][element[0]] = 'Y');
         scene_config.terrain = start_info.terrain;
         scene_config.start_state = start_info.state;
+        // Triplet display data passed through for potential future use
         //scene_config.condition = 
         game_config.scene = new OvercookedScene(scene_config);
         game_config.width = 600 + scene_config.hud_size ;//scene_config.tileSize*scene_config.terrain[0].length + scene_config.hud_size;
@@ -216,7 +217,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             time : config.start_state.time_left,
             bonus_orders : config.start_state.state.bonus_orders,
             all_orders : config.start_state.state.all_orders,
-            intentions : config.start_state.intentions
+            intentions : config.start_state.intentions,
+            triplet_time_left : config.start_state.triplet_time_left || null,
+            triplet_display_orders : config.start_state.triplet_display_orders || null
         }
         this.condition = config.condition;
         this.mechanic = config.mechanic;
@@ -235,6 +238,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.hud_data.bonus_orders = state.state.bonus_orders;
         this.hud_data.all_orders = state.state.all_orders;
         this.hud_data.intentions = state.intentions;
+        this.hud_data.triplet_time_left = (state.triplet_time_left !== undefined) ? state.triplet_time_left : null;
+        this.hud_data.triplet_display_orders = state.triplet_display_orders || null;
         this.state = state.state;
     }
 
@@ -1049,8 +1054,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
 
     _drawHUD(hud_data, sprites, board_height, board_width, state) {
+        // Use triplet_display_orders (always 3 recipes from layout) if available, else fall back to all_orders
+        const displayOrders = hud_data.triplet_display_orders || hud_data.all_orders;
         if (typeof(hud_data.all_orders) !== 'undefined') {
-            this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width); // affiche les recette restantes
+            this._drawAllOrders(displayOrders, sprites, board_height, board_width, undefined, hud_data.triplet_time_left, hud_data.score); // affiche les recettes restantes
         }
         /* if (typeof(hud_data.bonus_orders) !== 'undefined') {
             this._drawBonusOrders(hud_data.bonus_orders, sprites, board_height);
@@ -1093,7 +1100,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }                   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
-                this._drawAllOrders(hud_data.all_orders, sprites, board_height, board_width, hud_data.intentions.recipe);
+                this._drawAllOrders(displayOrders, sprites, board_height, board_width, hud_data.intentions.recipe, hud_data.triplet_time_left, hud_data.score);
             }        
         }
     }
@@ -1138,54 +1145,78 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
     }
 
-    _drawAllOrders(orders, sprites, board_height, board_width, intentions) {
+    /**
+     * Display all orders received from the server.
+     * The server (PlanningGame) manages triplet rotation and sends only the
+     * current triplet's unserved orders in state.all_orders.
+     */
+    _drawAllOrders(orders, sprites, board_height, board_width, intentions, triplet_time_left, score) {
         if (typeof(orders) !== 'undefined' && orders !== null) {
-            let orders_str = "All Orders: ";
+            const orders_str = "All Orders: ";
             if (typeof(sprites['all_orders']) !== 'undefined') {
-                // Clear existing orders
-                sprites['all_orders']['orders'].forEach(element => {
-                    element.destroy();
-                });
+                sprites['all_orders']['orders'].forEach(element => element.destroy());
                 sprites['all_orders']['orders'] = [];
 
-                // Update with new orders
                 for (let i = 0; i < orders.length; i++) {
-                    if (JSON.stringify(orders[i]['ingredients']) === JSON.stringify(intentions)){     
+                    if (JSON.stringify(orders[i]['ingredients']) === JSON.stringify(intentions)) {
                         let highlightSprite = this.add.sprite(
-                            board_width +10 + 40 * i,
-                            50,
-                            "colortiles",
-                            "turquoise.png"    
+                            board_width + 10 + 40 * i, 50, "colortiles", "turquoise.png"
                         );
-                        highlightSprite.setDisplaySize(40,40);
+                        highlightSprite.setDisplaySize(40, 40);
                         highlightSprite.setOrigin(0);
                         highlightSprite.depth = 0;
                         sprites['all_orders']['orders'].push(highlightSprite);
                     }
                     let spriteFrame = this._ingredientsToSpriteFrame(orders[i]['ingredients'], "done");
                     let orderSprite = this.add.sprite(
-                        board_width + 40 * i,
-                        40,
-                        "soups",
-                        spriteFrame
+                        board_width + 40 * i, 40, "soups", spriteFrame
                     );
                     sprites['all_orders']['orders'].push(orderSprite);
                     orderSprite.setDisplaySize(60, 60);
                     orderSprite.setOrigin(0);
                     orderSprite.depth = 1;
                 }
-            }
-            else {
+
+                // Triplet countdown timer
+                if (triplet_time_left !== null && triplet_time_left !== undefined) {
+                    if (typeof(sprites['all_orders']['triplet_timer']) !== 'undefined') {
+                        sprites['all_orders']['triplet_timer'].setText('Time left for recipes : ' + triplet_time_left + 's');
+                    } else {
+                        sprites['all_orders']['triplet_timer'] = this.add.text(
+                            board_width + 5, 105,
+                            'Time left for recipes : ' + triplet_time_left + 's',
+                            { font: '16px Arial', fill: '#ffffff', align: 'left' }
+                        );
+                        sprites['all_orders']['triplet_timer'].depth = 2;
+                    }
+                } else {
+                    if (typeof(sprites['all_orders']['triplet_timer']) !== 'undefined') {
+                        sprites['all_orders']['triplet_timer'].destroy();
+                        delete sprites['all_orders']['triplet_timer'];
+                    }
+                }
+
+                // Score display below timer
+                if (typeof(score) !== 'undefined' && score !== null) {
+                    const scoreText = 'Score: ' + score;
+                    if (typeof(sprites['all_orders']['recipe_score']) !== 'undefined') {
+                        sprites['all_orders']['recipe_score'].setText(scoreText);
+                    } else {
+                        sprites['all_orders']['recipe_score'] = this.add.text(
+                            board_width + 5, 130,
+                            scoreText,
+                            { font: '16px Arial', fill: '#ffff00', align: 'left' }
+                        );
+                        sprites['all_orders']['recipe_score'].depth = 2;
+                    }
+                }
+            } else {
                 sprites['all_orders'] = {};
                 sprites['all_orders']['str'] = this.add.text(
-                    board_width + 5, 15 , orders_str,
-                    {
-                        font: "20px Arial",
-                        fill: "red",
-                        align: "left"
-                    }
-                )
-                sprites['all_orders']['orders'] = []
+                    board_width + 5, 15, orders_str,
+                    { font: "20px Arial", fill: "red", align: "left" }
+                );
+                sprites['all_orders']['orders'] = [];
             }
         }
     }
