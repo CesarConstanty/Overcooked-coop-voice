@@ -16,5 +16,5 @@
     "dispenser_pool": ["onion", "tomato", "dish"],
     "cutting_enabled" : True,
     "chop_time" : {"onion" : 3, "tomato" : 2},
-    "recipes_requiring_chopping" : [["onion"], ["onion", "onion", "onion"]]
+    "recipes_requiring_chopping" : [["onion"], ["onion", "onion", "onion"],["tomato", "tomato"],["onion", "tomato"]]
 }

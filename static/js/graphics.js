@@ -947,7 +947,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 else {
                     soup_status = "cooked";
                 }
-                // [CUTTING BOARD] soupe à ingrédients coupés -> atlas soups_cut
+                // [CUTTING BOARD] soupe à ingrédients coupés dans la marmite -> atlas soups_cut
                 let soup_chopped = obj._ingredients.length > 0 && obj._ingredients.every(i => i.chopped);
                 let soup_atlas = (soup_chopped && this.textures.exists("soups_cut")) ? "soups_cut" : "soups";
                 spriteframe = this._ingredientsToSpriteFrame(ingredients, soup_status, soup_chopped && soup_atlas === "soups_cut");
