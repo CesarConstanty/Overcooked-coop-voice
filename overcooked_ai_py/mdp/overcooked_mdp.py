@@ -290,6 +290,11 @@ class ObjectState(object):
         """
         self.name = name
         self._position = tuple(position)
+        # [CUTTING BOARD] Etat de découpe d'un ingrédient. `chopped` indique qu'il est
+        # entièrement coupé ; `chopping_tick` compte les interactions de découpe déjà
+        # effectuées sur la planche. Valeurs par défaut = comportement historique inchangé.
+        self.chopped = kwargs.get('chopped', False)
+        self.chopping_tick = kwargs.get('chopping_tick', 0)
 
     @property
     def position(self):
@@ -303,15 +308,18 @@ class ObjectState(object):
         return self.name in ['onion', 'tomato', 'dish']
 
     def deepcopy(self):
-        return ObjectState(self.name, self.position)
+        # [CUTTING BOARD] propager l'état de découpe
+        return ObjectState(self.name, self.position,
+                           chopped=self.chopped, chopping_tick=self.chopping_tick)
 
     def __eq__(self, other):
         return isinstance(other, ObjectState) and \
             self.name == other.name and \
-            self.position == other.position
+            self.position == other.position and \
+            self.chopped == getattr(other, 'chopped', False)
 
     def __hash__(self):
-        return hash((self.name, self.position))
+        return hash((self.name, self.position, self.chopped))
 
     def __repr__(self):
         return '{}@{}'.format(
@@ -320,7 +328,10 @@ class ObjectState(object):
     def to_dict(self):
         return {
             "name": self.name,
-            "position": self.position
+            "position": self.position,
+            # [CUTTING BOARD] sérialisé serveur->client pour cohérence du rendu
+            "chopped": self.chopped,
+            "chopping_tick": self.chopping_tick
         }
 
     @classmethod
@@ -381,6 +392,12 @@ class SoupState(ObjectState):
     @property
     def ingredients(self):
         return [ingredient.name for ingredient in self._ingredients]
+
+    @property
+    def all_ingredients_chopped(self):
+        # [CUTTING BOARD] True si la soupe a au moins un ingrédient et que tous sont coupés
+        return len(self._ingredients) > 0 and all(
+            getattr(ingredient, 'chopped', False) for ingredient in self._ingredients)
 
     @property
     def is_cooking(self):
@@ -858,7 +875,11 @@ EVENT_TYPES = [
     'catastrophic_onion_potting',
     'catastrophic_tomato_potting',
     'useless_onion_potting',
-    'useless_tomato_potting'
+    'useless_tomato_potting',
+
+    # [CUTTING BOARD] Chopping events
+    'onion_chop',
+    'tomato_chop'
 ]
 
 POTENTIAL_CONSTANTS = {
@@ -928,6 +949,15 @@ class OvercookedGridworld(object):
         self.dispenser_pool = kwargs.get("dispenser_pool", ["onion", "tomato", "dish"])
         # Pre-defined groups of 3 recipe indices for display rotation
         self.order_triplets = kwargs.get("order_triplets", None)
+        # [CUTTING BOARD] Paramètres de l'étape de découpe (désactivée par défaut => jeu inchangé).
+        # chop_time peut être un entier (commun à tous les ingrédients) ou un dict {ingredient: ticks}.
+        # recipes_requiring_chopping : liste de listes d'ingrédients dont la soupe n'est valide que coupée.
+        self.cutting_enabled = bool(kwargs.get("cutting_enabled", False))
+        self.chop_time = kwargs.get("chop_time", 3)
+        self.recipes_requiring_chopping = [
+            tuple(sorted(r)) for r in kwargs.get("recipes_requiring_chopping", [])
+        ]
+        self.cutting_board_symbol = kwargs.get("cutting_board_symbol", "C")
 
 
     @staticmethod
@@ -1272,6 +1302,31 @@ class OvercookedGridworld(object):
                             new_state.dispenser_items[i_pos] = random.choice(self.dispenser_pool)
                 # Accès refusé pour l'autre joueur : silencieux, aucun effet
 
+            # [CUTTING BOARD] Planche à découper 'C' — toute la branche est conditionnée par cutting_enabled
+            elif self.cutting_enabled and terrain_type == 'C':
+                if player.has_object() and not new_state.has_object(i_pos):
+                    # Déposer un ingrédient brut (non coupé) sur la planche
+                    held = player.get_object()
+                    if held.name in Recipe.ALL_INGREDIENTS and not held.chopped:
+                        self.log_object_drop(events_infos, new_state, held.name, pot_states, player_idx)
+                        obj = player.remove_object()
+                        new_state.add_object(obj, i_pos)
+                    # (assiette / ingrédient déjà coupé : on ne dépose pas sur la planche)
+
+                elif not player.has_object() and new_state.has_object(i_pos):
+                    board_obj = new_state.get_object(i_pos)
+                    if board_obj.name in Recipe.ALL_INGREDIENTS and not board_obj.chopped:
+                        # Progresser la découpe d'une interaction
+                        board_obj.chopping_tick += 1
+                        if board_obj.chopping_tick >= self.get_chop_time(board_obj.name):
+                            board_obj.chopped = True
+                            self.log_object_chop(events_infos, new_state, board_obj.name, player_idx)
+                    else:
+                        # Ingrédient coupé (ou autre objet) : le récupérer
+                        self.log_object_pickup(events_infos, new_state, board_obj.name, pot_states, player_idx)
+                        obj = new_state.remove_object(i_pos)
+                        player.set_object(obj)
+
             elif terrain_type == 'P' and not player.has_object():
                 # Cooking soup
                 if self.soup_to_be_cooked_at_location(new_state, i_pos):
@@ -1312,12 +1367,19 @@ class OvercookedGridworld(object):
             elif terrain_type == 'S' and player.has_object():
                 obj = player.get_object()
                 if obj.name == 'soup':
-                    delivery_rew = self.deliver_soup(new_state, player, obj)
-                    new_state.clear_order(obj.recipe)
-                    sparse_reward[player_idx] += delivery_rew
+                    # [CUTTING BOARD] Si la recette exige la découpe, la soupe n'est livrable
+                    # que si TOUS ses ingrédients sont coupés ; sinon elle n'est pas comptée
+                    # (aucune récompense, commande non validée, joueur conserve la soupe).
+                    if self.cutting_enabled and self.recipe_requires_chopping(obj.recipe) \
+                            and not obj.all_ingredients_chopped:
+                        pass
+                    else:
+                        delivery_rew = self.deliver_soup(new_state, player, obj)
+                        new_state.clear_order(obj.recipe)
+                        sparse_reward[player_idx] += delivery_rew
 
-                    # Log soup delivery
-                    events_infos['soup_delivery'][player_idx] = True                        
+                        # Log soup delivery
+                        events_infos['soup_delivery'][player_idx] = True
 
         return sparse_reward, shaped_reward
 
@@ -1487,6 +1549,24 @@ class OvercookedGridworld(object):
     def has_asymmetric_dispensers(self):
         """Retourne True si le layout contient des dispensers joueur-spécifiques (A ou B)."""
         return bool(self.terrain_pos_dict.get('A')) or bool(self.terrain_pos_dict.get('B'))
+
+    # [CUTTING BOARD] Planches à découper
+    def get_cutting_board_locations(self):
+        """Positions des planches à découper ('C')."""
+        return list(self.terrain_pos_dict.get('C', []))
+
+    def get_chop_time(self, ingredient_name):
+        """Nombre d'interactions de découpe requises pour un ingrédient donné."""
+        ct = self.chop_time
+        if isinstance(ct, dict):
+            return ct.get(ingredient_name, ct.get('default', 1))
+        return ct
+
+    def recipe_requires_chopping(self, recipe):
+        """True si la recette livrée exige que tous ses ingrédients soient coupés."""
+        if not self.cutting_enabled or not self.recipes_requiring_chopping:
+            return False
+        return tuple(sorted(recipe.ingredients)) in self.recipes_requiring_chopping
 
     def get_serving_locations(self):
         return list(self.terrain_pos_dict['S'])
@@ -1711,7 +1791,8 @@ class OvercookedGridworld(object):
 
         # Borders must not be free spaces
         def is_not_free(c):
-            return c in 'XOPDSTYAB'
+            # [CUTTING BOARD] 'C' (planche à découper) compte comme terrain non libre
+            return c in 'XOPDSTYABC'
 
         for y in range(height):
             assert is_not_free(grid[y][0]), 'Left border must not be free'
@@ -1728,7 +1809,8 @@ class OvercookedGridworld(object):
         layout_digits = list(sorted(map(int, layout_digits)))
         assert layout_digits == list(range(1, num_players + 1)), "Some players were missing"
 
-        assert all(c in 'XOPDSTYAB123456789 ' for c in all_elements), 'Invalid character in grid'
+        # [CUTTING BOARD] 'C' ajouté aux caractères de grille valides
+        assert all(c in 'XOPDSTYABC123456789 ' for c in all_elements), 'Invalid character in grid'
         assert all_elements.count('1') == 1, "'1' must be present exactly once"
         assert all_elements.count('D') >= 1, "'D' must be present at least once"
         assert all_elements.count('S') >= 1, "'S' must be present at least once"
@@ -1796,6 +1878,13 @@ class OvercookedGridworld(object):
             if USEFUL_DROP_FNS[obj_name](state, pot_states, player_index):
                 obj_useful_key = "useful_" + obj_name + "_drop"
                 events_infos[obj_useful_key][player_index] = True
+
+    def log_object_chop(self, events_infos, state, obj_name, player_index):
+        """[CUTTING BOARD] Player finished chopping an ingredient on a cutting board"""
+        chop_key = obj_name + "_chop"
+        if chop_key not in events_infos:
+            raise ValueError("Unknown event {}".format(chop_key))
+        events_infos[chop_key][player_index] = True
 
     def is_dish_pickup_useful(self, state, pot_states, player_index=None):
         """

@@ -443,6 +443,19 @@ class PlanningAgent(Agent):
 
 
 
+    def _held_needs_chopping(self, held_obj):
+        """[CUTTING BOARD] True si l'ingrédient tenu doit être coupé pour la recette ciblée."""
+        mdp = self.mlam.mdp
+        if not getattr(mdp, 'cutting_enabled', False):
+            return False
+        if getattr(held_obj, 'chopped', False):
+            return False
+        try:
+            recipe = self.next_order_info["recipe"]
+        except (TypeError, KeyError):
+            return False
+        return mdp.recipe_requires_chopping(recipe)
+
     def ml_action(self, state):
         """
         Selects a medium level action for the current state.
@@ -462,6 +475,14 @@ class PlanningAgent(Agent):
         counter_objects = self.mlam.mdp.get_counter_objects_dict(
             state, list(self.mlam.mdp.terrain_pos_dict['X']))
         pot_states_dict = self.mlam.mdp.get_pot_states(state)
+
+        # [CUTTING BOARD] Etat des planches à découper (no-op si la feature est désactivée)
+        cutting_enabled = getattr(self.mlam.mdp, 'cutting_enabled', False)
+        if cutting_enabled:
+            board_locs = set(self.mlam.mdp.get_cutting_board_locations())
+            board_objs = [o for o in state.objects.values() if o.position in board_locs]
+        else:
+            board_objs = []
 
         if not player.has_object():
             ready_soups = pot_states_dict['ready']
@@ -515,6 +536,17 @@ class PlanningAgent(Agent):
                     motion_goals = am.go_to_closest_feature_actions(player, state=state, player_idx=self.agent_index)
                     motion_goals
 
+            # [CUTTING BOARD] Priorité: si un ingrédient est en cours de découpe / déjà coupé
+            # sur une planche, finir la découpe ou le récupérer avant toute autre action.
+            if cutting_enabled and board_objs:
+                chopped_objs = [o for o in board_objs if getattr(o, 'chopped', False)]
+                unchopped_objs = [o for o in board_objs if not getattr(o, 'chopped', False)]
+                self.intentions['goal'] = 'C'
+                if chopped_objs:
+                    motion_goals = am.pickup_chopped_actions(chopped_objs)
+                else:
+                    motion_goals = am.chop_actions(unchopped_objs)
+
         else:
             player_obj = player.get_object()
             all_recipes = self.hl_info(state)
@@ -530,6 +562,10 @@ class PlanningAgent(Agent):
                 if 'onion' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
                     motion_goals = am.place_obj_on_counter_actions(state)
                     self.intentions['goal'] = 'X'
+                # [CUTTING BOARD] découper l'oignon avant de le mettre au pot si la recette l'exige
+                elif cutting_enabled and self._held_needs_chopping(player_obj):
+                    motion_goals = am.put_ingredient_on_board_actions(state)
+                    self.intentions['goal'] = 'C'
                 else:
                     motion_goals = am.put_onion_in_pot_actions(
                         pot_states_dict)  # TODO : sélectionner le bon pot
@@ -540,6 +576,10 @@ class PlanningAgent(Agent):
                 if 'tomato' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
                     motion_goals = am.place_obj_on_counter_actions(state)
                     self.intentions['goal'] = 'X'
+                # [CUTTING BOARD] découper la tomate avant de la mettre au pot si la recette l'exige
+                elif cutting_enabled and self._held_needs_chopping(player_obj):
+                    motion_goals = am.put_ingredient_on_board_actions(state)
+                    self.intentions['goal'] = 'C'
                 else:
                     motion_goals = am.put_tomato_in_pot_actions(
                         pot_states_dict)
@@ -619,7 +659,11 @@ class PlanningAgent(Agent):
                             cost+= costs_dict['onion-pot'] * 2
                     else :
                             pass
-                            #cost+= costs_dict['tomato-pot'] * 2     
+                            #cost+= costs_dict['tomato-pot'] * 2
+            # [CUTTING BOARD] coût additionnel de découpe (nb d'interactions) si la recette l'exige
+            if getattr(self.mdp, 'cutting_enabled', False) and self.mdp.recipe_requires_chopping(recipe):
+                for ingredient in missing_ingredients:
+                    cost += self.mdp.get_chop_time(ingredient)
             return cost + costs_dict['pot-delivery'] + min([onion_delivery_cost, tomato_delivery_cost])
 
         def cost_to_complete(recipe, state):

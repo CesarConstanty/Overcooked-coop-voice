@@ -265,6 +265,19 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         if(!this.textures.exists("types")){this.load.atlas("types",
             this.assets_loc + "types.png",
             this.assets_loc + "types.json")}
+        // [CUTTING BOARD] Atlas de la découpe (planche, ingrédients coupés, soupes coupées)
+        if(!this.textures.exists("terrain_cut")){this.load.atlas("terrain_cut",
+            this.assets_loc + "terrain_cut.png",
+            this.assets_loc + "terrain_cut.json");}
+        if(!this.textures.exists("objects_cut")){this.load.atlas("objects_cut",
+            this.assets_loc + "objects_cut.png",
+            this.assets_loc + "objects_cut.json");}
+        if(!this.textures.exists("soups_cut")){this.load.multiatlas("soups_cut",
+            this.assets_loc + "soups_cut.json",
+            this.assets_loc);}
+        if(!this.textures.exists("chefs_cut")){this.load.atlas("chefs_cut",
+            this.assets_loc + "chefs_cut.png",
+            this.assets_loc + "chefs_cut.json");}
 
         // OPTIMISATION: Ne charger les fichiers audio QUE si le cache global n'est pas déjà prêt
         if (!window.GLOBAL_AUDIO_CACHE.isLoaded) {
@@ -717,7 +730,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 'Y': 'exchange.png',
                 // [ASYMMETRIC DISPENSERS] A = joueur 0 (humain), B = joueur 1 (IA)
                 'A': 'counter.png',
-                'B': 'counter.png'
+                'B': 'counter.png',
+                // [CUTTING BOARD] planche à découper (frame de l'atlas terrain_cut)
+                'C': 'cutting_board.png'
             };
         } else {
             terrain_to_img = {
@@ -731,7 +746,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 'Y': 'counter.png',
                 // [ASYMMETRIC DISPENSERS] A = joueur 0 (humain), B = joueur 1 (IA)
                 'A': 'counter.png',
-                'B': 'counter.png'
+                'B': 'counter.png',
+                // [CUTTING BOARD] planche à découper (frame de l'atlas terrain_cut)
+                'C': 'cutting_board.png'
             };
         }
 
@@ -743,11 +760,21 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             for (let col = 0; col < pos_dict[row].length; col++) {
                 let [x, y] = [col, row]
                 let ttype = pos_dict[row][col];
+                // [CUTTING BOARD] La planche 'C' provient de l'atlas terrain_cut (fallback compteur)
+                let tile_atlas = "tiles";
+                let tile_frame = terrain_to_img[ttype];
+                if (ttype === 'C') {
+                    if (this.textures.exists("terrain_cut")) {
+                        tile_atlas = "terrain_cut";
+                    } else {
+                        tile_frame = 'counter.png';
+                    }
+                }
                 let tile = this.add.sprite(
                     this.tileSize * x,
                     this.tileSize * y,
-                    "tiles",
-                    terrain_to_img[ttype]
+                    tile_atlas,
+                    tile_frame
                 );
                 tile.setDisplaySize(this.tileSize, this.tileSize);
                 tile.setOrigin(0);
@@ -784,6 +811,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             let [x, y] = chef.position;
             let dir = DIRECTION_TO_NAME[chef.orientation];
             let held_obj = chef.held_object;
+            // [CUTTING BOARD] atlas du chef : chefs_cut quand il porte un ingrédient coupé
+            let chef_atlas = "chefs";
             if (typeof(held_obj) !== 'undefined' && held_obj !== null) {
                 if (held_obj.name === 'soup') {
                     let ingredients = held_obj._ingredients.map(x => x['name']);
@@ -792,7 +821,12 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                     } else {
                         held_obj = "-soup-tomato";
                     }
-                    
+
+                }
+                else if (held_obj.chopped && (held_obj.name === 'onion' || held_obj.name === 'tomato')
+                         && this.textures.exists("chefs_cut")) {
+                    held_obj = "-" + held_obj.name + "_cut";
+                    chef_atlas = "chefs_cut";
                 }
                 else {
                     held_obj = "-"+held_obj.name;
@@ -847,7 +881,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 let chefsprite = this.add.sprite(
                     this.tileSize*x,
                     this.tileSize*y,
-                    "chefs",
+                    chef_atlas,
                     `${dir}${held_obj}.png`
                 );
                 chefsprite.setDisplaySize(this.tileSize, this.tileSize);
@@ -867,7 +901,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             else {
                 let chefsprite = sprites['chefs'][pi]['chefsprite'];
                 let hatsprite = sprites['chefs'][pi]['hatsprite'];
-                chefsprite.setFrame(`${dir}${held_obj}.png`);
+                // [CUTTING BOARD] setTexture (et non setFrame) car l'atlas peut changer (chefs <-> chefs_cut)
+                chefsprite.setTexture(chef_atlas, `${dir}${held_obj}.png`);
                 hatsprite.setFrame(`${dir}-${this.player_colors[pi]}hat.png`);
                 this.tweens.add({
                     targets: [chefsprite, hatsprite],
@@ -912,11 +947,14 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 else {
                     soup_status = "cooked";
                 }
-                spriteframe = this._ingredientsToSpriteFrame(ingredients, soup_status);
+                // [CUTTING BOARD] soupe à ingrédients coupés -> atlas soups_cut
+                let soup_chopped = obj._ingredients.length > 0 && obj._ingredients.every(i => i.chopped);
+                let soup_atlas = (soup_chopped && this.textures.exists("soups_cut")) ? "soups_cut" : "soups";
+                spriteframe = this._ingredientsToSpriteFrame(ingredients, soup_status, soup_chopped && soup_atlas === "soups_cut");
                 let objsprite = this.add.sprite(
                     this.tileSize*x,
                     this.tileSize*y,
-                    "soups",
+                    soup_atlas,
                     spriteframe
                 );
                 objsprite.setDisplaySize(this.tileSize, this.tileSize);
@@ -949,11 +987,14 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             else if (obj.name === 'soup') {
                 let ingredients = obj._ingredients.map(x => x['name']);
                 let soup_status = "done";
-                spriteframe = this._ingredientsToSpriteFrame(ingredients, soup_status);
+                // [CUTTING BOARD] soupe à ingrédients coupés -> atlas soups_cut
+                let soup_chopped = obj._ingredients.length > 0 && obj._ingredients.every(i => i.chopped);
+                let soup_atlas = (soup_chopped && this.textures.exists("soups_cut")) ? "soups_cut" : "soups";
+                spriteframe = this._ingredientsToSpriteFrame(ingredients, soup_status, soup_chopped && soup_atlas === "soups_cut");
                 let objsprite = this.add.sprite(
                     this.tileSize*x,
                     this.tileSize*y,
-                    "soups",
+                    soup_atlas,
                     spriteframe
                 );
                 objsprite.setDisplaySize(this.tileSize, this.tileSize);
@@ -962,25 +1003,48 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 sprites['objects'][objpos] = {objsprite};
             }
             else {
+                // [CUTTING BOARD] ingrédient coupé -> frame de l'atlas objects_cut
+                let obj_atlas = "objects";
+                let chopped = (obj.name === 'onion' || obj.name === 'tomato') && obj.chopped;
                 if (obj.name === 'onion') {
-                    spriteframe = "onion.png";
+                    spriteframe = obj.chopped ? "onion_cut.png" : "onion.png";
                 }
                 else if (obj.name === 'tomato') {
-                    spriteframe = "tomato.png";
+                    spriteframe = obj.chopped ? "tomato_cut.png" : "tomato.png";
                 }
                 else if (obj.name === 'dish') {
                     spriteframe = "dish.png";
                 }
+                if (chopped && this.textures.exists("objects_cut")) {
+                    obj_atlas = "objects_cut";
+                }
                 let objsprite = this.add.sprite(
                     this.tileSize*x,
                     this.tileSize*y,
-                    "objects",
+                    obj_atlas,
                     spriteframe
                 );
                 objsprite.setDisplaySize(this.tileSize, this.tileSize);
                 objsprite.depth = 1;
                 objsprite.setOrigin(0);
-                sprites['objects'][objpos] = {objsprite};
+                let objs_here = {objsprite};
+                // [CUTTING BOARD] indicateur de progression de découpe (sur le modèle du timesprite de cuisson)
+                if (terrain_type === 'C' && !obj.chopped &&
+                    typeof(obj.chopping_tick) !== 'undefined' && obj.chopping_tick > 0) {
+                    let timesprite = this.add.text(
+                        this.tileSize*(x+.5),
+                        this.tileSize*(y+.6),
+                        String(obj.chopping_tick),
+                        {
+                            font: "25px Arial",
+                            fill: "blue",
+                            align: "center",
+                        }
+                    );
+                    timesprite.depth = 2;
+                    objs_here['timesprite'] = timesprite;
+                }
+                sprites['objects'][objpos] = objs_here;
             }
         }
 
@@ -1478,9 +1542,13 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     }
     
 
-    _ingredientsToSpriteFrame(ingredients, status) {
+    _ingredientsToSpriteFrame(ingredients, status, chopped=false) {
         let num_tomatoes = ingredients.filter(x => x === 'tomato').length;
         let num_onions = ingredients.filter(x => x === 'onion').length;
+        // [CUTTING BOARD] dans l'atlas soups_cut, seules les frames "idle" portent le suffixe _cut
+        if (chopped && status === 'idle') {
+            return `soup_${status}_tomato_${num_tomatoes}_onion_${num_onions}_cut.png`
+        }
         return `soup_${status}_tomato_${num_tomatoes}_onion_${num_onions}.png`
     }
 

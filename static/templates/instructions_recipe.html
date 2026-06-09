@@ -145,6 +145,21 @@
       </div>
     </section>
 
+    {% if cutting_enabled %}
+    <section class="card">
+      <h3>Chopping (cutting board)</h3>
+      <p>Some recipes require their ingredients to be <strong>chopped on a cutting board</strong> before being placed in the pot. If an ingredient of such a recipe is not chopped, the soup will not count and will be worth 0 points.</p>
+      <p>To chop: pick up a raw ingredient, place it on the cutting board (<strong>spacebar</strong>), then press <strong>spacebar</strong> repeatedly to chop it. A counter shows the chopping progress. Once finished, pick the chopped ingredient back up and bring it to the pot.</p>
+      {% if chop_time is mapping %}
+      <p>Number of chops required:
+        {% for ingredient, ticks in chop_time.items() %}{{ ingredient }}: {{ ticks }}{% if not loop.last %}, {% endif %}{% endfor %}.
+      </p>
+      {% elif chop_time %}
+      <p>Number of chops required per ingredient: {{ chop_time }}.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
     <section class="card important">
       <h4 class="center">Please pay VERY close attention to this part. It is AS IMPORTANT AS the game itself.</h4>
     </section>

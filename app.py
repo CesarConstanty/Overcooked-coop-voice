@@ -779,17 +779,24 @@ def instructions():
                     tomato_time = config.get("tomato_time", LAYOUT_GLOBALS.get("tomato_time", 7))
                     onion_value = config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21))
                     tomato_value = config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13))
-                    
+                    # [CUTTING BOARD] Paramètres de découpe pour les instructions
+                    cutting_enabled = config.get("cutting_enabled", LAYOUT_GLOBALS.get("cutting_enabled", False))
+                    chop_time = config.get("chop_time", LAYOUT_GLOBALS.get("chop_time", {}))
+                    recipes_requiring_chopping = config.get("recipes_requiring_chopping", LAYOUT_GLOBALS.get("recipes_requiring_chopping", []))
+
 
                     # Suivi temporel : enregistrer la visite de la page instructions_recipe
                     track_page_view('instructions_recipe.html', uid, config.get("config_id"))
 
-                    return render_template('instructions_recipe.html', 
+                    return render_template('instructions_recipe.html',
                                             is_explained=is_explained,
                                             onion_time=onion_time,
                                             tomato_time=tomato_time,
                                             onion_value=onion_value,
                                             tomato_value=tomato_value,
+                                            cutting_enabled=cutting_enabled,
+                                            chop_time=chop_time,
+                                            recipes_requiring_chopping=recipes_requiring_chopping,
                                             config=config,
                                             timer_max=config.get('explications_generales_max', 600),
                                             timer_min=config.get('explications_generales_min', 120))
@@ -820,7 +827,10 @@ def instructions():
                           onion_value=config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21)),
                           tomato_value=config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13)),
                           max_num_ingredients=config.get("max_num_ingredients", LAYOUT_GLOBALS.get("max_num_ingredients", 3)),
-                          order_bonus=config.get("order_bonus", LAYOUT_GLOBALS.get("order_bonus", 2)))
+                          order_bonus=config.get("order_bonus", LAYOUT_GLOBALS.get("order_bonus", 2)),
+                          cutting_enabled=config.get("cutting_enabled", LAYOUT_GLOBALS.get("cutting_enabled", False)),
+                          chop_time=config.get("chop_time", LAYOUT_GLOBALS.get("chop_time", {})),
+                          recipes_requiring_chopping=config.get("recipes_requiring_chopping", LAYOUT_GLOBALS.get("recipes_requiring_chopping", [])))
 
 
 @app.route('/instructions_explained')
@@ -1843,7 +1853,12 @@ def trial_save_routine(data):
                     # Ajouter les trials du bloc actuel si ils existent
                     if "blocs" in config and current_bloc_key in config["blocs"]:
                         config_for_trial["current_bloc_trials"] = config["blocs"][current_bloc_key]
-                    
+
+                    # [CUTTING BOARD] Tracer les paramètres de découpe pour l'analyse
+                    config_for_trial["cutting_enabled"] = config.get("cutting_enabled", False)
+                    config_for_trial["chop_time"] = config.get("chop_time", None)
+                    config_for_trial["recipes_requiring_chopping"] = config.get("recipes_requiring_chopping", [])
+
                     # Placer ces informations juste après bloc_order
                     config["trial_config_data"] = config_for_trial
         

@@ -997,6 +997,23 @@ class MediumLevelActionManager(object):
         soup_pickup_locations = counter_objects['soup']
         return self._get_ml_actions_for_positions(soup_pickup_locations)
 
+    # [CUTTING BOARD] Générateurs de motion goals pour l'étape de découpe
+    def put_ingredient_on_board_actions(self, state):
+        """Aller déposer un ingrédient brut sur une planche à découper libre."""
+        board_locs = self.mdp.get_cutting_board_locations()
+        empty_boards = [p for p in board_locs if not state.has_object(p)]
+        return self._get_ml_actions_for_positions(empty_boards)
+
+    def chop_actions(self, board_objs):
+        """Aller découper (interagir avec) les ingrédients posés sur une planche."""
+        positions = [o.position for o in board_objs]
+        return self._get_ml_actions_for_positions(positions)
+
+    def pickup_chopped_actions(self, board_objs):
+        """Aller récupérer les ingrédients coupés posés sur une planche."""
+        positions = [o.position for o in board_objs]
+        return self._get_ml_actions_for_positions(positions)
+
     def start_cooking_actions(self, pot_states_dict):
         """This is for start cooking a pot that is cookable"""
         cookable_pots_location = self.mdp.get_partially_full_pots(pot_states_dict) + \
@@ -1039,6 +1056,9 @@ class MediumLevelActionManager(object):
         if state is not None and self.mdp.has_asymmetric_dispensers():
             for item in ('onion', 'tomato', 'dish'):
                 feature_locations += self._get_asymmetric_dispenser_locations_for_item(state, player_idx, item)
+        # [CUTTING BOARD] Inclure les planches à découper comme features atteignables
+        if getattr(self.mdp, 'cutting_enabled', False):
+            feature_locations += self.mdp.get_cutting_board_locations()
         if not feature_locations:
             return []
         closest_feature_pos = self.motion_planner.min_cost_to_feature(player.pos_and_or, feature_locations, with_argmin=True)[1]

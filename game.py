@@ -746,7 +746,7 @@ class PlanningGame(OvercookedGame):
         self.asset_slow_duration_ticks = self.config.get("ai_asset_slow_duration", 25)
         self.ai_slowdown_enabled = self.config.get("ai_slowdown_enabled", True)
         self.ai_asset_slowdown_enabled = self.config.get("ai_asset_slowdown_enabled", True)
-        self.ai_asset_slowdown_intentions = self.config.get("ai_asset_slowdown_intentions", ["O", "T", "D", "S", "P", "X"])
+        self.ai_asset_slowdown_intentions = self.config.get("ai_asset_slowdown_intentions", ["O", "T", "D", "S", "P", "X", "C"])
         self.slow_remaining_ticks = 0
         self.trial_start_slow_remaining_ticks = 0
         self.asset_slow_remaining_ticks = 0
@@ -853,7 +853,7 @@ class PlanningGame(OvercookedGame):
                     current_asset is not None and
                     current_asset in self.ai_asset_slowdown_intentions):
                     # Mapping des codes d'asset pour les logs
-                    asset_names = {'D': 'Deliver', 'O': 'Onion', 'T': 'Tomato', 'P': 'Pot', 'S': 'Soup', 'X': 'Other'}
+                    asset_names = {'D': 'Deliver', 'O': 'Onion', 'T': 'Tomato', 'P': 'Pot', 'S': 'Soup', 'X': 'Other', 'C': 'Chop'}
                     last_name = asset_names.get(self.last_asset_intention, self.last_asset_intention)
                     current_name = asset_names.get(current_asset, current_asset)
                     
@@ -865,7 +865,7 @@ class PlanningGame(OvercookedGame):
                       current_asset is not None and
                       current_asset not in self.ai_asset_slowdown_intentions):
                     # Log quand l'intention change mais n'est pas dans la liste autorisée
-                    asset_names = {'D': 'Deliver', 'O': 'Onion', 'T': 'Tomato', 'P': 'Pot', 'S': 'Soup', 'X': 'Other'}
+                    asset_names = {'D': 'Deliver', 'O': 'Onion', 'T': 'Tomato', 'P': 'Pot', 'S': 'Soup', 'X': 'Other', 'C': 'Chop'}
                     last_name = asset_names.get(self.last_asset_intention, self.last_asset_intention)
                     current_name = asset_names.get(current_asset, current_asset)
                     print(f"[AI_SLOWDOWN] Asset intention changed: {last_name} -> {current_name} (no slowdown - not in enabled list)")
