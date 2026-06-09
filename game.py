@@ -762,6 +762,7 @@ class PlanningGame(OvercookedGame):
         self.ticks_per_ai_action = self.base_ticks_per_ai_action
 
         # Triplet display system — configuration (constant throughout experiment)
+        self.triplet_enabled = bool(self.config.get('triplet', False))
         self.triplet_display_min = float(self.config.get('triplet_display_min', 10))
         self.triplet_display_max = float(self.config.get('triplet_display_max', 30))
         # Runtime triplet state (properly initialised in activate())
@@ -988,7 +989,7 @@ class PlanningGame(OvercookedGame):
         super().activate()
 
         # Reset triplet state for this trial's layout (super().activate() loads new mdp)
-        self.order_triplets = getattr(self.mdp, 'order_triplets', None)
+        self.order_triplets = getattr(self.mdp, 'order_triplets', None) if self.triplet_enabled else None
         if self.order_triplets:
             self.orders_served = 0
             self.current_triplet_index = 0
