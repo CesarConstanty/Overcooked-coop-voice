@@ -283,8 +283,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         if (!window.GLOBAL_AUDIO_CACHE.isLoaded) {
             console.log('[AUDIO CACHE] Premier chargement des fichiers audio...');
             const audioFiles = [
-                'comptoir.mp3', 'marmite.mp3', 'oignon.mp3', 'tomate.mp3', 
-                'assiette.mp3', 'service.mp3', 'annonce_recette.mp3',
+                'comptoir.mp3', 'marmite.mp3', 'oignon.mp3', 'tomate.mp3',
+                'assiette.mp3', 'service.mp3', 'illcut.mp3', 'annonce_recette.mp3',
                 'recette_0o_1t.mp3', 'recette_0o_2t.mp3', 'recette_0o_3t.mp3',
                 'recette_1o_0t.mp3', 'recette_1o_1t.mp3', 'recette_1o_2t.mp3',
                 'recette_2o_0t.mp3', 'recette_2o_1t.mp3', 'recette_3o_0t.mp3'
@@ -436,8 +436,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      */
     async loadAudioBuffers() {
         const audioFiles = [
-            'comptoir', 'marmite', 'oignon', 'tomate', 
-            'assiette', 'service', 'annonce_recette',
+            'comptoir', 'marmite', 'oignon', 'tomate',
+            'assiette', 'service', 'illcut', 'annonce_recette',
             'recette_0o_1t', 'recette_0o_2t', 'recette_0o_3t',
             'recette_1o_0t', 'recette_1o_1t', 'recette_1o_2t',
             'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
@@ -504,8 +504,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      */
     async loadAudioBuffersAlternative() {
         const audioFiles = [
-            'comptoir', 'marmite', 'oignon', 'tomate', 
-            'assiette', 'service', 'annonce_recette',
+            'comptoir', 'marmite', 'oignon', 'tomate',
+            'assiette', 'service', 'illcut', 'annonce_recette',
             'recette_0o_1t', 'recette_0o_2t', 'recette_0o_3t',
             'recette_1o_0t', 'recette_1o_1t', 'recette_1o_2t',
             'recette_2o_0t', 'recette_2o_1t', 'recette_3o_0t'
@@ -1298,7 +1298,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'O': 'oignon',
             'T': 'tomate',
             'D': 'assiette',
-            'S': 'service'
+            'S': 'service',
+            'C': 'illcut'
         };
 
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
@@ -1398,7 +1399,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'O': 'onions.png',
             'T': 'tomatoes.png',
             'D': 'dishes.png',
-            'S': 'serve.png'
+            'S': 'serve.png',
+            // [CUTTING BOARD] la planche provient de l'atlas terrain_cut
+            'C': 'cutting_board.png'
         };
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
             let intentions_str = "Partner's intentions:  ";
@@ -1411,11 +1414,20 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
 
                 // Update with new orders
                 for (let i = 0; i < intentions.length; i++) {
+                    // [CUTTING BOARD] La planche 'C' provient de l'atlas terrain_cut (fallback comptoir)
+                    let tile_atlas = "tiles";
                     let spriteFrame = terrain_to_img[intentions[i]];
+                    if (intentions[i] === 'C') {
+                        if (this.textures.exists("terrain_cut")) {
+                            tile_atlas = "terrain_cut";
+                        } else {
+                            spriteFrame = 'counter.png';
+                        }
+                    }
                     let orderSprite = this.add.sprite(
                         board_width +10 + this.tileSize * i,
                         140,
-                        "tiles",
+                        tile_atlas,
                         spriteFrame
                     );
                     sprites['intentions'].push(orderSprite);
@@ -1625,9 +1637,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'O': 'oignon',
             'T': 'tomate',
             'D': 'assiette',
-            'S': 'service'
+            'S': 'service',
+            'C': 'illcut'
         };
-        
+
         // vérifie que intention n'est ni nulle ni vide
         if (!intentions || intentions.length === 0) return;
 
@@ -1856,9 +1869,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         // Mapping vers les bonnes frames et atlas
         const assetToSprite = {
             'O': { atlas: 'objects', frame: 'onion.png' },
-            'T': { atlas: 'objects', frame: 'tomato.png' },  
+            'T': { atlas: 'objects', frame: 'tomato.png' },
             'D': { atlas: 'objects', frame: 'dish.png' },
-            'S': { atlas: 'tiles', frame: 'serve.png' }    // Zone de service depuis tiles (qui charge terrain.json)
+            'S': { atlas: 'tiles', frame: 'serve.png' },    // Zone de service depuis tiles (qui charge terrain.json)
+            'C': { atlas: 'objects_cut', frame: 'knife.png' }    // [CUTTING BOARD] couteau depuis objects_cut
         };
         
         let spriteInfo = assetToSprite[assetData];

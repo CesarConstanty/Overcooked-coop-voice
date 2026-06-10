@@ -598,9 +598,9 @@ def index():
             }
             elif value =="E" :
                 config["conditions"][bloc]={
-            "recipe_head": False,
-            "recipe_hud" : True,
-            "asset_hud" : True,
+            "recipe_head": True,
+            "recipe_hud" : False,
+            "asset_hud" : False,
             "motion_goal" : False,
             "asset_sound" : True,
             "recipe_sound" : True

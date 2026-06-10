@@ -299,6 +299,26 @@
 				"w": 15,
 				"h": 15
 			}
+		},
+		"knife.png": {
+			"frame": {
+				"x": 256,
+				"y": 1,
+				"w": 15,
+				"h": 15
+			},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {
+				"x": 0,
+				"y": 0,
+				"w": 15,
+				"h": 15
+			},
+			"sourceSize": {
+				"w": 15,
+				"h": 15
+			}
 		}
 	},
 	"meta": {
@@ -307,7 +327,7 @@
 		"image": "spritesheet.png",
 		"format": "RGBA8888",
 		"size": {
-			"w": 255,
+			"w": 276,
 			"h": 17
 		},
 		"scale": "1"

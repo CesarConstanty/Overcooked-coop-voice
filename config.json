@@ -54,11 +54,11 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"0":"EVH", "1":"U", "2":"EA"},
+        "conditions" : {"0":"E", "1":"U", "2":"EA"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
-        "condition_tutorials" : {"EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
+        "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
             "0": ["test01"],
             "1": ["test01"],
