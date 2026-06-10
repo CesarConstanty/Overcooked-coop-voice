@@ -857,11 +857,11 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 if (typeof(sprites['recipe_goal']) !== 'undefined'){
                     sprites['recipe_goal'].destroy();
                 }
-                if(this.condition.recipe_head){
-                    if(this.condition.visual_bubbles && this.hud_data) {
-                        // Mode EVH : bulles visuelles avec durées (seulement si hud_data disponible)
-                        this._displayVisualBubbles(chef, sprites, x, y, this.hud_data);
-                    } else if (!this.condition.visual_bubbles) {
+                if(this.condition.visual_bubbles && this.hud_data) {
+                    // Mode bulles visuelles temporisées (indépendant de recipe_head)
+                    this._displayVisualBubbles(chef, sprites, x, y, this.hud_data);
+                } else if(this.condition.recipe_head) {
+                    {
                         // Mode recipe_head classique permanent
                         let spriteFrame = this._ingredientsToSpriteFrame(chef.intentions.recipe, "done");
                         let order_goalSprite = this.add.sprite(
@@ -1739,60 +1739,57 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         let recipeId = JSON.stringify(currentRecipe);
         let assetsId = JSON.stringify(currentAssets);
         
-        // Vérifier si la recette a changé (début ou changement de recette)
+        // Quels types d'intention afficher (configurable via config.json, défaut : les deux)
+        let showRecipe = (this.condition.visual_intention_show_recipe !== false);
+        let showAsset  = (this.condition.visual_intention_show_asset  !== false);
+
+        // Détecter les changements
         let recipeChanged = (this.lastRecipe !== recipeId);
-        // Vérifier si les assets ont changé
         let assetsChanged = (this.lastAssets !== assetsId);
-        
-        // Logic de déclenchement selon les consignes :
-        // 1. Recette au début de partie OU quand elle change
-        // 2. Assets quand ils changent (mais PAS redéclencher la recette)
-        
-        if (recipeChanged || (assetsChanged && !recipeChanged)) {
+
+        // Ne réagir qu'aux changements des types activés
+        let relevantRecipeChange = showRecipe && recipeChanged;
+        let relevantAssetChange  = showAsset && assetsChanged;
+
+        if (relevantRecipeChange || relevantAssetChange) {
             // Mettre à jour les trackers
-            if (recipeChanged) this.lastRecipe = recipeId;
-            if (assetsChanged) this.lastAssets = assetsId;
-            
+            this.lastRecipe = recipeId;
+            this.lastAssets = assetsId;
+
+            // Durées définies dans la config
+            let recipeDuration = (this.condition.visual_intention_recipe_duration || 2000);
+            let assetDuration  = (this.condition.visual_intention_asset_duration  || 1500);
+
             // Construire la nouvelle séquence selon le cas
             let newSequence = [];
-            
-            if (recipeChanged && currentRecipe && currentRecipe.length > 0) {
-                // CAS 1: Recette a changé -> afficher recette PUIS assets
-                newSequence.push({
-                    type: 'recipe',
-                    data: currentRecipe,
-                    duration: (this.condition.visual_intention_recipe_duration || 2000)
-                });
-                
-                // Puis ajouter les assets après la recette
-                if (currentAssets && currentAssets.length > 0) {
+
+            if (relevantRecipeChange) {
+                // CAS 1: la recette a changé -> afficher la recette PUIS les assets (si activés)
+                if (showRecipe && currentRecipe && currentRecipe.length > 0) {
+                    newSequence.push({ type: 'recipe', data: currentRecipe, duration: recipeDuration });
+                }
+                if (showAsset && currentAssets && currentAssets.length > 0) {
                     currentAssets.forEach(asset => {
-                        newSequence.push({
-                            type: 'asset',
-                            data: asset,
-                            duration: (this.condition.visual_intention_asset_duration || 1500)
-                        });
+                        newSequence.push({ type: 'asset', data: asset, duration: assetDuration });
                     });
                 }
-            } else if (assetsChanged && !recipeChanged && currentAssets && currentAssets.length > 0) {
-                // CAS 2: Seuls les assets ont changé -> afficher SEULEMENT les nouveaux assets
-                currentAssets.forEach(asset => {
-                    newSequence.push({
-                        type: 'asset',
-                        data: asset,
-                        duration: (this.condition.visual_intention_asset_duration || 1500)
+            } else {
+                // CAS 2: seuls les assets ont changé -> afficher SEULEMENT les nouveaux assets
+                if (showAsset && currentAssets && currentAssets.length > 0) {
+                    currentAssets.forEach(asset => {
+                        newSequence.push({ type: 'asset', data: asset, duration: assetDuration });
                     });
-                });
+                }
             }
-            
-            // Démarrer la nouvelle séquence
+
+            // Démarrer la nouvelle séquence (ou nettoyer si rien à afficher)
             if (newSequence.length > 0) {
                 this._startBubbleSequence(newSequence, sprites, x, y);
             } else {
                 this._clearBubbleSequence();
             }
         } else {
-            // Aucun changement -> juste mettre à jour la position si une bulle est affichée
+            // Aucun changement pertinent -> juste mettre à jour la position de la bulle
             this._updateBubblePosition(x, y);
         }
     }

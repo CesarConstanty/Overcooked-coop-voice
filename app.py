@@ -598,12 +598,18 @@ def index():
             }
             elif value =="E" :
                 config["conditions"][bloc]={
-            "recipe_head": True,
+            "recipe_head": False,
             "recipe_hud" : False,
             "asset_hud" : False,
             "motion_goal" : False,
             "asset_sound" : True,
-            "recipe_sound" : True
+            "recipe_sound" : True,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000),
+            "visual_intention_show_recipe": config.get("visual_intention_show_recipe", True),
+            "visual_intention_show_asset": config.get("visual_intention_show_asset", True)
             }
             elif value =="Ea" :
                 config["conditions"][bloc]={
@@ -634,7 +640,9 @@ def index():
             "visual_bubbles" : True,
             "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
             "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
-            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000)
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000),
+            "visual_intention_show_recipe": config.get("visual_intention_show_recipe", True),
+            "visual_intention_show_asset": config.get("visual_intention_show_asset", True)
             }
 
     except KeyError:
