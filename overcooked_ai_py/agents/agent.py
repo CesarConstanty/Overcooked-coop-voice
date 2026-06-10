@@ -444,12 +444,17 @@ class PlanningAgent(Agent):
 
 
     def _held_needs_chopping(self, held_obj):
-        """[CUTTING BOARD] True si l'ingrédient tenu doit être coupé pour la recette ciblée."""
+        """[CUTTING BOARD] True si l'ingrédient tenu doit être coupé avant le pot.
+        C'est le cas si la recette ciblée l'exige, OU si la découpe est imposée à ce
+        joueur via AI_forced_cutting (le MDP interdit alors de déposer du non-coupé)."""
         mdp = self.mlam.mdp
         if not getattr(mdp, 'cutting_enabled', False):
             return False
         if getattr(held_obj, 'chopped', False):
             return False
+        # [FORCED CUTTING] Découpe imposée à ce joueur => toujours découper avant le pot.
+        if getattr(mdp, 'is_forced_cutting_player', None) and mdp.is_forced_cutting_player(self.agent_index):
+            return True
         try:
             recipe = self.next_order_info["recipe"]
         except (TypeError, KeyError):

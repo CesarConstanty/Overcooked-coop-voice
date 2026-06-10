@@ -97,7 +97,8 @@
         "cutting_enabled" : true,
         "chop_time" : {"onion" : 3, "tomato" : 2},
         "recipes_requiring_chopping" : [["onion"], ["onion", "onion", "onion"]],
-        "cutting_board_symbol" : "C"
+        "cutting_board_symbol" : "C",
+        "Human_forced_cutting" : true
     },
     "tutorial" : {
         "tutorialParams" : {

@@ -958,6 +958,17 @@ class OvercookedGridworld(object):
             tuple(sorted(r)) for r in kwargs.get("recipes_requiring_chopping", [])
         ]
         self.cutting_board_symbol = kwargs.get("cutting_board_symbol", "C")
+        # [FORCED CUTTING] Contraintes optionnelles : interdire de déposer un ingrédient
+        # NON coupé dans la marmite (quel que soit la recette), pour un type de joueur donné.
+        #   ai_forced_cutting    : option de LAYOUT, s'applique au(x) joueur(s) IA.
+        #   human_forced_cutting : option de CONFIG, s'applique au(x) joueur(s) humain(s).
+        # human_player_indices est renseigné par la couche jeu (game.py) ; par défaut vide
+        # (=> tous les joueurs sont considérés comme IA pour ces contraintes).
+        self.ai_forced_cutting = bool(
+            kwargs.get("AI_forced_cutting", kwargs.get("ai_forced_cutting", False)))
+        self.human_forced_cutting = bool(
+            kwargs.get("Human_forced_cutting", kwargs.get("human_forced_cutting", False)))
+        self.human_player_indices = set(kwargs.get("human_player_indices", []))
 
 
     @staticmethod
@@ -1344,8 +1355,12 @@ class OvercookedGridworld(object):
                     player.set_object(obj)
                     shaped_reward[player_idx] += self.reward_shaping_params["SOUP_PICKUP_REWARD"]
 
-                elif player.get_object().name in Recipe.ALL_INGREDIENTS:
+                elif player.get_object().name in Recipe.ALL_INGREDIENTS \
+                        and not self._potting_blocked_by_forced_cutting(player_idx, player.get_object()):
                     # Adding ingredient to soup
+                    # [FORCED CUTTING] Si la découpe est imposée à ce joueur, un ingrédient
+                    # non coupé ne peut pas être déposé dans la marmite : on n'entre pas ici
+                    # (aucune soupe vide créée, le joueur conserve son ingrédient).
 
                     if not new_state.has_object(i_pos):
                         # Pot was empty, add soup to it
@@ -1567,6 +1582,23 @@ class OvercookedGridworld(object):
         if not self.cutting_enabled or not self.recipes_requiring_chopping:
             return False
         return tuple(sorted(recipe.ingredients)) in self.recipes_requiring_chopping
+
+    def is_forced_cutting_player(self, player_idx):
+        """[FORCED CUTTING] True si ce joueur est soumis à la découpe imposée avant de
+        déposer un ingrédient au pot (selon qu'il soit humain ou IA)."""
+        if player_idx in self.human_player_indices:
+            return self.human_forced_cutting
+        return self.ai_forced_cutting
+
+    def _potting_blocked_by_forced_cutting(self, player_idx, held_obj):
+        """[FORCED CUTTING] True si ce joueur n'a PAS le droit de déposer cet ingrédient
+        dans la marmite parce qu'il n'est pas coupé et que la découpe lui est imposée.
+        Ne s'applique que si la découpe est activée et l'ingrédient n'est pas déjà coupé."""
+        if not self.cutting_enabled:
+            return False
+        if held_obj is None or getattr(held_obj, 'chopped', False):
+            return False
+        return self.is_forced_cutting_player(player_idx)
 
     def get_serving_locations(self):
         return list(self.terrain_pos_dict['S'])

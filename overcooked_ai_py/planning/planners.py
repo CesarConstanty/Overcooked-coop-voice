@@ -850,6 +850,7 @@ class MediumLevelActionManager(object):
                 getattr(mlam.mdp, 'recipes_requiring_chopping', None) != getattr(mdp, 'recipes_requiring_chopping', None)
                 or getattr(mlam.mdp, 'cutting_enabled', False) != getattr(mdp, 'cutting_enabled', False)
                 or getattr(mlam.mdp, 'chop_time', None) != getattr(mdp, 'chop_time', None)
+                or getattr(mlam.mdp, 'ai_forced_cutting', False) != getattr(mdp, 'ai_forced_cutting', False)
             )
             if mlam.params != mlam_params or mlam.mdp.terrain_mtx != mdp.terrain_mtx or chopping_changed:
                 if info:

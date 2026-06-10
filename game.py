@@ -586,6 +586,15 @@ class OvercookedGame(Game):
             # Log en cas d'erreur lors du chargement du layout
             print(f"[ACTIVATE] Failed to load layout {self.curr_layout}: {e}")
             raise
+
+        # [FORCED CUTTING] Renseigner le MDP sur les joueurs humains et l'option de config
+        # Human_forced_cutting. ai_forced_cutting est lu directement depuis le layout.
+        self.mdp.human_player_indices = {
+            idx for idx, pid in enumerate(self.players) if pid in self.human_players
+        }
+        self.mdp.human_forced_cutting = bool(
+            getattr(self, "config", {}).get("Human_forced_cutting", False)
+        )
         player_to_renew, needs_player_renew = self.needs_player_renew()
         if needs_player_renew: # condition jamais respectée
             self.remove_player(player_to_renew)
