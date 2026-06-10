@@ -93,6 +93,7 @@ function graphics_start(graphics_config) {
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
+    scene_config.show_score = graphics_config.show_score;
     
     // Créer le gestionnaire graphique
     graphics = new GraphicsManager(game_config, scene_config, graphics_config);
@@ -226,6 +227,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         // console.log(config);
         this.Game_Trial_Timer = config.Game_Trial_Timer;
         this.show_counter_drop = config.show_counter_drop;
+        this.show_score = config.show_score;
         this.currentRecipe = null; // Property to store the current recipe
         this.lastRecipeIntentions = null;
         this.lastAssetIntentions = null;
@@ -1121,7 +1123,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         // Use triplet_display_orders (always 3 recipes from layout) if available, else fall back to all_orders
         const displayOrders = hud_data.triplet_display_orders || hud_data.all_orders;
         if (typeof(hud_data.all_orders) !== 'undefined') {
-            this._drawAllOrders(displayOrders, sprites, board_height, board_width, undefined, hud_data.triplet_time_left, hud_data.score); // affiche les recettes restantes
+            this._drawAllOrders(displayOrders, sprites, board_height, board_width, undefined, hud_data.triplet_time_left); // affiche les recettes restantes
         }
         /* if (typeof(hud_data.bonus_orders) !== 'undefined') {
             this._drawBonusOrders(hud_data.bonus_orders, sprites, board_height);
@@ -1132,7 +1134,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawTimeLeft(hud_data.time, sprites, board_height, board_width);
             //this._validateOrder(sprites, board_height, board_width);
         }
-        if (typeof(hud_data.score) !== 'undefined'&& this.mechanic !== "recipe") {
+        // Score unique : toujours affiché dans le tutoriel (show_score forcé à true côté tutorial.js),
+        // et dans les trials uniquement si la config a show_score === true.
+        if (typeof(hud_data.score) !== 'undefined' && this.show_score) {
             this._drawScore(hud_data.score, sprites, board_height, board_width);
         }
         if (typeof(hud_data.potential) !== 'undefined' && hud_data.potential !== null) {
@@ -1164,7 +1168,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }                   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
-                this._drawAllOrders(displayOrders, sprites, board_height, board_width, hud_data.intentions.recipe, hud_data.triplet_time_left, hud_data.score);
+                this._drawAllOrders(displayOrders, sprites, board_height, board_width, hud_data.intentions.recipe, hud_data.triplet_time_left);
             }        
         }
     }
@@ -1214,7 +1218,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      * The server (PlanningGame) manages triplet rotation and sends only the
      * current triplet's unserved orders in state.all_orders.
      */
-    _drawAllOrders(orders, sprites, board_height, board_width, intentions, triplet_time_left, score) {
+    _drawAllOrders(orders, sprites, board_height, board_width, intentions, triplet_time_left) {
         if (typeof(orders) !== 'undefined' && orders !== null) {
             const orders_str = "All Orders: ";
             if (typeof(sprites['all_orders']) !== 'undefined') {
@@ -1257,21 +1261,6 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                     if (typeof(sprites['all_orders']['triplet_timer']) !== 'undefined') {
                         sprites['all_orders']['triplet_timer'].destroy();
                         delete sprites['all_orders']['triplet_timer'];
-                    }
-                }
-
-                // Score display below timer
-                if (typeof(score) !== 'undefined' && score !== null) {
-                    const scoreText = 'Score: ' + score;
-                    if (typeof(sprites['all_orders']['recipe_score']) !== 'undefined') {
-                        sprites['all_orders']['recipe_score'].setText(scoreText);
-                    } else {
-                        sprites['all_orders']['recipe_score'] = this.add.text(
-                            board_width + 5, 130,
-                            scoreText,
-                            { font: '16px Arial', fill: '#ffff00', align: 'left' }
-                        );
-                        sprites['all_orders']['recipe_score'].depth = 2;
                     }
                 }
             } else {

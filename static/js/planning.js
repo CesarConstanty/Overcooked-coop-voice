@@ -249,6 +249,7 @@ socket.on('start_game', function(data) {
         mechanic : data.config.mechanic,
         Game_Trial_Timer : data.config.Game_Trial_Timer,
         show_counter_drop : data.config.show_counter_drop,
+        show_score : data.config.show_score === true,
         triplet_display_min : data.config.triplet_display_min || 10,
         triplet_display_max : data.config.triplet_display_max || 30,
     };
