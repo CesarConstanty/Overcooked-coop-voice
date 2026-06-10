@@ -54,7 +54,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "Greedy",
-        "conditions" : {"0":"E", "1":"U", "2":"EA"},
+        "conditions" : {"0":"E", "1":"E", "2":"E"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,

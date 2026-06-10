@@ -843,7 +843,15 @@ class MediumLevelActionManager(object):
         try:
             mlam = MediumLevelActionManager.from_file(filename)
 
-            if mlam.params != mlam_params or mlam.mdp.terrain_mtx != mdp.terrain_mtx:
+            # [CUTTING BOARD] On invalide aussi le cache si la config de découpe a changé : sinon
+            # un planificateur picklé conserve un mdp périmé et l'IA ne coupe pas les ingrédients
+            # des recettes ajoutées après coup (ex: onion+tomato), alors que le jeu l'exige.
+            chopping_changed = (
+                getattr(mlam.mdp, 'recipes_requiring_chopping', None) != getattr(mdp, 'recipes_requiring_chopping', None)
+                or getattr(mlam.mdp, 'cutting_enabled', False) != getattr(mdp, 'cutting_enabled', False)
+                or getattr(mlam.mdp, 'chop_time', None) != getattr(mdp, 'chop_time', None)
+            )
+            if mlam.params != mlam_params or mlam.mdp.terrain_mtx != mdp.terrain_mtx or chopping_changed:
                 if info:
                     print("medium level action manager with different params or mdp found, computing from scratch")
                 return MediumLevelActionManager.compute_mlam(filename, mdp, mlam_params, info=info)
