@@ -746,7 +746,11 @@ class RationalAgent(PlanningAgent):
         if cheapest != self.hl_goal and self.switch_step % 5 == 0 :
             #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
             #cheapest.update_point_time_ratio(self.mlam)
-            self.hl_objective_switch += 1
+            # On ne compte un switch que si l'ancien objectif est ENCORE réalisable.
+            # S'il a disparu de all_recipes (recette complétée / en cours de cuisson),
+            # passer à la suivante n'est pas un changement d'avis.
+            if self.hl_goal in all_recipes:
+                self.hl_objective_switch += 1
             self.hl_goal =cheapest
             # breakpoint()
         self.switch_step += 1
@@ -777,7 +781,11 @@ class GreedyAgent(PlanningAgent):
         if cheapest != self.hl_goal :
             #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
             #cheapest.update_point_time_ratio(self.mlam)
-            self.hl_objective_switch += 1
+            # On ne compte un switch que si l'ancien objectif est ENCORE réalisable.
+            # S'il a disparu de all_recipes (recette complétée / en cours de cuisson),
+            # passer à la suivante n'est pas un changement d'avis.
+            if self.hl_goal in all_recipes:
+                self.hl_objective_switch += 1
             self.hl_goal =cheapest
         cheapest_info = {
             "recipe" : all_recipes[cheapest]["recipe"],
@@ -799,9 +807,14 @@ class LazyAgent(PlanningAgent):
             recipe.update_cost_to_complete(state, self.mlam, self.agent_index)
             recipe.update_point_time_ratio(self.mlam)
 
-        shortest = min(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, state.all_orders), key=attrgetter("min_cost_to_complete"))
+        candidates = [recipe for recipe in state.all_orders if sorted(recipe.ingredients) not in cooking_or_ready_soups]
+        shortest = min(candidates, key=attrgetter("min_cost_to_complete"))
         if shortest != self.hl_goal :
-            self.hl_objective_switch += 1
+            # On ne compte un switch que si l'ancien objectif est ENCORE réalisable.
+            # S'il n'est plus candidat (recette complétée / en cours de cuisson),
+            # passer à la suivante n'est pas un changement d'avis.
+            if self.hl_goal in candidates:
+                self.hl_objective_switch += 1
             self.hl_goal = shortest
         return shortest
 
