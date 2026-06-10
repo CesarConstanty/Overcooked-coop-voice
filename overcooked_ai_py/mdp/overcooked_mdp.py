@@ -1036,6 +1036,30 @@ class OvercookedGridworld(object):
 
         return OvercookedGridworld(**mdp_config)
 
+    # [CONFIG SOURCE OF TRUTH] Paramètres dont la valeur effective doit provenir UNIQUEMENT du
+    # fichier de config (et non du .layout). game.py et compute_mlam.py les injectent comme
+    # params_to_overwrite lors de la construction du MDP, écrasant toute valeur du layout.
+    CONFIG_DRIVEN_MDP_PARAMS = (
+        "onion_value", "tomato_value", "onion_time", "tomato_time",
+        "dispenser_pool", "chop_time", "cutting_enabled",
+        "recipes_requiring_chopping", "AI_forced_cutting",
+    )
+
+    @staticmethod
+    def mdp_overrides_from_config(config):
+        """Extrait de `config` le sous-ensemble de paramètres pilotant le MDP.
+
+        Renvoie un dict prêt à passer en `params_to_overwrite` à `from_layout_name`.
+        Seules les clés présentes dans la config sont incluses ; les autres conservent
+        la valeur par défaut du MDP (ou du layout si elle y est encore définie)."""
+        if not config:
+            return {}
+        return {
+            k: config[k]
+            for k in OvercookedGridworld.CONFIG_DRIVEN_MDP_PARAMS
+            if k in config
+        }
+
     def _configure_recipes(self, start_all_orders, num_items_for_soup, **kwargs):
         self.recipe_config = {
             "num_items_for_soup" : num_items_for_soup,

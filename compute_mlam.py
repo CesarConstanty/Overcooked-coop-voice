@@ -11,7 +11,10 @@ class Mlam_generator():
     def __init__(self, config):
         self.config = config
     def gen_mlam(self, layout_name):
-        mdp = OvercookedGridworld.from_layout_name(layout_name, self.config.get("layouts_dir", "overcooked_ai_py/data/layouts"))
+        # [CONFIG SOURCE OF TRUTH] Mêmes overrides qu'en jeu (cf. game.py) pour que le mlam
+        # picklé corresponde au MDP runtime et évite un recalcul (cf. chopping_changed dans planners.py).
+        config_overrides = OvercookedGridworld.mdp_overrides_from_config(self.config)
+        mdp = OvercookedGridworld.from_layout_name(layout_name, self.config.get("layouts_dir", "overcooked_ai_py/data/layouts"), **config_overrides)
         counter_params = COUNTERS_MLG_PARAMS
         if mdp.counter_goals:
             counter_params["counter_goals"] = mdp.counter_goals

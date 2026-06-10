@@ -9,13 +9,5 @@
     "start_all_orders": [{"ingredients": ["onion"]}, {"ingredients": ["tomato"]}, {"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["tomato", "tomato"]}, {"ingredients": ["onion", "onion", "onion"]}],
     "order_triplets": [[0, 1, 2], [3, 4, 5],[2, 1, 0],[2, 1, 5],[3, 4, 2]],
     "counter_goals":[],
-    "onion_value" : 3,
-    "tomato_value" : 2,
-    "onion_time" : 9,
-    "tomato_time" : 6,
-    "dispenser_pool": ["onion", "tomato", "dish"],
-    "cutting_enabled" : True,
-    "chop_time" : {"onion" : 3, "tomato" : 2},
-    "recipes_requiring_chopping" : [["onion"], ["onion", "onion", "onion"],["tomato", "tomato"],["onion", "tomato"]],
-    "AI_forced_cutting" : True
+    "cutting_board_symbol" : "C"
 }

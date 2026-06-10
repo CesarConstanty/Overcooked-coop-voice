@@ -97,11 +97,13 @@
         "ai_asset_slow_speed": 20,
         "ai_asset_slow_duration": 10,
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S", "C"],
+        "dispenser_pool" : ["onion", "tomato", "dish"],
         "cutting_enabled" : true,
         "chop_time" : {"onion" : 3, "tomato" : 2},
-        "recipes_requiring_chopping" : [["onion"], ["onion", "onion", "onion"]],
+        "recipes_requiring_chopping" : [["onion"], ["tomato"], ["onion", "onion"], ["onion", "tomato"], ["tomato", "tomato"], ["onion", "onion", "onion"], ["onion", "onion", "tomato"], ["onion", "tomato", "tomato"], ["tomato", "tomato", "tomato"]],
         "cutting_board_symbol" : "C",
-        "Human_forced_cutting" : true
+        "Human_forced_cutting" : true,
+        "AI_forced_cutting" : true
     },
     "tutorial" : {
         "tutorialParams" : {

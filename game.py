@@ -578,17 +578,23 @@ class OvercookedGame(Game):
         print(f"[ACTIVATE] Loading layout: {self.curr_layout}")
         #self.mdp = OvercookedGridworld.from_layout_name(
         #   self.curr_layout, self.layouts_dir, **self.mdp_params) # met en place le layout chargé
+        # [CONFIG SOURCE OF TRUTH] La config écrase les valeurs du layout pour les paramètres
+        # listés dans OvercookedGridworld.CONFIG_DRIVEN_MDP_PARAMS (valeurs/temps des ingrédients,
+        # dispenser_pool, paramètres de découpe, AI_forced_cutting).
+        config_overrides = OvercookedGridworld.mdp_overrides_from_config(getattr(self, "config", {}))
+        mdp_params = {**self.mdp_params, **config_overrides}
         try:
             self.mdp = OvercookedGridworld.from_layout_name(
-                self.curr_layout, self.layouts_dir, **self.mdp_params
+                self.curr_layout, self.layouts_dir, **mdp_params
             )
         except Exception as e:
             # Log en cas d'erreur lors du chargement du layout
             print(f"[ACTIVATE] Failed to load layout {self.curr_layout}: {e}")
             raise
 
-        # [FORCED CUTTING] Renseigner le MDP sur les joueurs humains et l'option de config
-        # Human_forced_cutting. ai_forced_cutting est lu directement depuis le layout.
+        # [FORCED CUTTING] Renseigner le MDP sur les joueurs humains. AI_forced_cutting provient
+        # désormais de la config (via CONFIG_DRIVEN_MDP_PARAMS) ; Human_forced_cutting est appliqué
+        # ci-dessous car il dépend de l'identité runtime des joueurs humains.
         self.mdp.human_player_indices = {
             idx for idx, pid in enumerate(self.players) if pid in self.human_players
         }
