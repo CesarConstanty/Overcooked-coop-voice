@@ -279,7 +279,9 @@ class PlanningAgent(Agent):
         self.hl_objective_switch = 0
         self.stuck_frames = 0
         Recipe.configure({})
-        self.hl_goal = Recipe(['tomato'])
+        # None = aucun objectif réel encore choisi. La première affectation d'une vraie
+        # recette ne doit pas compter comme un switch (None n'est jamais dans all_recipes).
+        self.hl_goal = None
         
 
         # Bool for perfect rationality vs Boltzmann rationality for high level and low level action selection
