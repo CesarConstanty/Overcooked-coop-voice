@@ -599,9 +599,23 @@ class OvercookedGame(Game):
     def npc_policy_consumer(self, policy_id):
         queue = self.npc_state_queues[policy_id]
         policy = self.npc_policies[policy_id]
+        crash_logged = False
         while self._is_active:
             state = queue.get()
-            npc_action, _ = policy.action(state)
+            try:
+                npc_action, _ = policy.action(state)
+            except Exception:
+                # Une panne de l'agent ne doit JAMAIS tuer silencieusement le thread :
+                # sinon plus aucune action NPC n'est produite, l'état n'avance plus et
+                # l'écran reste noir sans erreur visible. On loggue la trace complète
+                # (1re occurrence seulement, pour éviter le spam) et on continue avec
+                # STAY afin que la boucle de jeu reste réactive et affichée.
+                if not crash_logged:
+                    logger.exception(
+                        "[NPC_POLICY_CRASH] policy=%s : exception dans policy.action ; "
+                        "repli sur Action.STAY pour ne pas figer le jeu", policy_id)
+                    crash_logged = True
+                npc_action = Action.STAY
             super(OvercookedGame, self).enqueue_action(policy_id, npc_action)
 
     def is_full(self):

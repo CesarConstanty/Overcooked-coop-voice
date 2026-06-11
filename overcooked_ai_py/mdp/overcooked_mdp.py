@@ -67,6 +67,8 @@ class Recipe:
         return hash(self.ingredients)
 
     def __eq__(self, other):
+        if not isinstance(other, Recipe):
+            return NotImplemented
         # The ingredients property already returns sorted items, so equivalence check is sufficient
         return self.ingredients == other.ingredients
 

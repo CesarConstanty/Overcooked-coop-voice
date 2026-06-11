@@ -302,6 +302,9 @@ class PlanningAgent(Agent):
 
     def reset(self):
         self.prev_state = None
+        # None = aucun objectif réel encore choisi pour cet essai. Le 1er choix d'un essai
+        # ne doit pas compter comme un switch (None n'est jamais dans all_recipes).
+        self.hl_goal = None
         #self.mdp = mdp
         #self.mlam = MediumLevelActionManager.from_pickle_or_compute(self.mdp, NO_COUNTERS_PARAMS)
 
