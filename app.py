@@ -195,6 +195,15 @@ def setup_logging():
 
 logger = setup_logging()
 
+# Pré-chauffage des caches MDP/mlam/agents au démarrage : déplace le coût de
+# construction (sinon payé au 1er essai) vers le boot, pour que le premier
+# participant démarre sans latence. Désactivable via config.json ("warmup_caches": false).
+if CONFIG.get("warmup_caches", True):
+    try:
+        game.warmup_caches(CONFIG)
+    except Exception:
+        logger.exception("[WARMUP] échec inattendu du préchauffage des caches (démarrage poursuivi)")
+
 
 def safe_json_write(file_path, data, user_id=None):
     """

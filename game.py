@@ -7,7 +7,7 @@ from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Recipe
 from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
 from overcooked_ai_py.mdp.actions import Action, Direction
 from overcooked_ai_py.planning.planners import MediumLevelActionManager, MotionPlanner, NO_COUNTERS_PARAMS, COUNTERS_MLG_PARAMS
-from overcooked_ai_py.agents.agent import GreedyAgent, LazyAgent, RationalAgent, RandomAgent
+from overcooked_ai_py.agents.agent import GreedyAgent, LazyAgent, RationalAgent, RandomAgent, PlanningAgent
 import random
 import os
 import pickle
@@ -16,6 +16,7 @@ import logging
 from copy import deepcopy, copy
 from overcooked_ai_py.static import LAYOUTS_DIR
 from time import gmtime, asctime
+from utils import ThreadSafeDict
 
 # Logger enfant : hérite des handlers du logger 'overcooked' configuré dans app.py.
 logger = logging.getLogger("overcooked.game")
@@ -25,6 +26,111 @@ AGENT_DIR = None
 
 # Maximum allowable game time (in seconds)
 MAX_GAME_TIME = 1000
+
+# ---------------------------------------------------------------------------
+# Caches mémoïsés (perf) : un MDP et son MediumLevelActionManager (mlam) sont
+# coûteux à construire et sont recréés à chaque essai dans le code historique.
+# On les mémoïse par clé déterministe (layout + paramètres MDP effectifs).
+#   - MDP_CACHE  : OvercookedGridworld "template" PARTAGÉ en lecture seule. Ne JAMAIS
+#                  le muter : la couche jeu en prend une copie superficielle pour y
+#                  poser les attributs runtime (human_player_indices/forced_cutting).
+#   - MLAM_CACHE : MediumLevelActionManager partagé (get_plan/min_cost_* sont en
+#                  lecture seule -> partage concurrent sûr entre passations).
+# Voir get_cached_mdp / get_cached_mlam.
+# ---------------------------------------------------------------------------
+MDP_CACHE = ThreadSafeDict()
+MLAM_CACHE = ThreadSafeDict()
+# NB : on ne met PAS en cache les agents. Dans PlanningGame, l'agent (Greedy/Rational/…)
+# est construit en code (PlanningGame.get_policy) et décide EN DIRECT à chaque état
+# (policy.action(state)) : son comportement s'adapte à l'environnement et ne peut donc
+# pas être préchargé. Seul l'ENVIRONNEMENT est mémoïsé (MDP = règles du layout, mlam =
+# géométrie/plus-courts-chemins), ce que l'agent utilise pour planifier ses décisions.
+
+
+def _mdp_cache_key(layout, layouts_dir, mdp_params):
+    """Clé hashable, stable et déterministe pour un MDP (sort_keys ; default=str
+    pour les valeurs non sérialisables type set)."""
+    return json.dumps(
+        {"layout": layout, "dir": layouts_dir, "params": mdp_params},
+        sort_keys=True, default=str,
+    )
+
+
+def get_cached_mdp(layout, layouts_dir, mdp_params):
+    """
+    Retourne (mdp_template, key). Le template est construit une seule fois par clé
+    via OvercookedGridworld.from_layout_name puis PARTAGÉ. NE PAS muter le template :
+    en prendre une copie (copy.copy) pour les attributs runtime.
+    """
+    key = _mdp_cache_key(layout, layouts_dir, mdp_params)
+    mdp = MDP_CACHE.get(key, None)
+    if mdp is None:
+        mdp = OvercookedGridworld.from_layout_name(layout, layouts_dir, **mdp_params)
+        MDP_CACHE[key] = mdp
+    return mdp, key
+
+
+def get_cached_mlam(mdp_template, key):
+    """
+    Retourne le MediumLevelActionManager associé au MDP template (mémoïsé par `key`).
+    Réplique la logique de PlanningAgent.set_mdp (counter params) afin d'obtenir un
+    mlam strictement équivalent à celui calculé historiquement, mais une seule fois.
+    """
+    mlam = MLAM_CACHE.get(key, None)
+    if mlam is None:
+        # dict(...) : ne pas muter le COUNTERS_MLG_PARAMS global (réf. partagée).
+        counter_params = dict(COUNTERS_MLG_PARAMS)
+        if mdp_template.counter_goals:
+            counter_params["counter_goals"] = mdp_template.counter_goals
+            counter_params["counter_drop"] = mdp_template.counter_goals
+            counter_params["counter_pickup"] = mdp_template.counter_goals
+        mlam = MediumLevelActionManager.from_pickle_or_compute(
+            mdp_template, counter_params, force_compute=False)
+        MLAM_CACHE[key] = mlam
+    return mlam
+
+
+def warmup_caches(configs):
+    """
+    Pré-chauffe les caches d'ENVIRONNEMENT au démarrage pour que le PREMIER participant
+    ne paie pas le coût de construction du MDP + mlam (géométrie du layout).
+
+    On ne précharge AUCUN agent : dans PlanningGame, l'agent est construit en code et
+    décide en direct (comportement adaptatif, non préchargeable).
+
+    Best-effort : reproduit fidèlement les clés du chemin runtime (mdp_params de base
+    vides pour PlanningGame + mdp_overrides_from_config(config) ; layouts_dir résolu
+    comme dans OvercookedGame.__init__). Toute erreur est journalisée sans interrompre
+    le démarrage du serveur.
+
+    Args:
+        configs (dict): le CONFIG global ; seules les entrées d'expérience (dict avec
+                        une clé "blocs") sont traitées, les autres sont ignorées.
+    """
+    n_mdp = n_mlam = 0
+    for config_id, config in (configs or {}).items():
+        if not isinstance(config, dict) or "blocs" not in config:
+            continue
+        try:
+            overrides = OvercookedGridworld.mdp_overrides_from_config(config)
+        except Exception:
+            logger.exception("[WARMUP] mdp_overrides_from_config a échoué (config=%s)", config_id)
+            continue
+        mdp_params = dict(overrides)  # base self.mdp_params == {} pour PlanningGame
+        layouts_dir = config.get("layouts_dir", LAYOUTS_DIR)
+        layouts = set()
+        for trials in config.get("blocs", {}).values():
+            if isinstance(trials, list):
+                layouts.update(trials)
+        for layout in layouts:
+            try:
+                mdp_template, key = get_cached_mdp(layout, layouts_dir, mdp_params)
+                n_mdp += 1
+                get_cached_mlam(mdp_template, key)
+                n_mlam += 1
+            except Exception:
+                logger.exception("[WARMUP] échec MDP/mlam (layout=%s config=%s)", layout, config_id)
+    logger.info("[WARMUP] caches d'environnement préchauffés : mdp=%d mlam=%d", n_mdp, n_mlam)
 
 
 def _configure(max_game_time, agent_dir):
@@ -571,30 +677,31 @@ class OvercookedGame(Game):
         return super(OvercookedGame, self).tick()
 
     def activate(self):
-        # Log pour indiquer le passage à l'essai suivant
-        try :
-            print(f"[ACTIVATE] Passing to trial {self.curr_trial_in_game + 2} in block {self.step+1}")
-        except Exception as e:
-            print("[ACTIVATE] tutorial, pas de trial")
+        # Passage à l'essai suivant (try/except : le tutoriel n'a pas de self.step).
+        try:
+            logger.debug("[ACTIVATE] passage à l'essai %s du bloc %s",
+                         self.curr_trial_in_game + 2, self.step + 1)
+        except Exception:
+            logger.debug("[ACTIVATE] tutoriel (pas d'essai/bloc)")
         self.curr_trial_in_game += 1 # permet de passer à l'essai (et donc au layout) suivant
         self.curr_layout = self.layouts[self.curr_trial_in_game] # charge le layout de l'essai actuel
-        # Log pour vérifier le layout chargé
-        print(f"[ACTIVATE] Loading layout: {self.curr_layout}")
-        #self.mdp = OvercookedGridworld.from_layout_name(
-        #   self.curr_layout, self.layouts_dir, **self.mdp_params) # met en place le layout chargé
+        logger.debug("[ACTIVATE] chargement du layout: %s", self.curr_layout)
         # [CONFIG SOURCE OF TRUTH] La config écrase les valeurs du layout pour les paramètres
         # listés dans OvercookedGridworld.CONFIG_DRIVEN_MDP_PARAMS (valeurs/temps des ingrédients,
         # dispenser_pool, paramètres de découpe, AI_forced_cutting).
         config_overrides = OvercookedGridworld.mdp_overrides_from_config(getattr(self, "config", {}))
         mdp_params = {**self.mdp_params, **config_overrides}
+        # [CACHE] MDP template mémoïsé (construit une seule fois par layout+params).
+        # On en prend une COPIE superficielle pour y poser les attributs runtime
+        # ci-dessous, sans jamais muter le template partagé.
+        _t_mdp = time()
         try:
-            self.mdp = OvercookedGridworld.from_layout_name(
-                self.curr_layout, self.layouts_dir, **mdp_params
-            )
+            mdp_template, mdp_key = get_cached_mdp(self.curr_layout, self.layouts_dir, mdp_params)
         except Exception as e:
-            # Log en cas d'erreur lors du chargement du layout
-            print(f"[ACTIVATE] Failed to load layout {self.curr_layout}: {e}")
+            logger.error("[ACTIVATE] échec de chargement du layout %s : %s", self.curr_layout, e)
             raise
+        self.mdp = copy(mdp_template)
+        _mdp_ms = (time() - _t_mdp) * 1000
 
         # [FORCED CUTTING] Renseigner le MDP sur les joueurs humains. AI_forced_cutting provient
         # désormais de la config (via CONFIG_DRIVEN_MDP_PARAMS) ; Human_forced_cutting est appliqué
@@ -648,22 +755,34 @@ class OvercookedGame(Game):
         self.score = 0
         self.threads = []
         super(OvercookedGame, self).activate() # attribut à _is_active la valeur True ce qui active la méthode tick
+        # [CACHE] mlam mémoïsé (partagé en lecture seule). Pour les agents
+        # planificateurs, on injecte directement le mlam caché et le MDP template
+        # (référencé par le mlam), ce qui évite le from_pickle_or_compute coûteux de
+        # set_mdp. Les autres agents (Random/Stay) gardent le comportement historique.
+        _t_mlam = time()
+        mlam = get_cached_mlam(mdp_template, mdp_key)
+        _mlam_ms = (time() - _t_mlam) * 1000
         for npc_policy in self.npc_policies:
-            self.npc_policies[npc_policy].reset()
-            self.npc_policies[npc_policy].set_mdp(self.mdp)
+            agent = self.npc_policies[npc_policy]
+            agent.reset()
+            if isinstance(agent, PlanningAgent):
+                agent.mdp = mdp_template
+                agent.mlam = mlam
+            else:
+                agent.set_mdp(self.mdp)
             self.npc_state_queues[npc_policy] = LifoQueue()
             self.npc_state_queues[npc_policy].put(self.state)
-            
+
             t = Thread(target=self.npc_policy_consumer, args=(npc_policy,)) # permet processus tourne en boucle, ici au npc d'avoir une prise d'information/décision/execution autonome
-            # creuser le fonctionnement/utilité de Thread
             self.threads.append(t)
             t.start()
         self.start_time = time()
-        # Log pour indiquer que le jeu est activé
-        try :
-            print(f"[ACTIVATE] Game activated for trial {self.curr_trial_in_game+1} in block {self.step+1}")
-        except Exception as e:
-            print("[ACTIVATE] tutorial, pas de trial")
+        try:
+            logger.info("[PROFILE activate] layout=%s bloc=%s essai=%s mdp_ms=%.1f mlam_ms=%.1f",
+                        self.curr_layout, getattr(self, "step", "?"),
+                        self.curr_trial_in_game, _mdp_ms, _mlam_ms)
+        except Exception:
+            logger.debug("[ACTIVATE] activé (tutoriel) mdp_ms=%.1f mlam_ms=%.1f", _mdp_ms, _mlam_ms)
     def deactivate(self):
         super(OvercookedGame, self).deactivate()
         # Ensure the background consumers do not hang
