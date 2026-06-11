@@ -19,6 +19,8 @@ import atexit
 from socketio.exceptions import TimeoutError as SocketIOTimeOutError
 import json
 import glob
+import logging
+from logging.handlers import RotatingFileHandler
 from time import gmtime, asctime
 from threading import Lock
 from copy import deepcopy
@@ -143,19 +145,92 @@ socketio = SocketIO(app, cors_allowed_origins="*", logger=app.config['DEBUG'], p
 # login_manager.init_app(app)
 db = SQLAlchemy()
 db.init_app(app)
+
+
+#####################
+# Logging (journal) #
+#####################
+def setup_logging():
+    """
+    Configure le logger applicatif 'overcooked' : console + fichier rotatif horodaté.
+
+    - eventlet-safe : les handlers utilisent un verrou (monkey-patché par eventlet),
+      et les écritures restent ponctuelles (pas dans la boucle de jeu par frame).
+    - idempotent : ne réinstalle pas les handlers si déjà configurés (reload).
+    - les modules sans accès à `app` (ex. game.py) utilisent un logger enfant
+      'overcooked.xxx' qui hérite de ces handlers.
+
+    NB sécurité : ne jamais journaliser de mot de passe (cf. authenticate_participant).
+    """
+    log = logging.getLogger("overcooked")
+    if log.handlers:
+        return log
+    log.setLevel(logging.DEBUG)
+    log.propagate = False
+
+    fmt = logging.Formatter(
+        "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(fmt)
+    log.addHandler(console)
+
+    try:
+        os.makedirs("logs", exist_ok=True)
+        file_handler = RotatingFileHandler(
+            "logs/server.log", maxBytes=10 * 1024 * 1024, backupCount=50, encoding="utf-8"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(fmt)
+        log.addHandler(file_handler)
+    except OSError:
+        # Si le dossier logs n'est pas accessible, on garde au moins la console.
+        log.warning("Impossible de créer logs/server.log ; journalisation console seule.")
+
+    return log
+
+
+logger = setup_logging()
+
+
 def safe_json_write(file_path, data, user_id=None):
     """
-    Écriture sécurisée de fichier JSON.
-    Retourne False si le fichier existe déjà, True en cas de succès.
+    Écriture JSON atomique et idempotente.
+
+    - Idempotence : n'écrase JAMAIS un fichier déjà présent (retourne False).
+    - Atomicité : écrit dans un fichier temporaire puis os.replace() -> aucun
+      fichier tronqué visible, même si l'écriture est interrompue.
+    - Plus d'erreur silencieuse : tout échec réel est journalisé (logger.exception).
+
+    Returns:
+        bool: True si le fichier a été écrit, False sinon (déjà présent ou échec).
+              NB : un appelant qui doit distinguer "déjà présent" de "échec" devra
+              tester os.path.exists ; les appelants actuels n'utilisent pas le retour.
     """
+    tmp_path = None
     try:
         if os.path.exists(file_path):
+            logger.debug("[SAVE_SKIP] déjà présent: %s (uid=%s)", file_path, user_id)
             return False
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, 'w', encoding='utf-8') as f:
+        tmp_path = "%s.%s.tmp" % (file_path, os.getpid())
+        with open(tmp_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, file_path)
         return True
     except Exception:
+        logger.exception("[SAVE_FAILED] écriture impossible: %s (uid=%s)", file_path, user_id)
+        if tmp_path:
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
         return False
 
 
@@ -206,6 +281,35 @@ def login_user_session(user):
     session['config_id'] = user.config.get('config_id')
     session.permanent = True
 
+
+def authenticate_participant(username, password, config_id=None):
+    """
+    [ÉCHAFAUDAGE] Identification du participant en mode `log_password = true`.
+
+    Ce point d'entrée prépare le futur système d'inscription/connexion : pour
+    l'instant, l'identifiant saisi sert directement d'`uid` de passation et le
+    mot de passe N'EST PAS vérifié. L'intégration réelle (création de comptes,
+    hachage et vérification du mot de passe, gestion inscription/connexion) sera
+    réalisée plus tard.
+
+    TODO(inscription):
+      - stocker les comptes (table dédiée ou colonnes `username`/`password_hash`
+        sur User), avec werkzeug.security.generate_password_hash / check_password_hash ;
+      - distinguer inscription (création) et connexion (vérification) ;
+      - renvoyer l'uid du compte authentifié, ou None si échec.
+
+    SÉCURITÉ : ne jamais journaliser `password`.
+
+    Returns:
+        str | None : l'uid à utiliser pour la passation, ou None si identifiant vide.
+    """
+    username = (username or "").strip()
+    if not username:
+        return None
+    # On journalise l'identifiant (jamais le mot de passe).
+    logger.info("[LOGIN] mode=log_password username=%s config=%s", username, config_id)
+    return username
+
 def logout_user_session():
     """
     Remplace logout_user - déconnecte l'utilisateur
@@ -242,7 +346,7 @@ def get_page_tracker(user_id: str, config_id: str) -> PageTracker:
         Instance PageTracker pour cet utilisateur
     """
     if user_id not in PAGE_TRACKERS:
-        PAGE_TRACKERS[user_id] = PageTracker(user_id, config_id)
+        PAGE_TRACKERS[user_id] = PageTracker(user_id, config_id, logger=logger)
     return PAGE_TRACKERS[user_id]
 
 def track_page_view(page_name: str, user_id: str = None, config_id: str = None):
@@ -648,7 +752,20 @@ def index():
     except KeyError:
         return render_template('UID_error.html')
 
-    if uid:
+    # ------------------------------------------------------------------
+    # Mode d'identification du participant (par expérience : config["log_password"]).
+    #   - log_password=False (historique) : identification par l'id du premier lien
+    #     cliqué (PROLIFIC_PID), avec repli sur TEST_UID.
+    #   - log_password=True : identifiant + mot de passe via le formulaire /login
+    #     (ÉCHAFAUDAGE : cf. authenticate_participant ; inscription réelle à venir).
+    # ------------------------------------------------------------------
+    if config.get("log_password", False):
+        uid = session.get('auth_uid')
+        if not uid:
+            # Pas encore authentifié : présenter le formulaire d'identification.
+            return render_template('login.html', config_id=config_id)
+        session["type"] = session.get("auth_type", "ACCOUNT")
+    elif uid:
         session["type"] = "PROLIFIC"
     else:
         uid = request.args.get('TEST_UID', default=None)
@@ -737,6 +854,30 @@ def index():
         return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
     else:
         return render_template('UID_error.html')
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    """
+    [ÉCHAFAUDAGE] Point d'entrée du mode d'identification `log_password = true`.
+
+    Reçoit l'identifiant + mot de passe du formulaire login.html, délègue à
+    authenticate_participant (vérification réelle à implémenter plus tard), puis
+    redirige vers la route index qui poursuit le flux normal de passation.
+    """
+    config_id = request.form.get('CONFIG') or request.args.get('CONFIG')
+    username = request.form.get('username', '')
+    password = request.form.get('password', '')
+
+    uid = authenticate_participant(username, password, config_id)
+    if not uid:
+        return render_template('login.html', config_id=config_id,
+                               error="Veuillez renseigner un identifiant.")
+
+    # Authentification (échafaudée) réussie : on mémorise l'uid pour la session.
+    session['auth_uid'] = uid
+    session['auth_type'] = "ACCOUNT"
+    return redirect(url_for('index', CONFIG=config_id))
 
 
 @app.route('/instructions', methods=['GET', 'POST'])
@@ -1643,13 +1784,18 @@ def on_start_button_clicked(data):
 
 @socketio.on('disconnect')
 def on_disconnect():
-    # Ensure game data is properly cleaned-up in case of unexpected disconnect
+    # Ensure game data is properly cleaned-up in case of unexpected disconnect.
+    # NB : en SocketIO, 'disconnect' se déclenche aussi à chaque navigation de page ;
+    # on ne termine donc PAS la session de suivi ici (cf. end_user_session, appelé à
+    # /goodbye). On se contente de libérer proprement la partie en cours.
     current_user = get_current_user()
+    if not current_user:
+        return
     user_id = current_user.uid
-    
-    
+
     if user_id not in USERS:
         return
+    logger.debug("[DISCONNECT] uid=%s", user_id)
     with USERS[user_id]:
         _leave_game(user_id)
 
@@ -1812,75 +1958,68 @@ def trial_save_routine(data):
     dont nom sous la forme id_bloc_essai
     '''
     if not isinstance(data, dict):
+        logger.error("[TRIAL_SAVE] données non-dict (%s) reçues : impossible de sauvegarder", type(data).__name__)
         return
+
     uid = data.get("uid", "UNKNOWN")
     trial_id = data.get("trial_id", "UNKNOWN")
-    
-    
+    config = data.get("config") if isinstance(data.get("config"), dict) else {}
+    config_id = config.get("config_id")
+
+    # Enrichissement best-effort : ne doit JAMAIS empêcher la sauvegarde de l'essai.
+    data_copy = deepcopy(data)
     try:
-        Path("trajectories/" + data["config"].get("config_id")+ "/" + data["uid"]
-                            ).mkdir(parents=True, exist_ok=True)
-    except TypeError:
-        return
-    try:
-        # Créer une copie des données pour modification
-        data_copy = deepcopy(data)
-        
-        # Modifier la configuration pour :
-        # 1. Afficher les données de configuration utilisées pour l'essai sous le "bloc_order"
-        # 2. Supprimer les informations relatives au "qpb" et "hoffman"
-        if "config" in data_copy:
-            config = data_copy["config"]
-            
-            # Supprimer les sections qpb et hoffman
-            if "qpb" in config:
-                del config["qpb"]
-            if "hoffman" in config:
-                del config["hoffman"]
-            
-            # Ajouter les données de configuration pour l'essai actuel sous bloc_order
-            if "bloc_order" in config and "step" in data_copy:
+        if isinstance(data_copy.get("config"), dict):
+            cfg = data_copy["config"]
+            # Supprimer les sections qpb et hoffman (volumineuses, non pertinentes ici)
+            cfg.pop("qpb", None)
+            cfg.pop("hoffman", None)
+            # Ajouter les données de configuration de l'essai courant sous bloc_order
+            if "bloc_order" in cfg and "step" in data_copy:
                 step = data_copy["step"]
-                bloc_order = config["bloc_order"]
-                
-                # Ajouter les informations de configuration pour l'essai actuel
-                if step < len(bloc_order):
+                bloc_order = cfg["bloc_order"]
+                if isinstance(step, int) and step < len(bloc_order):
                     current_bloc_key = bloc_order[step]
-                    
-                    # Créer une structure pour afficher les données de configuration utilisées
                     config_for_trial = {
                         "current_bloc": current_bloc_key,
                         "current_step": step,
-                        "total_blocs": len(bloc_order)
+                        "total_blocs": len(bloc_order),
                     }
-                    
-                    # Ajouter la condition actuelle si elle existe
-                    if "conditions" in config and current_bloc_key in config["conditions"]:
-                        config_for_trial["current_condition"] = config["conditions"][current_bloc_key]
-                    
-                    # Ajouter les trials du bloc actuel si ils existent
-                    if "blocs" in config and current_bloc_key in config["blocs"]:
-                        config_for_trial["current_bloc_trials"] = config["blocs"][current_bloc_key]
-
+                    if current_bloc_key in cfg.get("conditions", {}):
+                        config_for_trial["current_condition"] = cfg["conditions"][current_bloc_key]
+                    if current_bloc_key in cfg.get("blocs", {}):
+                        config_for_trial["current_bloc_trials"] = cfg["blocs"][current_bloc_key]
                     # [CUTTING BOARD] Tracer les paramètres de découpe pour l'analyse
-                    config_for_trial["cutting_enabled"] = config.get("cutting_enabled", False)
-                    config_for_trial["chop_time"] = config.get("chop_time", None)
-                    config_for_trial["recipes_requiring_chopping"] = config.get("recipes_requiring_chopping", [])
+                    config_for_trial["cutting_enabled"] = cfg.get("cutting_enabled", False)
+                    config_for_trial["chop_time"] = cfg.get("chop_time", None)
+                    config_for_trial["recipes_requiring_chopping"] = cfg.get("recipes_requiring_chopping", [])
+                    cfg["trial_config_data"] = config_for_trial
+    except Exception:
+        logger.exception("[TRIAL_SAVE] enrichissement config échoué (uid=%s trial_id=%s) ; sauvegarde des données brutes",
+                         uid, trial_id)
 
-                    # Placer ces informations juste après bloc_order
-                    config["trial_config_data"] = config_for_trial
-        
-        file_path = 'trajectories/'+ data["config"].get("config_id") + "/" + data["uid"] + "/" + data['trial_id']+'.json'
-        
-        # Vérifier si le fichier existe déjà
+    # 1) Chemin normal trajectories/{config_id}/{uid}/{trial_id}.json
+    saved = False
+    if config_id and uid and uid != "UNKNOWN":
+        file_path = "trajectories/%s/%s/%s.json" % (config_id, uid, trial_id)
         if os.path.exists(file_path):
+            # Déjà sauvegardé : idempotent, l'essai n'est pas perdu.
             return
-        
-        # Écrire le fichier avec safe_json_write
-        safe_json_write(file_path, data_copy, uid)
-        
-    except KeyError:
-        pass
+        saved = safe_json_write(file_path, data_copy, uid)
+        if not saved:
+            logger.error("[TRIAL_SAVE] échec d'écriture du chemin normal %s ; bascule sur la sauvegarde de secours",
+                         file_path)
+
+    # 2) Sauvegarde de SECOURS : on ne perd JAMAIS les données d'un essai.
+    #    Utilisée si config_id/uid manquent ou si l'écriture normale a échoué.
+    if not saved:
+        ts = time.strftime("%Y%m%dT%H%M%S", time.gmtime())
+        backup_path = "trajectories/_backup/%s/%s_%s.json" % (uid, trial_id, ts)
+        if safe_json_write(backup_path, data_copy, uid):
+            logger.warning("[TRIAL_SAVE_BACKUP] essai sauvegardé en secours: %s (config_id=%r, uid=%r) — à investiguer",
+                           backup_path, config_id, uid)
+        else:
+            logger.critical("[TRIAL_SAVE_LOST] ÉCHEC TOTAL de sauvegarde de l'essai uid=%s trial_id=%s", uid, trial_id)
 
 #############
 # Game Loop #

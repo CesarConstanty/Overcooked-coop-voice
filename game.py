@@ -12,9 +12,13 @@ import random
 import os
 import pickle
 import json
-from copy import deepcopy
+import logging
+from copy import deepcopy, copy
 from overcooked_ai_py.static import LAYOUTS_DIR
 from time import gmtime, asctime
+
+# Logger enfant : hérite des handlers du logger 'overcooked' configuré dans app.py.
+logger = logging.getLogger("overcooked.game")
 
 # Relative path to where all static pre-trained agents are stored on server
 AGENT_DIR = None

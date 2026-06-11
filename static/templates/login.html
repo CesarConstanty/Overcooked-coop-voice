@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+    [ÉCHAFAUDAGE] Formulaire d'identification utilisé quand l'expérience est en
+    mode config["log_password"] = true. Il poste (identifiant, mot de passe) vers
+    la route /login. La vérification réelle des identifiants et le système
+    d'inscription seront intégrés plus tard (cf. authenticate_participant dans app.py).
+-->
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    <title>Overcooked Experiment — Sign in</title>
+</head>
+
+<body>
+    <div class="col-lg-6 mx-auto p-3 py-md-5">
+        <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md">
+                        <img src="static/images/logo_airudit.png" class="custom-logo" alt="Laboratoire Parole et Langage"
+                            height="90">
+                    </div>
+                    <div class="col-md">
+                        <span class="fs-2">Overcooked Experiment</span>
+                    </div>
+                    <div class="col-md">
+                        <img src="static/images/ONERA.png" class="custom-logo" alt="ONERA, the French Aerospace Lab"
+                            height="90">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <h3 class="text-center mb-4">Sign in to start the experiment</h3>
+
+        {% if error %}
+        <div class="alert alert-danger text-center" role="alert">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}" class="mx-auto" style="max-width: 360px;">
+            <input type="hidden" name="CONFIG" value="{{ config_id }}">
+
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" autocomplete="username" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Continue</button>
+        </form>
+    </div>
+</body>
+
+</html>
