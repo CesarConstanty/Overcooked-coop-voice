@@ -397,6 +397,30 @@ def end_user_session(user_id: str):
 # Global Coordination Functions #
 #################################
 
+def count_active_games():
+    """Nombre de parties réellement occupées (au moins un joueur présent).
+
+    On ignore les parties vides qui peuvent subsister dans GAMES après une
+    déconnexion (un jeu actif devenu vide est désactivé mais pas toujours
+    retiré de GAMES via cleanup_game), afin de ne pas gonfler artificiellement
+    le compte et bloquer de nouveaux participants à tort.
+    """
+    n = 0
+    for game in GAMES.values():
+        try:
+            if not game.is_empty():
+                n += 1
+        except Exception:
+            # En cas de doute on compte la partie (prudence côté capacité).
+            n += 1
+    return n
+
+
+def server_at_capacity():
+    """True si le nombre de parties actives a atteint la limite MAX_GAMES."""
+    return count_active_games() >= MAX_GAMES
+
+
 def try_create_game(game_name, **kwargs):
     """
     Tries to create a brand new Game object based on parameters in `kwargs`
@@ -784,6 +808,15 @@ def index():
         if user:
             login_user_session(user)
         else:
+            # Capacité serveur : un NOUVEAU participant ne peut commencer
+            # l'expérience que si le nombre de parties simultanées n'a pas
+            # atteint MAX_GAMES. Les participants déjà enregistrés (branche
+            # `if user`) ne sont jamais bloqués et peuvent toujours reprendre.
+            if server_at_capacity():
+                logger.info(
+                    "[CAPACITY] Inscription refusée pour uid=%s : %d/%d parties actives",
+                    uid, count_active_games(), MAX_GAMES)
+                return render_template('full.html', max_games=MAX_GAMES)
             new_user = User(uid=uid, config=config, step=0, trial=0)
             
             # Gestion des questionnaires post-trial (depuis old_app.py)
