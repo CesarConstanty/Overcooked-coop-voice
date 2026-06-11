@@ -1018,6 +1018,12 @@ class MediumLevelActionManager(object):
         positions = [o.position for o in board_objs]
         return self._get_ml_actions_for_positions(positions)
 
+    # [POUBELLE] Aller jeter l'objet tenu dans une poubelle ('E')
+    def place_obj_in_trash_actions(self, state):
+        """Motion goals pour aller jeter l'objet tenu dans une poubelle."""
+        trash_locations = self.mdp.get_trash_bin_locations()
+        return self._get_ml_actions_for_positions(trash_locations)
+
     def pickup_chopped_actions(self, board_objs):
         """Aller récupérer les ingrédients coupés posés sur une planche."""
         positions = [o.position for o in board_objs]

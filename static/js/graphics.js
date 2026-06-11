@@ -734,7 +734,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 'A': 'counter.png',
                 'B': 'counter.png',
                 // [CUTTING BOARD] planche à découper (frame de l'atlas terrain_cut)
-                'C': 'cutting_board.png'
+                'C': 'cutting_board.png',
+                // [POUBELLE] tuile poubelle (frame de l'atlas tiles)
+                'E': 'trash_bin.png'
             };
         } else {
             terrain_to_img = {
@@ -750,7 +752,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 'A': 'counter.png',
                 'B': 'counter.png',
                 // [CUTTING BOARD] planche à découper (frame de l'atlas terrain_cut)
-                'C': 'cutting_board.png'
+                'C': 'cutting_board.png',
+                // [POUBELLE] tuile poubelle (frame de l'atlas tiles)
+                'E': 'trash_bin.png'
             };
         }
 
@@ -1390,7 +1394,9 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             'D': 'dishes.png',
             'S': 'serve.png',
             // [CUTTING BOARD] la planche provient de l'atlas terrain_cut
-            'C': 'cutting_board.png'
+            'C': 'cutting_board.png',
+            // [POUBELLE] intention « jeter à la poubelle »
+            'E': 'trash_bin.png'
         };
         if (typeof(intentions) !== 'undefined' && intentions !== null) {
             let intentions_str = "Partner's intentions:  ";

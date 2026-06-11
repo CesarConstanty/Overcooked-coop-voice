@@ -881,7 +881,13 @@ EVENT_TYPES = [
 
     # [CUTTING BOARD] Chopping events
     'onion_chop',
-    'tomato_chop'
+    'tomato_chop',
+
+    # [POUBELLE] Objets jetés à la poubelle
+    'onion_trash',
+    'tomato_trash',
+    'dish_trash',
+    'soup_trash'
 ]
 
 POTENTIAL_CONSTANTS = {
@@ -1422,6 +1428,13 @@ class OvercookedGridworld(object):
                         # Log soup delivery
                         events_infos['soup_delivery'][player_idx] = True
 
+            # [POUBELLE] Jeter l'objet tenu : il est supprimé définitivement du jeu
+            elif terrain_type == 'E' and player.has_object():
+                obj_name = player.get_object().name
+                self.log_object_trash(events_infos, new_state, obj_name, player_idx)
+                # held_object = None ; l'objet n'est PAS ré-ajouté à l'état → suppression effective
+                player.remove_object()
+
         return sparse_reward, shaped_reward
 
     def get_recipe_value(self, state, recipe, discounted=False, base_recipe=None, potential_params={}):
@@ -1595,6 +1608,11 @@ class OvercookedGridworld(object):
     def get_cutting_board_locations(self):
         """Positions des planches à découper ('C')."""
         return list(self.terrain_pos_dict.get('C', []))
+
+    # [POUBELLE] Poubelles
+    def get_trash_bin_locations(self):
+        """Positions des poubelles ('E')."""
+        return list(self.terrain_pos_dict.get('E', []))
 
     def get_chop_time(self, ingredient_name):
         """Nombre d'interactions de découpe requises pour un ingrédient donné."""
@@ -1850,7 +1868,8 @@ class OvercookedGridworld(object):
         # Borders must not be free spaces
         def is_not_free(c):
             # [CUTTING BOARD] 'C' (planche à découper) compte comme terrain non libre
-            return c in 'XOPDSTYABC'
+            # [POUBELLE] 'E' (poubelle) compte aussi comme terrain non libre
+            return c in 'XOPDSTYABCE'
 
         for y in range(height):
             assert is_not_free(grid[y][0]), 'Left border must not be free'
@@ -1868,7 +1887,8 @@ class OvercookedGridworld(object):
         assert layout_digits == list(range(1, num_players + 1)), "Some players were missing"
 
         # [CUTTING BOARD] 'C' ajouté aux caractères de grille valides
-        assert all(c in 'XOPDSTYABC123456789 ' for c in all_elements), 'Invalid character in grid'
+        # [POUBELLE] 'E' (poubelle) ajouté aux caractères de grille valides
+        assert all(c in 'XOPDSTYABCE123456789 ' for c in all_elements), 'Invalid character in grid'
         assert all_elements.count('1') == 1, "'1' must be present exactly once"
         assert all_elements.count('D') >= 1, "'D' must be present at least once"
         assert all_elements.count('S') >= 1, "'S' must be present at least once"
@@ -1943,6 +1963,13 @@ class OvercookedGridworld(object):
         if chop_key not in events_infos:
             raise ValueError("Unknown event {}".format(chop_key))
         events_infos[chop_key][player_index] = True
+
+    def log_object_trash(self, events_infos, state, obj_name, player_index):
+        """[POUBELLE] Le joueur a jeté l'objet tenu dans une poubelle."""
+        trash_key = obj_name + "_trash"
+        if trash_key not in events_infos:
+            raise ValueError("Unknown event {}".format(trash_key))
+        events_infos[trash_key][player_index] = True
 
     def is_dish_pickup_useful(self, state, pot_states, player_index=None):
         """

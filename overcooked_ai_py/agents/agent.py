@@ -466,6 +466,17 @@ class PlanningAgent(Agent):
             return False
         return mdp.recipe_requires_chopping(recipe)
 
+    def _discard_actions(self, state):
+        """[POUBELLE] Motion goals pour se débarrasser de l'objet tenu : poubelle en
+        priorité si le layout en contient une, sinon dépôt sur comptoir / zone d'échange.
+        Retourne (motion_goals, goal_symbol)."""
+        am = self.mlam
+        if am.mdp.get_trash_bin_locations():
+            trash_goals = am.place_obj_in_trash_actions(state)
+            if trash_goals:
+                return trash_goals, 'E'
+        return am.place_obj_on_counter_actions(state), 'X'
+
     def ml_action(self, state):
         """
         Selects a medium level action for the current state.
@@ -570,8 +581,8 @@ class PlanningAgent(Agent):
             if player_obj.name == 'onion':
                 # self.next_order_info["min_cost_to_complete"] == any([10000, 0]):
                 if 'onion' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
-                    motion_goals = am.place_obj_on_counter_actions(state)
-                    self.intentions['goal'] = 'X'
+                    # [POUBELLE] Oignon non requis : jeter (poubelle en priorité)
+                    motion_goals, self.intentions['goal'] = self._discard_actions(state)
                 # [CUTTING BOARD] découper l'oignon avant de le mettre au pot si la recette l'exige
                 elif cutting_enabled and self._held_needs_chopping(player_obj):
                     motion_goals = am.put_ingredient_on_board_actions(state)
@@ -584,8 +595,8 @@ class PlanningAgent(Agent):
             elif player_obj.name == 'tomato':
                 # self.next_order.min_cost_to_complete == 10000 or self.next_order.min_cost_to_complete == 0 :
                 if 'tomato' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
-                    motion_goals = am.place_obj_on_counter_actions(state)
-                    self.intentions['goal'] = 'X'
+                    # [POUBELLE] Tomate non requise : jeter (poubelle en priorité)
+                    motion_goals, self.intentions['goal'] = self._discard_actions(state)
                 # [CUTTING BOARD] découper la tomate avant de la mettre au pot si la recette l'exige
                 elif cutting_enabled and self._held_needs_chopping(player_obj):
                     motion_goals = am.put_ingredient_on_board_actions(state)
@@ -600,14 +611,14 @@ class PlanningAgent(Agent):
                 motion_goals = am.pickup_soup_with_dish_actions(
                     pot_states_dict, only_nearly_ready=True)
                 if motion_goals == []:
-                   motion_goals = am.place_obj_on_counter_actions(state) 
-                   self.intentions['goal'] = 'X'
+                   # [POUBELLE] Assiette inutile (aucune soupe prête) : jeter (poubelle en priorité)
+                   motion_goals, self.intentions['goal'] = self._discard_actions(state)
 
             elif player_obj.name == 'soup':
                 if player_obj.recipe not in state.all_orders :
-                    motion_goals = am.place_obj_on_counter_actions(state)
-                    self.intentions['goal'] = 'X'
-                else : 
+                    # [POUBELLE] Soupe non commandée : jeter (poubelle en priorité)
+                    motion_goals, self.intentions['goal'] = self._discard_actions(state)
+                else :
                     self.intentions['goal'] = 'S'
                     motion_goals = am.deliver_soup_actions()
 
@@ -619,8 +630,8 @@ class PlanningAgent(Agent):
 
         if len(motion_goals) == 0:
             if player.has_object():
-                motion_goals = am.place_obj_on_counter_actions(state)
-                self.intentions['goal'] = 'X'                
+                # [POUBELLE] Repli de rejet : poubelle en priorité, sinon comptoir/zone d'échange
+                motion_goals, self.intentions['goal'] = self._discard_actions(state)
             else:
                 motion_goals = am.go_to_closest_feature_actions(player)
             motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
