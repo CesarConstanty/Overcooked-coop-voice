@@ -1257,6 +1257,25 @@ class PlanningGame(OvercookedGame):
         if policy.motion_goal:
             return policy.chosen_goal[0]
 
+    def set_player_intention(self, section, value):
+        """[COMM JOUEUR→IA] Applique une consigne du joueur humain à l'agent planificateur.
+
+        - section 'distal'   : value = liste d'ingrédients de la recette à viser (ou None pour relâcher)
+        - section 'proximal' : value = code de sous-tâche 'ingredient'|'chop'|'pot'|'serve' (ou None)
+
+        L'écriture d'attribut est atomique (GIL) ; l'agent la lit dans son thread de décision
+        (npc_policy_consumer) au prochain appel à action()."""
+        # La communication bidirectionnelle doit être activée dans la config, sinon on ignore.
+        if not (getattr(self, 'config', None) or {}).get('bidirectionnelle'):
+            return
+        policy = self.npc_policies.get(getattr(self, 'planning_agent_id', None))
+        if policy is None:
+            return
+        if section == 'distal':
+            policy.forced_recipe = value if value else None
+        elif section == 'proximal':
+            policy.forced_subtask = value if value else None
+
     def get_state(self):
         state_dict = {}
         state_dict['potential'] = self.phi if self.show_potential else None

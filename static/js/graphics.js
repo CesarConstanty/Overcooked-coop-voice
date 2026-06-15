@@ -94,7 +94,9 @@ function graphics_start(graphics_config) {
     scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
     scene_config.show_score = graphics_config.show_score;
-    
+    // [COMM JOUEUR→IA] Active l'affichage des boutons de communication d'intention bidirectionnelle
+    scene_config.bidirectionnelle = graphics_config.bidirectionnelle;
+
     // Créer le gestionnaire graphique
     graphics = new GraphicsManager(game_config, scene_config, graphics_config);
     
@@ -231,6 +233,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.currentRecipe = null; // Property to store the current recipe
         this.lastRecipeIntentions = null;
         this.lastAssetIntentions = null;
+        // [COMM JOUEUR→IA] Communication d'intention bidirectionnelle joueur → IA (config.bidirectionnelle)
+        this.bidirectionnelle = config.bidirectionnelle === true;
+        this.selectedDistal = null;    // recette sélectionnée (JSON des ingrédients) ou null
+        this.selectedProximal = null;  // sous-tâche sélectionnée ('ingredient'|'chop'|'pot'|'serve') ou null
     }
 
     set_state(state) {
@@ -304,6 +310,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     create() {
         // Initialize basic scene elements first
         this.sprites = {};
+        // [COMM JOUEUR→IA] Réinitialiser les sélections à chaque (re)démarrage de scène (nouvel essai).
+        // Le forçage côté serveur est lui aussi réinitialisé via agent.reset() dans PlanningGame.activate().
+        this.selectedDistal = null;
+        this.selectedProximal = null;
         this.drawLevel();
         this.events.once('shutdown', () => this.teardownAudioUnlockListeners());
         this.events.once('destroy', () => this.teardownAudioUnlockListeners());
@@ -1173,7 +1183,12 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             }                   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
                 this._drawAllOrders(displayOrders, sprites, board_height, board_width, hud_data.intentions.recipe, hud_data.triplet_time_left);
-            }        
+            }
+        }
+        // [COMM JOUEUR→IA] Boutons de communication d'intention (sections distale / proximale),
+        // affichés uniquement si la communication bidirectionnelle est activée dans la config.
+        if (this.bidirectionnelle) {
+            this._drawCommButtons(hud_data, sprites, board_height, board_width, state);
         }
     }
 
@@ -1275,6 +1290,151 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 );
                 sprites['all_orders']['orders'] = [];
             }
+        }
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * [COMM JOUEUR→IA] Boutons de communication d'intention du joueur vers l'IA
+     *  - Section « Distale »   : une recette du All Orders (forçage de la recette cible)
+     *  - Section « Proximale » : une étape du pipeline (ingrédient→planche, découper,
+     *                            marmite, assiette/servir) — forçage strict.
+     * Une seule sélection par section ; le bouton sélectionné est encadré en bleu.
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    _commTextStyle() {
+        return { font: "18px Arial", fill: "#ffffff", align: "left" };
+    }
+
+    // Choisit (atlas, frame) en gérant un repli si la texture n'est pas chargée.
+    _safeFrame(atlas, frame) {
+        if (this.textures.exists(atlas)) {
+            return { atlas: atlas, frame: frame };
+        }
+        return { atlas: "tiles", frame: "counter.png" };
+    }
+
+    _drawCommButtons(hud_data, sprites, board_height, board_width, state) {
+        // Création unique des éléments statiques (labels, boutons proximaux, encadrés).
+        if (typeof(sprites['comm']) === 'undefined') {
+            sprites['comm'] = { distal: [], proximal: [], distalKey: null };
+            this.add.text(board_width + 5, 200, 'Distale', this._commTextStyle()).depth = 3;
+            this.add.text(board_width + 5, 300, 'Proximale', this._commTextStyle()).depth = 3;
+            this._buildProximalButtons(sprites, board_width);
+            // Encadrés bleus (un par section), masqués tant que rien n'est sélectionné.
+            sprites['comm'].distalBorder = this.add.rectangle(0, 0, 10, 10, 0x000000, 0)
+                .setOrigin(0).setStrokeStyle(4, 0x1e90ff, 1).setVisible(false);
+            sprites['comm'].distalBorder.depth = 5;
+            sprites['comm'].proximalBorder = this.add.rectangle(0, 0, 10, 10, 0x000000, 0)
+                .setOrigin(0).setStrokeStyle(4, 0x1e90ff, 1).setVisible(false);
+            sprites['comm'].proximalBorder.depth = 5;
+        }
+
+        // (Re)construire les boutons distaux quand la liste de recettes change (triplets).
+        const orders = hud_data.triplet_display_orders || hud_data.all_orders;
+        const key = JSON.stringify((orders || []).map(o => o.ingredients));
+        if (key !== sprites['comm'].distalKey) {
+            this._buildDistalButtons(orders, sprites, board_width);
+            sprites['comm'].distalKey = key;
+        }
+
+        this._updateCommBorders(sprites);
+    }
+
+    _buildProximalButtons(sprites, board_width) {
+        const c = sprites['comm'];
+        const defs = [
+            { code: 'ingredient', icons: [['objects', 'onion.png'], ['objects', 'tomato.png']] },
+            { code: 'chop',       icons: [['terrain_cut', 'cutting_board.png']] },
+            { code: 'pot',        icons: [['tiles', 'pot.png']] },
+            { code: 'serve',      icons: [['objects', 'dish.png']] },
+        ];
+        const y = 328, slotW = 56, slotH = 44, gap = 66;
+        for (let i = 0; i < defs.length; i++) {
+            const x = board_width + 10 + gap * i;
+            const code = defs[i].code;
+            // Rectangle de fond servant de zone cliquable (uniforme, gère le bouton combiné).
+            const bg = this.add.rectangle(x, y, slotW, slotH, 0xffffff, 0.12).setOrigin(0);
+            bg.setStrokeStyle(1, 0xffffff, 0.35);
+            bg.depth = 2;
+            bg.setInteractive({ useHandCursor: true });
+            bg.on('pointerdown', () => this._selectComm('proximal', code, sprites));
+            // Icône(s) par-dessus (non interactives).
+            const icons = defs[i].icons;
+            if (icons.length === 1) {
+                const a = this._safeFrame(icons[0][0], icons[0][1]);
+                const ic = this.add.sprite(x + slotW / 2, y + slotH / 2, a.atlas, a.frame)
+                    .setOrigin(0.5).setDisplaySize(36, 36);
+                ic.depth = 3;
+            } else {
+                const a0 = this._safeFrame(icons[0][0], icons[0][1]);
+                const a1 = this._safeFrame(icons[1][0], icons[1][1]);
+                const ic0 = this.add.sprite(x + slotW * 0.32, y + slotH / 2, a0.atlas, a0.frame)
+                    .setOrigin(0.5).setDisplaySize(26, 26);
+                ic0.depth = 3;
+                const ic1 = this.add.sprite(x + slotW * 0.68, y + slotH / 2, a1.atlas, a1.frame)
+                    .setOrigin(0.5).setDisplaySize(26, 26);
+                ic1.depth = 3;
+            }
+            c.proximal.push({ code: code, x: x, y: y, w: slotW, h: slotH, bg: bg });
+        }
+    }
+
+    _buildDistalButtons(orders, sprites, board_width) {
+        const c = sprites['comm'];
+        // Détruire les anciens boutons distaux avant reconstruction.
+        c.distal.forEach(b => b.sprite.destroy());
+        c.distal = [];
+        if (orders) {
+            const size = 48, gap = 56, y = 226;
+            for (let i = 0; i < orders.length; i++) {
+                const ings = orders[i].ingredients;
+                const frame = this._ingredientsToSpriteFrame(ings, "done");
+                const x = board_width + 10 + gap * i;
+                const spr = this.add.sprite(x, y, "soups", frame).setOrigin(0).setDisplaySize(size, size);
+                spr.depth = 3;
+                spr.setInteractive({ useHandCursor: true });
+                spr.on('pointerdown', () => this._selectComm('distal', ings, sprites));
+                c.distal.push({ sprite: spr, ingredients: ings, x: x, y: y, w: size, h: size });
+            }
+        }
+        // Si la recette sélectionnée a disparu de la liste, relâcher la consigne.
+        if (this.selectedDistal && !c.distal.find(b => JSON.stringify(b.ingredients) === this.selectedDistal)) {
+            this.selectedDistal = null;
+            if (window.sendPlayerIntention) window.sendPlayerIntention('distal', null);
+        }
+    }
+
+    _selectComm(section, value, sprites) {
+        if (section === 'distal') {
+            const k = JSON.stringify(value);
+            this.selectedDistal = (this.selectedDistal === k) ? null : k;   // re-clic = désélection
+            if (window.sendPlayerIntention) {
+                window.sendPlayerIntention('distal', this.selectedDistal ? value : null);
+            }
+        } else {
+            this.selectedProximal = (this.selectedProximal === value) ? null : value;
+            if (window.sendPlayerIntention) {
+                window.sendPlayerIntention('proximal', this.selectedProximal ? value : null);
+            }
+        }
+        this._updateCommBorders(sprites);
+    }
+
+    _updateCommBorders(sprites) {
+        const c = sprites['comm'];
+        const selD = this.selectedDistal
+            ? c.distal.find(b => JSON.stringify(b.ingredients) === this.selectedDistal) : null;
+        if (selD) {
+            c.distalBorder.setPosition(selD.x - 3, selD.y - 3).setSize(selD.w + 6, selD.h + 6).setVisible(true);
+        } else {
+            c.distalBorder.setVisible(false);
+        }
+        const selP = this.selectedProximal
+            ? c.proximal.find(b => b.code === this.selectedProximal) : null;
+        if (selP) {
+            c.proximalBorder.setPosition(selP.x - 3, selP.y - 3).setSize(selP.w + 6, selP.h + 6).setVisible(true);
+        } else {
+            c.proximalBorder.setVisible(false);
         }
     }
 
@@ -1489,7 +1649,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         else {
             sprites['score'] = this.add.text(
-                board_width + 5, 250, score,
+                board_width + 5, 160, score,
                 {
                     font: "20px Arial",
                     fill: "red",
@@ -1524,7 +1684,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
         else {
             sprites['time_left'] = this.add.text(
-                board_width + 5, 300, time_left,
+                board_width + 5, 130, time_left,
                 {
                     font: "20px Arial",
                     fill: "red",

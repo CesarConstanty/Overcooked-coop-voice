@@ -2,6 +2,14 @@ console.log("executing planning")
 // Persistent network connection that will be used to transmit real-time data
 var socket = io();
 
+// [COMM JOUEUR→IA] Appelé par les boutons de communication (graphics.js) pour transmettre
+// au serveur l'intention cliquée par le joueur.
+//   section : 'distal' (recette) | 'proximal' (sous-tâche)
+//   value   : liste d'ingrédients | code de sous-tâche | null (relâcher la consigne)
+window.sendPlayerIntention = function(section, value) {
+    socket.emit('player_intention', { section: section, value: value });
+};
+
 /* * * * * * * * * * * * * * * * 
  * Button click event handlers *
  * * * * * * * * * * * * * * * */
@@ -252,6 +260,7 @@ socket.on('start_game', function(data) {
         show_score : data.config.show_score === true,
         triplet_display_min : data.config.triplet_display_min || 10,
         triplet_display_max : data.config.triplet_display_max || 30,
+        bidirectionnelle : data.config.bidirectionnelle === true,
     };
     window.spectating = data.spectating;
     $('#error-exit').hide();
@@ -305,6 +314,7 @@ socket.on('reset_game', function(data) {
             Game_Trial_Timer : data.config.Game_Trial_Timer,
             triplet_display_min : data.config.triplet_display_min || 10,
             triplet_display_max : data.config.triplet_display_max || 30,
+            bidirectionnelle : data.config.bidirectionnelle === true,
         };
         if (!window.spectating) {
             enable_key_listener();

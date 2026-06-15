@@ -29,6 +29,7 @@
         "show_counter_drop" : true,
         "show_trial_time" : true,
         "show_score" : true,
+        "bidirectionnelle" : true,
         "completion_link" : "https://app.prolific.com/submissions/complete?cc=CKE8HXOR",
         "researcher" : {
             "name": "Constanty Cesar",

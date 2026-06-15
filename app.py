@@ -1783,6 +1783,20 @@ def on_action(data):
     game.enqueue_action(user_id, action)
 
 
+@socketio.on('player_intention')
+def on_player_intention(data):
+    """[COMM JOUEUR→IA] Reçoit une consigne d'intention cliquée par le joueur et la transmet
+    à l'agent planificateur. data = {'section': 'distal'|'proximal', 'value': <recette|code|None>}."""
+    current_user = get_current_user()
+    user_id = current_user.uid
+
+    game = get_curr_game(user_id)
+    if not isinstance(game, PlanningGame):
+        return
+
+    game.set_player_intention(data.get('section'), data.get('value'))
+
+
 @socketio.on('connect') # est déclenché à chaque fois qu'un client se connect au serveur via Socket.IO
 def on_connect():       # utilise le user_id pour gérer ces connexions
     current_user = get_current_user()

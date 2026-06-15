@@ -298,6 +298,9 @@ class PlanningAgent(Agent):
         # state as the previous turn. If false, the agent is history-less, while if true it has history.
         self.auto_unstuck = auto_unstuck
         self.next_order_info = None
+        # [COMM JOUEUR→IA] Consignes du joueur (None = aucun forçage).
+        self.forced_recipe = None    # section distale : liste d'ingrédients de la recette à viser
+        self.forced_subtask = None   # section proximale : 'ingredient'|'chop'|'pot'|'serve'
         self.reset()
 
     def reset(self):
@@ -305,6 +308,9 @@ class PlanningAgent(Agent):
         # None = aucun objectif réel encore choisi pour cet essai. Le 1er choix d'un essai
         # ne doit pas compter comme un switch (None n'est jamais dans all_recipes).
         self.hl_goal = None
+        # [COMM JOUEUR→IA] Réinitialiser les consignes du joueur à chaque nouvel essai.
+        self.forced_recipe = None
+        self.forced_subtask = None
         #self.mdp = mdp
         #self.mlam = MediumLevelActionManager.from_pickle_or_compute(self.mdp, NO_COUNTERS_PARAMS)
 
@@ -328,7 +334,18 @@ class PlanningAgent(Agent):
         return actions_and_infos_n
 
     def action(self, state):
-        self.motion_goal = self.ml_action(state)
+        # [COMM JOUEUR→IA] Forçage STRICT d'une sous-tâche demandée par le joueur (section proximale).
+        # L'IA ne fait QUE l'étape demandée ; si elle n'est pas réalisable dans l'état courant,
+        # elle reste immobile (STAY), sans déclencher la logique auto_unstuck.
+        if self.forced_subtask is not None:
+            forced_goals = self._forced_motion_goals(state)
+            if len(forced_goals) == 0:
+                self.chosen_goal = state.players_pos_and_or[self.agent_index]
+                self.prev_state = state
+                return Action.STAY, {"action_probs": self.a_probs_from_action(Action.STAY)}
+            self.motion_goal = forced_goals
+        else:
+            self.motion_goal = self.ml_action(state)
 
         # Once we have identified the motion goals for the medium
         # level action we want to perform, select the one with lowest cost
@@ -477,6 +494,160 @@ class PlanningAgent(Agent):
                 return trash_goals, 'E'
         return am.place_obj_on_counter_actions(state), 'X'
 
+    def _resolve_hl_action(self, state):
+        """[COMM JOUEUR→IA] Sélection de la recette cible haut niveau.
+
+        Si le joueur a forcé une recette (section distale) et qu'elle est réalisable dans
+        l'état courant (présente dans hl_info), on la vise EXACTEMENT ; sinon on retombe sur
+        l'heuristique propre de l'agent (Rational/Greedy/Lazy)."""
+        if self.forced_recipe:
+            all_recipes = self.hl_info(state)
+            target = sorted(self.forced_recipe)
+            for recipe, info in all_recipes.items():
+                if sorted(recipe.ingredients) == target:
+                    self.hl_goal = recipe
+                    return {
+                        "recipe": info["recipe"],
+                        "most_advanced_pot": info["most_advanced_pot"],
+                        "missing_ingredients_in_MA_pot": info["missing_ingredients_in_MA_pot"],
+                        "point_time_ratio": info["point_time_ratio"],
+                        "min_cost_to_complete": info["min_cost_to_complete"],
+                    }
+        return self.hl_action(state)
+
+    def _cookable_pots(self, state, pot_states_dict):
+        """[COMM JOUEUR→IA] Marmites non vides, ni en cuisson ni prêtes, dont les ingrédients
+        forment une commande complète (la recette forcée si définie, sinon n'importe quelle
+        commande de state.all_orders). Utilisé pour lancer la cuisson en forçage strict 'pot'."""
+        mdp = self.mlam.mdp
+        orders = [sorted(r.ingredients) for r in state.all_orders]
+        target = sorted(self.forced_recipe) if self.forced_recipe else None
+        cookable = []
+        for pot_pos in mdp.get_pot_locations():
+            if not state.has_object(pot_pos):
+                continue
+            soup = state.get_object(pot_pos)
+            if soup.is_cooking or soup.is_ready or len(soup.ingredients) == 0:
+                continue
+            ings = sorted(soup.ingredients)
+            if (target is not None and ings == target) or (target is None and ings in orders):
+                cookable.append(pot_pos)
+        return cookable
+
+    def _forced_motion_goals(self, state):
+        """[COMM JOUEUR→IA] Forçage STRICT d'une étape du pipeline (section proximale).
+
+        Retourne la liste (filtrée par atteignabilité) des motion goals correspondant
+        UNIQUEMENT à l'étape demandée. Réutilise les générateurs du mlam.
+
+        Règle de déblocage (poubelle) : si l'IA tient un objet qui l'empêche de réaliser
+        l'étape demandée ET qui n'est PAS pertinent pour cette étape, elle va le jeter
+        (poubelle en priorité, comptoir en repli) au lieu de rester bloquée. Un objet
+        encore pertinent (mais momentanément inutilisable, ex. ingrédient brut quand on
+        veut remplir la marmite) est conservé → l'IA reste alors immobile (retour []).
+        """
+        am = self.mlam
+        mdp = self.mlam.mdp
+        player = state.players[self.agent_index]
+        counter_objects = mdp.get_counter_objects_dict(state, list(mdp.terrain_pos_dict['X']))
+        pot_states_dict = mdp.get_pot_states(state)
+        cutting_enabled = getattr(mdp, 'cutting_enabled', False)
+        if cutting_enabled:
+            board_locs = set(mdp.get_cutting_board_locations())
+            board_objs = [o for o in state.objects.values() if o.position in board_locs]
+        else:
+            board_objs = []
+        chopped_on_board = [o for o in board_objs if getattr(o, 'chopped', False)]
+        unchopped_on_board = [o for o in board_objs if not getattr(o, 'chopped', False)]
+
+        # Refléter la recette forcée dans les intentions (HUD IA→joueur).
+        if self.forced_recipe:
+            self.intentions['recipe'] = list(self.forced_recipe)
+
+        held = player.get_object() if player.has_object() else None
+        held_name = held.name if held is not None else None
+        held_chopped = bool(getattr(held, 'chopped', False)) if held is not None else False
+        is_raw_ingredient = held_name in ('onion', 'tomato') and not held_chopped
+        is_chopped_ingredient = held_name in ('onion', 'tomato') and held_chopped
+
+        sub = self.forced_subtask
+        goals = []
+        discard = False   # True => objet tenu non pertinent : aller le jeter à la poubelle
+
+        if sub == 'ingredient':
+            # Prendre un ingrédient (oignon/tomate) et l'amener à la planche à découper.
+            if held is None:
+                info = self._resolve_hl_action(state)
+                missing = list(info.get('missing_ingredients_in_MA_pot', [])) if info else []
+                if 'onion' in missing:
+                    goals = am.pickup_onion_actions(counter_objects, state=state, player_idx=self.agent_index)
+                    self.intentions['goal'] = 'O'
+                elif 'tomato' in missing:
+                    goals = am.pickup_tomato_actions(counter_objects, state=state, player_idx=self.agent_index)
+                    self.intentions['goal'] = 'T'
+            elif is_raw_ingredient:
+                goals = am.put_ingredient_on_board_actions(state)
+                self.intentions['goal'] = 'C'
+            else:
+                discard = True   # assiette / soupe / ingrédient déjà coupé : non pertinent
+
+        elif sub == 'chop':
+            # Découper : ne se fait que mains libres, sur un ingrédient non coupé déjà posé.
+            if held is None:
+                if unchopped_on_board:
+                    goals = am.chop_actions(unchopped_on_board)
+                    self.intentions['goal'] = 'C'
+            elif is_raw_ingredient:
+                # Pertinent (ingrédient à découper) : le poser sur la planche d'abord.
+                goals = am.put_ingredient_on_board_actions(state)
+                self.intentions['goal'] = 'C'
+            else:
+                discard = True   # assiette / soupe / ingrédient déjà coupé : non pertinent
+
+        elif sub == 'pot':
+            # Amener les ingrédients coupés dans la marmite (+ lancer la cuisson quand complète).
+            if held is None:
+                if chopped_on_board:
+                    goals = am.pickup_chopped_actions(chopped_on_board)
+                    self.intentions['goal'] = 'C'
+                else:
+                    goals = am._get_ml_actions_for_positions(self._cookable_pots(state, pot_states_dict))
+                    self.intentions['goal'] = 'P'
+            elif is_chopped_ingredient or (held_name in ('onion', 'tomato') and not self._held_needs_chopping(held)):
+                if held_name == 'onion':
+                    goals = am.put_onion_in_pot_actions(pot_states_dict)
+                else:
+                    goals = am.put_tomato_in_pot_actions(pot_states_dict)
+                self.intentions['goal'] = 'P'
+            elif is_raw_ingredient:
+                pass   # ingrédient brut encore pertinent (à découper) : on le garde → STAY
+            else:
+                discard = True   # assiette / soupe : non pertinent pour remplir la marmite
+
+        elif sub == 'serve':
+            # Récupérer les plats dans la marmite et les servir.
+            if held is None:
+                if pot_states_dict['ready'] or pot_states_dict['cooking']:
+                    goals = am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
+                    self.intentions['goal'] = 'D'
+            elif held_name == 'dish':
+                goals = am.pickup_soup_with_dish_actions(pot_states_dict, only_nearly_ready=True)
+                self.intentions['goal'] = 'P'
+            elif held_name == 'soup':
+                goals = am.deliver_soup_actions()
+                self.intentions['goal'] = 'S'
+            else:
+                discard = True   # ingrédient (brut/coupé) : non pertinent pour servir
+
+        # [POUBELLE] Objet tenu non pertinent pour l'étape : aller s'en débarrasser.
+        if discard:
+            goals, self.intentions['goal'] = self._discard_actions(state)
+
+        # Ne conserver que les goals réellement atteignables depuis la position courante.
+        goals = [mg for mg in goals
+                 if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+        return goals
+
     def ml_action(self, state):
         """
         Selects a medium level action for the current state.
@@ -517,7 +688,7 @@ class PlanningAgent(Agent):
                 self.intentions['goal'] = 'D'
                 motion_goals = am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
             else:
-                self.next_order_info = self.hl_action(state)
+                self.next_order_info = self._resolve_hl_action(state)
                 self.intentions["recipe"] = self.next_order_info["recipe"].ingredients
                 soups_ready_to_cook_key = '{}_items'.format(
                     len(self.next_order_info["recipe"].ingredients))
@@ -576,7 +747,7 @@ class PlanningAgent(Agent):
             except KeyError:
                 # Recipe triplet changed — the cached recipe is no longer valid; replan.
                 if all_recipes:
-                    self.next_order_info = self.hl_action(state)
+                    self.next_order_info = self._resolve_hl_action(state)
 
             if player_obj.name == 'onion':
                 # self.next_order_info["min_cost_to_complete"] == any([10000, 0]):
