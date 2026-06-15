@@ -7,26 +7,27 @@ var config;
 
 var tutorial_instructions = () => [
     `
-    <p>How it works: <b>Delivery</b></p>
-    <p>Your goal here is to cook and deliver soups. Notice how the artificial agent is busily churning out onion soups</p>
-    <p>Try to copy his actions in order to cook one of the soups shown in All orders</p>
-    <p><b>Note</b>: only recipes in the <b>All Orders</b> will earn you points.</p>
-    <p><b>Note</b>: refer to the legend on the left to see which ingredient to use</p>
+    <p>How it works: <b>Recipes &amp; the Random Dispenser</b></p>
+    <p>Your goal is to cook and deliver a soup that matches one of the orders shown in <b>All Orders</b>. Only recipes in <b>All Orders</b> earn points.</p>
+    <p>Your ingredients come from the <b>random dispenser</b> (the highlighted tile on the wall). Each time you grab from it, it gives a <b>random ingredient</b> &mdash; watch its icon change after each pickup.</p>
+    <p>If you draw an ingredient you don't need, drop it in the <b>bin</b> (the trash tile) and grab again.</p>
+    <p>Then put your ingredient(s) in the <b>pot</b>, wait for it to cook, pick up a <b>plate</b> from the dish dispenser, collect the soup and deliver it to the <b>serving window</b>.</p>
     <p>Good luck!</p>
     <br></br>
     `,
     `
-    <p>How it works: <b>All Orders</b></p>
-    <p>Oh no! The artificial agent has mistakenly placed two onions in the pot.</p>
-    <p>This is an issue because no recipe on the <b>All Orders</b> list contains 2 onions</p>
-    <p>See if you can remedy the situation and cook a recipe that is indeed valid</p>
-    <p><b>You will advance only after having delivered a valid soup</b></p>
-    <p>Good Luck!</p>
+    <p>How it works: <b>The Cutting Board</b></p>
+    <p>From now on, every ingredient must be <b>chopped</b> before it can go into the pot &mdash; you will not be able to drop a raw ingredient into the pot.</p>
+    <p>Grab an ingredient from the random dispenser, drop it on the <b>cutting board</b>, then press <b>spacebar</b> several times to chop it. When it's done, pick it up and put it in the pot.</p>
+    <p>If the dispenser ever gives you a plate (or anything you don't want), just toss it in the <b>bin</b>.</p>
+    <p>Cook, plate and deliver a chopped soup to advance.</p>
+    <p>Good luck!</p>
     <br></br>
     `,
     `
-    <p>How it works: <b>Scoring</b></p>
-    <p>The artificial agent is again busy to churn out onion soups. Let's train one more time to deliver a valid soup</p>
+    <p>How it works: <b>Put it all together</b></p>
+    <p>This kitchen has everything: regular and <b>random dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window.</p>
+    <p>Read <b>All Orders</b>, gather your ingredients, <b>chop</b> them, bin any mistakes, cook, plate and deliver one valid order to finish the tutorial.</p>
     <br></br>
     `
 ];
@@ -34,17 +35,17 @@ var tutorial_instructions = () => [
 var tutorial_hints = () => [
     `
     <p>
-        You can move up, down, left, and right using
-        the <b>arrow keys</b>, and interact with objects
-        using the <b>spacebar</b>.
+        You move up, down, left and right with the <b>arrow keys</b>,
+        and interact (grab, drop, use a tile) with the <b>spacebar</b>.
+        Face a tile, then press spacebar to use it.
       </p>
     `,
     `
-    <p>You cannot remove ingredients from the pot. You can, however, cook any soup you like, even if it's not in <b>All Orders</b>...</p>
+    <p>You must <b>chop before potting</b>: drop the ingredient on the cutting board, press <b>spacebar</b> repeatedly until it is fully cut, then pick it up and add it to the pot.</p>
     `
     ,
     `
-    <p>Remember : You cannot remove ingredients from the pot. You can, however, cook any soup you like, even if it's not in <b>All Orders</b>...</p>
+    <p>Remember: every ingredient must be <b>chopped</b> on the cutting board before it goes into the pot. Use the <b>bin</b> to discard unwanted items.</p>
     `
 ]
 
@@ -137,7 +138,7 @@ socket.on('start_game', function(data) {
     $('#try-again').attr('disabled', true)
     $('#hint-wrapper').hide();
     $('#show-hint').text('Show Hint');
-    $('#game-title').text(`Tutorial in Progress, Phase ${curr_tutorial_phase}/${tutorial_instructions.length}`);
+    $('#game-title').text(`Tutorial in Progress, Phase ${curr_tutorial_phase + 1}/${tutorial_instructions.length}`);
     $('#game-title').show();
     $('#tutorial-instructions').append(tutorial_instructions[curr_tutorial_phase]);
     $('#instructions-wrapper').show();
@@ -148,6 +149,12 @@ socket.on('start_game', function(data) {
 
 socket.on('reset_game', function(data) {
     curr_tutorial_phase++;
+    // À la fin de la dernière phase, le serveur émet un dernier reset_game (curr_phase passe à 3)
+    // juste avant end_game. Cet index dépasse alors le nombre d'instructions : on l'ignore pour
+    // éviter d'afficher "undefined" / "Phase 4/3" le temps que end_game prenne le relais.
+    if (curr_tutorial_phase >= tutorial_instructions.length) {
+        return;
+    }
     graphics_end();
     disable_key_listener();
     $("#overcooked").empty();

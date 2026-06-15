@@ -1440,7 +1440,7 @@ class OvercookedTutorial(OvercookedGame):
         - phase_two_score (float): The exact sparse reward the user must obtain to advance past phase 2
     """
 
-    def __init__(self, layouts=["tutorial_2", "tutorial_1", "tutorial_0"], mdp_params={}, playerZero='human', playerOne='AI', phaseTwoScore=15,
+    def __init__(self, layouts=["tutorial_0", "tutorial_1", "tutorial_2"], mdp_params={}, playerZero='human', playerOne='AI', phaseTwoScore=15,
                  **kwargs):
         super(OvercookedTutorial, self).__init__(layouts=layouts, mdp_params=mdp_params, playerZero=playerZero,
                                                  playerOne=playerOne, showPotential=False, **kwargs)
@@ -1451,6 +1451,16 @@ class OvercookedTutorial(OvercookedGame):
         self.max_players = 2
         self.ticks_per_ai_action = 5  # Fixed AI speed for tutorial
         self.curr_phase = 0
+        # [TUTORIEL] Le layout de chaque phase est choisi via curr_trial_in_game, incrémenté
+        # dans OvercookedGame.activate(). Pour rester aligné avec curr_phase (incrémenté dans
+        # reset()), curr_trial_in_game DOIT partir de -1 : le 1er activate() le porte à 0 = phase 0.
+        # Le handler 'join' transmet curr_trial_in_game = current_user.trial - 1 (utile pour
+        # l'expérience, mais dénué de sens ici). Si trial != 0, les deux compteurs se décalent et
+        # le reset de fin de phase 2 tente layouts[3] -> IndexError côté serveur (invisible dans la
+        # console navigateur), 'reset_game' n'est jamais émis et le tutoriel reste bloqué en phase 2.
+        # On force donc -1 : le tutoriel rejoue toujours ses 3 layouts fixes depuis le début.
+        self.curr_trial_in_game = -1
+        self.curr_layout = self.layouts[0]
         self.participant_uid = kwargs.get('player_uid', '-1')
         self.trial_id = "tutorial" + str(self.curr_phase)
         self.data = []
@@ -1493,9 +1503,50 @@ class OvercookedTutorial(OvercookedGame):
         self.phase_two_finished = False  # Réinitialiser la validation de la phase 2
         super(OvercookedTutorial, self).reset()
 
+    def _phase_mdp_config(self, phase, base):
+        """[TUTORIEL] Paramètres MDP propres à chaque phase pédagogique.
+
+        Le tutoriel ne peut pas hériter de la config expérimentale (config_test) pour le MDP :
+        celle-ci force globalement cutting_enabled / Human_forced_cutting / recipes_requiring_chopping,
+        ce qui rendrait la phase 0 (recette + random dispenser, SANS découpe) injouable et bloquerait
+        la pose en marmite. On reconstruit donc, par phase, uniquement les overrides MDP voulus
+        (cf. CONFIG_DRIVEN_MDP_PARAMS) en gardant l'économie (valeurs/temps des ingrédients) identique
+        à l'expérience pour la cohérence.
+        """
+        base = base or {}
+        cfg = {
+            "onion_value":  base.get("onion_value", 3),
+            "tomato_value": base.get("tomato_value", 2),
+            "onion_time":   base.get("onion_time", 9),
+            "tomato_time":  base.get("tomato_time", 6),
+        }
+        if phase == 0:
+            # Leçon 1 : recette + random dispenser. Pas de découpe (cutting_enabled reste False).
+            cfg["dispenser_pool"] = ["onion", "tomato"]
+        else:
+            # Leçons 2 et 3 : découpe activée et imposée à l'humain, comme dans l'expérience.
+            cfg["cutting_enabled"] = True
+            cfg["chop_time"] = base.get("chop_time", {"onion": 3, "tomato": 2})
+            cfg["recipes_requiring_chopping"] = base.get(
+                "recipes_requiring_chopping",
+                [["onion"], ["tomato"], ["onion", "onion"], ["onion", "tomato"],
+                 ["tomato", "tomato"], ["onion", "onion", "onion"]])
+            cfg["dispenser_pool"] = base.get("dispenser_pool", ["onion", "tomato", "dish"])
+            cfg["Human_forced_cutting"] = True
+        return cfg
+
     def activate(self):
         self.trial_id = "tutorial" + str(self.curr_phase)
-        super(OvercookedTutorial, self).activate()
+        # [TUTORIEL] On permute self.config par les overrides MDP de la phase courante UNIQUEMENT
+        # le temps de la construction du MDP dans super().activate() (qui lit self.config en
+        # mdp_overrides_from_config + Human_forced_cutting), puis on restaure la vraie config
+        # (utilisée par get_data pour le logging).
+        real_config = self.config
+        self.config = self._phase_mdp_config(self.curr_phase, real_config)
+        try:
+            super(OvercookedTutorial, self).activate()
+        finally:
+            self.config = real_config
 
     def deactivate(self):
         super(OvercookedTutorial, self).deactivate()
@@ -1712,11 +1763,11 @@ class TutorialAI():
         self.curr_tick = -1
 
     def action(self, state):
+        # [TUTORIEL SOLO] Le partenaire reste inactif dans toutes les phases : le participant
+        # apprend seul les mécaniques (recette/random dispenser, découpe, poubelle). Les anciennes
+        # boucles COOK_SOUP_LOOP / COOK_SOUP_COOP_LOOP étaient codées pour l'ancienne grille 7×5
+        # et ne sont plus utilisées avec les nouvelles grilles de tutoriel.
         self.curr_tick += 1
-        if self.curr_phase == 0:
-            return self.COOK_SOUP_LOOP[self.curr_tick % len(self.COOK_SOUP_LOOP)], None
-        elif self.curr_phase == 2:
-            return self.COOK_SOUP_COOP_LOOP[self.curr_tick % len(self.COOK_SOUP_COOP_LOOP)], None
         return Action.STAY, None
 
     def set_mdp(self, mdp):

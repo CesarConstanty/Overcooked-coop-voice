@@ -365,6 +365,18 @@ class MotionPlanner(object):
         onion_delivery_cost = self.min_cost_between_features(onion_locations, delivery_locations, manhattan_if_fail=False)
         tomato_delivery_cost = self.min_cost_between_features(tomato_locations, delivery_locations, manhattan_if_fail=False)
 
+        # [ASYMMETRIC DISPENSERS] Layouts sans dispenser O/T (ex. tutoriels recette/random
+        # dispenser) : les distributeurs joueur-spécifiques A/B servent de source d'ingrédients.
+        # On ne s'y rabat QUE si aucun O/T n'est atteignable, donc l'heuristique des layouts
+        # possédant déjà O et/ou T (ex. expérience) reste strictement inchangée.
+        if onion_pot_cost == np.inf and tomato_pot_cost == np.inf:
+            asym_locations = (self.mdp.get_player0_dispenser_locations()
+                              + self.mdp.get_player1_dispenser_locations())
+            asym_pot_cost = self.min_cost_between_features(asym_locations, pot_locations, manhattan_if_fail=False)
+            asym_delivery_cost = self.min_cost_between_features(asym_locations, delivery_locations, manhattan_if_fail=False)
+            onion_pot_cost = tomato_pot_cost = asym_pot_cost
+            onion_delivery_cost = tomato_delivery_cost = asym_delivery_cost
+
         assert onion_pot_cost != np.inf or tomato_pot_cost != np.inf
         if onion_pot_cost != np.inf:
             heuristic_cost_dict['onion-pot'] = onion_pot_cost
