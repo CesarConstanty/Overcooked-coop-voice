@@ -42,7 +42,7 @@
             "email": "bruno.berberian@onera.fr",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 60,
+        "gameTime" : 20,
         "explications_generales_max": 600,
         "explications_generales_min": 5,
         "explications_block_max": 300,
@@ -58,15 +58,15 @@
         "visual_intention_show_asset": true,
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["test01"],
-            "1": ["test01"],
-            "2": ["test01"]
+            "0": ["test01","test02","test03"],
+            "1": ["test01","test02","test03"],
+            "2": ["test01","test02","test03"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
-            "begin"      : ["GAbstractionP_fr","QVG"],
+            "begin"      : ["GAbstractionP","QVG"],
             "post_trial" : ["agency","PTTA"],
             "post_bloc"  : ["AAT_L"],
             "end"        : ["preference"]
@@ -97,7 +97,7 @@
         "ai_asset_slowdown_intentions": ["O", "T", "D", "S", "C"],
         "dispenser_pool" : ["onion", "tomato", "dish"],
         "cutting_enabled" : true,
-        "chop_time" : {"onion" : 3, "tomato" : 2},
+        "chop_time" : {"onion" : 5, "tomato" : 4},
         "recipes_requiring_chopping" : [["onion"], ["tomato"], ["onion", "onion"], ["onion", "tomato"], ["tomato", "tomato"], ["onion", "onion", "onion"], ["onion", "onion", "tomato"], ["onion", "tomato", "tomato"], ["tomato", "tomato", "tomato"]],
         "cutting_board_symbol" : "C",
         "Human_forced_cutting" : true,

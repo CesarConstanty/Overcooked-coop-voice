@@ -103,6 +103,21 @@ PAGE_TRACKERS = ThreadSafeDict()
 USERS = ThreadSafeDict()
 
 
+def get_user_lock(user_id):
+    """Verrou par utilisateur, créé à la volée s'il manque.
+
+    Robustesse : lors de navigations Précédent/Suivant forcées, SocketIO enchaîne
+    disconnect (qui retire le verrou) et reconnexion. Un évènement 'join'/'leave'
+    parasite pouvait alors arriver verrou absent -> KeyError, crash du handler et
+    partie laissée orpheline. On crée donc le verrou si besoin plutôt que d'indexer
+    directement USERS[user_id]."""
+    lock = USERS.get(user_id)
+    if lock is None:
+        lock = Lock()
+        USERS[user_id] = lock
+    return lock
+
+
 # Mapping of user id's to the current game (room) they are in
 USER_ROOMS = ThreadSafeDict()
 
@@ -649,6 +664,134 @@ def _ensure_consistent_state():
 def get_agent_names():
     return [d for d in os.listdir(AGENT_DIR) if os.path.isdir(os.path.join(AGENT_DIR, d))]
 
+
+# ============================================================
+# Contrôle de navigation du parcours (anti casse Précédent/Suivant)
+# ============================================================
+# Politique (cf. static/js/nav-guard.js côté client) :
+#   1) rechargement autorisé ; 2) Précédent -> première page ;
+#   3) Suivant -> dernière page visitée ; 4) toute autre navigation hors de
+#   l'ordre prévu est neutralisée.
+# Deux niveaux : garde client (JS injecté dans chaque page) + filet serveur
+# (ci-dessous). Le filet est *fail-open* : au moindre doute il laisse passer,
+# pour ne JAMAIS bloquer un participant légitime. Désactivable via
+# config.json -> "nav_guard": false.
+
+NAV_GUARD_ENABLED = CONFIG.get("nav_guard", True)
+
+try:
+    with open(os.path.join('static', 'js', 'nav-guard.js'), encoding='utf-8') as _ngf:
+        _NAV_GUARD_JS = _ngf.read()
+except OSError:
+    _NAV_GUARD_JS = ""
+    logger.warning("[NAV_GUARD] static/js/nav-guard.js introuvable : garde client non injectée")
+
+# Phase (entier monotone) de chaque page. Les pages du corps qui bouclent
+# (tutoriels / jeu / questionnaires post-essai et post-bloc) partagent la même
+# phase : leur ordre interne reste régi par les gardes par-route existantes
+# (current_trial_played, next_pending_questionnaire, step/bloc...).
+_NAV_PHASE_BODY = 3
+
+
+def _nav_phase(endpoint, view_args):
+    """Phase du parcours pour un endpoint, ou None si la page n'est pas gardée."""
+    if endpoint == 'index':
+        return 0
+    if endpoint in ('instructions', 'instructions_explained'):
+        return 1
+    if endpoint == 'questionnaire':
+        slot = (view_args or {}).get('slot')
+        if slot == 'begin':
+            return 2
+        if slot in ('post_trial', 'post_bloc'):
+            return _NAV_PHASE_BODY
+        if slot == 'end':
+            return 4
+        return None
+    if endpoint in ('tutorial', 'condition_tutorial', 'planning', 'transition', 'qex_ranking'):
+        return _NAV_PHASE_BODY
+    if endpoint == 'goodbye':
+        return 5
+    return None
+
+
+def _nav_full_path():
+    """request.path + querystring, format comparable à location.pathname+search côté client."""
+    if request.query_string:
+        return request.path + '?' + request.query_string.decode('utf-8', 'replace')
+    return request.path
+
+
+@app.before_request
+def _nav_guard_gate():
+    """Filet serveur : renvoie tout accès GET hors de l'ordre prévu vers la page
+    courante du participant. Fail-open : toute incertitude -> laisser passer."""
+    if not NAV_GUARD_ENABLED:
+        return None
+    try:
+        if request.method != 'GET':
+            return None
+        phase = _nav_phase(request.endpoint, request.view_args)
+        if phase is None:
+            return None                       # page hors parcours : non gardée
+        if phase == 0:
+            return None                       # l'accueil (1re page) est toujours accessible
+        if not session.get('user_id') or get_current_user() is None:
+            return None                       # pas de participant : laisser la route gérer
+        max_phase = session.get('nav_max_phase')
+        cur_url = session.get('nav_cur_url')
+        if max_phase is None or not cur_url:
+            return None                       # rien encore servi : init par after_request
+        # Autorisé : page courante (rechargement / boucle interne) ou avancée d'une phase.
+        if phase == max_phase or phase == max_phase + 1:
+            return None
+        # Déjà sur la page courante (mêmes URL) : laisser passer (sécurité).
+        if _nav_full_path() == cur_url:
+            return None
+        # Saut en avant (>1 phase) ou retour en arrière par URL : ramener à la page courante.
+        return redirect(cur_url)
+    except Exception:
+        logger.exception("[NAV_GUARD] erreur du filet serveur : accès laissé passer")
+        return None
+
+
+@app.after_request
+def _nav_guard_after(response):
+    """1) Mémorise la progression (phase max atteinte + dernière URL servie).
+       2) Injecte la garde client dans le <head> des pages HTML du parcours."""
+    if not NAV_GUARD_ENABLED:
+        return response
+    try:
+        phase = _nav_phase(request.endpoint, request.view_args)
+        ctype = response.content_type or ""
+        is_html = ctype.startswith("text/html") and not response.direct_passthrough
+        has_user = bool(session.get('user_id'))
+
+        # 1) Progression : seulement sur une vraie page du parcours réellement rendue.
+        if has_user and phase is not None and response.status_code == 200 and is_html:
+            prev = session.get('nav_max_phase')
+            if prev is None or phase > prev:
+                session['nav_max_phase'] = phase
+            session['nav_cur_url'] = _nav_full_path()
+
+        # 2) Injection de la garde client dans le <head>.
+        if has_user and is_html and _NAV_GUARD_JS:
+            body = response.get_data(as_text=True)
+            if '<head' in body and 'window.NAV_GUARD' not in body:
+                first_url = session.get('nav_first_url') or '/'
+                snippet = (
+                    '<script>window.NAV_GUARD={firstUrl:' + json.dumps(first_url) + '};</script>'
+                    '<script>' + _NAV_GUARD_JS + '</script>'
+                )
+                head_open = body.find('<head')
+                gt = body.find('>', head_open)
+                if gt != -1:
+                    response.set_data(body[:gt + 1] + snippet + body[gt + 1:])
+    except Exception:
+        logger.exception("[NAV_GUARD] erreur post-traitement : réponse renvoyée telle quelle")
+    return response
+
+
 ######################
 # Application routes #
 ######################
@@ -868,7 +1011,14 @@ def index():
         
         # Suivi temporel : enregistrer la visite de la page index
         track_page_view('index.html', uid, config_id)
-        
+
+        # Garde de navigation : mémoriser l'URL d'entrée comme « première page »
+        # (avec ses paramètres PROLIFIC_PID/CONFIG, nécessaires pour y revenir).
+        nav_first = request.full_path
+        if nav_first.endswith('?'):
+            nav_first = nav_first[:-1]
+        session['nav_first_url'] = nav_first
+
         return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
     else:
         return render_template('UID_error.html')
@@ -896,6 +1046,30 @@ def login():
     session['auth_uid'] = uid
     session['auth_type'] = "ACCOUNT"
     return redirect(url_for('index', CONFIG=config_id))
+
+
+def _render_recipe_instructions(uid, config, is_explained):
+    """Rend la VRAIE page d'instructions du parcours : instructions_recipe.html.
+
+    Servie à l'URL /instructions. Factorisée pour être rendue aussi bien après le
+    POST de consentement (depuis index.html) QUE sur un GET ultérieur de la même
+    URL (rechargement, garde de navigation, retour) : on ne doit jamais retomber
+    sur la page de consentement instructions.html une fois le consentement donné."""
+    track_page_view('instructions_recipe.html', uid, config.get("config_id"))
+    return render_template(
+        'instructions_recipe.html',
+        is_explained=is_explained,
+        onion_time=config.get("onion_time", LAYOUT_GLOBALS.get("onion_time", 15)),
+        tomato_time=config.get("tomato_time", LAYOUT_GLOBALS.get("tomato_time", 7)),
+        onion_value=config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21)),
+        tomato_value=config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13)),
+        cutting_enabled=config.get("cutting_enabled", LAYOUT_GLOBALS.get("cutting_enabled", False)),
+        chop_time=config.get("chop_time", LAYOUT_GLOBALS.get("chop_time", {})),
+        recipes_requiring_chopping=config.get("recipes_requiring_chopping", LAYOUT_GLOBALS.get("recipes_requiring_chopping", [])),
+        config=config,
+        timer_max=config.get('explications_generales_max', 600),
+        timer_min=config.get('explications_generales_min', 120),
+    )
 
 
 @app.route('/instructions', methods=['GET', 'POST'])
@@ -941,32 +1115,7 @@ def instructions():
             
             if condition:
                 if mechanic_type == "recipe":
-                    # Récupérer les valeurs depuis la config ou les defaults
-                    onion_time = config.get("onion_time", LAYOUT_GLOBALS.get("onion_time", 15))
-                    tomato_time = config.get("tomato_time", LAYOUT_GLOBALS.get("tomato_time", 7))
-                    onion_value = config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21))
-                    tomato_value = config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13))
-                    # [CUTTING BOARD] Paramètres de découpe pour les instructions
-                    cutting_enabled = config.get("cutting_enabled", LAYOUT_GLOBALS.get("cutting_enabled", False))
-                    chop_time = config.get("chop_time", LAYOUT_GLOBALS.get("chop_time", {}))
-                    recipes_requiring_chopping = config.get("recipes_requiring_chopping", LAYOUT_GLOBALS.get("recipes_requiring_chopping", []))
-
-
-                    # Suivi temporel : enregistrer la visite de la page instructions_recipe
-                    track_page_view('instructions_recipe.html', uid, config.get("config_id"))
-
-                    return render_template('instructions_recipe.html',
-                                            is_explained=is_explained,
-                                            onion_time=onion_time,
-                                            tomato_time=tomato_time,
-                                            onion_value=onion_value,
-                                            tomato_value=tomato_value,
-                                            cutting_enabled=cutting_enabled,
-                                            chop_time=chop_time,
-                                            recipes_requiring_chopping=recipes_requiring_chopping,
-                                            config=config,
-                                            timer_max=config.get('explications_generales_max', 600),
-                                            timer_min=config.get('explications_generales_min', 120))
+                    return _render_recipe_instructions(uid, config, is_explained)
                 #return redirect(url_for('qvg_survey'))
 
             else:
@@ -980,11 +1129,19 @@ def instructions():
             
             return render_template('leave.html', uid=uid, complete=False)
     
+    # Consentement déjà donné : la page d'instructions à présenter est
+    # instructions_recipe (la vraie page de contenu), pas la page de consentement.
+    # Indispensable pour que rechargement / retour / garde de navigation sur l'URL
+    # /instructions ré-affichent la bonne page au lieu de instructions.html.
+    consent_path = "trajectories/%s/%s/CONSENT.json" % (config_id, uid)
+    if os.path.exists(consent_path) and condition and mechanic_type == "recipe":
+        return _render_recipe_instructions(uid, config, is_explained)
+
     # Suivi temporel : enregistrer la visite de la page instructions (GET)
     track_page_view('instructions.html', uid, config.get("config_id"))
-    
+
     # Affichage initial de la page d'instructions (GET)
-    return render_template('instructions.html', 
+    return render_template('instructions.html',
                           uid=uid, 
                           config=config,
                           researcher=config.get("researcher", {}),
@@ -1927,7 +2084,7 @@ def on_join(data):
     user_id = current_user.uid
     
     
-    with USERS[user_id]:
+    with get_user_lock(user_id):
         create_if_not_found = data.get("create_if_not_found", True)
 
         # Retrieve current game if one exists
@@ -1975,7 +2132,7 @@ def on_leave(data):
     user_id = current_user.uid
     
     
-    with USERS[user_id]:
+    with get_user_lock(user_id):
         was_active = _leave_game(user_id)
 
         if was_active:
@@ -2066,10 +2223,10 @@ def on_disconnect():
     if user_id not in USERS:
         return
     logger.debug("[DISCONNECT] uid=%s", user_id)
-    with USERS[user_id]:
+    with get_user_lock(user_id):
         _leave_game(user_id)
 
-    del USERS[user_id]
+    USERS.pop(user_id, None)
 
 # NB : les anciens handlers socket de questionnaires (new_trial, post_qpt,
 # post_qpb, post_hoffman) ont été supprimés. Les questionnaires post-essai et
@@ -2086,10 +2243,18 @@ def on_exit():
         socketio.emit('end_game', {"status": Game.Status.INACTIVE, "data": get_game(
             game_id).get_data()}, room=game_id)
 
-def trial_save_routine(data):
+def trial_save_routine(data, completed=True):
     '''
     Sauvegarder les données relative à un essai dans un fichier json
-    dont nom sous la forme id_bloc_essai
+    dont nom sous la forme id_bloc_essai.
+
+    completed : True  -> essai terminé normalement (status DONE). Sauvegarde au
+                         chemin canonique trajectories/{config_id}/{uid}/{trial_id}.json,
+                         ce qui marque l'essai comme « joué » (cf. current_trial_played).
+                False -> essai INTERROMPU (navigation Précédent/Suivant ou déconnexion
+                         en cours de partie, status INACTIVE). On conserve les données
+                         partielles (jamais de perte) dans un sous-dossier _interrupted/
+                         SANS occuper le chemin canonique, pour que l'essai reste rejouable.
     '''
     if not isinstance(data, dict):
         logger.error("[TRIAL_SAVE] données non-dict (%s) reçues : impossible de sauvegarder", type(data).__name__)
@@ -2131,6 +2296,22 @@ def trial_save_routine(data):
     except Exception:
         logger.exception("[TRIAL_SAVE] enrichissement config échoué (uid=%s trial_id=%s) ; sauvegarde des données brutes",
                          uid, trial_id)
+
+    # 0) Essai INTERROMPU : on conserve les données partielles (jamais de perte)
+    #    mais hors du chemin canonique, afin que l'essai puisse être rejoué
+    #    (cf. /planning -> current_trial_played reste False).
+    if not completed:
+        ts = time.strftime("%Y%m%dT%H%M%S", time.gmtime())
+        if config_id and uid and uid != "UNKNOWN":
+            interrupted_path = "trajectories/%s/%s/_interrupted/%s_%s.json" % (config_id, uid, trial_id, ts)
+        else:
+            interrupted_path = "trajectories/_backup/_interrupted/%s_%s.json" % (uid, trial_id, ts)
+        if safe_json_write(interrupted_path, data_copy, uid):
+            logger.info("[TRIAL_SAVE_INTERRUPTED] essai interrompu conservé (rejouable): %s", interrupted_path)
+        else:
+            logger.warning("[TRIAL_SAVE_INTERRUPTED] échec d'écriture de l'essai interrompu uid=%s trial_id=%s",
+                           uid, trial_id)
+        return
 
     # 1) Chemin normal trajectories/{config_id}/{uid}/{trial_id}.json
     saved = False
@@ -2197,7 +2378,10 @@ def play_game(game, fps=15):
         data = game.data
         if not isinstance(data, dict):
             data = {}
-        trial_save_routine(data)
+        # INACTIVE = partie interrompue (navigation/déconnexion en cours) : on
+        # conserve les données partielles hors du chemin canonique pour que
+        # l'essai reste rejouable au lieu d'être considéré comme « joué ».
+        trial_save_routine(data, completed=(status == Game.Status.DONE))
         if status == Game.Status.DONE:
             # Fin de l'essai courant. En mode single_trial (expérience), le client
             # navigue vers le séquenceur de questionnaires post-essai (pages HTML
