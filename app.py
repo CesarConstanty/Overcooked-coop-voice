@@ -742,14 +742,26 @@ def _nav_guard_gate():
         cur_url = session.get('nav_cur_url')
         if max_phase is None or not cur_url:
             return None                       # rien encore servi : init par after_request
-        # Autorisé : page courante (rechargement / boucle interne) ou avancée d'une phase.
-        if phase == max_phase or phase == max_phase + 1:
+        # Page courante (rechargement / boucle interne d'une même phase) : autorisé.
+        if phase == max_phase:
+            return None
+        # Progression d'UNE phase : autorisé. On avance le curseur ICI pour gérer les
+        # phases « enjambées » par une redirection serveur (ex. slot 'begin' vide ou déjà
+        # rempli -> /questionnaire/begin redirige direct vers /tutorial). Sans ce bump,
+        # le pas suivant ressemblerait à un saut > 1 et bouclerait
+        # (instructions -> begin -> tutorial -> instructions).
+        if phase == max_phase + 1:
+            session['nav_max_phase'] = phase
             return None
         # Déjà sur la page courante (mêmes URL) : laisser passer (sécurité).
         if _nav_full_path() == cur_url:
             return None
-        # Saut en avant (>1 phase) ou retour en arrière par URL : ramener à la page courante.
-        return redirect(cur_url)
+        # Saut en AVANT vers une page non encore atteinte -> ramener à la page la plus
+        # avancée déjà visitée (on ne va JAMAIS au-delà : empêche de sauter l'expérience).
+        if phase > max_phase:
+            return redirect(cur_url)
+        # Retour en ARRIÈRE -> première page de l'expérience.
+        return redirect(session.get('nav_first_url') or cur_url)
     except Exception:
         logger.exception("[NAV_GUARD] erreur du filet serveur : accès laissé passer")
         return None
@@ -1012,12 +1024,22 @@ def index():
         # Suivi temporel : enregistrer la visite de la page index
         track_page_view('index.html', uid, config_id)
 
-        # Garde de navigation : mémoriser l'URL d'entrée comme « première page »
-        # (avec ses paramètres PROLIFIC_PID/CONFIG, nécessaires pour y revenir).
+        # Garde de navigation : l'accueil est la PREMIÈRE page de l'expérience.
+        # On (ré)initialise ici TOUT l'état de progression du filet serveur, pas
+        # seulement nav_first_url. Sinon un nav_max_phase resté élevé d'une
+        # passation précédente (même cookie de session — fréquent en test, ou
+        # après une passation déjà menée jusqu'au bout) ferait passer la 1re
+        # vraie avancée (instructions -> /questionnaire/begin, phase 2) pour un
+        # « retour en arrière » et la renverrait... à l'accueil. L'after_request
+        # ne fait que MONTER nav_max_phase (phase > prev) : sans ce reset, une
+        # valeur périmée ne redescend jamais. Les trois clés restent cohérentes
+        # (cf. _nav_guard_gate / _nav_guard_after).
         nav_first = request.full_path
         if nav_first.endswith('?'):
             nav_first = nav_first[:-1]
         session['nav_first_url'] = nav_first
+        session['nav_max_phase'] = 0
+        session['nav_cur_url'] = nav_first
 
         return render_template('index.html', uid=uid, layout_conf=LAYOUT_GLOBALS)
     else:
@@ -1129,32 +1151,18 @@ def instructions():
             
             return render_template('leave.html', uid=uid, complete=False)
     
-    # Consentement déjà donné : la page d'instructions à présenter est
-    # instructions_recipe (la vraie page de contenu), pas la page de consentement.
-    # Indispensable pour que rechargement / retour / garde de navigation sur l'URL
-    # /instructions ré-affichent la bonne page au lieu de instructions.html.
+    # GET /instructions : la page de consentement vit désormais sur l'accueil (index),
+    # et l'ancienne instructions.html a été supprimée.
     consent_path = "trajectories/%s/%s/CONSENT.json" % (config_id, uid)
-    if os.path.exists(consent_path) and condition and mechanic_type == "recipe":
-        return _render_recipe_instructions(uid, config, is_explained)
+    if os.path.exists(consent_path):
+        # Consentement donné : présenter la VRAIE page d'instructions (recette).
+        if condition and mechanic_type == "recipe":
+            return _render_recipe_instructions(uid, config, is_explained)
+        # Consenti mais configuration sans condition / mécanique non-recette.
+        return render_template('condition_error.html')
 
-    # Suivi temporel : enregistrer la visite de la page instructions (GET)
-    track_page_view('instructions.html', uid, config.get("config_id"))
-
-    # Affichage initial de la page d'instructions (GET)
-    return render_template('instructions.html',
-                          uid=uid, 
-                          config=config,
-                          researcher=config.get("researcher", {}),
-                          supervisor=config.get("supervisor", {}),
-                          onion_time=config.get("onion_time", LAYOUT_GLOBALS.get("onion_time", 15)),
-                          tomato_time=config.get("tomato_time", LAYOUT_GLOBALS.get("tomato_time", 7)),
-                          onion_value=config.get("onion_value", LAYOUT_GLOBALS.get("onion_value", 21)),
-                          tomato_value=config.get("tomato_value", LAYOUT_GLOBALS.get("tomato_value", 13)),
-                          max_num_ingredients=config.get("max_num_ingredients", LAYOUT_GLOBALS.get("max_num_ingredients", 3)),
-                          order_bonus=config.get("order_bonus", LAYOUT_GLOBALS.get("order_bonus", 2)),
-                          cutting_enabled=config.get("cutting_enabled", LAYOUT_GLOBALS.get("cutting_enabled", False)),
-                          chop_time=config.get("chop_time", LAYOUT_GLOBALS.get("chop_time", {})),
-                          recipes_requiring_chopping=config.get("recipes_requiring_chopping", LAYOUT_GLOBALS.get("recipes_requiring_chopping", [])))
+    # Absence de consentement -> sortie via leave.html.
+    return render_template('leave.html', uid=uid, complete=False)
 
 
 @app.route('/instructions_explained')
@@ -2305,7 +2313,7 @@ def trial_save_routine(data, completed=True):
         if config_id and uid and uid != "UNKNOWN":
             interrupted_path = "trajectories/%s/%s/_interrupted/%s_%s.json" % (config_id, uid, trial_id, ts)
         else:
-            interrupted_path = "trajectories/_backup/_interrupted/%s_%s.json" % (uid, trial_id, ts)
+            interrupted_path = "trajectories/_backup/_interrupted/%s_%s_%s.json" % (uid, trial_id, ts)
         if safe_json_write(interrupted_path, data_copy, uid):
             logger.info("[TRIAL_SAVE_INTERRUPTED] essai interrompu conservé (rejouable): %s", interrupted_path)
         else:
