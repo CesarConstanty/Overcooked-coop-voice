@@ -4,9 +4,29 @@ Système de suivi temporel optimisé pour la plateforme expérimentale Overcooke
 Version optimisée pour usage multi-joueurs avec surveillance périodique
 et calcul automatique des durées d'activités.
 
+Suivi de navigation (v3.0)
+--------------------------
+En plus de l'ordre des pages et du temps passé sur chacune, le tracker
+classe désormais chaque chargement de page réelle selon le type de
+navigation du participant :
+
+    - "entry"    : toute première page de la session ;
+    - "forward"  : progression vers une page (nouvelle page, ou bouton
+                   « suivant » du navigateur) ;
+    - "back"     : retour arrière vers la page précédente de l'historique ;
+    - "reload"   : rechargement de la page courante (même page consécutive).
+
+La classification est calculée côté serveur en simulant la pile
+d'historique du navigateur (back/forward stack avec un curseur), à partir
+du seul ordre des pages réelles dans `page_history`. Elle est donc
+recalculable à l'identique (déterministe) et survit à un redémarrage du
+serveur. Les marqueurs internes [ACTIVITÉ] (détection de fichiers) et
+[START_GAME] (événement intra-page) ne sont pas des navigations et sont
+étiquetés respectivement "activity" et "event".
+
 Auteur: AI Assistant
-Date: Septembre 2025
-Version: 2.0 - Intégration avec app.logger
+Date: Septembre 2025 — màj juin 2026
+Version: 3.0 - Classification de navigation (avant / arrière / reload)
 """
 
 import json
@@ -103,6 +123,8 @@ class PageTracker:
             return "Questionnaire Jeux Vidéo"
         elif "_PTTA.json" in filename:
             return "Questionnaire PTTA"
+        elif "GAbstractionP_fr.json" in filename:
+            return "Questionnaire GAbstractionP (FR)"
         elif "preference.json" in filename:
             return "Questionnaire Préférence"
         elif "_QPT.json" in filename:
@@ -111,6 +133,8 @@ class PageTracker:
             return self._parse_attl_filename(filename)
         elif "HOFFMAN.json" in filename:
             return self._parse_hoffman_filename(filename)
+        elif "GAbstractionP.json" in filename:
+            return self._parse_gabstractionp_filename(filename)
         elif self._is_game_session(filename):
             return self._parse_game_filename(filename)
         
@@ -149,6 +173,17 @@ class PageTracker:
             pass
         return "Questionnaire Hoffman"
     
+    def _parse_gabstractionp_filename(self, filename: str) -> str:
+        """Parse les fichiers GAbstractionP pour extraire le bloc (si présent)."""
+        try:
+            parts = [p for p in filename.replace('GAbstractionP.json', '').split('_') if p]
+            if parts:
+                bloc = int(parts[-1])
+                return f"Questionnaire GAbstractionP - Bloc {bloc+1}"
+        except (ValueError, IndexError):
+            pass
+        return "Questionnaire GAbstractionP"
+
     def _parse_game_filename(self, filename: str) -> str:
         """Parse les fichiers de jeu pour extraire bloc/trial."""
         try:
@@ -171,8 +206,8 @@ class PageTracker:
         return (len(parts) >= 3 and 
                 parts[-2].isdigit() and 
                 parts[-1].isdigit() and
-                not any(keyword in filename for keyword in 
-                       ['QPT', 'AAT_L', 'HOFFMAN', 'preference', 'QVG', 'PTTA', 'tutorial']))
+                not any(keyword in filename for keyword in
+                       ['QPT', 'AAT_L', 'HOFFMAN', 'GAbstractionP', 'preference', 'QVG', 'PTTA', 'tutorial']))
     
     def _infer_step_type_from_page(self, page_name: str) -> str:
         """Infère le type d'étape depuis le nom de la page."""
@@ -364,7 +399,15 @@ class PageTracker:
                 if ref_start:
                     ref_time = datetime.fromisoformat(ref_start)
                     return (activity_time - ref_time).total_seconds()
-            
+
+            elif 'GAbstractionP.json' in filename:
+                # GAbstractionP [time needed] : depuis Hoffman correspondant
+                hoffman_filename = filename.replace('GAbstractionP.json', 'HOFFMAN.json')
+                ref_start = self._find_activity_start_time(f'[ACTIVITÉ] {hoffman_filename}')
+                if ref_start:
+                    ref_time = datetime.fromisoformat(ref_start)
+                    return (activity_time - ref_time).total_seconds()
+
             return None
             
         except Exception as e:
@@ -453,13 +496,20 @@ class PageTracker:
             "duration_sec": None
         }
         self.page_history.append(page_entry)
-        
-        # Log la transition de page
-        self.logger.info(f"[PAGE_TRACKER_PAGE_START] uid={self.participant_id} | page={page_name} | step_type={step_type} | previous_page={previous_page}")
-        
+
+        # Classifier la navigation (avant / arrière / reload) pour cette page.
+        self._compute_navigation()
+
+        # Log la transition de page (avec le type de navigation détecté).
+        self.logger.info(
+            f"[PAGE_TRACKER_PAGE_START] uid={self.participant_id} | page={page_name} | "
+            f"step_type={step_type} | nav={page_entry.get('navigation_type')} | "
+            f"detail={page_entry.get('navigation_detail')} | "
+            f"visit_index={page_entry.get('visit_index')} | previous_page={previous_page}")
+
         # Démarrer la surveillance si pas déjà active
         self.start_monitoring()
-        
+
         self._save_to_json()
     
     def _end_current_page(self, end_time: str):
@@ -550,7 +600,13 @@ class PageTracker:
             activity_time = datetime.fromtimestamp(file_timestamp).isoformat()
             step_type = self._classify_file_step_type(file_path_str)
             filename = os.path.basename(file_path_str)
-            
+
+            # Idempotence : ne pas réinsérer une activité déjà enregistrée
+            # (ex. après rechargement de l'historique au redémarrage du serveur).
+            activity_page = f"[ACTIVITÉ] {filename}"
+            if any(e.get('page') == activity_page for e in self.page_history):
+                return
+
             # Déterminer la page parente de cette activité
             parent_page = self._determine_parent_page_for_file(filename)
             
@@ -609,7 +665,7 @@ class PageTracker:
             return 'tutorial.html'
         
         # Activités de jeu et questionnaires
-        elif self._is_game_session(filename) or '_QPT.json' in filename or 'AAT_L.json' in filename or 'HOFFMAN.json' in filename:
+        elif self._is_game_session(filename) or '_QPT.json' in filename or 'AAT_L.json' in filename or 'HOFFMAN.json' in filename or 'GAbstractionP.json' in filename:
             return 'planning.html'
         
         return self.current_page  # Fallback sur la page courante
@@ -629,21 +685,101 @@ class PageTracker:
         self.page_history.insert(insert_index, activity_entry)
     
     def _load_existing_data(self):
-        """Charge les données existantes depuis le fichier JSON."""
-        if self.json_file.exists():
-            try:
-                with open(self.json_file, 'r', encoding='utf-8') as f:
-                    self.page_history = json.load(f)
-                    
-                # Récupérer la dernière page si elle n'est pas terminée
-                if self.page_history and not self.page_history[-1].get('end_time'):
-                    last_entry = self.page_history[-1]
-                    self.current_page = last_entry['page']
-                    self.current_start_time = last_entry['start_time']
-                    
-            except Exception as e:
-                self.logger.error(f"[PAGE_TRACKER_LOAD_ERROR] uid={self.participant_id} | error={str(e)}")
+        """Charge les données existantes depuis le fichier JSON.
+
+        Gère deux formats :
+            - le format enrichi (dict avec `_raw_history`) écrit par cette
+              version : on restaure l'historique brut tel quel ;
+            - le format hérité (liste organisée par pages) : on reconstruit
+              l'historique brut au mieux pour ne pas perdre les durées.
+
+        On reprend ensuite la dernière page si elle n'était pas terminée, et on
+        amorce `processed_files` avec les activités déjà connues pour éviter de
+        les réenregistrer en double lors du scan de fichiers.
+        """
+        if not self.json_file.exists():
+            return
+
+        try:
+            with open(self.json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            if isinstance(data, dict):
+                # Format enrichi : l'historique brut est la source de vérité.
+                self.page_history = data.get('_raw_history') or []
+            elif isinstance(data, list):
+                # Format hérité (liste organisée par pages) : reconstruction.
+                self.page_history = self._raw_from_organized(data)
+            else:
                 self.page_history = []
+
+            # Recalculer la navigation sur l'historique restauré.
+            self._compute_navigation()
+
+            # Éviter de retraiter (et donc dupliquer) les activités déjà connues.
+            self._prime_processed_files_from_history()
+
+            # Reprendre la dernière vraie page si elle n'est pas terminée.
+            if self.page_history:
+                last_entry = self.page_history[-1]
+                page = last_entry.get('page', '')
+                if (not last_entry.get('end_time')
+                        and not page.startswith('[ACTIVITÉ]')
+                        and not page.startswith('[START_GAME]')):
+                    self.current_page = page
+                    self.current_start_time = last_entry.get('start_time')
+
+        except Exception as e:
+            self.logger.error(f"[PAGE_TRACKER_LOAD_ERROR] uid={self.participant_id} | error={str(e)}")
+            self.page_history = []
+
+    def _raw_from_organized(self, organized: List[Dict]) -> List[Dict]:
+        """Reconstruit un historique brut à partir du format organisé (hérité).
+
+        Permet de continuer à fonctionner si un ancien fichier de suivi (liste
+        de pages avec activités imbriquées) est rencontré.
+        """
+        raw: List[Dict] = []
+        for page_data in organized:
+            if not isinstance(page_data, dict):
+                continue
+            info = page_data.get('page_info', {})
+            raw.append({
+                'page': page_data.get('page'),
+                'step_type': info.get('step_type'),
+                'start_time': info.get('start_time'),
+                'end_time': info.get('end_time'),
+                'duration_sec': info.get('duration_sec'),
+            })
+            for act in page_data.get('activities', []):
+                ts = act.get('start_time')
+                raw.append({
+                    'page': f"[ACTIVITÉ] {act.get('file')}",
+                    'step_type': act.get('step_type'),
+                    'start_time': ts,
+                    'end_time': ts,
+                    'duration_sec': act.get('duration_sec', 0),
+                })
+        # Réordonner chronologiquement (les activités étaient imbriquées).
+        raw.sort(key=lambda e: e.get('start_time') or '')
+        return raw
+
+    def _prime_processed_files_from_history(self):
+        """Marque comme déjà traités les fichiers d'activité présents dans
+        l'historique chargé, pour que le scan ne les réinsère pas en double."""
+        try:
+            known = {
+                entry['page'].replace('[ACTIVITÉ] ', '')
+                for entry in self.page_history
+                if entry.get('page', '').startswith('[ACTIVITÉ]')
+            }
+            if not known:
+                return
+            for file_path in self.trajectory_dir.rglob("*.json"):
+                if file_path.name in known:
+                    self.processed_files.add(str(file_path))
+        except Exception as e:
+            self.logger.debug(f"[PAGE_TRACKER_PRIME_ERROR] uid={self.participant_id} | error={str(e)}")
     
     def start_monitoring(self):
         """Démarre la surveillance périodique."""
@@ -702,19 +838,186 @@ class PageTracker:
         except Exception as e:
             print(f"[{self.participant_id}] Erreur scan final: {e}")
     
+    # Types de navigation considérés comme de vraies navigations de page
+    # (par opposition aux marqueurs internes "activity" / "event").
+    PAGE_NAV_TYPES = ("entry", "forward", "back", "reload")
+
+    def _compute_navigation(self):
+        """Calcule, pour chaque entrée de page réelle, le type de navigation.
+
+        On simule la pile d'historique du navigateur (back/forward stack) avec
+        un curseur, en ne considérant QUE les vraies pages : les marqueurs
+        [ACTIVITÉ] (détection de fichiers) et [START_GAME] (événement
+        intra-page) ne sont pas des navigations.
+
+        Pour chaque vraie page on détermine, par comparaison avec la pile :
+            - "reload"  : la page demandée est identique à la page courante ;
+            - "back"    : elle correspond à la page située juste avant le
+                          curseur (bouton « précédent ») ;
+            - "forward" : elle correspond à la page juste après le curseur
+                          (bouton « suivant » du navigateur) OU il s'agit
+                          d'une nouvelle progression (la page est alors
+                          empilée et les éventuelles pages « en avant » sont
+                          tronquées, comme dans un vrai navigateur) ;
+            - "entry"   : toute première page de la session.
+
+        Les champs suivants sont écrits (en place) sur chaque entrée :
+            navigation_type, navigation_detail, visit_index, is_revisit.
+
+        La méthode est déterministe et idempotente : elle peut être rappelée
+        à chaque sauvegarde sans effet de bord.
+        """
+        nav_stack = []        # pages réelles formant la pile du navigateur
+        cursor = -1           # index de la page courante dans nav_stack
+        visit_counts = {}     # page -> nombre cumulé d'ouvertures
+
+        for entry in self.page_history:
+            page = entry.get('page', '')
+
+            # Marqueurs internes : pas des navigations.
+            if page.startswith('[ACTIVITÉ]'):
+                entry['navigation_type'] = 'activity'
+                entry['navigation_detail'] = 'file_event'
+                continue
+            if page.startswith('[START_GAME]'):
+                entry['navigation_type'] = 'event'
+                entry['navigation_detail'] = 'in_page_event'
+                continue
+
+            # Vraie page : classification selon la pile d'historique.
+            if cursor < 0:
+                nav_type, detail = 'entry', 'session_start'
+                nav_stack = [page]
+                cursor = 0
+            elif nav_stack[cursor] == page:
+                nav_type, detail = 'reload', 'reload'
+                # Pile et curseur inchangés.
+            elif cursor > 0 and nav_stack[cursor - 1] == page:
+                nav_type, detail = 'back', 'browser_back'
+                cursor -= 1
+            elif cursor < len(nav_stack) - 1 and nav_stack[cursor + 1] == page:
+                nav_type, detail = 'forward', 'browser_forward'
+                cursor += 1
+            else:
+                # Nouvelle progression : on tronque l'avant de la pile et on
+                # empile la nouvelle page (comportement d'un vrai navigateur).
+                already_seen = page in visit_counts
+                nav_type = 'forward'
+                detail = 'revisit' if already_seen else 'new_page'
+                nav_stack = nav_stack[:cursor + 1] + [page]
+                cursor = len(nav_stack) - 1
+
+            visit_counts[page] = visit_counts.get(page, 0) + 1
+            entry['navigation_type'] = nav_type
+            entry['navigation_detail'] = detail
+            entry['visit_index'] = visit_counts[page]
+            entry['is_revisit'] = visit_counts[page] > 1
+
+    def _build_navigation_summary(self):
+        """Agrège les métadonnées de navigation par page et au global.
+
+        Doit être appelée après `_compute_navigation`.
+
+        Returns:
+            (summary, totals) où
+              - summary : dict {page: {visit_count, entry_count, forward_count,
+                back_count, reload_count, total_duration_sec, first_seen,
+                last_seen}} ;
+              - totals  : dict des compteurs globaux (pages, entry, forward,
+                back, reload, distinct_pages, total_page_time_sec).
+        """
+        summary: Dict[str, Dict] = {}
+        totals = {
+            "pages": 0, "entry": 0, "forward": 0, "back": 0, "reload": 0,
+            "distinct_pages": 0, "total_page_time_sec": 0.0,
+        }
+
+        for entry in self.page_history:
+            nav = entry.get('navigation_type')
+            if nav not in self.PAGE_NAV_TYPES:
+                continue  # ignorer activités et événements intra-page
+
+            page = entry.get('page')
+            start_time = entry.get('start_time')
+            duration = entry.get('duration_sec') or 0
+
+            page_stats = summary.setdefault(page, {
+                "visit_count": 0, "entry_count": 0, "forward_count": 0,
+                "back_count": 0, "reload_count": 0,
+                "total_duration_sec": 0.0,
+                "first_seen": start_time, "last_seen": start_time,
+            })
+            page_stats["visit_count"] += 1
+            page_stats[f"{nav}_count"] += 1
+            page_stats["total_duration_sec"] = round(
+                page_stats["total_duration_sec"] + duration, 2)
+            page_stats["last_seen"] = start_time
+
+            totals["pages"] += 1
+            totals[nav] += 1
+            totals["total_page_time_sec"] = round(
+                totals["total_page_time_sec"] + duration, 2)
+
+        totals["distinct_pages"] = len(summary)
+        return summary, totals
+
+    def get_navigation_report(self) -> Dict:
+        """Retourne le rapport de navigation complet (sans toucher au disque).
+
+        Structure identique à celle écrite dans le fichier de suivi, hors
+        `_raw_history`.
+        """
+        self._compute_navigation()
+        summary, totals = self._build_navigation_summary()
+        return {
+            "participant_id": self.participant_id,
+            "config_name": self.config_name,
+            "navigation_totals": totals,
+            "navigation_summary": summary,
+            "pages": self._organize_data_by_pages(),
+        }
+
     def _save_to_json(self):
-        """Sauvegarde thread-safe des données avec structure organisée par pages."""
+        """Sauvegarde thread-safe des données avec structure organisée par pages.
+
+        Le fichier contient :
+            - participant_id / config_name : métadonnées ;
+            - navigation_totals : compteurs globaux (avant/arrière/reload) ;
+            - navigation_summary : agrégats par page (temps total, nb visites,
+              nb reloads, nb retours...) ;
+            - pages : déroulé chronologique des pages et de leurs activités,
+              chaque page portant son type de navigation ;
+            - _raw_history : historique brut (sert au rechargement fidèle de
+              l'état après un redémarrage du serveur).
+        """
         try:
-            # Organiser les données par pages avec leurs activités associées
+            # 1) (Re)calculer la classification de navigation.
+            self._compute_navigation()
+
+            # 2) Construire les vues dérivées.
             organized_data = self._organize_data_by_pages()
-            
+            navigation_summary, navigation_totals = self._build_navigation_summary()
+
+            output = {
+                "participant_id": self.participant_id,
+                "config_name": self.config_name,
+                "navigation_totals": navigation_totals,
+                "navigation_summary": navigation_summary,
+                "pages": organized_data,
+                "_raw_history": self.page_history,
+            }
+
             with open(self.json_file, 'w', encoding='utf-8') as f:
-                json.dump(organized_data, f, ensure_ascii=False, indent=2)
-            
+                json.dump(output, f, ensure_ascii=False, indent=2)
+
             # Vérifier et logger la taille du fichier sauvegardé
             file_size = os.path.getsize(self.json_file)
-            self.logger.info(f"[PAGE_TRACKER_SAVE] uid={self.participant_id} | file={self.json_file.name} | size_bytes={file_size} | entries={len(organized_data)}")
-            
+            self.logger.info(
+                f"[PAGE_TRACKER_SAVE] uid={self.participant_id} | file={self.json_file.name} | "
+                f"size_bytes={file_size} | pages={len(organized_data)} | "
+                f"nav(fwd/back/reload)={navigation_totals['forward']}/"
+                f"{navigation_totals['back']}/{navigation_totals['reload']}")
+
         except Exception as e:
             self.logger.error(f"[PAGE_TRACKER_SAVE_ERROR] uid={self.participant_id} | file={self.json_file.name} | error={str(e)}", exc_info=True)
     
@@ -740,7 +1043,12 @@ class PageTracker:
                         "step_type": entry['step_type'],
                         "start_time": entry['start_time'],
                         "end_time": entry.get('end_time'),
-                        "duration_sec": entry.get('duration_sec')
+                        "duration_sec": entry.get('duration_sec'),
+                        # Classification de navigation (cf. _compute_navigation)
+                        "navigation_type": entry.get('navigation_type'),
+                        "navigation_detail": entry.get('navigation_detail'),
+                        "visit_index": entry.get('visit_index'),
+                        "is_revisit": entry.get('is_revisit'),
                     },
                     "activities": []
                 }

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sense of Agency Survey</title>
+  <link rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body { background:#eef1f5; }
+    .wrap { max-width: 900px; margin: 2.5rem auto; background:#fff;
+            box-shadow:0 0.25rem 1rem rgba(0,0,0,0.07); border-radius:0.7rem;
+            padding: 2.5rem 2rem; }
+    h1 { text-align:center; font-size:2rem; color:#2a3a5a; margin-bottom:2.2rem; font-weight:600; }
+    .question { margin-bottom:2.2rem; }
+    .q-title { font-size:1.15rem; font-weight:600; color:#2a3a5a; margin-bottom:.3rem; }
+    .q-help { font-size:1rem; color:#495057; margin-bottom:0.7rem; }
+    input[type=range] { width:100%; margin-top:1.2rem; }
+    .label-row { display:flex; justify-content:space-between; align-items:center;
+                 font-size:1rem; color:#6a7a99; margin-top:0.5rem; position:relative; }
+    .label-row .mid { position:absolute; left:50%; transform:translateX(-50%); }
+    button[type=submit] { margin:2.5rem auto 0 auto; display:block; padding:14px 44px;
+      font-size:1.15rem; background:linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%); color:#fff;
+      border:none; border-radius:8px; box-shadow:0 2px 8px rgba(60,60,120,0.10); font-weight:600;
+      letter-spacing:1px; }
+    button[type=submit]:disabled { opacity:.5; cursor:not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <form id="agencyForm" method="POST" action="{{ post_url }}">
+      <h1>Sense of Agency Survey</h1>
+
+      <div class="question">
+        <p class="q-title">How much control did you use?</p>
+        <p class="q-help">Think about the amount of effort invested in performing the task.</p>
+        <input type="range" class="agency-slider" data-target="q1" min="0" max="100" value="50">
+        <div class="label-row"><span>Low control (0)</span><span>High control (100)</span></div>
+      </div>
+
+      <div class="question">
+        <p class="q-title">How much control did you feel?</p>
+        <p class="q-help">Regardless the amount of effort invested, think about the control you experienced towards the output of the team work.</p>
+        <input type="range" class="agency-slider" data-target="q2" min="0" max="100" value="50">
+        <div class="label-row"><span>Low control (0)</span><span>High control (100)</span></div>
+      </div>
+
+      <div class="question">
+        <p class="q-title">Whose contribution made it possible to achieve this score (<span style="color:#007bff;">{{ score }}</span>) ?</p>
+        <p class="q-help">Contribution is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent.</p>
+        <input type="range" class="agency-slider" data-target="q3" min="0" max="100" value="50">
+        <div class="label-row">
+          <span style="flex:1; text-align:left;">{{ accountability_labels[0] }}</span>
+          <span class="mid">The team</span>
+          <span style="flex:1; text-align:right;">{{ accountability_labels[1] }}</span>
+        </div>
+      </div>
+
+      <input type="hidden" name="q1" id="q1">
+      <input type="hidden" name="q2" id="q2">
+      <input type="hidden" name="q3" id="q3">
+      <input type="hidden" name="timeout_bool" value="false">
+
+      <button type="submit" id="submitBtn" disabled>Submit</button>
+    </form>
+  </div>
+
+  <script>
+    // Pas de timer : temps de réponse illimité.
+    const DEV_MODE = {{ dev_mode|default(false)|tojson }};
+    let submitted = false;
+    const sliders = Array.prototype.slice.call(document.querySelectorAll('.agency-slider'));
+    const submitBtn = document.getElementById('submitBtn');
+
+    function allTouched() {
+      return sliders.every(function (s) { return s.dataset.touched === 'true'; });
+    }
+    function refresh() {
+      submitBtn.disabled = DEV_MODE ? false : !allTouched();
+    }
+    sliders.forEach(function (s) {
+      s.addEventListener('input', function () {
+        s.dataset.touched = 'true';
+        document.getElementById(s.dataset.target).value = s.value;
+        refresh();
+      });
+    });
+    document.getElementById('agencyForm').addEventListener('submit', function (e) {
+      if (submitted) { e.preventDefault(); return; }
+      // Slider non touché -> "nan" (préserve la sémantique de l'ancien QPT).
+      sliders.forEach(function (s) {
+        var hid = document.getElementById(s.dataset.target);
+        hid.value = (s.dataset.touched === 'true') ? s.value : 'nan';
+      });
+      submitted = true;
+      submitBtn.disabled = true;
+    });
+    refresh();
+  </script>
+</body>
+</html>

@@ -333,39 +333,43 @@ socket.on('state_pong', function(data) {
 });
 
 socket.on('end_game', function(data) {
-    // Hide game data and display game-over html
+    // Fin de l'essai courant (mode "un essai par session").
     graphics_end();
     if (!window.spectating) {
         disable_key_listener();
     }
-    let bloc = $('#bloc').text();
-    let step = $('#step').text();
-    
-    // Vérifier si c'est un questionnaire post-trial ou post-bloc
-    if (data.show_post_trial_questionnaire && !data.is_last_trial_in_bloc) {
-        // Questionnaire post-trial
-        console.log(`[POST_TRIAL] Affichage du questionnaire post-trial pour l'essai ${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc}`);
-        $('#overcooked-container').append(`<h4>Please answer few questions about the game you just completed (${data.curr_trial_in_game + 1}/${data.total_trials_in_bloc})</h4>`);
-    } else if (data.is_last_trial_in_bloc) {
-        // Questionnaire post-bloc
-        console.log(`[POST_BLOC] Affichage du questionnaire post-bloc après ${data.total_trials_in_bloc} essais`);
-        $('#overcooked-container').append(`<h4>For the upcoming questions, consider the whole block of games and how the agent communicated its intentions to you.</h4>`);
-    } else {
-        // Cas par défaut
-        $('#overcooked-container').append(`<h4>For the upcoming questions, consider the whole block of games and how the agent communicated its intentions to you.</h4>`);
-    }
-    
     $('#game-title').hide();
-    $('#game-over').show();
     $('#overcooked').hide();
-    $('#answer').attr("disabled", false);
     $("#leave").hide();
-    $('#leave').attr("disabled", true)
-    
-    // Game ended unexpectedly
+    $('#leave').attr("disabled", true);
+
+    // Jeu terminé de façon inattendue (déconnexion d'un autre client, etc.) :
+    // ne pas naviguer vers un questionnaire, afficher l'erreur.
     if (data.status === 'inactive') {
         $('#error-exit').show();
+        $('#game-over').show();
+        return;
     }
+
+    // Spectateur : pas de questionnaire.
+    if (window.spectating) {
+        $('#game-over').show();
+        return;
+    }
+
+    // Expérience : naviguer vers le séquenceur de questionnaires post-essai
+    // (page HTML autonome). data.next est fourni par le serveur (play_game).
+    if (data.next) {
+        var url = data.next;
+        if (typeof data.score !== "undefined" && data.score !== null) {
+            url += (url.indexOf('?') === -1 ? '?' : '&') + 'score=' + encodeURIComponent(data.score);
+        }
+        window.location.href = url;
+        return;
+    }
+
+    // Pas de cible (tutoriel / planning_design) : afficher l'écran de fin.
+    $('#game-over').show();
 });
 
 socket.on('end_lobby', function() {

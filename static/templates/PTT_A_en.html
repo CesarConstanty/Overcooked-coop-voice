@@ -124,7 +124,7 @@
     </ul>
     <p>There are a number of statements below about automated technology that may apply to you more or less. Please indicate how much you agree with each one (1 = strongly disagree, 7 = strongly agree).</p>
     <hr>
-    <form id="pttaForm" method="POST" action="/submit_ptta_survey">
+    <form id="pttaForm" method="POST" action="{{ post_url }}">
       <input type="hidden" name="ptta_data" id="pttaDataInput">
       <ol id="questions"></ol>
       <button type="submit" id="submitBtn" disabled>Submit</button>

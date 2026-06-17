@@ -872,6 +872,14 @@ class PlanningGame(OvercookedGame):
         self.shuffle_trials = bool(self.config.get("shuffle_trials", False))
         self.layouts = self.config.get("blocs")[str(self.step)]
         self.curr_condition = self.config.get("conditions")[str(self.step)]
+        # Mode "un essai par session" : la session ne joue que l'essai courant
+        # puis passe en DONE (les questionnaires post-essai/post-bloc sont des
+        # pages HTML autonomes servies hors-jeu). On conserve la liste complète
+        # des essais du bloc pour que curr_trial_in_game / trial_id / le total
+        # affiché restent corrects ; seul l'enchaînement intra-session change.
+        self.single_trial = bool(kwargs.get("single_trial", False))
+        self.is_first_trial_of_block = bool(kwargs.get("is_first_trial_of_block", False))
+        self.total_trials_in_bloc = len(self.layouts)
         self.participant_uid = kwargs.get('player_uid', '-1')
         self.mechanic = self.config.get('mechanic', 'time')
         self.qpt = self.config.get('qpt', {})
@@ -1071,18 +1079,31 @@ class PlanningGame(OvercookedGame):
         Override needs_reset to handle the case where all_orders is empty.
         When all orders are completed, the game should reset regardless of whether it's the last trial.
         """
+        # Mode "un essai par session" : aucun reset intra-session. L'essai
+        # courant terminé fait passer le jeu en DONE (cf. is_finished).
+        if getattr(self, 'single_trial', False):
+            return False
+
         game_over = self._curr_game_over()
         if not game_over:
             return False
-        
+
         # Si la partie est terminée à cause des commandes vides, on reset même si c'est le dernier essai
         if self.mechanic == "recipe" and len(self.state.all_orders) == 0:
             return True
-        
+
         # Si la partie est terminée par le temps ET qu'il reste des essais, on reset
         # Le jeu ne se termine que si c'est le dernier essai ET qu'il est terminé
         return self.curr_trial_in_game < len(self.layouts) - 1
-    
+
+    def is_finished(self):
+        # Mode "un essai par session" : la partie se termine dès que l'essai
+        # courant est terminé (temps écoulé ou commandes complétées), quel que
+        # soit son rang dans le bloc.
+        if getattr(self, 'single_trial', False):
+            return self._curr_game_over()
+        return super().is_finished()
+
     def is_last_trial_in_bloc(self):
         """
         Détermine si c'est le dernier essai du bloc actuel.
@@ -1129,13 +1150,19 @@ class PlanningGame(OvercookedGame):
             # Check if we should trigger slowdown
             should_slowdown = trial_start_slowdown
             if trial_start_first_only:
-                # Only slowdown on first trial of each block (curr_trial_in_game == -1 before increment)
-                should_slowdown = should_slowdown and (self.curr_trial_in_game == -1)
-            
+                # Premier essai du bloc. En mode single_trial, curr_trial_in_game
+                # vaut -1 à chaque session : on s'appuie sur le flag explicite
+                # is_first_trial_of_block (sinon comportement historique).
+                if getattr(self, 'single_trial', False):
+                    is_first = self.is_first_trial_of_block
+                else:
+                    is_first = (self.curr_trial_in_game == -1)
+                should_slowdown = should_slowdown and is_first
+
             if should_slowdown:
                 self.trial_start_slow_remaining_ticks = trial_start_duration
                 print(f"[AI_SLOWDOWN] Trial start slowdown triggered for {trial_start_duration} ticks at speed {self.trial_start_ticks_per_ai_action}")
-                if trial_start_first_only and self.curr_trial_in_game == -1:
+                if trial_start_first_only:
                     print(f"[AI_SLOWDOWN] First trial of block {self.step} - extended orientation time")
         
         super().activate()

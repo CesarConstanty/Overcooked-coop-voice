@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Questionnaire d'abstraction des objectifs</title>
+  <link rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    :root { --accent:#3a7bd5; --accent-2:#00d2ff; --ink:#2a3a5a; --muted:#5a6b85; }
+    * { box-sizing:border-box; }
+    body { background:#eef1f5; }
+    .wrap { max-width: 980px; margin: 2.5rem auto; background:#fff;
+            box-shadow:0 0.25rem 1rem rgba(0,0,0,0.07); border-radius:0.7rem;
+            padding: 0 2.2rem 2.5rem; }
+    /* Barre de progression collante */
+    .topbar { position:sticky; top:0; z-index:20; background:rgba(255,255,255,.97);
+              backdrop-filter:saturate(160%) blur(4px);
+              margin:0 -2.2rem 1.4rem; padding:.8rem 2.2rem .85rem;
+              border-bottom:1px solid #e7ecf3; border-radius:0.7rem 0.7rem 0 0; }
+    .progress-track { height:8px; background:#e7ecf3; border-radius:6px; overflow:hidden; }
+    .progress-bar { height:100%; width:0; border-radius:6px;
+                    background:linear-gradient(90deg,var(--accent) 0%,var(--accent-2) 100%);
+                    transition:width .25s ease; }
+    .progress-row { display:flex; align-items:center; justify-content:space-between;
+                    margin-top:.5rem; gap:1rem; }
+    .progress-text { font-size:.92rem; color:var(--muted); font-weight:600; }
+    .jump-btn { font-size:.85rem; font-weight:600; color:var(--accent);
+                background:#eef4fc; border:1px solid #cfe0f4; border-radius:6px;
+                padding:.3rem .7rem; cursor:pointer; transition:background .12s; }
+    .jump-btn:hover { background:#e0ecfa; }
+    .likert-header { font-size:1.5rem; font-weight:700; color:var(--ink); text-align:center;
+                     margin:1.2rem 0 .5rem; line-height:1.3; }
+    h6.likert-header { font-size:1.02rem; font-weight:400; color:var(--muted); margin:0 0 1.4rem;
+                       text-align:center; line-height:1.5; }
+    .question { border:1px solid #e9edf3; border-radius:12px; padding:1.05rem 1.2rem 1.15rem;
+                margin-bottom:1rem; background:#fff; transition:border-color .15s, background .15s; }
+    .question.answered { border-color:#cfe0f4; background:#fcfdff; }
+    .question.flash { animation:flashring .8s ease; }
+    @keyframes flashring { 0%{ box-shadow:0 0 0 0 rgba(58,123,213,.5); border-color:var(--accent); }
+                           100%{ box-shadow:0 0 0 10px rgba(58,123,213,0); } }
+    .q-title { font-size:1.06rem; font-weight:600; color:var(--ink); margin-bottom:.9rem; line-height:1.4; }
+    .likert-row { display:flex; align-items:stretch; gap:.7rem; }
+    .likert-end { flex:0 0 104px; font-size:.8rem; color:var(--muted); font-weight:600;
+                  display:flex; align-items:center; line-height:1.2; }
+    .likert-end.right { justify-content:flex-end; text-align:right; }
+    .choices { flex:1; display:grid; grid-template-columns:repeat(7,1fr); gap:.4rem; }
+    .choices label { display:flex; flex-direction:column; align-items:center; justify-content:center;
+                     gap:.4rem; text-align:center; font-weight:600; color:var(--muted); cursor:pointer;
+                     border:1.5px solid #e3e8ef; border-radius:10px; padding:.6rem .25rem;
+                     background:#fbfcfe; transition:border-color .12s, background .12s, color .12s;
+                     min-height:62px; line-height:1.1; }
+    .choices label:hover { border-color:#9cc0ec; background:#f2f7fd; }
+    .choices input { margin:0; width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
+    .choices label:has(input:checked) { border-color:var(--accent); background:#e9f2fd;
+                     color:#1f3a63; box-shadow:0 1px 5px rgba(58,123,213,.18); }
+    .actions { margin-top:1.6rem; text-align:center; }
+    button[type=submit] { padding:14px 48px; font-size:1.15rem;
+      background:linear-gradient(90deg,var(--accent) 0%,var(--accent-2) 100%); color:#fff;
+      border:none; border-radius:8px; box-shadow:0 2px 8px rgba(60,60,120,0.12); font-weight:700;
+      cursor:pointer; transition:transform .08s, box-shadow .15s; }
+    button[type=submit]:hover { box-shadow:0 4px 14px rgba(60,60,120,0.2); }
+    button[type=submit]:active { transform:translateY(1px); }
+    button[type=submit]:disabled { opacity:.5; cursor:not-allowed; box-shadow:none; }
+    @media (max-width:640px){
+      .wrap { padding:0 1.1rem 1.6rem; margin:0; border-radius:0; }
+      .topbar { margin:0 -1.1rem 1.2rem; padding:.7rem 1.1rem; border-radius:0; }
+      .likert-row { flex-direction:column; gap:.4rem; }
+      .likert-end { flex:none; }
+      .likert-end.right { justify-content:flex-start; text-align:left; }
+      .choices label { min-height:52px; padding:.5rem .1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-row">
+        <span class="progress-text" id="progressText"></span>
+        <button type="button" class="jump-btn" id="jumpBtn">Aller à la suivante &#8595;</button>
+      </div>
+    </div>
+    <form id="likertForm" method="POST" action="{{ post_url }}">
+      <h1 class="likert-header">Questionnaire d'abstraction des objectifs</h1>
+      <h6 class="likert-header">Une série d'énoncés va vous être présentée. Pour chacun d'eux, veuillez indiquer votre niveau d'accord sur une échelle allant de (1) «&nbsp;Tout à fait en désaccord&nbsp;» à (7) «&nbsp;Tout à fait d'accord&nbsp;». Certains énoncés peuvent sembler répétitifs ; c'est intentionnel.</h6>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A1" data-reversed="false">
+      <legend class="q-title">Je pense spontanément à mes objectifs avec une vision d'ensemble.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q1" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q1" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q1" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q1" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q1" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q1" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q1" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A2" data-reversed="false">
+      <legend class="q-title">Je vois mes objectifs comme des orientations à long terme plutôt que comme des tâches concrètes.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q2" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q2" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q2" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q2" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q2" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q2" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q2" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A3" data-reversed="false">
+      <legend class="q-title">J'ai tendance à relier mes objectifs à des aspirations plus larges qui comptent pour moi.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q3" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q3" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q3" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q3" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q3" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q3" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q3" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A4" data-reversed="false">
+      <legend class="q-title">Les objectifs que je me fixe sont surtout des lignes directrices plutôt que des cibles concrètes.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q4" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q4" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q4" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q4" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q4" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q4" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q4" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A5" data-reversed="false">
+      <legend class="q-title">Mes objectifs reflètent généralement la direction générale que je veux donner à ma vie.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q5" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q5" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q5" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q5" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q5" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q5" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q5" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A6" data-reversed="false">
+      <legend class="q-title">Quand je me fixe un objectif, je pense d'abord à la direction générale qu'il donne à ma vie.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q6" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q6" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q6" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q6" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q6" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q6" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q6" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A7" data-reversed="false">
+      <legend class="q-title">Je préfère des objectifs qui expriment une orientation générale plutôt qu'un résultat précis.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q7" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q7" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q7" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q7" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q7" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q7" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q7" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A8" data-reversed="false">
+      <legend class="q-title">Mes objectifs sont le plus souvent généraux plutôt que formulés comme des actions précises.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q8" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q8" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q8" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q8" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q8" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q8" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q8" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Abstractness" data-cat-id="A9" data-reversed="false">
+      <legend class="q-title">Je vois souvent les objectifs particuliers comme l'expression de valeurs ou d'ambitions plus profondes.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q9" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q9" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q9" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q9" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q9" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q9" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q9" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Attention Check" data-cat-id="ATT" data-expected="6" data-reversed="false">
+      <legend class="q-title">Ceci est un test d'attention &mdash; merci de sélectionner «&nbsp;6&nbsp;» à cette question.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q10" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q10" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q10" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q10" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q10" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q10" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q10" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C1" data-reversed="false">
+      <legend class="q-title">Je trouve plus facile de me fixer des objectifs lorsqu'ils sont formulés de façon très concrète.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q11" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q11" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q11" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q11" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q11" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q11" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q11" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C2" data-reversed="false">
+      <legend class="q-title">Je définis généralement mes objectifs de manière très précise et concrète.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q12" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q12" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q12" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q12" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q12" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q12" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q12" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C3" data-reversed="false">
+      <legend class="q-title">Je préfère travailler avec des objectifs clairs et bien définis.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q13" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q13" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q13" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q13" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q13" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q13" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q13" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C4" data-reversed="false">
+      <legend class="q-title">Mes objectifs portent plutôt sur des résultats précis que sur des intentions générales.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q14" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q14" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q14" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q14" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q14" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q14" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q14" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C5" data-reversed="false">
+      <legend class="q-title">Pour moi, un objectif doit être précis et directement réalisable pour avoir du sens.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q15" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q15" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q15" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q15" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q15" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q15" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q15" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C6" data-reversed="false">
+      <legend class="q-title">J'ai tendance à définir mes objectifs comme des réalisations précises plutôt que comme des orientations générales.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q16" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q16" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q16" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q16" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q16" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q16" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q16" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C7" data-reversed="false">
+      <legend class="q-title">Je décompose généralement mes objectifs en étapes concrètes dès le départ.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q17" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q17" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q17" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q17" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q17" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q17" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q17" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C8" data-reversed="false">
+      <legend class="q-title">Mes objectifs correspondent le plus souvent à des tâches clairement définies plutôt qu'à des intentions générales.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q18" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q18" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q18" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q18" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q18" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q18" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q18" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="question" data-cat="Concreteness" data-cat-id="C9" data-reversed="false">
+      <legend class="q-title">Un objectif n'a vraiment de sens pour moi que lorsqu'il renvoie à quelque chose de précis que je peux accomplir.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Tout à fait en désaccord</span>
+        <div class="choices">
+          <label><input type="radio" name="Q19" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q19" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q19" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q19" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q19" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q19" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q19" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Tout à fait d'accord</span>
+      </div>
+    </fieldset>
+
+      <div class="actions">
+        <button type="submit" id="submitBtn" disabled>Valider</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    // Pas de timer : temps de reponse illimite.
+    const DEV_MODE = {{ dev_mode|default(false)|tojson }};
+    let submitted = false;
+    const form = document.getElementById('likertForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const jumpBtn = document.getElementById('jumpBtn');
+    const fieldsets = Array.prototype.slice.call(document.querySelectorAll('fieldset.question'));
+    const total = fieldsets.length;
+
+    function isAnswered(fs) { return !!fs.querySelector('input[type=radio]:checked'); }
+    function firstUnanswered() {
+        for (var i = 0; i < fieldsets.length; i++) {
+            if (!isAnswered(fieldsets[i])) return fieldsets[i];
+        }
+        return null;
+    }
+    function answeredCount() {
+        return fieldsets.reduce(function (acc, fs) { return acc + (isAnswered(fs) ? 1 : 0); }, 0);
+    }
+    function flash(fs) {
+        fs.classList.remove('flash');
+        void fs.offsetWidth;  // reflow pour rejouer l'animation
+        fs.classList.add('flash');
+    }
+    function refresh() {
+        var c = answeredCount();
+        progressBar.style.width = (total ? (c / total * 100) : 100) + '%';
+        if (c === total) {
+            progressText.textContent = total + ' / ' + total + ' — terminé ✓';
+            jumpBtn.style.display = 'none';
+        } else {
+            progressText.textContent = c + ' / ' + total + ' réponses';
+            jumpBtn.style.display = '';
+        }
+        submitBtn.disabled = DEV_MODE ? false : (c < total);
+    }
+    if (DEV_MODE) {
+        // Mode dev : validation non requise.
+        Array.prototype.slice.call(form.querySelectorAll('input[required]'))
+            .forEach(function (i) { i.removeAttribute('required'); });
+    }
+    jumpBtn.addEventListener('click', function () {
+        var fs = firstUnanswered();
+        if (fs) { fs.scrollIntoView({ behavior: 'smooth', block: 'center' }); flash(fs); }
+    });
+    form.addEventListener('change', function (e) {
+        var fs = e.target.closest('fieldset.question');
+        if (fs) fs.classList.add('answered');
+        refresh();
+    });
+    form.addEventListener('submit', function (e) {
+        if (submitted) { e.preventDefault(); return; }
+        var miss = DEV_MODE ? null : firstUnanswered();
+        if (miss) {
+            e.preventDefault();
+            miss.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            flash(miss);
+            return;
+        }
+        submitted = true;
+        submitBtn.disabled = true;
+    });
+    refresh();
+  </script>
+</body>
+</html>

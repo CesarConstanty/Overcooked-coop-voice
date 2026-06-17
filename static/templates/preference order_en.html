@@ -111,7 +111,6 @@
 <body>
 
   <h2>Ranking of communications</h2>
-  <div id="preference-timer" style="font-weight:bold; color:#b00; text-align:right; margin-bottom:1rem;"></div>
   <div class="instructions">
     Drag each condition of communication into a box over the arrow, from the least (left) to the most (right) preferred.<br>
     You can adjust your ranking at any time.<br>
@@ -135,7 +134,7 @@
     <textarea id="explanationText" rows="4" cols="80" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: sans-serif;" placeholder="You can add any comments or remarks here (optional)..."></textarea>
   </div>
 
-  <form id="rankingForm" method="POST" action="/submit_qex_ranking">
+  <form id="rankingForm" method="POST" action="{{ post_url }}">
     <input type="hidden" name="ranking_data" id="rankingDataInput">
     <input type="hidden" name="timeout_bool" id="timeoutBoolInput" value="false">
     <input type="hidden" name="explanation_text" id="explanationDataInput">
@@ -143,16 +142,9 @@
   </form>
 
   <script>
-    // Timer logic (similar to other questionnaires)
-    const timer_PREFERENCE = {{ preference_length|default(60) }};
-    let timeLeft = timer_PREFERENCE;
-    let timerInterval = null;
+    // Pas de timer : temps de reponse illimite.
+    const DEV_MODE = {{ dev_mode|default(false)|tojson }};
     let preferenceSubmitted = false;
-
-    function updateTimerDisplay() {
-      const timerDiv = document.getElementById('preference-timer');
-      if (timerDiv) timerDiv.textContent = `Time left: ${timeLeft}s`;
-    }
 
     function collectRankingDataWithNan() {
       const slots = Array.from(document.querySelectorAll('.arrow-slot'));
@@ -164,29 +156,6 @@
         }
       });
       return ranking;
-    }
-
-    function submitPreferenceByTimer() {
-      if (preferenceSubmitted) return;
-      preferenceSubmitted = true;
-      const ranking = collectRankingDataWithNan();
-      rankingDataInput.value = JSON.stringify(ranking);
-      document.getElementById('timeoutBoolInput').value = "true";
-      document.getElementById('explanationDataInput').value = document.getElementById('explanationText').value;
-      submitBtn.disabled = true;
-      document.getElementById('rankingForm').submit();
-    }
-
-    function startPreferenceTimer() {
-      updateTimerDisplay();
-      timerInterval = setInterval(() => {
-        timeLeft -= 1;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          submitPreferenceByTimer();
-        }
-      }, 1000);
     }
 
     const conditions = [
@@ -256,7 +225,7 @@
       
       const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
       const allSlotsFilled = (filled.length === {{ num_blocs }});
-      submitBtn.disabled = !allSlotsFilled; // Enable if all slots are filled
+      submitBtn.disabled = DEV_MODE ? false : !allSlotsFilled; // Enable if all slots are filled (toujours en dev)
 
       if (allSlotsFilled) {
         // If all slots are filled, prepare the data for submission
@@ -287,13 +256,12 @@
       const filled = Array.from(document.querySelectorAll('.arrow-slot')).filter(slot => slot.hasChildNodes());
       const allSlotsFilled = (filled.length === {{ num_blocs }});
       
-      if (!allSlotsFilled) {
+      if (!allSlotsFilled && !DEV_MODE) {
         event.preventDefault();
         return;
       }
       
       preferenceSubmitted = true;
-      clearInterval(timerInterval);
       submitBtn.disabled = true;
       
       // Prepare data for manual submission
@@ -301,11 +269,6 @@
       rankingDataInput.value = JSON.stringify(ranking);
       timeoutBoolInput.value = "false"; // Ensure manual submission is marked as such
       explanationDataInput.value = document.getElementById('explanationText').value; // Include explanation text
-    });
-
-    // Start timer when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-      startPreferenceTimer();
     });
 
     // Replace onclick="submitRanking()" with form submission

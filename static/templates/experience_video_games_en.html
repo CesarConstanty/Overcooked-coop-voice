@@ -121,7 +121,7 @@
     <h1>Video Game Experience Questionnaire</h1>
     <!-- Timer supprimé pour permettre un temps de réponse illimité -->
     <h6>Please answer the following questions about your experience with video games.</h6>
-    <form id="vgexpForm" method="POST" action="/submit_qvg_survey">
+    <form id="vgexpForm" method="POST" action="{{ post_url }}">
       <input type="hidden" name="qvg_data" id="qvgDataInput">
       <!-- Personal Info Table -->
 <table style="width: 100%; border-collapse: collapse;">
@@ -135,7 +135,7 @@
   <!-- Row 1 : Laterality (question seule) + Overcooked question -->
   <tr>
     <th colspan="2" style="text-align: left;">Laterality</th>
-    <th colspan="2" style="text-align: left;">Do you know the video game Overcooked?</th>
+    <th colspan="2" style="text-align: left;">Have you previously played the video game Overcooked or watch someone playing?</th>
   </tr>
 
   <!-- Row 2 : Laterality (réponses) + Overcooked réponses sur la même ligne -->
@@ -164,7 +164,7 @@
     <td style="text-align: center;">
             <input type="number" name="age" min="18" max="70" required style="width: 60px;">
     </td>
-    <td style="text-align: left;">How many hours did you play this game?</td>
+    <td style="text-align: left;">How many hours did you play the video game Overcooked?</td>
     <td style="text-align: center;">
       <input type="number" name="hours_played" min="0" required style="width: 80px;">
     </td>

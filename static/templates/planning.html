@@ -14,8 +14,6 @@
 
   <!-- Custom and Plugin Styles -->
   <link rel="stylesheet" href="static/css/style.css">
-  <link rel="stylesheet" href="static/lib/defaultV2.min.css">
-  <link rel="stylesheet" href="static/lib/nouislider.min.css">
 
   <!-- jQuery and Bootstrap JS -->
   <script src="static/lib/jquery-min.js"></script>
@@ -32,26 +30,12 @@
   <script src="static/lib/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
   <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-  <script src="static/lib/survey.core.min.js"></script>
-  <script src="static/lib/survey.jquery.min.js"></script>
-  <script src="static/lib/survey.i18n.min.js"></script>
-  <script src="static/lib/nouislider.js"></script>
-  <script src="static/lib/wnumb@1.1.0"></script>
-  <script src="static/lib/surveyjs-widgets.min.js"></script>
 
   <!-- Project Scripts -->
   <script src="static/js/graphics.js"></script>
   <script src="static/js/planning.js"></script>
-  <script>
-    // Mode développement pour validation sans remplir les questionnaires
-    window.DEV_MODE = {{ dev_mode|default(false)|tojson }};
-  </script>
-  <script src="static/js/survey.js"></script>
-
-  <!-- Data Containers -->
-  <div id="qpt_elements" style="display:none;">{{qpt}}</div>
-  <div id="qpb_elements" style="display:none;">{{qpb}}</div>
-  <div id="hoffman_elements" style="display:none;">{{hoffman}}</div>
+  <!-- Les questionnaires sont désormais des pages HTML autonomes servies par
+       le séquenceur /questionnaire/<slot> ; plus de SurveyJS ni d'overlays ici. -->
 
   <style>
   .wrap {
@@ -72,18 +56,6 @@
   h1.likert-header {
     font-size: 1.75rem;
     font-weight: 600;
-  }
-
-  #QptDisplay,
-  #QpbDisplay,
-  #HoffmanDisplay {
-    margin-top: 1rem;
-  }
-
-  #qpt_timer {
-    margin-top: 1.5rem;
-    font-weight: bold;
-    color: #007bff;
   }
 
   p {
@@ -170,95 +142,8 @@
     <div id="error-exit" style="display:none;">Game ended unexpectedly (probably due to another user disconnecting)</div>
   </div>
 
-  <!-- Surveys -->
-  <div id="vgq" class="wrap" style="display:none;">
-    <h1>Survey: Propensity to Trust in Automated Technology (PTT-A)</h1>
-    <p>Now we are interested in your opinions about automated technology...</p>
-    <ul>
-      <li>Automated transport</li>
-      <li>Industrial robots</li>
-      <li>Service robots</li>
-      <li>AI-based software</li>
-    </ul>
-    <p>There are a number of statements below about automated technology...</p>
-    <hr>
-  </div>
-
-{% if qpt %}
-  <!-- SurveyJS version -->
-  <div id="qpt" class="wrap" style="display: none;">
-    <div id="QptDisplay"></div>
-    <div id="qpt_timer"></div>
-  </div>
-{% else %}
-  <!-- HTML natif amélioré pour le questionnaire agency -->
-  <div id="qpt" class="wrap" style="display: none; max-width: 900px; margin: 2.5rem auto; background: #fff; box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07); border-radius: 0.7rem;">
-    <form id="qptForm" style="padding: 2.5rem 2rem;">
-      <h1 style="text-align:center; font-size:2rem; color:#2a3a5a; margin-bottom:2.2rem; font-weight:600;">Sense of Agency Survey</h1>
-      <div class="question" style="margin-bottom:2.2rem;">
-        <p style="font-size:1.15rem; font-weight:600; color:#2a3a5a;">How much control did you use?</p>
-        <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">Think about the amount of effort invested in performing the task.</p>
-        <input type="range" name="q1" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
-        <div class="label-row" style="display:flex; justify-content:space-between; font-size:1rem; color:#6a7a99; margin-top:0.5rem;">
-          <span>Low control (0)</span>
-          <span>High control (100)</span>
-        </div>
-      </div>
-      <div class="question" style="margin-bottom:2.2rem;">
-        <p style="font-size:1.15rem; font-weight:600; color:#2a3a5a;">How much control did you feel?</p>
-        <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">Regardless the amount of effort invested, think about the control you experienced towards the output of the team work.</p>
-        <input type="range" name="q2" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
-        <div class="label-row" style="display:flex; justify-content:space-between; font-size:1rem; color:#6a7a99; margin-top:0.5rem;">
-          <span>Low control (0)</span>
-          <span>High control (100)</span>
-        </div>
-      </div>
-      <div class="question" style="margin-bottom:2.2rem;">
-        <p style="font-size:1.15rem; font-weight:600; color:#2a3a5a;">
-          Whose contribution made it possible to achieve this score (<span id="agency_score_placeholder" style="color:#007bff;">score</span>) ?
-        </p>
-        <p style="font-size:1rem; color:#495057; margin-bottom:0.7rem;">Contribution is about who you believe is mainly responsible for the result: you, the team as a whole, or the artificial agent.</p>
-        <input type="range" name="q3" min="0" max="100" value="50" style="width:100%; margin-top:1.2rem;">
-      <div class="label-row" style="display:flex; justify-content:space-between; align-items:center; font-size:1rem; color:#6a7a99; margin-top:0.5rem; position:relative;">
-        <span style="flex: 1; text-align: left;">{{ accountability_labels[0] }}</span>
-        <span style="position: absolute; left: 50%; transform: translateX(-50%);">The team</span>
-        <span style="flex: 1; text-align: right;">{{ accountability_labels[1] }}</span>
-      </div>
-      </div>
-      <button type="submit" disabled
-        style="margin:2.5rem auto 0 auto; display:block; padding:14px 44px; font-size:1.15rem; background:linear-gradient(90deg,#3a7bd5 0%,#00d2ff 100%); color:#fff; border:none; border-radius:8px; box-shadow:0 2px 8px rgba(60,60,120,0.10); font-weight:600; letter-spacing:1px; transition:background 0.2s,transform 0.1s;">
-        Submit
-      </button>
-      <div id="qpt_timer" style="text-align:center; font-size:1.08em; color:#3a7bd5; margin-top:1.5rem; font-weight:500; letter-spacing:1px;"></div>
-    </form>
-  </div>
-{% endif %}
-
-<div id="qpb" class="wrap" style="display: none;">
-  {% if step == 0 %}
-  <h1 class="likert-header">Please answer the following questions keeping in mind the games since the end of the tutorial</h1>
-  {% else %}
-  <h1 class="likert-header">Please answer the following questions keeping in mind the games since the beginning of this block</h1>
-  <h6 class="likert-header">We want to understand how you experienced to play with that artificial agent.</h6>
-  {% endif %}
-  <div id="QpbDisplay"></div>
-</div>
-
-<div id="hoffman" class="wrap" style="display: none;">
-  <h1 class="likert-header">Human–Robot Interaction Survey</h1>
-  <h6 class="likert-header">
-    This questionnaire assesses how you experienced to play with the
-    <strong>artificial agent in Overcooked</strong>.
-  </h6>
-  <div id="HoffmanDisplay"></div>
-</div>
-
-<div id="qpb_timer_value" style="display:none;">
-  {{ qpb_length }}
-</div>
-<div id="hoffman_timer_value" style="display:none;">
-  {{ hoffman_length }}
-</div>
+  <!-- Les questionnaires (agency post-essai, AAT_L / Hoffman post-bloc) sont des pages
+       HTML autonomes servies par /questionnaire/<slot> ; plus de SurveyJS ni d'overlays ici. -->
 
   <!-- No JS fallback -->
   <noscript>

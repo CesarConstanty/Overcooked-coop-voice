@@ -818,37 +818,13 @@ def index():
                     uid, count_active_games(), MAX_GAMES)
                 return render_template('full.html', max_games=MAX_GAMES)
             new_user = User(uid=uid, config=config, step=0, trial=0)
-            
-            # Gestion des questionnaires post-trial (depuis old_app.py)
-            try:
-                if os.path.exists("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"]):
-                    with open("./questionnaires/post_trial/" + new_user.config["questionnaire_post_trial"], 'r', encoding='utf-8') as f:
-                        qpt = json.load(f)
-                    f.close()
-                    new_user.config["qpt"] = qpt
-            except KeyError:
-                new_user.config["qpt"] = {}
-                
-            # Gestion des questionnaires post-bloc (depuis old_app.py)
-            try:
-                if os.path.exists("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"]):
-                    with open("./questionnaires/post_bloc/" + new_user.config["questionnaire_post_bloc"], 'r', encoding='utf-8') as f:
-                        qpb = json.load(f)
-                    f.close()
-                    new_user.config["qpb"] = qpb
-            except KeyError:
-                new_user.config["qpb"] = {}
-                
-            # Gestion questionnaire hoffman
-            try:
-                if os.path.exists("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"]):
-                    with open("./questionnaires/hoffman/" + new_user.config["questionnaire_hoffman"], 'r', encoding='utf-8') as f:
-                        hoffman = json.load(f)
-                    f.close()
-                    new_user.config["hoffman"] = hoffman
-            except KeyError:
-                new_user.config["hoffman"] = {}
-            
+
+            # Questionnaires : normalisation/validation du bloc config unifié
+            # "questionnaires" (synthèse rétro-compatible depuis les anciennes
+            # clés si absent). Les questionnaires sont désormais des pages HTML
+            # autonomes (plus de chargement JSON/SurveyJS ici).
+            normalize_questionnaire_config(new_user.config)
+
             # Shuffle des trials si nécessaire (depuis old_app.py)
             if new_user.config.get("shuffle_trials", False) == True:
                 for key, value in new_user.config["blocs"].items():
@@ -1043,8 +1019,8 @@ def planning():
     bloc_order = current_user.config.get("bloc_order", [])
     
     if current_user.step >= len(bloc_order):
-        print(f"Utilisateur {uid} terminé tous les blocs (step {current_user.step}), redirection vers qex_ranking")
-        return redirect(url_for('qex_ranking'))
+        print(f"Utilisateur {uid} terminé tous les blocs (step {current_user.step}), redirection vers les questionnaires de fin")
+        return redirect(url_for('questionnaire', slot='end'))
     
     # --- GESTION DES TUTORIELS DE CONDITION ---
     # Vérifier si l'utilisateur doit voir le tutoriel de condition avant de commencer le bloc
@@ -1135,51 +1111,25 @@ def planning():
     
     agent_names = get_agent_names()
 
-    post_trial = current_user.config.get("questionnaire_post_trial", "")
-    if post_trial.endswith(".html"):
-        qpt = ""
-    else:
-        qpt = questionnaire_to_surveyjs(
-            current_user.config["qpt"],
-            current_user.config["bloc_order"][current_user.step],
-            current_user.config.get("pagify_qpt", False)
-        )
-
-    qpb_elements = []
-    for key, value in current_user.config["qpb"].items():
-        if isinstance(value, dict):
-            qpb_elements.append(value)
-    qpb = {"elements": qpb_elements}
-
-    hoffman_elements = []
-    for key, value in current_user.config["hoffman"].items():
-        if isinstance(value, dict):
-            # Correction : inclure aussi l'avant-dernier bloc (step 5 pour un total de 7 blocs)
-            steps = value.get("steps", [])
-            total_blocs = len(current_user.config["bloc_order"])
-            # Afficher Hoffman si on est dans les steps OU si on est à l'avant-dernier bloc
-            #if current_user.step in steps or (current_user.step == total_blocs - 2 and (total_blocs - 2) not in steps):
-            hoffman_elements.append(value)
-    hoffman = {"elements": hoffman_elements}
+    # Garde reprise/retour : si l'essai courant a déjà été joué (trajectoire
+    # présente) mais qu'on revient sur /planning, ne pas le rejouer : pousser
+    # vers le questionnaire post-essai.
+    if current_trial_played(current_user):
+        return redirect(url_for('questionnaire', slot='post_trial'))
 
     # --- RENDU TEMPLATE ---
-    # On ne retourne JAMAIS qex_ranking ici, même si on est au dernier bloc.
-    # Le JS s'occupe de rediriger après le dernier questionnaire.
-    
-    # Préparer les variables qui étaient dans current_user
+    # Les questionnaires (post-essai/post-bloc) ne sont plus rendus ici : ce
+    # sont des pages HTML autonomes servies par /questionnaire/<slot>.
     total_blocs = len(current_user.config["bloc_order"])
     bloc_key = current_user.config["bloc_order"][current_user.step]
     current_condition = current_user.config["conditions"][bloc_key]
     current_trials = current_user.config["blocs"][bloc_key]
-    
+
     # Suivi temporel : enregistrer la visite de la page planning
     track_page_view('planning.html', current_user.uid, current_user.config.get("config_id"))
-    
+
     return render_template(
         "planning.html",
-        qpb=json.dumps(qpb),
-        qpt=qpt if qpt else "",
-        hoffman=json.dumps(hoffman),
         uid=current_user.uid,
         step=current_user.step,
         condition=current_condition,
@@ -1187,9 +1137,6 @@ def planning():
         config=json.dumps(current_user.config),
         trials=json.dumps(current_trials),
         total_blocs=total_blocs,
-        qpb_length=current_user.config.get("qpb_length", 300),
-        hoffman_length=current_user.config.get("hoffman_length", 300),
-        accountability_labels=current_user.config.get("accountability_label_order", ["Me", "The artificial agent"]),
         dev_mode=current_user.config.get("dev", False)
     )
 @app.route('/transition', methods=['GET', 'POST'])
@@ -1226,235 +1173,496 @@ def transition():
 
 @app.route('/qex_ranking', methods=['GET'])
 def qex_ranking():
-    current_user = get_current_user()
-    if not current_user:
+    # Route legacy : redirige vers le séquenceur unifié (slot 'end').
+    if not get_current_user():
         return redirect(url_for('index'))
-    uid = current_user.uid
-    
-    step = current_user.step
-    config_id = current_user.config["config_id"]
-    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
-    if os.path.exists(file_name):
-        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
-    
-    preference_length = current_user.config.get("preference_length", 60)
-    num_blocs = len(current_user.config.get("bloc_order", []))
-    
-    # Suivi temporel : enregistrer la visite du questionnaire de préférence
-    track_page_view('preference order_en.html', uid, config_id)
-    
-    return render_template('preference order_en.html', preference_length=preference_length, num_blocs=num_blocs)
+    return redirect(url_for('questionnaire', slot='end'))
 
-@app.route('/submit_qex_ranking', methods=['POST'])
-def submit_qex_ranking():
-    current_user = get_current_user()
-    if not current_user:
-        return redirect(url_for('index'))
-    uid = current_user.uid
-    step = current_user.step 
-    config_id = current_user.config["config_id"]
-    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
-    if os.path.exists(file_name):
-        return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
 
+# ============================================================================
+# Système unifié de questionnaires (pages HTML autonomes, pilotées par config)
+# ----------------------------------------------------------------------------
+# Tous les questionnaires sont servis comme des pages HTML autonomes via un
+# séquenceur générique. Le placement est paramétrable dans config.json :
+#     "questionnaires": {
+#         "begin": ["QVG", "PTTA"], "post_trial": ["agency"],
+#         "post_bloc": ["AAT_L", "hoffman"], "end": ["preference"]
+#     }
+# La logique de nommage des fichiers de résultats est STRICTEMENT préservée.
+# ============================================================================
+
+QUESTIONNAIRE_SLOTS = ("begin", "post_trial", "post_bloc", "end")
+
+
+# --- Constructeurs de chemins ----------------------------------------------
+# Les questionnaires historiques conservent leur nommage de sauvegarde FIGÉ
+# (rétro-compat des données déjà collectées). Les questionnaires génériques
+# (Likert fournis comme simples templates) passent par _path_generic :
+# l'emplacement de sauvegarde découle du slot où on les place, ce qui permet de
+# poser le même questionnaire à n'importe quel endroit de l'expérience.
+_SLOT_DIRS = {
+    "begin": "Pre_experiment",
+    "post_trial": "QPT",
+    "post_bloc": "QPB",
+    "end": "Post_experiment",
+}
+
+def _path_generic(uid, step, trial, cid, slot=None, name=None):
+    sub = _SLOT_DIRS.get(slot, "Questionnaires")
+    if slot == "post_trial":
+        return f"trajectories/{cid}/{uid}/{sub}/{uid}_{step}_{trial}_{name}.json"
+    return f"trajectories/{cid}/{uid}/{sub}/{uid}_{step}_{name}.json"
+
+# Instruments historiques : nommage FIGÉ dans leur slot natif (rétro-compat des
+# données déjà collectées) ; nommage générique slot-aware si on les place ailleurs.
+def _path_qvg(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "begin"):
+        return f"trajectories/{cid}/{uid}/Pre_experiment/{uid}_{step}_QVG.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "QVG")
+
+def _path_ptta(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "begin"):
+        return f"trajectories/{cid}/{uid}/Pre_experiment/{uid}_{step}_PTTA.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "PTTA")
+
+def _path_agency(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "post_trial"):
+        return f"trajectories/{cid}/{uid}/QPT/{uid}_{step}_{trial}_QPT.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "agency")
+
+def _path_aat_l(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "post_bloc"):
+        return f"trajectories/{cid}/{uid}/QPB/{uid}_{step}AAT_L.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "AAT_L")
+
+def _path_hoffman(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "post_bloc"):
+        return f"trajectories/{cid}/{uid}/QPB/{uid}_{step}HOFFMAN.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "hoffman")
+
+def _path_preference(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "end"):
+        return f"trajectories/{cid}/{uid}/Post_experiment/{uid}_{step}_preference.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "preference")
+
+
+# --- Fonctions de sauvegarde (corps repris verbatim des anciens handlers) --
+def save_qvg(user, form_req, slot=None, name=None):
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
     form_data = {}
     form_data["step"] = step
     form_data["user_agent"] = request.headers.get('User-Agent')
     try:
-        bloc_key = current_user.config["bloc_order"][current_user.step]
-        condition = current_user.config["conditions"][bloc_key]
+        bloc_key = config["bloc_order"][step]
+        condition = config["conditions"][bloc_key]
     except (KeyError, IndexError):
-        form_data["condition"] = "N/A" 
-
+        form_data["condition"] = "N/A"
     form_data["uid"] = uid
     form_data["timestamp"] = gmtime()
     form_data["date"] = asctime(form_data["timestamp"])
-
-    # --- QEX specific data extraction ---
-    ranking_json_string = request.form.get('ranking_data')
-    timeout_bool = request.form.get('timeout_bool', 'false') == 'true'
-    explanation_text = request.form.get('explanation_text', '')  # Get the explanation text
-
-    if not ranking_json_string:
-        return redirect(url_for('planning'))
-
+    qvg_json_string = form_req.get('qvg_data')
     try:
-        # Parse the JSON string back into a Python list
-        ranking_list = json.loads(ranking_json_string)
-        form_data["ranking_response"] = ranking_list # Store the QEX ranking here
-        form_data["timeout_bool"] = timeout_bool # Store whether submission was by timeout
-        form_data["explanation_text"] = explanation_text # Store the explanation/comments text
-
+        form_data["qvg_response"] = json.loads(qvg_json_string) if qvg_json_string else {}
     except json.JSONDecodeError:
-        return "Error: Invalid ranking data format for QEX", 400
+        form_data["qvg_response"] = {}
+    file_name = _path_qvg(uid, step, user.trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form_data, uid)
 
-    # --- Save the QEX data to a JSON file ---
-    # saving preference scale in prolific ID folder
-    config_id = current_user.config["config_id"]
-    Path(f"trajectories/{config_id}/{uid}/Post_experiment").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{config_id}/{uid}/Post_experiment/{uid}_{step}_preference.json"
-    
-    success = safe_json_write(file_name, form_data, uid)
-    
-    if not success and not os.path.exists(file_name):
-        return "Error saving QEX data", 500
 
-    
-    current_user.step += 1
-    #current_user.save() # Make sure User model has a save method to persist changes?
+def save_ptta(user, form_req, slot=None, name=None):
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+    ptta_json_string = form_req.get('ptta_data')
+    try:
+        form_data["ptta_response"] = json.loads(ptta_json_string) if ptta_json_string else {}
+    except json.JSONDecodeError:
+        form_data["ptta_response"] = {}
+    file_name = _path_ptta(uid, step, user.trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form_data, uid)
 
-    
-    return render_template('goodbye.html', completion_link=current_user.config["completion_link"])
-    
 
-# --qvg
+def save_agency(user, form_req, slot=None, name=None):
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    trial = user.trial
+    bloc_key = config["bloc_order"][step]
+    mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
+    form = {}
+    form["answer"] = {mapping[k]: form_req.get(k) for k in ("q1", "q2", "q3")}
+    acc_labels = config.get("accountability_label_order", ["Me", "The artificial agent"])
+    if isinstance(acc_labels, list) and len(acc_labels) >= 2:
+        form["accountability_order"] = [acc_labels[0], "The team", acc_labels[1]]
+    else:
+        form["accountability_order"] = ["Me", "The team", "The artificial agent"]
+    form["timeout_bool"] = (form_req.get("timeout_bool", "false") == "true")
+    form["step"] = step
+    form["trial"] = trial
+    form["trial_id"] = f"{uid}_{bloc_key}_{trial}_QPT"
+    form["layout"] = config["blocs"][bloc_key][trial]
+    form["user_agent"] = request.headers.get('User-Agent')
+    form["condition"] = config["conditions"][bloc_key]
+    form["uid"] = uid
+    form["timestamp"] = gmtime()
+    form["date"] = asctime(form["timestamp"])
+    file_name = _path_agency(uid, step, trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
 
+
+def save_aat_l(user, form_req, slot=None, name=None):
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    bloc_key = config["bloc_order"][step]
+    form = {}
+    form["answer"] = {k: v for k, v in form_req.items() if k.startswith("Q")}
+    form["step"] = step
+    form["trial_id"] = f"{uid}_{bloc_key}_QPB"
+    form["user_agent"] = request.headers.get('User-Agent')
+    form["condition"] = config["conditions"][bloc_key]
+    form["uid"] = uid
+    form["timestamp"] = gmtime()
+    form["date"] = asctime(form["timestamp"])
+    file_name = _path_aat_l(uid, step, user.trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
+
+
+def save_hoffman(user, form_req, slot=None, name=None):
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    bloc_key = config["bloc_order"][step]
+    form = {}
+    form["answer"] = {k: v for k, v in form_req.items() if k.startswith("Q")}
+    form["step"] = step
+    form["trial_id"] = f"{uid}_{bloc_key}_HOFFMAN"
+    form["user_agent"] = request.headers.get('User-Agent')
+    form["condition"] = config["conditions"][bloc_key]
+    form["uid"] = uid
+    form["timestamp"] = gmtime()
+    form["date"] = asctime(form["timestamp"])
+    file_name = _path_hoffman(uid, step, user.trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
+
+
+def save_generic_likert(user, form_req, slot=None, name=None):
+    """Sauvegarde générique d'un questionnaire Likert (champs Q*).
+
+    L'emplacement et les métadonnées découlent du slot où le questionnaire est
+    placé : on peut donc poser le même template à n'importe quel endroit de
+    l'expérience et en récupérer les réponses. Pas de dépendance dure au bloc
+    (condition défensive) pour rester valable au slot "begin" comme ailleurs."""
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    trial = user.trial
+    form = {}
+    form["answer"] = {k: v for k, v in form_req.items() if k.startswith("Q")}
+    form["slot"] = slot
+    form["step"] = step
+    if slot == "post_trial":
+        form["trial"] = trial
+    form["user_agent"] = request.headers.get('User-Agent')
+    try:
+        bloc_key = config["bloc_order"][step]
+        form["condition"] = config["conditions"][bloc_key]
+        if slot == "post_trial":
+            form["trial_id"] = f"{uid}_{bloc_key}_{trial}_{name}"
+        else:
+            form["trial_id"] = f"{uid}_{bloc_key}_{name}"
+    except (KeyError, IndexError):
+        form["condition"] = "N/A"
+        form["trial_id"] = f"{uid}_{name}"
+    form["uid"] = uid
+    form["timestamp"] = gmtime()
+    form["date"] = asctime(form["timestamp"])
+    sub = _SLOT_DIRS.get(slot, "Questionnaires")
+    Path(f"trajectories/{config_id}/{uid}/{sub}").mkdir(parents=True, exist_ok=True)
+    file_name = _path_generic(uid, step, trial, config_id, slot, name)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form, uid)
+
+
+def save_preference(user, form_req, slot=None, name=None):
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        bloc_key = config["bloc_order"][step]
+        condition = config["conditions"][bloc_key]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A"
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+    ranking_json_string = form_req.get('ranking_data')
+    try:
+        form_data["ranking_response"] = json.loads(ranking_json_string) if ranking_json_string else []
+    except json.JSONDecodeError:
+        form_data["ranking_response"] = []
+    form_data["timeout_bool"] = form_req.get('timeout_bool', 'false') == 'true'
+    form_data["explanation_text"] = form_req.get('explanation_text', '')
+    file_name = _path_preference(uid, step, user.trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form_data, uid)
+
+
+# --- Fonctions de contexte de rendu (variables passées au template) --------
+def _ctx_default(user, slot=None):
+    return {}
+
+def _ctx_agency(user, slot=None):
+    return {
+        "accountability_labels": user.config.get(
+            "accountability_label_order", ["Me", "The artificial agent"]),
+        "score": request.args.get("score", ""),
+    }
+
+def _ctx_post_bloc(user, slot=None):
+    return {"step": user.step}
+
+def _ctx_preference(user, slot=None):
+    return {"num_blocs": len(user.config.get("bloc_order", []))}
+
+
+# --- Registre : nom de questionnaire -> métadonnées ------------------------
+# "slot" = emplacements autorisés (ici QUESTIONNAIRE_SLOTS pour tous) : n'importe
+# quel questionnaire peut être placé n'importe où via la config. Les instruments
+# spécifiques gardent leur template, save et nommage de fichier dédiés (figés dans
+# leur slot natif, génériques ailleurs) ; les Likert génériques utilisent
+# _path_generic / save_generic_likert (réponses Q*).
+QUESTIONNAIRE_REGISTRY = {
+    "QVG":        {"slot": QUESTIONNAIRE_SLOTS, "template": "experience_video_games_en.html", "path": _path_qvg,        "save": save_qvg,        "context": _ctx_default},
+    "PTTA":       {"slot": QUESTIONNAIRE_SLOTS, "template": "PTT_A_en.html",                  "path": _path_ptta,       "save": save_ptta,       "context": _ctx_default},
+    "agency":     {"slot": QUESTIONNAIRE_SLOTS, "template": "agency.html",                    "path": _path_agency,     "save": save_agency,     "context": _ctx_agency},
+    "AAT_L":      {"slot": QUESTIONNAIRE_SLOTS, "template": "AAT_L.html",                     "path": _path_aat_l,      "save": save_aat_l,      "context": _ctx_post_bloc},
+    "hoffman":    {"slot": QUESTIONNAIRE_SLOTS, "template": "hoffman.html",                   "path": _path_hoffman,    "save": save_hoffman,    "context": _ctx_post_bloc},
+    "GAbstractionP":    {"slot": QUESTIONNAIRE_SLOTS, "template": "GAbstractionP.html",        "path": _path_generic, "save": save_generic_likert, "context": _ctx_default},
+    "GAbstractionP_fr": {"slot": QUESTIONNAIRE_SLOTS, "template": "GAbstractionP_fr.html",     "path": _path_generic, "save": save_generic_likert, "context": _ctx_default},
+    "preference": {"slot": QUESTIONNAIRE_SLOTS, "template": "preference order_en.html",       "path": _path_preference, "save": save_preference, "context": _ctx_preference},
+}
+
+
+def _template_exists(template_name):
+    """True si Flask peut charger ce template (même dossier que render_template)."""
+    try:
+        app.jinja_env.loader.get_source(app.jinja_env, template_name)
+        return True
+    except Exception:
+        return False
+
+
+def resolve_questionnaire(name):
+    """Métadonnées du questionnaire référencé en config.
+
+    1) Nom au registre -> son entrée (instruments spécifiques : agency, preference,
+       QVG, AAT_L... avec nommage de sauvegarde dédié et figé).
+    2) Sinon, si un template ``static/templates/<name>.html`` existe -> questionnaire
+       Likert générique posable dans N'IMPORTE QUEL slot ; les réponses ``Q*`` sont
+       sauvegardées selon l'emplacement (cf. save_generic_likert). Autrement dit :
+       fournir le template et citer le nom en config suffit, sans toucher au code.
+    3) Sinon -> None (ignoré, avec un avertissement)."""
+    entry = QUESTIONNAIRE_REGISTRY.get(name)
+    if entry is not None:
+        return entry
+    if (isinstance(name, str) and name
+            and not any(c in name for c in ('/', '\\', '..'))
+            and _template_exists(f"{name}.html")):
+        return {
+            "slot": QUESTIONNAIRE_SLOTS,
+            "template": f"{name}.html",
+            "path": _path_generic,
+            "save": save_generic_likert,
+            "context": _ctx_default,
+        }
+    return None
+
+
+def normalize_questionnaire_config(config):
+    """Garantit la présence d'un bloc config["questionnaires"] valide.
+
+    Si absent, le synthétise depuis les anciennes clés (rétro-compat). Filtre
+    les noms inconnus ou rangés dans le mauvais slot (log + ignore)."""
+    q = config.get("questionnaires")
+    if not isinstance(q, dict):
+        # Synthèse rétro-compatible depuis les clés historiques.
+        q = {"begin": [], "post_trial": [], "post_bloc": [], "end": []}
+        if config.get("questionnaire_post_trial"):
+            q["post_trial"] = ["agency"]
+        legacy_pb = []
+        if config.get("questionnaire_post_bloc"):
+            legacy_pb.append("AAT_L")
+        if config.get("questionnaire_hoffman"):
+            legacy_pb.append("hoffman")
+        q["post_bloc"] = legacy_pb
+        q["begin"] = ["QVG", "PTTA"]
+        q["end"] = ["preference"]
+    # Validation : ne garder que les noms connus et correctement rangés.
+    clean = {}
+    for slot in QUESTIONNAIRE_SLOTS:
+        names = q.get(slot, []) or []
+        valid = []
+        for name in names:
+            entry = resolve_questionnaire(name)
+            if entry is None:
+                logger.warning("[QUESTIONNAIRES] '%s' inconnu et sans template "
+                               "static/templates/%s.html (slot '%s') : ignoré", name, name, slot)
+                continue
+            # "slot" du registre = emplacement unique (str) ou liste d'emplacements autorisés.
+            allowed = entry["slot"]
+            allowed = (allowed,) if isinstance(allowed, str) else tuple(allowed)
+            if slot in allowed:
+                valid.append(name)
+            else:
+                logger.warning("[QUESTIONNAIRES] '%s' non autorisé dans le slot '%s' (autorisés : %s) : ignoré",
+                               name, slot, list(allowed))
+        clean[slot] = valid
+    config["questionnaires"] = clean
+    return clean
+
+
+# --- Helpers de séquencement ------------------------------------------------
+def get_slot_list(user, slot):
+    return (user.config.get("questionnaires", {}) or {}).get(slot, []) or []
+
+def questionnaire_result_exists(user, name, slot):
+    entry = resolve_questionnaire(name)
+    cid = user.config.get("config_id")
+    return os.path.exists(entry["path"](user.uid, user.step, user.trial, cid, slot, name))
+
+def current_trial_played(user):
+    """True si la trajectoire de l'essai courant (step, trial) a été sauvegardée.
+    Sert de garde : on ne propose le questionnaire post-essai que pour un essai
+    réellement joué, et on ne rejoue pas un essai déjà joué (cf. /planning)."""
+    cid = user.config.get("config_id")
+    trial_id = f"{user.uid}_{user.step}_{user.trial}"
+    return os.path.exists(f"trajectories/{cid}/{user.uid}/{trial_id}.json")
+
+def next_pending_questionnaire(user, slot):
+    for name in get_slot_list(user, slot):
+        if resolve_questionnaire(name) is not None and not questionnaire_result_exists(user, name, slot):
+            return name
+    return None
+
+def advance_after_slot(user, slot):
+    """Mute step/trial une fois le slot terminé et renvoie l'URL de la phase suivante.
+    Reproduit les incréments historiques (post_qpt/post_qpb/post_hoffman/qex)."""
+    if slot == "begin":
+        return url_for('tutorial')
+    if slot == "post_trial":
+        bloc_key = user.config["bloc_order"][user.step]
+        total_trial = len(user.config["blocs"][bloc_key])
+        if user.trial < total_trial - 1:
+            user.trial += 1
+            db.session.commit()
+            return url_for('planning')
+        return url_for('questionnaire', slot='post_bloc')
+    if slot == "post_bloc":
+        user.trial = 0
+        user.step += 1  # incrément historique (ex-post_hoffman)
+        db.session.commit()
+        if user.step < len(user.config["bloc_order"]):
+            return url_for('planning')
+        return url_for('questionnaire', slot='end')
+    if slot == "end":
+        user.step += 1
+        db.session.commit()
+        return url_for('goodbye')
+    return url_for('index')
+
+
+# --- Routes du séquenceur ---------------------------------------------------
+@app.route('/questionnaire/<slot>', methods=['GET'])
+def questionnaire(slot):
+    """Rend le premier questionnaire non encore complété du slot.
+    Si tous sont faits (ou via retour navigateur sur un déjà rempli), avance."""
+    current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
+    if slot not in QUESTIONNAIRE_SLOTS:
+        return redirect(url_for('index'))
+    # Garde : le questionnaire post-essai ne concerne qu'un essai réellement joué.
+    # (empêche d'y répondre via Précédent alors que l'essai courant n'est pas joué)
+    if slot == "post_trial" and not current_trial_played(current_user):
+        return redirect(url_for('planning'))
+    name = next_pending_questionnaire(current_user, slot)
+    if name is None:
+        return redirect(advance_after_slot(current_user, slot))
+    entry = resolve_questionnaire(name)
+    ctx = entry.get("context", _ctx_default)(current_user, slot)
+    track_page_view(entry["template"], current_user.uid, current_user.config.get("config_id"))
+    return render_template(
+        entry["template"],
+        dev_mode=current_user.config.get("dev", False),
+        post_url=url_for('questionnaire_submit', slot=slot, name=name),
+        **ctx
+    )
+
+
+@app.route('/questionnaire/<slot>/<name>', methods=['POST'])
+def questionnaire_submit(slot, name):
+    """Sauvegarde (idempotente) puis avance : questionnaire suivant du slot, ou phase suivante."""
+    current_user = get_current_user()
+    if not current_user:
+        return redirect(url_for('index'))
+    entry = resolve_questionnaire(name)
+    if slot not in QUESTIONNAIRE_SLOTS or entry is None:
+        return redirect(url_for('index'))
+    # Garde : ne pas enregistrer un questionnaire post-essai pour un essai non joué
+    # (cas d'une soumission via une page mise en cache par le navigateur).
+    if slot == "post_trial" and not current_trial_played(current_user):
+        return redirect(url_for('planning'))
+    if not questionnaire_result_exists(current_user, name, slot):
+        entry["save"](current_user, request.form, slot, name)
+    if next_pending_questionnaire(current_user, slot) is not None:
+        return redirect(url_for('questionnaire', slot=slot))
+    return redirect(advance_after_slot(current_user, slot))
+
+
+# -- Questionnaires de début (QVG, PTTA) : routes legacy redirigées vers le séquenceur.
 
 @app.route('/experience_video_games_survey', methods=['GET'])
 def qvg_survey():
-    """
-    Renders the video game questionnaire (QVG) HTML page.
-    """
-    current_user = get_current_user()
-    if not current_user:
+    if not get_current_user():
         return redirect(url_for('index'))
-    # Récupère la durée du timer depuis la config utilisateur
-    qvg_length = current_user.config.get("qvg_length", 60)  # 60s par défaut si absent
-    dev_mode = current_user.config.get("dev", False)
-    
-    # Suivi temporel : enregistrer la visite du questionnaire expérience jeux vidéo
-    track_page_view('experience_video_games_en.html', current_user.uid, current_user.config.get("config_id"))
-    
-    return render_template('experience_video_games_en.html', qvg_length=qvg_length, dev_mode=dev_mode)
+    return redirect(url_for('questionnaire', slot='begin'))
 
-@app.route('/submit_qvg_survey', methods=['POST'])
-def submit_qvg_survey():
-    """
-    Handles the POST submission of the video game questionnaire (QVG).
-    Extracts data, saves it to a JSON file, and progresses the user's step.
-    """
-    current_user = get_current_user()
-    if not current_user:
-        return redirect(url_for('index'))
-    uid = current_user.uid
-    step = current_user.step
-
-    form_data = {}
-    form_data["step"] = step
-    form_data["user_agent"] = request.headers.get('User-Agent')
-    try:
-        # Get condition if applicable for this step, similar to other forms
-        bloc_key = current_user.config["bloc_order"][current_user.step]
-        condition = current_user.config["conditions"][bloc_key]
-    except (KeyError, IndexError):
-        form_data["condition"] = "N/A" # Default if condition not found for step
-
-    form_data["uid"] = uid
-    form_data["timestamp"] = gmtime()
-    form_data["date"] = asctime(form_data["timestamp"])
-
-    # --- QVG specific data extraction ---
-    # Get the JSON string from the hidden input field
-    qvg_json_string = request.form.get('qvg_data')
-
-    if not qvg_json_string:
-        return redirect(url_for('planning'))
-
-    try:
-        # Parse the JSON string back into a Python dictionary
-        qvg_response_data = json.loads(qvg_json_string)
-        form_data["qvg_response"] = qvg_response_data # Store the QVG responses here
-
-    except json.JSONDecodeError:
-        return "Error: Invalid QVG data format", 400
-
-    # --- Save the QVG data to a JSON file ---
-    # saving demographic and video game scale in prolific ID folder
-    Path("trajectories/" + current_user.config["config_id"] + "/"+ uid + "/" + "Pre_experiment").mkdir(parents=True, exist_ok=True)
-    file_name = 'trajectories/' + current_user.config["config_id"] + "/" + uid + "/" + "Pre_experiment" + "/" + uid + "_" + str(current_user.step) + '_QVG.json'
-    
-    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
-    if not os.path.exists(file_name):
-        safe_json_write(file_name, form_data, uid)
-
-    
-    # Determine the next page based on the new step value, similar to the /transition route
-    
-    return redirect(url_for('ptta_survey')) #TODO: put tuttorial ?
-
-
-
-
-# -- ptta
 
 @app.route('/ptta_survey', methods=['GET'])
 def ptta_survey():
-    current_user = get_current_user()
-    if not current_user:
+    if not get_current_user():
         return redirect(url_for('index'))
-    ptta_length = current_user.config.get("ptta_length", 60)
-    dev_mode = current_user.config.get("dev", False)
-    
-    # Suivi temporel : enregistrer la visite du questionnaire PTTA
-    track_page_view('PTT_A_en.html', current_user.uid, current_user.config.get("config_id"))
-    
-    return render_template('PTT_A_en.html', ptta_length=ptta_length, dev_mode=dev_mode)
-
-@app.route('/submit_ptta_survey', methods=['POST'])
-def submit_ptta_survey():
-    """
-    Handles the POST submission of the PTT-A survey.
-    Extracts data, saves it to a JSON file, and progresses the user's step.
-    """
-    current_user = get_current_user()
-    if not current_user:
-        return redirect(url_for('index'))
-    uid = current_user.uid
-    step = current_user.step
-
-    form_data = {}
-    form_data["step"] = step
-    form_data["user_agent"] = request.headers.get('User-Agent')
-    # Pour ajouter condition premier bloc au fichier resultat
-    #    #try:
-    #    bloc_key = current_user.config["bloc_order"][current_user.step]
-    #    form_data["condition"] = current_user.config["conditions"][bloc_key]
-    #except (KeyError, IndexError):
-    #    form_data["condition"] = "N/A"
-
-    form_data["uid"] = uid
-    form_data["timestamp"] = gmtime()
-    form_data["date"] = asctime(form_data["timestamp"])
-
-    # --- PTT-A specific data extraction ---
-    # Get the JSON string from the hidden input field named 'ptta_data'
-    ptta_json_string = request.form.get('ptta_data')
-
-    if not ptta_json_string:
-        return redirect(url_for('planning'))
-
-    try:
-        # Parse the JSON string back into a Python dictionary
-        ptta_response_data = json.loads(ptta_json_string)
-        form_data["ptta_response"] = ptta_response_data # Store the PTT-A responses here
-
-    except json.JSONDecodeError:
-        return "Error: Invalid PTT-A data format", 400
-
-    # --- Save the PTT-A data to a JSON file ---
-    # path to save PTT-A scale in an prolific ID folder
-    Path(f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment").mkdir(parents=True, exist_ok=True)
-    # Using a clear naming convention: _PTTA.json
-    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/Pre_experiment/{uid}_{current_user.step}_PTTA.json"
-    
-    # Ne pas écraser si le fichier existe déjà : conserver la première soumission
-    if not os.path.exists(file_name):
-        safe_json_write(file_name, form_data, uid)
-
-
-    return redirect(url_for('tutorial'))
-
-
+    return redirect(url_for('questionnaire', slot='begin'))
 
 
 @app.route('/planning_design')
@@ -1684,7 +1892,8 @@ def on_create(data):
     if curr_game:
         # Cannot create if currently in a game
         return
-    if data.get("planning_design", None):
+    is_planning_design = bool(data.get("planning_design", None))
+    if is_planning_design:
         #data.pop("planning_design")
         current_user.config["mechanic"] = data["params"]["mechanic"]
         current_user.config["blocs"] = {"0": data['params']['layouts']}
@@ -1695,14 +1904,18 @@ def on_create(data):
             "0": data['params']['condition']}
     params = data.get('params', {})
     game_name = data.get('game_name', 'overcooked')
-    
-    # Déclenche la création du jeu avec les données fournies
+
+    # Déclenche la création du jeu avec les données fournies.
+    # single_trial : l'expérience joue UN essai par session (puis questionnaires
+    # en pages HTML autonomes). L'outil planning_design garde la séquence complète.
     _create_game(
         user_id, game_name, {
             "id": current_user.uid,
             "player_uid": current_user.uid,
             "step": int(current_user.step),
             "curr_trial_in_game": int(current_user.trial) - 1,  # trial doit être 0 ici pour commencer au premier essai
+            "single_trial": not is_planning_design,
+            "is_first_trial_of_block": int(current_user.trial) == 0,
             "config": current_user.config
         }
     )
@@ -1734,7 +1947,8 @@ def on_join(data):
         params = data.get('params', {})
         game_name = data.get('game_name', 'overcooked')
         _create_game(user_id, game_name, {"player_uid": current_user.uid, "step": int(
-        current_user.step), "curr_trial_in_game" : int(current_user.trial)-1, "room" : current_user.uid,"config": current_user.config})
+        current_user.step), "curr_trial_in_game" : int(current_user.trial)-1, "single_trial": True,
+        "is_first_trial_of_block": int(current_user.trial) == 0, "room" : current_user.uid,"config": current_user.config})
         return
             # # Game was found so join it
             # with game.lock:
@@ -1857,147 +2071,11 @@ def on_disconnect():
 
     del USERS[user_id]
 
-@socketio.on("new_trial")
-def on_new_trial():
-    current_user = get_current_user()
-    user_id = current_user.uid
-    game = get_curr_game(user_id)
-    if not game:
-        return
-    
-    
-    current_user.trial = game.curr_trial_in_game
-    db.session.commit()
-    
-
-@socketio.on("post_qpt")
-def post_qpt(data):
-    current_user = get_current_user()
-    sid = request.sid
-    uid = current_user.uid
-    bloc_key = current_user.config["bloc_order"][current_user.step]
-    trial = current_user.trial
-
-
-    # Les données sont sauvegardées via la routine habituelle de sauvegarde
-
-    form = {}
-    mapping = {"q1": "control_used", "q2": "control_felt", "q3": "accountability"}
-    form["answer"] = {mapping.get(k, k): v for k, v in data["survey_data"].items()}
-    # Include the order in which accountability options were presented to the user
-    # (left -> middle -> right). The two end labels come from the user config
-    # (accountability_label_order) and the middle label is the team option shown
-    # in the template.
-    acc_labels = current_user.config.get("accountability_label_order", ["Me", "The artificial agent"]) 
-    if isinstance(acc_labels, list) and len(acc_labels) >= 2:
-        form["accountability_order"] = [acc_labels[0], "The team", acc_labels[1]]
-    else:
-        # Fallback to a sensible default (English labels)
-        form["accountability_order"] = ["Me", "The team", "The artificial agent"]
-    
-    condition = current_user.config["conditions"][bloc_key]
-    form["timeout_bool"] = data["timeout_bool"]
-    form["step"] = current_user.step
-    form["trial"] = trial
-    form["trial_id"] = f"{uid}_{bloc_key}_{trial}_QPT"
-    form["layout"] = current_user.config["blocs"][bloc_key][trial]
-    form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = condition
-    form["uid"] = uid
-    form["timestamp"] = gmtime()
-    form["date"] = asctime(form["timestamp"])
-
-    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPT").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPT/{uid}_{current_user.step}_{trial}_QPT.json"
-    total_trial = len(current_user.config["blocs"][bloc_key])
-    last_trial = trial >= (total_trial - 1)
-
-    # Vérifie si le fichier existe déjà pour éviter un double enregistrement
-    if not os.path.exists(file_name):
-        safe_json_write(file_name, form, uid)
-
-    if not os.path.exists(file_name) or os.path.getsize(file_name) == 0:
-        # Fichier n'existe pas ou est vide, donc on incrémente
-        if not last_trial:
-            current_user.trial += 1
-            db.session.commit()
-
-    if not last_trial and current_user.trial == trial:
-        current_user.trial = min(trial + 1, total_trial - 1)
-        db.session.commit()
-
-    if last_trial:
-        socketio.emit("qpb", to=sid)
-    else:
-        socketio.emit("next_step", to=sid)
-
-
-@socketio.on("post_qpb") # Semble gérer la transition entre les différents blocs et remettre à 0 l'essai en cours
-def post_qpb(data):
-    current_user = get_current_user()
-    sid = request.sid
-    uid = current_user.uid
-    bloc_key = current_user.config["bloc_order"][current_user.step]
-    
-    
-    # Les données sont sauvegardées via la routine habituelle de sauvegarde
-    
-    form = {}
-    form["answer"] = {value["name"] : None for key,value in current_user.config["qpb"].items() if current_user.step in value["steps"]}
-    for key, value in data["survey_data"].items():
-        form["answer"][key] = value
-    form["step"] = current_user.step
-    form["trial_id"] = f"{uid}_{bloc_key}_QPB"
-    form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][bloc_key]
-    form["uid"] = current_user.uid
-    form["timestamp"] = gmtime()
-    form["date"] = asctime(form["timestamp"])
-
-    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}AAT_L.json"
-    
-    if not os.path.exists(file_name):
-        safe_json_write(file_name, form, uid)
-    #current_user.step += 1 # Permet de passer au bloc suivant
-    current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
-    db.session.commit()
-    #socketio.emit("next_step", to=sid)
-    socketio.emit("hoffman", to=sid)
-
-@socketio.on("post_hoffman")
-def post_hoffman(data):
-    current_user = get_current_user()
-    sid = request.sid
-    uid = current_user.uid
-    bloc_key = current_user.config["bloc_order"][current_user.step]
-    
-    
-    # Les données sont sauvegardées via la routine habituelle de sauvegarde
-    
-    form = {}
-    form["answer"] = {value["name"] : None for key,value in current_user.config["hoffman"].items() if current_user.step in value["steps"]}
-    for key, value in data["survey_data"].items():
-        form["answer"][key] = value
-    form["step"] = current_user.step
-    form["trial_id"] = f"{uid}_{bloc_key}_HOFFMAN"
-    form["user_agent"] = request.headers.get('User-Agent')
-    form["condition"] = current_user.config["conditions"][bloc_key]
-    form["uid"] = current_user.uid
-    form["timestamp"] = gmtime()
-    form["date"] = asctime(form["timestamp"])
-
-    Path(f"trajectories/{current_user.config['config_id']}/{uid}/QPB").mkdir(parents=True, exist_ok=True)
-    file_name = f"trajectories/{current_user.config['config_id']}/{uid}/QPB/{uid}_{current_user.step}HOFFMAN.json"
-    
-    if not os.path.exists(file_name):
-        safe_json_write(file_name, form, uid)
-    if current_user.step <= 6 :
-        old_step = current_user.step
-        current_user.step += 1 # Permet de passer au bloc suivant
-        current_user.trial = 0 # Attribut la valeur 0 à l'essai actuel
-    db.session.commit()
-    socketio.emit("next_step", to=sid)
+# NB : les anciens handlers socket de questionnaires (new_trial, post_qpt,
+# post_qpb, post_hoffman) ont été supprimés. Les questionnaires post-essai et
+# post-bloc sont désormais des pages HTML autonomes servies par le séquenceur
+# /questionnaire/<slot> (sauvegarde via save_agency/save_aat_l/save_hoffman ;
+# incréments step/trial via advance_after_slot).
 
 
 # Exit handler for server
@@ -2092,24 +2170,14 @@ def play_game(game, fps=15):
         with game.lock:
             status = game.tick()
         if status == Game.Status.RESET:
+            # Reset intra-session : seul l'outil planning_design / les tutoriels
+            # multi-layouts y passent. En mode single_trial (expérience), ce cas
+            # ne se produit jamais (la session ne joue qu'un essai puis -> DONE).
             with game.lock:
                 data = game.data
             if not isinstance(data, dict):
                 data = {}
-            try:
-                trial_save_routine(data)
-                # Affiche le questionnaire agency à chaque fin de trial SAUF pour le tutoriel
-                if not isinstance(game, OvercookedTutorial):
-                    socketio.call("qpt", {
-                        "qpt_length": game.config.get("qpt_length", 30),
-                        "trial": data.get("curr_trial_in_game", 0),
-                        "show_time": game.config.get("show_trial_time", False),
-                        "time_elapsed": data.get("time_elapsed", 0),
-                        "score": data.get("score", 0),
-                        "infinite_all_order": game.config.get("infinite_all_order", False)
-                    }, room=game.id)
-            except SocketIOTimeOutError:
-                print("Player " + str(game.id) + " is not on")
+            trial_save_routine(data)
             socketio.emit('reset_game', {
                 "state": game.to_json(),
                 "timeout": game.reset_timeout,
@@ -2123,7 +2191,7 @@ def play_game(game, fps=15):
             socketio.emit('state_pong', {"state": game.get_state()}, room=game.id)
         socketio.sleep(1 / fps)
     with game.lock:
-        
+
         if status != Game.Status.INACTIVE:
             game.deactivate()
         data = game.data
@@ -2131,24 +2199,17 @@ def play_game(game, fps=15):
             data = {}
         trial_save_routine(data)
         if status == Game.Status.DONE:
-            try:
-                # Affiche TOUJOURS le questionnaire agency à la fin du dernier essai SAUF pour le tutoriel
-                if not isinstance(game, OvercookedTutorial):
-                    socketio.call("qpt", {
-                        "qpt_length": game.config.get("qpt_length", 30),
-                        "trial": data.get("curr_trial_in_game", 0),
-                        "show_time": game.config.get("show_trial_time", False),
-                        "time_elapsed": data.get("time_elapsed", 0),
-                        "score": data.get("score", 0),
-                        "infinite_all_order": game.config.get("infinite_all_order", False)
-                    }, room=game.id)
-                    socketio.emit("qpb", room=game.id)
-            except SocketIOTimeOutError:
-                print("Player " + str(game.id) + " is not on")
-                if not isinstance(game, OvercookedTutorial):
-                    socketio.emit("qpb", room=game.id)
-            socketio.emit('end_game', {"status": status, "data": data}, room=game.id)
-    
+            # Fin de l'essai courant. En mode single_trial (expérience), le client
+            # navigue vers le séquenceur de questionnaires post-essai (pages HTML
+            # autonomes). Tutoriel / planning_design : pas de navigation (next=None).
+            next_url = "/questionnaire/post_trial" if getattr(game, "single_trial", False) else None
+            socketio.emit('end_game', {
+                "status": status,
+                "data": data,
+                "next": next_url,
+                "score": data.get("score", 0),
+            }, room=game.id)
+
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")
     cleanup_game(game)
 
