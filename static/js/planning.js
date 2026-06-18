@@ -361,8 +361,9 @@ socket.on('end_game', function(data) {
     // (page HTML autonome). data.next est fourni par le serveur (play_game).
     if (data.next) {
         var url = data.next;
-        if (typeof data.score !== "undefined" && data.score !== null) {
-            url += (url.indexOf('?') === -1 ? '?' : '&') + 'score=' + encodeURIComponent(data.score);
+        // Temps mis pour terminer le niveau (secondes), affiché par le questionnaire agency.
+        if (typeof data.time_elapsed !== "undefined" && data.time_elapsed !== null) {
+            url += (url.indexOf('?') === -1 ? '?' : '&') + 'time=' + encodeURIComponent(data.time_elapsed);
         }
         window.location.href = url;
         return;

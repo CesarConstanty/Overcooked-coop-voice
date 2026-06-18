@@ -1607,10 +1607,19 @@ def _ctx_default(user, slot=None):
     return {}
 
 def _ctx_agency(user, slot=None):
+    # Affiche le temps mis pour terminer le niveau (et non plus le score). La valeur
+    # brute (secondes) arrive via le query param ?time=..., posé par le client à la
+    # fin de l'essai (cf. play_game -> end_game.time_elapsed et planning.js).
+    raw_time = request.args.get("time", "")
+    try:
+        secs = int(round(float(raw_time)))
+        level_time = f"{secs // 60}:{secs % 60:02d}"
+    except (TypeError, ValueError):
+        level_time = raw_time
     return {
         "accountability_labels": user.config.get(
             "accountability_label_order", ["Me", "The artificial agent"]),
-        "score": request.args.get("score", ""),
+        "level_time": level_time,
     }
 
 def _ctx_post_bloc(user, slot=None):
@@ -2399,7 +2408,9 @@ def play_game(game, fps=15):
                 "status": status,
                 "data": data,
                 "next": next_url,
-                "score": data.get("score", 0),
+                # Temps mis pour terminer le niveau (secondes) : affiché par le
+                # questionnaire agency à la place du score.
+                "time_elapsed": data.get("time_elapsed", 0),
             }, room=game.id)
 
     print(f"[PLAY_GAME] Game loop ended for game {game.id+1} with status {status}")

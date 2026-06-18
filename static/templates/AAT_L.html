@@ -31,7 +31,8 @@
     .jump-btn:hover { background:#e0ecfa; }
     .likert-header { font-size:1.5rem; font-weight:700; color:var(--ink); text-align:center;
                      margin:1.2rem 0 .5rem; line-height:1.3; }
-    h6.likert-header { font-size:1.02rem; font-weight:400; color:var(--muted); margin:0 0 1.4rem; }
+    h6.likert-header { font-size:1.02rem; font-weight:400; color:var(--muted); margin:0 0 1.4rem;
+                       text-align:center; line-height:1.5; }
     .question { border:1px solid #e9edf3; border-radius:12px; padding:1.05rem 1.2rem 1.15rem;
                 margin-bottom:1rem; background:#fff; transition:border-color .15s, background .15s; }
     .question.answered { border-color:#cfe0f4; background:#fcfdff; }
@@ -76,9 +77,6 @@
       </div>
     </div>
     <form id="likertForm" method="POST" action="{{ post_url }}">
-      {% if step == 0 %}
-      <h1 class="likert-header">Please answer the following questions keeping in mind the games since the end of the tutorial</h1>
-      {% else %}
       <h1 class="likert-header">Please answer the following questions keeping in mind the games since the beginning of this block</h1>
       <h6 class="likert-header">We want to understand how you experienced to play with that artificial agent.</h6>
       {% endif %}
@@ -133,7 +131,7 @@
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Attention Check" data-reversed="true">
-      <legend class="q-title">It would be nice if you answer strongly disagree to this question.</legend>
+      <legend class="q-title">It is needed that you answer strongly disagree to this question.</legend>
       <div class="choices">
         <label><input type="radio" name="Q6" value="0" required> Strongly Disagree</label>
         <label><input type="radio" name="Q6" value="1"> Disagree</label>
