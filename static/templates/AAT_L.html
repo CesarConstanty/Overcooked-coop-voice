@@ -39,17 +39,21 @@
     .question.flash { animation:flashring .8s ease; }
     @keyframes flashring { 0%{ box-shadow:0 0 0 0 rgba(58,123,213,.5); border-color:var(--accent); }
                            100%{ box-shadow:0 0 0 10px rgba(58,123,213,0); } }
-    .q-title { font-size:1.06rem; font-weight:600; color:var(--ink); margin-bottom:.85rem; line-height:1.4; }
-    .choices { display:grid; grid-template-columns:repeat(5,1fr); gap:.5rem; }
+    .q-title { font-size:1.06rem; font-weight:600; color:var(--ink); margin-bottom:.9rem; line-height:1.4; }
+    .likert-row { display:flex; align-items:stretch; gap:.7rem; }
+    .likert-end { flex:0 0 86px; font-size:.8rem; color:var(--muted); font-weight:600;
+                  display:flex; align-items:center; line-height:1.2; }
+    .likert-end.right { justify-content:flex-end; text-align:right; }
+    .choices { flex:1; display:grid; grid-template-columns:repeat(7,1fr); gap:.4rem; }
     .choices label { display:flex; flex-direction:column; align-items:center; justify-content:center;
-                     gap:.45rem; text-align:center; font-weight:500; color:var(--muted); cursor:pointer;
-                     border:1.5px solid #e3e8ef; border-radius:10px; padding:.7rem .35rem;
+                     gap:.4rem; text-align:center; font-weight:600; color:var(--muted); cursor:pointer;
+                     border:1.5px solid #e3e8ef; border-radius:10px; padding:.6rem .25rem;
                      background:#fbfcfe; transition:border-color .12s, background .12s, color .12s;
-                     min-height:74px; line-height:1.2; }
+                     min-height:62px; line-height:1.1; }
     .choices label:hover { border-color:#9cc0ec; background:#f2f7fd; }
     .choices input { margin:0; width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
     .choices label:has(input:checked) { border-color:var(--accent); background:#e9f2fd;
-                     color:#1f3a63; font-weight:600; box-shadow:0 1px 5px rgba(58,123,213,.18); }
+                     color:#1f3a63; box-shadow:0 1px 5px rgba(58,123,213,.18); }
     .actions { margin-top:1.6rem; text-align:center; }
     button[type=submit] { padding:14px 48px; font-size:1.15rem;
       background:linear-gradient(90deg,var(--accent) 0%,var(--accent-2) 100%); color:#fff;
@@ -61,9 +65,10 @@
     @media (max-width:640px){
       .wrap { padding:0 1.1rem 1.6rem; margin:0; border-radius:0; }
       .topbar { margin:0 -1.1rem 1.2rem; padding:.7rem 1.1rem; border-radius:0; }
-      .choices { grid-template-columns:1fr 1fr; }
-      .choices label { flex-direction:row; justify-content:flex-start; gap:.55rem; min-height:0;
-                       padding:.6rem .7rem; text-align:left; }
+      .likert-row { flex-direction:column; gap:.4rem; }
+      .likert-end { flex:none; }
+      .likert-end.right { justify-content:flex-start; text-align:left; }
+      .choices label { min-height:52px; padding:.5rem .1rem; }
     }
   </style>
 </head>
@@ -79,215 +84,340 @@
     <form id="likertForm" method="POST" action="{{ post_url }}">
       <h1 class="likert-header">Please answer the following questions keeping in mind the games since the beginning of this block</h1>
       <h6 class="likert-header">We want to understand how you experienced to play with that artificial agent.</h6>
-      {% endif %}
     <fieldset class="question" data-cat="Autonomy" data-reversed="false">
       <legend class="q-title">The artificial agent has the ability to make decisions on its own.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q1" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q1" value="1"> Disagree</label>
-        <label><input type="radio" name="Q1" value="2"> Neutral</label>
-        <label><input type="radio" name="Q1" value="3"> Agree</label>
-        <label><input type="radio" name="Q1" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q1" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q1" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q1" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q1" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q1" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q1" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q1" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Autonomy" data-reversed="false">
       <legend class="q-title">The artificial agent has the capability to control its action.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q2" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q2" value="1"> Disagree</label>
-        <label><input type="radio" name="Q2" value="2"> Neutral</label>
-        <label><input type="radio" name="Q2" value="3"> Agree</label>
-        <label><input type="radio" name="Q2" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q2" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q2" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q2" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q2" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q2" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q2" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q2" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Autonomy" data-reversed="false">
       <legend class="q-title">The artificial agentis in control of its own actions.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q3" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q3" value="1"> Disagree</label>
-        <label><input type="radio" name="Q3" value="2"> Neutral</label>
-        <label><input type="radio" name="Q3" value="3"> Agree</label>
-        <label><input type="radio" name="Q3" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q3" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q3" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q3" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q3" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q3" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q3" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q3" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Benevolence" data-reversed="false">
       <legend class="q-title">The artificial agent wants to help me.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q4" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q4" value="1"> Disagree</label>
-        <label><input type="radio" name="Q4" value="2"> Neutral</label>
-        <label><input type="radio" name="Q4" value="3"> Agree</label>
-        <label><input type="radio" name="Q4" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q4" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q4" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q4" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q4" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q4" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q4" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q4" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Benevolence" data-reversed="false">
       <legend class="q-title">The artificial agent appears to be motivated to help me.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q5" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q5" value="1"> Disagree</label>
-        <label><input type="radio" name="Q5" value="2"> Neutral</label>
-        <label><input type="radio" name="Q5" value="3"> Agree</label>
-        <label><input type="radio" name="Q5" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q5" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q5" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q5" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q5" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q5" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q5" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q5" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
-    <fieldset class="question" data-cat="Attention Check" data-reversed="true">
-      <legend class="q-title">It is needed that you answer strongly disagree to this question.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q6" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q6" value="1"> Disagree</label>
-        <label><input type="radio" name="Q6" value="2"> Neutral</label>
-        <label><input type="radio" name="Q6" value="3"> Agree</label>
-        <label><input type="radio" name="Q6" value="4"> Strongly Agree</label>
+    <fieldset class="question" data-cat="Attention Check" data-expected="1" data-reversed="false">
+      <legend class="q-title">Please select &ldquo;1&rdquo; for this question.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q6" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q6" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q6" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q6" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q6" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q6" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q6" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Benevolence" data-reversed="false">
       <legend class="q-title">The artificial agent intends to support me.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q7" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q7" value="1"> Disagree</label>
-        <label><input type="radio" name="Q7" value="2"> Neutral</label>
-        <label><input type="radio" name="Q7" value="3"> Agree</label>
-        <label><input type="radio" name="Q7" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q7" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q7" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q7" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q7" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q7" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q7" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q7" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Communication" data-reversed="false">
       <legend class="q-title">If I got information from the artificial agent I would know exactly what it means.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q8" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q8" value="1"> Disagree</label>
-        <label><input type="radio" name="Q8" value="2"> Neutral</label>
-        <label><input type="radio" name="Q8" value="3"> Agree</label>
-        <label><input type="radio" name="Q8" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q8" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q8" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q8" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q8" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q8" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q8" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q8" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Communication" data-reversed="false">
       <legend class="q-title">The artificial agent provides effective feedback.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q9" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q9" value="1"> Disagree</label>
-        <label><input type="radio" name="Q9" value="2"> Neutral</label>
-        <label><input type="radio" name="Q9" value="3"> Agree</label>
-        <label><input type="radio" name="Q9" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q9" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q9" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q9" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q9" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q9" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q9" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q9" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Communication" data-reversed="false">
       <legend class="q-title">The artificial agent understands my commands.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q10" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q10" value="1"> Disagree</label>
-        <label><input type="radio" name="Q10" value="2"> Neutral</label>
-        <label><input type="radio" name="Q10" value="3"> Agree</label>
-        <label><input type="radio" name="Q10" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q10" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q10" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q10" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q10" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q10" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q10" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q10" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Communication" data-reversed="true">
       <legend class="q-title">The artificial agent does not understand my commands.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q11" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q11" value="1"> Disagree</label>
-        <label><input type="radio" name="Q11" value="2"> Neutral</label>
-        <label><input type="radio" name="Q11" value="3"> Agree</label>
-        <label><input type="radio" name="Q11" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q11" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q11" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q11" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q11" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q11" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q11" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q11" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Interdependence" data-reversed="false">
       <legend class="q-title">The artificial agent and I depend on each other to get the job done.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q12" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q12" value="1"> Disagree</label>
-        <label><input type="radio" name="Q12" value="2"> Neutral</label>
-        <label><input type="radio" name="Q12" value="3"> Agree</label>
-        <label><input type="radio" name="Q12" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q12" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q12" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q12" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q12" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q12" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q12" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q12" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Interdependence" data-reversed="false">
       <legend class="q-title">The artificial agent shares my goals</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q13" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q13" value="1"> Disagree</label>
-        <label><input type="radio" name="Q13" value="2"> Neutral</label>
-        <label><input type="radio" name="Q13" value="3"> Agree</label>
-        <label><input type="radio" name="Q13" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q13" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q13" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q13" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q13" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q13" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q13" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q13" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Interdependence" data-reversed="false">
       <legend class="q-title">The artificial agent has goals that are intertwined with mine.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q14" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q14" value="1"> Disagree</label>
-        <label><input type="radio" name="Q14" value="2"> Neutral</label>
-        <label><input type="radio" name="Q14" value="3"> Agree</label>
-        <label><input type="radio" name="Q14" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q14" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q14" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q14" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q14" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q14" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q14" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q14" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Synchronisation" data-reversed="false">
       <legend class="q-title">The artificial agent adapts to new situations when I do.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q15" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q15" value="1"> Disagree</label>
-        <label><input type="radio" name="Q15" value="2"> Neutral</label>
-        <label><input type="radio" name="Q15" value="3"> Agree</label>
-        <label><input type="radio" name="Q15" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q15" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q15" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q15" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q15" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q15" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q15" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q15" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Synchronisation" data-reversed="false">
       <legend class="q-title">The artificial agent anticipates my actions.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q16" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q16" value="1"> Disagree</label>
-        <label><input type="radio" name="Q16" value="2"> Neutral</label>
-        <label><input type="radio" name="Q16" value="3"> Agree</label>
-        <label><input type="radio" name="Q16" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q16" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q16" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q16" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q16" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q16" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q16" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q16" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Synchronisation" data-reversed="false">
       <legend class="q-title">The artificial agent anticipates my needs.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q17" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q17" value="1"> Disagree</label>
-        <label><input type="radio" name="Q17" value="2"> Neutral</label>
-        <label><input type="radio" name="Q17" value="3"> Agree</label>
-        <label><input type="radio" name="Q17" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q17" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q17" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q17" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q17" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q17" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q17" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q17" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Synchronisation" data-reversed="true">
       <legend class="q-title">The artificial agent does not anticipate my needs.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q18" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q18" value="1"> Disagree</label>
-        <label><input type="radio" name="Q18" value="2"> Neutral</label>
-        <label><input type="radio" name="Q18" value="3"> Agree</label>
-        <label><input type="radio" name="Q18" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q18" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q18" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q18" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q18" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q18" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q18" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q18" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Cohesion" data-reversed="false">
       <legend class="q-title">The artificial agent has a connection with me.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q19" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q19" value="1"> Disagree</label>
-        <label><input type="radio" name="Q19" value="2"> Neutral</label>
-        <label><input type="radio" name="Q19" value="3"> Agree</label>
-        <label><input type="radio" name="Q19" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q19" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q19" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q19" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q19" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q19" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q19" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q19" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Cohesion" data-reversed="false">
       <legend class="q-title">The artificial agent expresses genuine interest in its communication with me.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q20" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q20" value="1"> Disagree</label>
-        <label><input type="radio" name="Q20" value="2"> Neutral</label>
-        <label><input type="radio" name="Q20" value="3"> Agree</label>
-        <label><input type="radio" name="Q20" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q20" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q20" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q20" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q20" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q20" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q20" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q20" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Cohesion" data-reversed="false">
       <legend class="q-title">The artificial agent has a rapport (close bond) with me.</legend>
-      <div class="choices">
-        <label><input type="radio" name="Q21" value="0" required> Strongly Disagree</label>
-        <label><input type="radio" name="Q21" value="1"> Disagree</label>
-        <label><input type="radio" name="Q21" value="2"> Neutral</label>
-        <label><input type="radio" name="Q21" value="3"> Agree</label>
-        <label><input type="radio" name="Q21" value="4"> Strongly Agree</label>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q21" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q21" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q21" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q21" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q21" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q21" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q21" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
       <div class="actions">

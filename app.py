@@ -25,7 +25,7 @@ from time import gmtime, asctime
 from threading import Lock
 from copy import deepcopy
 from utils import ThreadSafeSet, ThreadSafeDict, questionnaire_to_surveyjs
-from flask import Flask, redirect, render_template, jsonify, request, session, url_for
+from flask import Flask, redirect, render_template, jsonify, request, session, url_for, g
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_session import Session
 # Système d'authentification supprimé
@@ -388,10 +388,20 @@ def track_page_view(page_name: str, user_id: str = None, config_id: str = None):
             user_id = session.get('uid')
         if not config_id:
             config_id = session.get('config_id', 'default')
-            
+
         if user_id:
             tracker = get_page_tracker(user_id, config_id)
-            tracker.start_page(page_name)
+            view_token = tracker.start_page(page_name)
+            # Mémoriser (par requête) le jeton de vue + le nom de page canonique,
+            # afin que _nav_guard_after injecte window.PAGE_TRACK dans le <head>
+            # et que les beacons client (/track/page) se rattachent à CETTE vue.
+            # Garde-fou : g n'existe que dans un contexte de requête HTTP — le
+            # marqueur [START_GAME] est émis depuis un handler SocketIO.
+            if view_token and not page_name.startswith('['):
+                try:
+                    g.page_track = {"token": view_token, "page": page_name}
+                except RuntimeError:
+                    pass  # hors contexte de requête : pas d'injection (normal)
     except Exception:
         pass
 
@@ -686,6 +696,25 @@ except OSError:
     _NAV_GUARD_JS = ""
     logger.warning("[NAV_GUARD] static/js/nav-guard.js introuvable : garde client non injectée")
 
+# ============================================================
+# Suivi EXACT du temps par page et de la navigation (client-autoritaire)
+# ============================================================
+# Le script page-tracker.js est injecté inline dans le <head> de chaque page du
+# parcours (après la garde de navigation), au même point de jonction serveur que
+# nav-guard. Il mesure dans le navigateur le temps mur / actif et le type de
+# navigation réel, puis transmet ces relevés à POST /track/page (cf. PageTracker
+# .ingest_client_event). Désactivable via config.json -> "page_tracking": false.
+PAGE_TRACKING_ENABLED = CONFIG.get("page_tracking", True)
+# Période du heartbeat client (ms) : borne basse de durée en cas de crash.
+PAGE_TRACKING_HEARTBEAT_MS = int(CONFIG.get("page_tracking_heartbeat_ms", 15000))
+
+try:
+    with open(os.path.join('static', 'js', 'page-tracker.js'), encoding='utf-8') as _ptf:
+        _PAGE_TRACKER_JS = _ptf.read()
+except OSError:
+    _PAGE_TRACKER_JS = ""
+    logger.warning("[PAGE_TRACKING] static/js/page-tracker.js introuvable : suivi client non injecté")
+
 # Phase (entier monotone) de chaque page. Les pages du corps qui bouclent
 # (tutoriels / jeu / questionnaires post-essai et post-bloc) partagent la même
 # phase : leur ordre interne reste régi par les gardes par-route existantes
@@ -802,6 +831,94 @@ def _nav_guard_after(response):
     except Exception:
         logger.exception("[NAV_GUARD] erreur post-traitement : réponse renvoyée telle quelle")
     return response
+
+
+@app.after_request
+def _page_tracker_after(response):
+    """Injecte le script de suivi EXACT (page-tracker.js) dans le <head> des
+    pages suivies du parcours.
+
+    Indépendant de la garde de navigation (peut fonctionner même si nav_guard est
+    désactivé). N'injecte que si track_page_view a posé g.page_track (jeton de vue)
+    pour cette requête, c'est-à-dire exactement sur les pages participant au suivi.
+
+    Ordre d'exécution : Flask exécute les hooks after_request en ordre inverse
+    d'enregistrement. Ce hook étant enregistré APRÈS _nav_guard_after, il s'exécute
+    AVANT lui ; comme les deux insèrent juste après l'ouverture de <head>, le script
+    nav-guard se retrouve finalement placé AVANT page-tracker.js dans le document —
+    ce qui est requis (le tracker doit observer l'état post-décision de la garde).
+    """
+    if not PAGE_TRACKING_ENABLED or not _PAGE_TRACKER_JS:
+        return response
+    try:
+        page_track = getattr(g, 'page_track', None)
+        if not page_track or not page_track.get('token'):
+            return response
+        ctype = response.content_type or ""
+        is_html = ctype.startswith("text/html") and not response.direct_passthrough
+        if not is_html or not bool(session.get('user_id')):
+            return response
+
+        body = response.get_data(as_text=True)
+        if '<head' not in body or 'window.PAGE_TRACK' in body:
+            return response
+
+        pt_cfg = {
+            "token": page_track.get("token"),
+            "page": page_track.get("page"),
+            "beaconUrl": "/track/page",
+            "heartbeatMs": PAGE_TRACKING_HEARTBEAT_MS,
+        }
+        snippet = (
+            '<script>window.PAGE_TRACK=' + json.dumps(pt_cfg) + ';</script>'
+            '<script>' + _PAGE_TRACKER_JS + '</script>'
+        )
+        head_open = body.find('<head')
+        gt = body.find('>', head_open)
+        if gt != -1:
+            response.set_data(body[:gt + 1] + snippet + body[gt + 1:])
+    except Exception:
+        logger.exception("[PAGE_TRACKING] erreur d'injection du suivi : réponse renvoyée telle quelle")
+    return response
+
+
+@app.route('/track/page', methods=['POST'])
+def track_page_beacon():
+    """Réception des relevés client EXACTS de temps/navigation.
+
+    Appelé par static/js/page-tracker.js via navigator.sendBeacon (corps JSON,
+    type application/json) aux moments : enter / heartbeat / visibilitychange→hidden
+    / pagehide. Le relevé est transmis au PageTracker du participant, qui inscrit
+    la durée exacte (temps mur + temps actif) et le type de navigation vérité-terrain
+    dans le fichier résultat. Idempotent et tolérant aux pannes : on répond 204
+    quoi qu'il arrive pour ne jamais perturber le teardown de la page côté client.
+    """
+    if not PAGE_TRACKING_ENABLED:
+        return ('', 204)
+    try:
+        uid = session.get('uid')
+        if not uid:
+            return ('', 204)  # session expirée / inconnue : ignorer silencieusement
+        config_id = session.get('config_id', 'default')
+
+        # sendBeacon envoie un Blob application/json ; on parse de façon robuste
+        # (silent=True), avec repli sur le corps brut (text/plain éventuel).
+        data = request.get_json(silent=True)
+        if data is None:
+            raw = request.get_data(as_text=True)
+            if raw:
+                try:
+                    data = json.loads(raw)
+                except (ValueError, TypeError):
+                    data = None
+        if not isinstance(data, dict):
+            return ('', 204)
+
+        tracker = get_page_tracker(uid, config_id)
+        tracker.ingest_client_event(data)
+    except Exception:
+        logger.exception("[PAGE_TRACKING] erreur de traitement d'un relevé client")
+    return ('', 204)
 
 
 ######################

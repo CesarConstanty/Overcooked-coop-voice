@@ -7,8 +7,8 @@ et calcul automatique des durées d'activités.
 Suivi de navigation (v3.0)
 --------------------------
 En plus de l'ordre des pages et du temps passé sur chacune, le tracker
-classe désormais chaque chargement de page réelle selon le type de
-navigation du participant :
+classe chaque chargement de page réelle selon le type de navigation du
+participant :
 
     - "entry"    : toute première page de la session ;
     - "forward"  : progression vers une page (nouvelle page, ou bouton
@@ -16,17 +16,43 @@ navigation du participant :
     - "back"     : retour arrière vers la page précédente de l'historique ;
     - "reload"   : rechargement de la page courante (même page consécutive).
 
-La classification est calculée côté serveur en simulant la pile
-d'historique du navigateur (back/forward stack avec un curseur), à partir
-du seul ordre des pages réelles dans `page_history`. Elle est donc
-recalculable à l'identique (déterministe) et survit à un redémarrage du
-serveur. Les marqueurs internes [ACTIVITÉ] (détection de fichiers) et
-[START_GAME] (événement intra-page) ne sont pas des navigations et sont
-étiquetés respectivement "activity" et "event".
+La classification serveur est calculée en simulant la pile d'historique du
+navigateur (back/forward stack avec un curseur), à partir du seul ordre des
+pages réelles dans `page_history`. Elle est déterministe et survit à un
+redémarrage du serveur. Les marqueurs internes [ACTIVITÉ] (détection de
+fichiers) et [START_GAME] (événement intra-page) ne sont pas des navigations
+et sont étiquetés respectivement "activity" et "event".
+
+Mesure EXACTE côté client (v4.0)
+--------------------------------
+Le temps passé sur une page et son type de navigation sont désormais MESURÉS
+dans le navigateur (et non plus seulement déduits du moment où Flask rend la
+route). Le script static/js/page-tracker.js, injecté dans chaque page du
+parcours, transmet par `navigator.sendBeacon` des relevés horodatés à
+l'horloge monotone `performance.now()` :
+
+    - wall_ms   : temps « mur » réel sur la page (de l'affichage à la sortie) ;
+    - active_ms : temps « actif » (document visible uniquement, API Page
+                  Visibility) — exclut l'onglet masqué / la veille machine ;
+    - perf_nav_type / persisted : type de navigation vérité-terrain
+                  (navigate / reload / back_forward, + restauration bfcache).
+
+Le serveur relie chaque relevé à la page rendue via un `view_token` (jeton de
+vue généré au rendu et injecté dans la page). Lorsqu'un relevé client est
+disponible, `duration_sec` et `end_time` deviennent les valeurs CLIENT exactes
+(`timing_source = "client"`) ; sinon on retombe sur la mesure serveur
+(`timing_source = "server"`) — aucune perte de données (cf. mémoire
+« trial-data-must-always-be-saved »). Les relevés sont idempotents et
+cumulatifs (le serveur conserve le maximum) : une fermeture brutale, un
+heartbeat ou un passage en arrière-plan suffisent à finaliser la dernière
+page, même hors de la route /goodbye.
+
+Le modèle de timing est CLIENT-AUTORITAIRE avec filet serveur. Tous les détails
+client bruts sont conservés sous la clé `client` de chaque entrée de page.
 
 Auteur: AI Assistant
 Date: Septembre 2025 — màj juin 2026
-Version: 3.0 - Classification de navigation (avant / arrière / reload)
+Version: 4.0 - Mesure client-autoritaire (temps exact + navigation vérité-terrain)
 """
 
 import json
@@ -64,20 +90,30 @@ class PageTracker:
         self.current_page = None
         self.current_start_time = None
         self.page_history: List[Dict] = []
-        
+
         # Logger (utilise app.logger ou logger par défaut)
         self.logger = logger or logging.getLogger(__name__)
-        
+
         # Configuration des chemins
         self.trajectory_dir = Path(f"trajectories/{config_name}/{participant_id}")
         self.trajectory_dir.mkdir(parents=True, exist_ok=True)
         self.json_file = self.trajectory_dir / f"{participant_id}_suivis_passation.json"
-        
+
         # Système de surveillance optimisé
         self.processed_files = set()
         self._monitoring_active = False
         self._monitoring_thread = None
         self._thread_lock = threading.Lock()
+
+        # Verrou de données : sérialise toute mutation de page_history et toute
+        # sauvegarde. Indispensable car les relevés client (/track/page) arrivent
+        # dans des threads de requête Flask concurrents au thread de surveillance
+        # des fichiers. Réentrant (une méthode verrouillée peut en appeler une autre).
+        self._data_lock = threading.RLock()
+
+        # Compteur monotone pour fabriquer des view_token uniques (jeton de vue
+        # reliant un rendu serveur aux relevés client correspondants).
+        self._view_counter = 0
         
         self.logger.info(f"[PAGE_TRACKER_INIT] uid={participant_id} | config={config_name} | json_file={self.json_file}")
         
@@ -473,71 +509,131 @@ class PageTracker:
             print(f"[{self.participant_id}] Erreur recherche QPT start pour {attl_filename}: {e}")
             return None
     
-    def start_page(self, page_name: str):
-        """Enregistre le début d'une nouvelle page."""
-        current_time = datetime.now().isoformat()
-        
-        # Terminer la page précédente
-        previous_page = self.current_page
-        if self.current_page and self.current_start_time:
-            self._end_current_page(current_time)
-        
-        # Commencer la nouvelle page
-        self.current_page = page_name
-        self.current_start_time = current_time
-        
-        step_type = self._infer_step_type_from_page(page_name)
-        
-        page_entry = {
-            "page": page_name,
-            "step_type": step_type,
-            "start_time": current_time,
-            "end_time": None,
-            "duration_sec": None
-        }
-        self.page_history.append(page_entry)
+    def _new_view_token(self) -> str:
+        """Fabrique un jeton de vue unique pour relier un rendu serveur aux
+        relevés client correspondants (cf. ingest_client_event)."""
+        self._view_counter += 1
+        # Horodatage + compteur : unique au sein d'un même participant, lisible.
+        stamp = datetime.now().strftime("%Y%m%dT%H%M%S%f")
+        return f"pv_{self._view_counter}_{stamp}"
 
-        # Classifier la navigation (avant / arrière / reload) pour cette page.
-        self._compute_navigation()
+    def start_page(self, page_name: str) -> Optional[str]:
+        """Enregistre le début d'une nouvelle page (rendu serveur).
 
-        # Log la transition de page (avec le type de navigation détecté).
-        self.logger.info(
-            f"[PAGE_TRACKER_PAGE_START] uid={self.participant_id} | page={page_name} | "
-            f"step_type={step_type} | nav={page_entry.get('navigation_type')} | "
-            f"detail={page_entry.get('navigation_detail')} | "
-            f"visit_index={page_entry.get('visit_index')} | previous_page={previous_page}")
+        Pour une vraie page du parcours, génère et renvoie un `view_token` : le
+        serveur l'injecte dans la page (window.PAGE_TRACK.token) pour que les
+        relevés client `sendBeacon` se rattachent EXACTEMENT à cette vue. Les
+        marqueurs internes ([START_GAME]) ne reçoivent pas de jeton et renvoient
+        None.
 
-        # Démarrer la surveillance si pas déjà active
-        self.start_monitoring()
+        Returns:
+            Le view_token de la page, ou None pour un marqueur interne.
+        """
+        with self._data_lock:
+            current_time = datetime.now().isoformat()
 
-        self._save_to_json()
+            # Terminer la page précédente (mesure serveur, repli si pas de client).
+            previous_page = self.current_page
+            if self.current_page and self.current_start_time:
+                self._end_current_page(current_time)
+
+            is_marker = page_name.startswith('[')
+            view_token = None if is_marker else self._new_view_token()
+
+            # Commencer la nouvelle page
+            self.current_page = page_name
+            self.current_start_time = current_time
+
+            step_type = self._infer_step_type_from_page(page_name)
+
+            page_entry = {
+                "page": page_name,
+                "step_type": step_type,
+                "start_time": current_time,
+                "end_time": None,
+                "duration_sec": None,
+                # Provenance du timing : "server" tant qu'aucun relevé client
+                # n'est arrivé ; bascule à "client" dans _apply_client_event.
+                "timing_source": None if is_marker else "server",
+                # Jeton de vue (clé de rattachement des beacons client).
+                "view_token": view_token,
+                # Mesure serveur conservée à part (diagnostic / repli).
+                "server_start_time": current_time,
+                "server_end_time": None,
+                "server_duration_sec": None,
+            }
+            self.page_history.append(page_entry)
+
+            # Classifier la navigation (avant / arrière / reload) pour cette page.
+            self._compute_navigation()
+
+            # Log la transition de page (avec le type de navigation détecté).
+            self.logger.info(
+                f"[PAGE_TRACKER_PAGE_START] uid={self.participant_id} | page={page_name} | "
+                f"step_type={step_type} | nav={page_entry.get('navigation_type')} | "
+                f"detail={page_entry.get('navigation_detail')} | "
+                f"visit_index={page_entry.get('visit_index')} | "
+                f"view_token={view_token} | previous_page={previous_page}")
+
+            # Démarrer la surveillance si pas déjà active
+            self.start_monitoring()
+
+            self._save_to_json()
+            return view_token
     
     def _end_current_page(self, end_time: str):
-        """Termine la page actuelle."""
+        """Termine la page courante côté SERVEUR (repli).
+
+        Calcule la durée « serveur » (rendu de la page suivante moins rendu de
+        la page courante) et l'écrit dans les champs diagnostic server_*. Ne
+        remplace `end_time`/`duration_sec` publics QUE si aucun relevé client
+        exact n'a déjà finalisé cette vue (timing_source != "client"). Ainsi la
+        mesure client reste autoritaire (cf. ingest_client_event).
+        """
         if not self.page_history:
             return
-            
-        # Trouver la dernière page (non activité) ouverte
+
+        # Cibler la dernière occurrence de la page courante (revisites possibles),
+        # qu'elle ait déjà été finalisée par le client ou non.
         last_page_entry = None
         for entry in reversed(self.page_history):
-            if not entry['page'].startswith('[ACTIVITÉ]') and not entry.get('end_time'):
+            if entry.get('page', '').startswith('[ACTIVITÉ]'):
+                continue
+            if entry.get('page') == self.current_page:
                 last_page_entry = entry
                 break
-        
-        if last_page_entry and last_page_entry['page'] == self.current_page:
+
+        if not last_page_entry:
+            return
+
+        # Durée serveur (toujours renseignée, à titre diagnostic).
+        try:
+            start_dt = datetime.fromisoformat(last_page_entry['server_start_time']
+                                              if last_page_entry.get('server_start_time')
+                                              else last_page_entry['start_time'])
+            end_dt = datetime.fromisoformat(end_time)
+            server_duration = round(max(0, (end_dt - start_dt).total_seconds()), 2)
+        except (ValueError, KeyError) as e:
+            self.logger.error(
+                f"[PAGE_TRACKER_PAGE_DURATION_ERROR] uid={self.participant_id} | "
+                f"page={self.current_page} | error={str(e)}")
+            server_duration = 0
+
+        last_page_entry['server_end_time'] = end_time
+        last_page_entry['server_duration_sec'] = server_duration
+
+        # Valeurs publiques : ne pas écraser une finalisation client exacte.
+        if last_page_entry.get('timing_source') == 'client':
+            self.logger.info(
+                f"[PAGE_TRACKER_PAGE_END] uid={self.participant_id} | page={self.current_page} | "
+                f"server_duration={server_duration:.2f}s (client autoritaire conservé: "
+                f"{last_page_entry.get('duration_sec')}s)")
+        else:
             last_page_entry['end_time'] = end_time
-            
-            try:
-                start_dt = datetime.fromisoformat(last_page_entry['start_time'])
-                end_dt = datetime.fromisoformat(end_time)
-                duration = (end_dt - start_dt).total_seconds()
-                # Éviter les durées négatives dues à des problèmes de synchronisation
-                last_page_entry['duration_sec'] = round(max(0, duration), 2)
-                
-                self.logger.info(f"[PAGE_TRACKER_PAGE_END] uid={self.participant_id} | page={self.current_page} | duration={duration:.2f}s")
-            except ValueError as e:
-                self.logger.error(f"[PAGE_TRACKER_PAGE_DURATION_ERROR] uid={self.participant_id} | page={self.current_page} | error={str(e)}")
-                last_page_entry['duration_sec'] = 0
+            last_page_entry['duration_sec'] = server_duration
+            self.logger.info(
+                f"[PAGE_TRACKER_PAGE_END] uid={self.participant_id} | page={self.current_page} | "
+                f"duration={server_duration:.2f}s (server)")
     
     def _find_activity_start_time(self, activity_name: str, use_prefix: bool = False) -> Optional[str]:
         """Retourne le start_time d'une activité spécifique.
@@ -594,51 +690,56 @@ class PageTracker:
             print(f"[{self.participant_id}] Erreur vérification fichiers: {e}")
     
     def _process_new_file(self, file_path_str: str):
-        """Traite un nouveau fichier détecté."""
-        try:
-            file_timestamp = os.path.getmtime(file_path_str)
-            activity_time = datetime.fromtimestamp(file_timestamp).isoformat()
-            step_type = self._classify_file_step_type(file_path_str)
-            filename = os.path.basename(file_path_str)
+        """Traite un nouveau fichier détecté.
 
-            # Idempotence : ne pas réinsérer une activité déjà enregistrée
-            # (ex. après rechargement de l'historique au redémarrage du serveur).
-            activity_page = f"[ACTIVITÉ] {filename}"
-            if any(e.get('page') == activity_page for e in self.page_history):
-                return
+        Verrouillé : la détection de fichiers tourne dans un thread dédié,
+        concurrent aux relevés client (/track/page) qui mutent aussi page_history.
+        """
+        with self._data_lock:
+            try:
+                file_timestamp = os.path.getmtime(file_path_str)
+                activity_time = datetime.fromtimestamp(file_timestamp).isoformat()
+                step_type = self._classify_file_step_type(file_path_str)
+                filename = os.path.basename(file_path_str)
 
-            # Déterminer la page parente de cette activité
-            parent_page = self._determine_parent_page_for_file(filename)
-            
-            # Si on n'est pas sur la bonne page parente, ne pas terminer la page courante
-            # (l'activité sera associée à sa vraie page parente dans l'organisation finale)
-            
-            # Créer l'entrée d'activité
-            activity_entry = {
-                "page": f"[ACTIVITÉ] {filename}",
-                "step_type": step_type,
-                "start_time": activity_time,
-                "end_time": activity_time,
-                "duration_sec": 0,
-                "parent_page": parent_page  # Info pour l'organisation
-            }
-            
-            # Calculer la durée si applicable (hors CONSENT)
-            if 'CONSENT.json' not in file_path_str:
-                duration = self._calculate_activity_duration(activity_entry)
-                if duration is not None:
-                    activity_entry["duration_sec"] = round(duration, 2)
-            
-            # Insérer chronologiquement
-            self._insert_activity_chronologically(activity_entry)
-            
-            # Sauvegarder immédiatement
-            self._save_to_json()
-            
-            print(f"[{self.participant_id}] Activité détectée: {step_type} (page: {parent_page})")
-                    
-        except Exception as e:
-            print(f"[{self.participant_id}] Erreur traitement fichier: {e}")
+                # Idempotence : ne pas réinsérer une activité déjà enregistrée
+                # (ex. après rechargement de l'historique au redémarrage du serveur).
+                activity_page = f"[ACTIVITÉ] {filename}"
+                if any(e.get('page') == activity_page for e in self.page_history):
+                    return
+
+                # Déterminer la page parente de cette activité
+                parent_page = self._determine_parent_page_for_file(filename)
+
+                # Si on n'est pas sur la bonne page parente, ne pas terminer la page courante
+                # (l'activité sera associée à sa vraie page parente dans l'organisation finale)
+
+                # Créer l'entrée d'activité
+                activity_entry = {
+                    "page": f"[ACTIVITÉ] {filename}",
+                    "step_type": step_type,
+                    "start_time": activity_time,
+                    "end_time": activity_time,
+                    "duration_sec": 0,
+                    "parent_page": parent_page  # Info pour l'organisation
+                }
+
+                # Calculer la durée si applicable (hors CONSENT)
+                if 'CONSENT.json' not in file_path_str:
+                    duration = self._calculate_activity_duration(activity_entry)
+                    if duration is not None:
+                        activity_entry["duration_sec"] = round(duration, 2)
+
+                # Insérer chronologiquement
+                self._insert_activity_chronologically(activity_entry)
+
+                # Sauvegarder immédiatement
+                self._save_to_json()
+
+                print(f"[{self.participant_id}] Activité détectée: {step_type} (page: {parent_page})")
+
+            except Exception as e:
+                print(f"[{self.participant_id}] Erreur traitement fichier: {e}")
     
     def _determine_parent_page_for_file(self, filename: str) -> Optional[str]:
         """
@@ -800,21 +901,27 @@ class PageTracker:
                 self._monitoring_thread.join(timeout=1.0)
     
     def end_session(self):
-        """Termine la session de suivi."""
-        current_time = datetime.now().isoformat()
-        
-        # Terminer la page actuelle
-        if self.current_page and self.current_start_time:
-            self._end_current_page(current_time)
-        
-        # Arrêter la surveillance
+        """Termine la session de suivi.
+
+        Note : avec le timing client-autoritaire, la dernière page est en général
+        déjà finalisée par le beacon de sortie (pagehide/hidden), même sans passer
+        par /goodbye. Cette finalisation serveur reste un filet de sécurité.
+        """
+        # Arrêter la surveillance hors du verrou (join du thread).
         self.stop_monitoring()
-        
-        # Scan final pour les fichiers non détectés
-        self._final_scan()
-        
-        self._save_to_json()
-        print(f"[{self.participant_id}] Session terminée")
+
+        with self._data_lock:
+            current_time = datetime.now().isoformat()
+
+            # Terminer la page actuelle (repli serveur si pas de relevé client).
+            if self.current_page and self.current_start_time:
+                self._end_current_page(current_time)
+
+            # Scan final pour les fichiers non détectés
+            self._final_scan()
+
+            self._save_to_json()
+            print(f"[{self.participant_id}] Session terminée")
     
     def _final_scan(self):
         """Scan final pour fichiers non détectés."""
@@ -838,6 +945,236 @@ class PageTracker:
         except Exception as e:
             print(f"[{self.participant_id}] Erreur scan final: {e}")
     
+    # =====================================================================
+    # Ingestion des relevés CLIENT (mesure exacte du temps et de la navigation)
+    # =====================================================================
+    # Méthode de timing inscrite dans le fichier résultat (champ documentaire).
+    TIMING_METHOD = "client_authoritative_v4"
+
+    @staticmethod
+    def _to_float(v) -> Optional[float]:
+        try:
+            if v is None:
+                return None
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _to_int(v) -> Optional[int]:
+        try:
+            if v is None:
+                return None
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+
+    def _same_logical_page(self, a: str, b: str) -> bool:
+        """Égalité « souple » de pages : compare le dernier segment d'URL, sans
+        query string, insensible à la casse (repli si le view_token manque)."""
+        if not a or not b:
+            return False
+        na = a.split('?')[0].rstrip('/').split('/')[-1].lower()
+        nb = b.split('?')[0].rstrip('/').split('/')[-1].lower()
+        return na == nb
+
+    def ingest_client_event(self, event: Dict) -> bool:
+        """Intègre un relevé client (enter / heartbeat / exit) émis par
+        static/js/page-tracker.js via /track/page.
+
+        Idempotent et cumulatif : les durées (wall_ms / active_ms) ne font que
+        croître (le serveur conserve le maximum), si bien qu'un heartbeat ou un
+        passage en arrière-plan suffit à finaliser une vue, même en cas de
+        fermeture brutale. Le relevé est rattaché à la vue serveur par son
+        view_token ; à défaut, par nom de page ; en dernier recours une entrée
+        est SYNTHÉTISÉE pour ne jamais perdre la donnée.
+
+        Returns:
+            True si le relevé a été intégré, False sinon.
+        """
+        if not isinstance(event, dict):
+            return False
+        with self._data_lock:
+            try:
+                entry = self._find_entry_for_client(event)
+                synthesized = False
+                if entry is None:
+                    entry = self._synthesize_client_entry(event)
+                    self.page_history.append(entry)
+                    synthesized = True
+
+                self._apply_client_event(entry, event)
+
+                # _save_to_json recalcule la navigation (reconstruction) PUIS
+                # ré-applique la surcouche client : la mesure navigateur fait foi.
+                self._save_to_json()
+
+                c = entry.get('client') or {}
+                self.logger.info(
+                    f"[PAGE_TRACKER_CLIENT_EVENT] uid={self.participant_id} | "
+                    f"type={event.get('type')} | page={entry.get('page')} | "
+                    f"token={event.get('token')} | wall_ms={c.get('wall_ms')} | "
+                    f"active_ms={c.get('active_ms')} | nav={entry.get('navigation_type')} | "
+                    f"perf={c.get('perf_nav_type')} | persisted={c.get('persisted')}"
+                    + (" | SYNTH" if synthesized else ""))
+                return True
+            except Exception as e:
+                self.logger.error(
+                    f"[PAGE_TRACKER_CLIENT_EVENT_ERROR] uid={self.participant_id} | "
+                    f"error={str(e)}", exc_info=True)
+                return False
+
+    def _find_entry_for_client(self, event: Dict) -> Optional[Dict]:
+        """Retrouve l'entrée de page à enrichir avec un relevé client."""
+        token = event.get('token')
+        if token:
+            for e in self.page_history:
+                if e.get('view_token') == token:
+                    return e
+        # Repli : dernière vraie page de même nom (priorité à celle sans relevé).
+        page = event.get('page')
+        fallback = None
+        for e in reversed(self.page_history):
+            p = e.get('page', '')
+            if p.startswith('['):
+                continue
+            if page and (p == page or self._same_logical_page(p, page)):
+                if e.get('client') is None:
+                    return e
+                if fallback is None:
+                    fallback = e
+        return fallback
+
+    def _synthesize_client_entry(self, event: Dict) -> Dict:
+        """Crée une entrée de page à partir d'un relevé client orphelin (jeton
+        introuvable). Garantit qu'aucune donnée de suivi n'est perdue."""
+        page = event.get('page') or 'UNKNOWN'
+        start = event.get('enter_ts') or datetime.now().isoformat()
+        self.logger.warning(
+            f"[PAGE_TRACKER_CLIENT_ORPHAN] uid={self.participant_id} | page={page} | "
+            f"token={event.get('token')} : entrée synthétisée (vue serveur introuvable)")
+        return {
+            "page": page,
+            "step_type": self._infer_step_type_from_page(page),
+            "start_time": start,
+            "end_time": None,
+            "duration_sec": None,
+            "timing_source": "server",
+            "view_token": event.get('token'),
+            "server_start_time": start,
+            "server_end_time": None,
+            "server_duration_sec": None,
+            "synthesized_from_client": True,
+        }
+
+    def _apply_client_event(self, entry: Dict, event: Dict):
+        """Fusionne un relevé client dans une entrée de page (cumulatif, idempotent)
+        et promeut la mesure client en valeurs autoritaires."""
+        c = entry.setdefault('client', {})
+        wall_increased = False
+
+        # Durées cumulatives : on conserve le maximum reçu.
+        for k in ('wall_ms', 'active_ms', 'hidden_ms'):
+            v = self._to_float(event.get(k))
+            if v is None:
+                continue
+            prev = c.get(k)
+            if prev is None or v >= prev:
+                if k == 'wall_ms' and (prev is None or v > prev):
+                    wall_increased = True
+                c[k] = round(v, 2)
+
+        # Métadonnées (dernier signal non vide gagne).
+        c['view_id'] = event.get('view_id') or c.get('view_id')
+        if event.get('prev_view_id'):
+            c['prev_view_id'] = event.get('prev_view_id')
+        if event.get('perf_nav_type'):
+            c['perf_nav_type'] = event.get('perf_nav_type')
+        if event.get('redirect_count') is not None:
+            c['redirect_count'] = self._to_int(event.get('redirect_count'))
+        c['persisted'] = bool(event.get('persisted')) or c.get('persisted', False)
+        c['guard_redirect'] = bool(event.get('guard_redirect')) or c.get('guard_redirect', False)
+        if event.get('guard_dir'):
+            c['guard_dir'] = event.get('guard_dir')
+        c['enter_ts'] = c.get('enter_ts') or event.get('enter_ts')
+        if 'referrer' in event:
+            c['referrer'] = event.get('referrer')
+        if event.get('history_length') is not None:
+            c['history_length'] = self._to_int(event.get('history_length'))
+        c['visibility_changes'] = max(c.get('visibility_changes', 0),
+                                      self._to_int(event.get('visibility_changes')) or 0)
+        c['heartbeats'] = max(c.get('heartbeats', 0),
+                              self._to_int(event.get('heartbeats')) or 0)
+        if event.get('exit_reason'):
+            c['exit_reason'] = event.get('exit_reason')
+        c['last_event_type'] = event.get('type')
+        c['received_at'] = datetime.now().isoformat()
+
+        # Horodatage de sortie : instant du dernier beacon qui fait progresser la
+        # durée, ou de tout beacon « exit ».
+        client_now = event.get('client_now')
+        if client_now and (wall_increased or event.get('type') == 'exit'):
+            c['exit_ts'] = client_now
+
+        # Promotion en valeurs publiques autoritaires.
+        wall = c.get('wall_ms')
+        if wall is not None:
+            entry['duration_sec'] = round(wall / 1000.0, 2)
+            entry['active_duration_sec'] = round((c.get('active_ms') or 0) / 1000.0, 2)
+            entry['timing_source'] = 'client'
+            if c.get('exit_ts'):
+                entry['end_time'] = c.get('exit_ts')
+
+    def _apply_client_navigation(self, entry: Dict):
+        """Surcouche navigation : la vérité-terrain navigateur (perf_nav_type +
+        persisted + sens de la garde) corrige la reconstruction serveur.
+
+        Appelée APRÈS _compute_navigation (qui pose visit_index/is_revisit et la
+        distinction back/forward), pour ne pas être écrasée par celle-ci.
+        """
+        c = entry.get('client')
+        if not c:
+            return
+        nt = c.get('perf_nav_type')
+        if not nt:
+            return
+        entry['navigation_source'] = 'client'
+        # La première page de la session reste "entry" (déterminé par la pile).
+        if entry.get('navigation_type') == 'entry':
+            return
+
+        if nt == 'reload':
+            entry['navigation_type'] = 'reload'
+            entry['navigation_detail'] = 'reload'
+        elif nt == 'back_forward':
+            # L'API ne distingue pas back/forward ; le sens de la garde fait foi,
+            # sinon on conserve la reconstruction si elle a déjà tranché.
+            gd = c.get('guard_dir')
+            if gd in ('back', 'forward'):
+                entry['navigation_type'] = gd
+            elif entry.get('navigation_type') not in ('back', 'forward'):
+                entry['navigation_type'] = 'back'
+            entry['navigation_detail'] = 'browser_back_forward'
+        elif nt == 'navigate':
+            if entry.get('navigation_type') not in ('back', 'forward'):
+                entry['navigation_type'] = 'forward'
+            if entry.get('navigation_detail') in (None, 'reload'):
+                entry['navigation_detail'] = 'new_page'
+
+        if c.get('guard_redirect'):
+            detail = entry.get('navigation_detail') or ''
+            if 'guard_redirect' not in detail:
+                entry['navigation_detail'] = (detail + '+guard_redirect') if detail else 'guard_redirect'
+
+    def _harmonize_all_navigation(self):
+        """Ré-applique la surcouche client à toutes les entrées (après une passe
+        de reconstruction). Idempotent."""
+        for entry in self.page_history:
+            page = entry.get('page', '')
+            if page.startswith('['):
+                continue
+            self._apply_client_navigation(entry)
+
     # Types de navigation considérés comme de vraies navigations de page
     # (par opposition aux marqueurs internes "activity" / "event").
     PAGE_NAV_TYPES = ("entry", "forward", "back", "reload")
@@ -912,6 +1249,13 @@ class PageTracker:
             entry['navigation_detail'] = detail
             entry['visit_index'] = visit_counts[page]
             entry['is_revisit'] = visit_counts[page] > 1
+            # Source par défaut : reconstruction serveur (peut être corrigée par
+            # la surcouche client ci-dessous si un relevé navigateur existe).
+            entry['navigation_source'] = 'reconstructed'
+
+        # Surcouche CLIENT : la vérité-terrain navigateur (reload / back_forward /
+        # restauration bfcache) corrige la reconstruction là où elle existe.
+        self._harmonize_all_navigation()
 
     def _build_navigation_summary(self):
         """Agrège les métadonnées de navigation par page et au global.
@@ -990,36 +1334,64 @@ class PageTracker:
             - _raw_history : historique brut (sert au rechargement fidèle de
               l'état après un redémarrage du serveur).
         """
-        try:
-            # 1) (Re)calculer la classification de navigation.
-            self._compute_navigation()
+        with self._data_lock:
+            try:
+                # 1) (Re)calculer la classification de navigation (+ surcouche client).
+                self._compute_navigation()
 
-            # 2) Construire les vues dérivées.
-            organized_data = self._organize_data_by_pages()
-            navigation_summary, navigation_totals = self._build_navigation_summary()
+                # 2) Construire les vues dérivées.
+                organized_data = self._organize_data_by_pages()
+                navigation_summary, navigation_totals = self._build_navigation_summary()
+                timing_coverage = self._build_timing_coverage()
 
-            output = {
-                "participant_id": self.participant_id,
-                "config_name": self.config_name,
-                "navigation_totals": navigation_totals,
-                "navigation_summary": navigation_summary,
-                "pages": organized_data,
-                "_raw_history": self.page_history,
-            }
+                output = {
+                    "participant_id": self.participant_id,
+                    "config_name": self.config_name,
+                    # Méthode de mesure : timing CLIENT-autoritaire avec filet serveur.
+                    "timing_method": self.TIMING_METHOD,
+                    "timing_coverage": timing_coverage,
+                    "navigation_totals": navigation_totals,
+                    "navigation_summary": navigation_summary,
+                    "pages": organized_data,
+                    "_raw_history": self.page_history,
+                }
 
-            with open(self.json_file, 'w', encoding='utf-8') as f:
-                json.dump(output, f, ensure_ascii=False, indent=2)
+                with open(self.json_file, 'w', encoding='utf-8') as f:
+                    json.dump(output, f, ensure_ascii=False, indent=2)
 
-            # Vérifier et logger la taille du fichier sauvegardé
-            file_size = os.path.getsize(self.json_file)
-            self.logger.info(
-                f"[PAGE_TRACKER_SAVE] uid={self.participant_id} | file={self.json_file.name} | "
-                f"size_bytes={file_size} | pages={len(organized_data)} | "
-                f"nav(fwd/back/reload)={navigation_totals['forward']}/"
-                f"{navigation_totals['back']}/{navigation_totals['reload']}")
+                # Vérifier et logger la taille du fichier sauvegardé
+                file_size = os.path.getsize(self.json_file)
+                self.logger.info(
+                    f"[PAGE_TRACKER_SAVE] uid={self.participant_id} | file={self.json_file.name} | "
+                    f"size_bytes={file_size} | pages={len(organized_data)} | "
+                    f"client_timed={timing_coverage['client']}/{timing_coverage['total_pages']} | "
+                    f"nav(fwd/back/reload)={navigation_totals['forward']}/"
+                    f"{navigation_totals['back']}/{navigation_totals['reload']}")
 
-        except Exception as e:
-            self.logger.error(f"[PAGE_TRACKER_SAVE_ERROR] uid={self.participant_id} | file={self.json_file.name} | error={str(e)}", exc_info=True)
+            except Exception as e:
+                self.logger.error(f"[PAGE_TRACKER_SAVE_ERROR] uid={self.participant_id} | file={self.json_file.name} | error={str(e)}", exc_info=True)
+
+    def _build_timing_coverage(self) -> Dict:
+        """Compte la part des pages dont la durée provient d'une mesure client
+        EXACTE vs d'un repli serveur (contrôle qualité rapide en tête de fichier)."""
+        total = client = server = pending = 0
+        for entry in self.page_history:
+            if entry.get('page', '').startswith('['):
+                continue  # marqueurs internes : pas des pages
+            total += 1
+            src = entry.get('timing_source')
+            if src == 'client':
+                client += 1
+            elif entry.get('duration_sec') is not None:
+                server += 1
+            else:
+                pending += 1
+        return {
+            "total_pages": total,
+            "client": client,        # durée mesurée exactement dans le navigateur
+            "server": server,        # repli serveur (relevé client absent)
+            "pending": pending,      # page encore ouverte / non finalisée
+        }
     
     def _organize_data_by_pages(self) -> List[Dict]:
         """
@@ -1043,12 +1415,21 @@ class PageTracker:
                         "step_type": entry['step_type'],
                         "start_time": entry['start_time'],
                         "end_time": entry.get('end_time'),
+                        # Durée AUTORITAIRE (client exact si dispo, sinon serveur).
                         "duration_sec": entry.get('duration_sec'),
-                        # Classification de navigation (cf. _compute_navigation)
+                        "active_duration_sec": entry.get('active_duration_sec'),
+                        "timing_source": entry.get('timing_source'),
+                        # Classification de navigation (reconstruction + surcouche client)
                         "navigation_type": entry.get('navigation_type'),
                         "navigation_detail": entry.get('navigation_detail'),
+                        "navigation_source": entry.get('navigation_source'),
                         "visit_index": entry.get('visit_index'),
                         "is_revisit": entry.get('is_revisit'),
+                        # Mesure serveur conservée (diagnostic / repli).
+                        "server_duration_sec": entry.get('server_duration_sec'),
+                        # Détail brut des relevés navigateur (None si aucun reçu).
+                        "client": entry.get('client'),
+                        "view_token": entry.get('view_token'),
                     },
                     "activities": []
                 }
