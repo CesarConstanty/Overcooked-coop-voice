@@ -1038,7 +1038,7 @@ class LayoutEditorApp(tk.Tk):
         filem.add_command(label="Ouvrir…", accelerator="Ctrl+O", command=self.cmd_open)
         filem.add_separator()
         filem.add_command(label="Enregistrer", accelerator="Ctrl+S", command=self.cmd_save)
-        filem.add_command(label="Enregistrer sous…", command=self.cmd_save_as)
+        filem.add_command(label="Enregistrer sous…", accelerator="Ctrl+Maj+S", command=self.cmd_save_as)
         filem.add_separator()
         filem.add_command(label="Quitter", command=self.on_quit)
         menubar.add_cascade(label="Fichier", menu=filem)
@@ -1056,14 +1056,16 @@ class LayoutEditorApp(tk.Tk):
         self.bind("<Control-n>", lambda e: self.cmd_new())
         self.bind("<Control-o>", lambda e: self.cmd_open())
         self.bind("<Control-s>", lambda e: self.cmd_save())
+        self.bind("<Control-Shift-S>", lambda e: self.cmd_save_as())
+        self.bind("<Control-Shift-s>", lambda e: self.cmd_save_as())
 
     def _build_layout(self):
         toolbar = ttk.Frame(self, padding=4)
         toolbar.pack(side="top", fill="x")
         for text, cmd in (
             ("Nouveau", self.cmd_new), ("Ouvrir", self.cmd_open),
-            ("Enregistrer", self.cmd_save), ("Redimensionner", self.cmd_resize),
-            ("Valider", self.cmd_validate),
+            ("Enregistrer", self.cmd_save), ("Enregistrer sous", self.cmd_save_as),
+            ("Redimensionner", self.cmd_resize), ("Valider", self.cmd_validate),
         ):
             ttk.Button(toolbar, text=text, command=cmd).pack(side="left", padx=2)
         ttk.Label(toolbar, text="   (clic gauche = poser · clic droit = sol · Ctrl+molette = zoom)").pack(side="left")
