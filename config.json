@@ -66,7 +66,7 @@
         "shuffle_blocs" : true,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
-            "begin"      : ["hoffman","PTTA","AAT_L","GAbstractionP","QVG"],
+            "begin"      : [],
             "post_trial" : ["agency"],
             "post_bloc"  : ["AAT_L"],
             "end"        : ["preference"]
