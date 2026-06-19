@@ -27,6 +27,7 @@ dependencies = [
 "Flask",
 "Flask-SocketIO",
 "eventlet",
+"gunicorn<23",
 "matplotlib",
 "requests",
 "numpy",

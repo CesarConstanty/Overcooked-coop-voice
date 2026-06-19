@@ -1,6 +1,7 @@
 Flask
 Flask-SocketIO
 eventlet
+gunicorn<23  # le worker eventlet a ete retire dans gunicorn>=23
 matplotlib
 requests
 numpy

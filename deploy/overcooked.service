@@ -1,0 +1,32 @@
+[Unit]
+Description=Overcooked-coop-voice (Flask-SocketIO / eventlet, single worker)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adapter User/Group au compte propriétaire du dépôt sur le serveur.
+User=cesar
+Group=cesar
+WorkingDirectory=/home/cesar/python-projects/Overcooked-coop-voice
+EnvironmentFile=/etc/overcooked.env
+
+# Un seul worker eventlet (impératif : état global en mémoire). Adapter le chemin du venv.
+ExecStart=/home/cesar/environnements/overcooked/bin/gunicorn -c gunicorn.conf.py app:app
+
+# Arrêt en douceur : laisser les boucles play_game finir et sauvegarder les essais
+# en cours avant le SIGKILL. TimeoutStopSec DOIT dépasser graceful_timeout gunicorn (90).
+KillSignal=SIGTERM
+TimeoutStopSec=120
+
+Restart=on-failure
+RestartSec=3
+
+# Durcissement (assouplir si cela gêne ; l'app écrit sous WorkingDirectory).
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+ReadWritePaths=/home/cesar/python-projects/Overcooked-coop-voice
+
+[Install]
+WantedBy=multi-user.target

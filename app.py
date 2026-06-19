@@ -19,6 +19,7 @@ import atexit
 from socketio.exceptions import TimeoutError as SocketIOTimeOutError
 import json
 import glob
+import shutil
 import logging
 from logging.handlers import RotatingFileHandler
 from time import gmtime, asctime
@@ -121,6 +122,20 @@ def get_user_lock(user_id):
 # Mapping of user id's to the current game (room) they are in
 USER_ROOMS = ThreadSafeDict()
 
+# Arrêt en douceur (drain) : quand True, on refuse les nouvelles parties afin de
+# laisser les essais en cours se terminer et être sauvegardés avant l'arrêt.
+DRAINING = False
+# Garde-fou : la sauvegarde de secours d'arrêt ne doit s'exécuter qu'une seule fois.
+_FLUSH_DONE = False
+
+# Seuil d'espace disque libre (Mo) sous lequel on refuse de lancer un nouvel essai,
+# pour éviter une écriture de trajectoire qui échouerait (perte de données).
+MIN_FREE_DISK_MB = int(os.getenv("MIN_FREE_DISK_MB", "500"))
+
+# Intervalle (en frames) entre deux checkpoints de trajectoire. À 10 fps, 50 ≈ 5 s :
+# borne la perte de données d'un essai en cours à ~5 s en cas de crash.
+TRAJECTORY_CHECKPOINT_EVERY = int(os.getenv("TRAJECTORY_CHECKPOINT_EVERY", "50"))
+
 # Mapping of string game names to corresponding classes
 GAME_NAME_TO_CLS = {
     "overcooked": OvercookedGame,
@@ -145,16 +160,72 @@ game._configure(MAX_GAME_LENGTH, AGENT_DIR)
 # Create and configure flask app
 app = Flask(__name__, template_folder=os.path.join('static', 'templates'))
 app.config['DEBUG'] = os.getenv('FLASK_ENV', 'production') == 'development'
-app.config['SECRET_KEY'] = 'c-\x9f^\x80\xd8\xd0j\xed\xc1\x15\xf7\xc9\x97J{\x97\x165Iq#\x87\x88'
-app.config['SESSION_COOKIE_HTTPONLY'] = False
-app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
-# Désactivé pour permettre HTTP : app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SECURE'] = False
+
+
+def _env_flag(name, default):
+    """Lit un booléen depuis l'environnement (1/true/yes/on) ; `default` si absent."""
+    val = os.getenv(name)
+    if val is None:
+        return bool(default)
+    return val.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _is_production():
+    return os.getenv('FLASK_ENV', 'production') == 'production'
+
+
+def _load_secret_key():
+    """Clé de signature des cookies de session : DOIT rester stable entre redémarrages.
+
+    Ordre de résolution :
+      1) variable d'environnement SECRET_KEY (recommandé en prod, via EnvironmentFile) ;
+      2) sinon, en prod : clé générée une fois puis persistée sous instance/secret_key (0600) ;
+      3) sinon (dev) : clé historique codée en dur.
+
+    NB : les sessions sont des cookies signés (Flask-Session est importé mais jamais
+    initialisé). Une clé instable invaliderait toutes les sessions actives ; la reprise
+    par uid d'URL (PROLIFIC_PID/TEST_UID, cf. index()) ne perd alors pas de données mais
+    force une ré-ouverture du lien. On garde donc la clé stable quoi qu'il arrive.
+    """
+    env_key = os.getenv('SECRET_KEY')
+    if env_key:
+        return env_key.encode() if isinstance(env_key, str) else env_key
+    if _is_production():
+        os.makedirs(app.instance_path, exist_ok=True)
+        key_path = os.path.join(app.instance_path, 'secret_key')
+        if os.path.exists(key_path):
+            with open(key_path, 'rb') as f:
+                return f.read()
+        key = os.urandom(32)
+        fd = os.open(key_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with open(fd, 'wb') as f:
+            f.write(key)
+        return key
+    return b'c-\x9f^\x80\xd8\xd0j\xed\xc1\x15\xf7\xc9\x97J{\x97\x165Iq#\x87\x88'
+
+
+app.config['SECRET_KEY'] = _load_secret_key()
+# Aucun JS de l'app ne lit le cookie de session -> HTTPONLY sûr (durcit contre XSS).
+app.config['SESSION_COOKIE_HTTPONLY'] = _env_flag('SESSION_COOKIE_HTTPONLY', True)
+app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+# Secure par défaut en prod (TLS terminé par nginx) ; SESSION_COOKIE_SECURE=0 pour
+# autoriser un smoke-test en HTTP simple.
+app.config['SESSION_COOKIE_SECURE'] = _env_flag('SESSION_COOKIE_SECURE', _is_production())
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-#app.config.update(SECRET_KEY='osd(99092=36&462134kjKDhuIS_d23', ENV='development')
-socketio = SocketIO(app, cors_allowed_origins="*", logger=app.config['DEBUG'], ping_interval=60, ping_timeout=60)
+
+# Derrière le reverse proxy nginx : restaurer schéma/IP/host réels (cookies Secure,
+# liens absolus, journaux). Activé en prod ou si TRUST_PROXY est défini.
+if _env_flag('TRUST_PROXY', _is_production()):
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+
+# CORS WebSocket/HTTP : restreint aux origines configurées en prod ; "*" seulement
+# si CORS_ALLOWED_ORIGINS n'est pas défini (commodité dev).
+_cors_env = os.getenv('CORS_ALLOWED_ORIGINS', '').strip()
+_cors_origins = [o.strip() for o in _cors_env.split(',') if o.strip()] if _cors_env else "*"
+socketio = SocketIO(app, cors_allowed_origins=_cors_origins, logger=app.config['DEBUG'], ping_interval=60, ping_timeout=60)
 # Système d'authentification désactivé - utilisation de sessions simples
 # login_manager = LoginManager()
 # login_manager.init_app(app)
@@ -210,6 +281,15 @@ def setup_logging():
 
 logger = setup_logging()
 
+# Dossiers de données garantis dès le démarrage (les sauvegardes les créent sinon
+# paresseusement par uid ; ce filet évite une course au tout premier write et rend
+# l'intention explicite pour le déploiement).
+for _boot_dir in ("trajectories", "trajectories/_backup", app.instance_path):
+    try:
+        os.makedirs(_boot_dir, exist_ok=True)
+    except OSError:
+        logger.warning("[BOOT] impossible de créer le dossier %s", _boot_dir)
+
 # Pré-chauffage des caches MDP/mlam/agents au démarrage : déplace le coût de
 # construction (sinon payé au 1er essai) vers le boot, pour que le premier
 # participant démarre sans latence. Désactivable via config.json ("warmup_caches": false).
@@ -258,6 +338,37 @@ def safe_json_write(file_path, data, user_id=None):
         return False
 
 
+def atomic_json_write(file_path, data, user_id=None):
+    """Écriture JSON atomique AVEC écrasement autorisé (≠ safe_json_write).
+
+    Même garantie d'atomicité (fichier temporaire + fsync + os.replace : jamais de
+    fichier tronqué visible) mais SANS la règle d'idempotence « ne jamais écraser ».
+    Réservé aux fichiers réécrits en continu : checkpoints de trajectoire d'un essai
+    en cours. Le chemin canonique des essais terminés reste géré par safe_json_write.
+    """
+    tmp_path = None
+    try:
+        parent = os.path.dirname(file_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        tmp_path = "%s.%s.tmp" % (file_path, os.getpid())
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, file_path)
+        return True
+    except Exception:
+        logger.exception("[ATOMIC_WRITE_FAILED] écriture impossible: %s (uid=%s)", file_path, user_id)
+        if tmp_path:
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
+        return False
+
+
 # =====================================================
 # MODÈLE DE BASE DE DONNÉES
 # =====================================================
@@ -274,9 +385,20 @@ class User(db.Model):
 
 with app.app_context():
     db.create_all()
+    # (SHOULD) SQLite WAL : meilleure durabilité + lectures concurrentes pendant une
+    # écriture. journal_mode=WAL est persistant (stocké dans l'en-tête du fichier).
+    if str(app.config.get('SQLALCHEMY_DATABASE_URI', '')).startswith('sqlite'):
+        try:
+            from sqlalchemy import text as _sa_text
+            db.session.execute(_sa_text("PRAGMA journal_mode=WAL;"))
+            db.session.execute(_sa_text("PRAGMA synchronous=NORMAL;"))
+            db.session.execute(_sa_text("PRAGMA busy_timeout=5000;"))
+            db.session.commit()
+        except Exception:
+            logger.warning("[DB] activation WAL impossible (poursuite en journal par défaut)")
 
 #################
-# MODIFICATIONS #	
+# MODIFICATIONS #
 #################
 
 is_test = CONFIG.get('mode')
@@ -446,6 +568,19 @@ def server_at_capacity():
     return count_active_games() >= MAX_GAMES
 
 
+def _enough_disk_space():
+    """False si l'espace libre passe sous MIN_FREE_DISK_MB (refuse alors la partie)."""
+    try:
+        free_mb = shutil.disk_usage("trajectories").free // (1024 * 1024)
+    except Exception:
+        return True  # en cas de doute, ne pas bloquer l'expérience
+    if free_mb < MIN_FREE_DISK_MB:
+        logger.critical("[DISK_LOW] espace libre %d Mo < seuil %d Mo : nouvelle partie refusée",
+                        free_mb, MIN_FREE_DISK_MB)
+        return False
+    return True
+
+
 def try_create_game(game_name, **kwargs):
     """
     Tries to create a brand new Game object based on parameters in `kwargs`
@@ -594,6 +729,15 @@ def _leave_game(user_id):
 # déclenche également un évènement socketIO pour lancer la partie
 # cet évènement est capté par le fichier planning.js
 def _create_game(user_id, game_name, params={}):
+    # Arrêt en douceur en cours : ne pas démarrer de nouvel essai.
+    if DRAINING:
+        logger.warning("[DRAIN] création de partie refusée (arrêt en cours) uid=%s", user_id)
+        emit("creation_failed", {"error": "Le serveur redémarre, merci de réessayer dans un instant."})
+        return
+    # Garde d'espace disque : ne pas démarrer un essai qu'on ne pourra pas sauvegarder.
+    if not _enough_disk_space():
+        emit("creation_failed", {"error": "Stockage serveur plein — merci de contacter le chercheur."})
+        return
     current_user = get_current_user()
     existing_game = GAMES.get(game_name, None)
     if existing_game:
@@ -2124,8 +2268,18 @@ def condition_tutorial():
     )
 
 
+@app.route('/healthz')
+def healthz():
+    """Sonde de liveness (sans état, sans auth) pour nginx/systemd/monitoring."""
+    return "ok", 200
+
+
 @app.route('/debug')
 def debug():
+    # /debug expose l'état interne (parties actives, uids) : fermé hors dev sauf si
+    # ENABLE_DEBUG_ENDPOINT=1 (triage ponctuel en prod).
+    if not (app.config['DEBUG'] or _env_flag('ENABLE_DEBUG_ENDPOINT', False)):
+        return ("", 404)
     resp = {}
     games = []
     active_games = []
@@ -2470,6 +2624,96 @@ def trial_save_routine(data, completed=True):
         else:
             logger.critical("[TRIAL_SAVE_LOST] ÉCHEC TOTAL de sauvegarde de l'essai uid=%s trial_id=%s", uid, trial_id)
 
+
+def flush_active_trials(reason="shutdown"):
+    """Sauvegarde de secours des essais ACTIFS lors d'un arrêt (SIGTERM/atexit/hook).
+
+    La trajectoire d'un essai vit en mémoire jusqu'à sa fin (cf. play_game). Sans ce
+    filet, un arrêt ou un redéploiement en pleine partie perdrait l'essai en cours.
+    On écrit chaque partie active comme INTERROMPUE (_interrupted/), donc rejouable,
+    sans toucher au chemin canonique. Idempotent : ne s'exécute qu'une seule fois.
+    """
+    global _FLUSH_DONE
+    if _FLUSH_DONE:
+        return
+    _FLUSH_DONE = True
+    try:
+        active_ids = list(ACTIVE_GAMES)
+    except Exception:
+        active_ids = []
+    if not active_ids:
+        return
+    logger.warning("[SHUTDOWN_FLUSH] sauvegarde de %d essai(s) actif(s) (raison=%s)", len(active_ids), reason)
+    for game_id in active_ids:
+        try:
+            game = get_game(game_id)
+            if game is None:
+                continue
+            data = game.get_data()
+            if not isinstance(data, dict):
+                data = {}
+            trial_save_routine(data, completed=False)
+        except Exception:
+            logger.exception("[SHUTDOWN_FLUSH] échec de sauvegarde de l'essai actif id=%s", game_id)
+
+
+def _on_shutdown(reason="atexit"):
+    """Séquence d'arrêt : drainer -> sauvegarder les essais actifs -> notifier les clients."""
+    global DRAINING
+    DRAINING = True
+    flush_active_trials(reason)
+    try:
+        on_exit()
+    except Exception:
+        logger.exception("[SHUTDOWN] notification des clients échouée")
+
+
+# Enregistré à l'import (pas seulement dans __main__) pour couvrir gunicorn comme
+# `python app.py`. on_exit/flush_active_trials sont idempotents -> double appel sans danger.
+atexit.register(_on_shutdown, "atexit")
+
+
+def _trajectory_checkpoint_path(game):
+    """Chemin du checkpoint d'un essai en cours (hors chemin canonique) ou None."""
+    try:
+        data = game.data if isinstance(getattr(game, "data", None), dict) else {}
+    except Exception:
+        return None
+    uid = data.get("uid")
+    trial_id = data.get("trial_id")
+    cfg = data.get("config") if isinstance(data.get("config"), dict) else {}
+    config_id = cfg.get("config_id")
+    if not (uid and trial_id and config_id):
+        return None
+    return "trajectories/%s/%s/_checkpoint/%s.json" % (config_id, uid, trial_id)
+
+
+def _write_trajectory_checkpoint(game):
+    """Écrit un instantané atomique de la trajectoire en cours (best-effort)."""
+    path = _trajectory_checkpoint_path(game)
+    if not path:
+        return
+    try:
+        with game.lock:
+            data = deepcopy(game.data) if isinstance(getattr(game, "data", None), dict) else None
+    except Exception:
+        data = None
+    if isinstance(data, dict):
+        atomic_json_write(path, data)
+
+
+def _clear_trajectory_checkpoint(game):
+    """Supprime le checkpoint après une sauvegarde finale réussie (best-effort)."""
+    path = _trajectory_checkpoint_path(game)
+    if not path:
+        return
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
 #############
 # Game Loop #
 #############
@@ -2478,9 +2722,10 @@ def trial_save_routine(data, completed=True):
 # qui permet de mettre à jour les informations de la partie
 def play_game(game, fps=15):
     status = Game.Status.ACTIVE
-    
+    _frame = 0
+
     print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
-    
+
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
         with game.lock:
             status = game.tick()
@@ -2504,6 +2749,12 @@ def play_game(game, fps=15):
             socketio.sleep(game.reset_timeout / 1000)
         else:
             socketio.emit('state_pong', {"state": game.get_state()}, room=game.id)
+            # Checkpoint incrémental périodique : borne la perte de trajectoire à
+            # ~TRAJECTORY_CHECKPOINT_EVERY frames si le process tombe avant la
+            # sauvegarde de fin d'essai. Écrit hors du chemin canonique.
+            _frame += 1
+            if _frame % TRAJECTORY_CHECKPOINT_EVERY == 0:
+                _write_trajectory_checkpoint(game)
         socketio.sleep(1 / fps)
     with game.lock:
 
@@ -2516,6 +2767,9 @@ def play_game(game, fps=15):
         # conserve les données partielles hors du chemin canonique pour que
         # l'essai reste rejouable au lieu d'être considéré comme « joué ».
         trial_save_routine(data, completed=(status == Game.Status.DONE))
+        # L'essai est sauvegardé (canonique ou _interrupted/) : le checkpoint devient
+        # redondant, on le retire.
+        _clear_trajectory_checkpoint(game)
         if status == Game.Status.DONE:
             # Fin de l'essai courant. En mode single_trial (expérience), le client
             # navigue vers le séquenceur de questionnaires post-essai (pages HTML
@@ -2535,15 +2789,23 @@ def play_game(game, fps=15):
 
 
 if __name__ == '__main__':
-    # Dynamically parse host and port from environment variables (set by docker build)
-    # host = os.getenv('HOST', 'localhost')
-    # port = int(os.getenv('PORT', 8080))
-    # Attach exit handler to ensure graceful shutdown
-    atexit.register(on_exit)
-    if os.getenv('FLASK_ENV', 'production') == 'production':
-        debug_env=False
-    else:
-        debug_env=True
+    # Mode dev (python app.py). En prod c'est gunicorn (cf. gunicorn.conf.py) qui sert
+    # l'app ; ce bloc n'est alors PAS exécuté. La sauvegarde d'arrêt est déjà couverte
+    # par atexit (_on_shutdown, enregistré à l'import) + les hooks gunicorn.
+    import signal
 
-    # https://localhost:80 is external facing address regardless of build environment
-    socketio.run(app, host='0.0.0.0', port='5000', debug=debug_env)
+    def _sigterm(signum, frame):
+        # En dev, un `kill` direct n'aurait pas déclenché atexit : on force le flush.
+        _on_shutdown("SIGTERM")
+        raise SystemExit(0)
+
+    try:
+        signal.signal(signal.SIGTERM, _sigterm)
+    except (ValueError, OSError):
+        pass  # pas dans le thread principal : on s'en remet à atexit
+
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', '5000'))
+    debug_env = os.getenv('FLASK_ENV', 'production') != 'production'
+
+    socketio.run(app, host=host, port=port, debug=debug_env)

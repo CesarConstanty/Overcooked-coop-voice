@@ -1356,8 +1356,23 @@ class PageTracker:
                     "_raw_history": self.page_history,
                 }
 
-                with open(self.json_file, 'w', encoding='utf-8') as f:
-                    json.dump(output, f, ensure_ascii=False, indent=2)
+                # Écriture ATOMIQUE : fichier temporaire + fsync + os.replace, pour ne
+                # jamais laisser un fichier de suivi tronqué en cas de crash/disque plein
+                # (le motif idempotent canonique reste safe_json_write côté app.py).
+                tmp_file = self.json_file.parent / (self.json_file.name + f".{os.getpid()}.tmp")
+                try:
+                    with open(tmp_file, 'w', encoding='utf-8') as f:
+                        json.dump(output, f, ensure_ascii=False, indent=2)
+                        f.flush()
+                        os.fsync(f.fileno())
+                    os.replace(tmp_file, self.json_file)
+                except Exception:
+                    if tmp_file.exists():
+                        try:
+                            tmp_file.unlink()
+                        except OSError:
+                            pass
+                    raise
 
                 # Vérifier et logger la taille du fichier sauvegardé
                 file_size = os.path.getsize(self.json_file)

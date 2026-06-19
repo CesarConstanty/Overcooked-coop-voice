@@ -1,0 +1,10 @@
+[Unit]
+Description=Sauvegarde périodique des données Overcooked
+
+[Timer]
+# Toutes les 30 min, décalé du :00 pour éviter les pics.
+OnCalendar=*-*-* *:17,47:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=Sauvegarde des données d'expérience Overcooked
+
+[Service]
+Type=oneshot
+# Adapter User/Group au compte propriétaire du dépôt.
+User=cesar
+Group=cesar
+Environment=OVERCOOKED_BACKUP_DIR=/var/backups/overcooked
+ExecStart=/home/cesar/python-projects/Overcooked-coop-voice/scripts/backup.sh
