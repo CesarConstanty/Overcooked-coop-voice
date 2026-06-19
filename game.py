@@ -932,6 +932,15 @@ class PlanningGame(OvercookedGame):
         self.triplet_start_time = None
         self.triplet_duration = 0
 
+        # Temporary recipe system — configuration (constante sur l'expérience)
+        self.temporary_recipe_enabled = bool(self.config.get('temporary_recipe', False))
+        self.random_temporary_recipe = bool(self.config.get('random_temporary_recipe', False))
+        self.min_temporary_recipe = float(self.config.get('minimum_time_temporary_recipe', 10))
+        self.max_temporary_recipe = float(self.config.get('maximum_time_temporary_recipe', 50))
+        self.exact_temporary_recipe = float(self.config.get('exact_time_temporary_recipe', 50))
+        # État runtime : {ingredients(tuple): timestamp d'expiration}, réinitialisé par essai
+        self.recipe_expiry = {}
+
     def _update_ai_speed(self):
         """Update AI speed based on slowdown state (PlanningGame only)."""
         if not self.ai_slowdown_enabled:
@@ -1064,6 +1073,47 @@ class PlanningGame(OvercookedGame):
         self.state._all_orders = self._get_current_triplet_orders()
 
     # ------------------------------------------------------------------
+    # Temporary recipe helpers
+    # ------------------------------------------------------------------
+
+    def _temporary_recipes_active(self):
+        """Mutuellement exclusif avec triplet : le triplet est prioritaire."""
+        return self.temporary_recipe_enabled and not self.order_triplets
+
+    def _recipe_lifetime(self):
+        """Durée de vie (secondes) d'une recette : aléatoire bornée ou exacte."""
+        if self.random_temporary_recipe:
+            return random.uniform(self.min_temporary_recipe, self.max_temporary_recipe)
+        return self.exact_temporary_recipe
+
+    def _pick_replacement_recipe(self):
+        """Recette du pool du layout absente de la liste courante (préserve l'unicité)."""
+        present = {r.ingredients for r in self.state._all_orders}
+        candidates = [Recipe.from_dict(d) for d in self.mdp.start_all_orders
+                      if Recipe.from_dict(d).ingredients not in present]
+        return random.choice(candidates) if candidates else None
+
+    def _update_temporary_recipes(self):
+        """Expire les recettes en fin de vie et les remplace 1-pour-1."""
+        now = time()
+        # Purge des entrées de recettes livrées/absentes
+        present = {r.ingredients for r in self.state._all_orders}
+        self.recipe_expiry = {k: v for k, v in self.recipe_expiry.items() if k in present}
+        # Expiration + remplacement 1-pour-1
+        expired = [r for r in list(self.state._all_orders)
+                   if self.recipe_expiry.get(r.ingredients, float('inf')) <= now]
+        for r in expired:
+            self.state._all_orders.remove(r)
+            self.recipe_expiry.pop(r.ingredients, None)
+            replacement = self._pick_replacement_recipe() or r  # cas dégénéré : réarme la même
+            self.state._all_orders.append(replacement)
+            self.recipe_expiry[replacement.ingredients] = now + self._recipe_lifetime()
+        # Affecte une durée de vie aux recettes nouvelles (initial / infinite_all_order)
+        for r in self.state._all_orders:
+            if r.ingredients not in self.recipe_expiry:
+                self.recipe_expiry[r.ingredients] = now + self._recipe_lifetime()
+
+    # ------------------------------------------------------------------
 
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
@@ -1177,6 +1227,13 @@ class PlanningGame(OvercookedGame):
             # Apply first triplet immediately so to_json() sends the correct subset
             self.state._all_orders = self._get_current_triplet_orders()
 
+        # Réinitialise les durées de vie des recettes temporaires pour ce nouvel essai
+        self.recipe_expiry = {}
+        if self._temporary_recipes_active():
+            now = time()
+            for r in self.state._all_orders:
+                self.recipe_expiry[r.ingredients] = now + self._recipe_lifetime()
+
         self.trial_id = self.participant_uid + '_' + \
             str(self.step) + "_" + str(self.curr_trial_in_game)
 
@@ -1218,7 +1275,11 @@ class PlanningGame(OvercookedGame):
             if len(self.state._all_orders) < before_triplet_count:
                 self.orders_served += 1
                 self._advance_triplet()
-        
+
+        # Temporary recipe system : expirer/remplacer les recettes en fin de vie
+        if self._temporary_recipes_active():
+            self._update_temporary_recipes()
+
         if joint_action[1] != (0, 0):
             self.human_action_count += 1
             if joint_action[1] == 'interact':
@@ -1339,6 +1400,15 @@ class PlanningGame(OvercookedGame):
         else:
             state_dict['triplet_time_left'] = None
             state_dict['triplet_display_orders'] = None
+        # Temps restant par recette (aligné sur state.all_orders trié)
+        if self._temporary_recipes_active():
+            now = time()
+            state_dict['recipe_time_left'] = [
+                max(0, round(self.recipe_expiry.get(r.ingredients, 0) - now))
+                for r in self.state.all_orders
+            ]
+        else:
+            state_dict['recipe_time_left'] = None
         state_dict['intentions'] = self.get_intentions(self.planning_agent_id)
         state_dict['state']['players'][int(
             self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)

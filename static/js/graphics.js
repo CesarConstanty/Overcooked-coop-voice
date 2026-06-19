@@ -222,7 +222,8 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             all_orders : config.start_state.state.all_orders,
             intentions : config.start_state.intentions,
             triplet_time_left : config.start_state.triplet_time_left || null,
-            triplet_display_orders : config.start_state.triplet_display_orders || null
+            triplet_display_orders : config.start_state.triplet_display_orders || null,
+            recipe_time_left : config.start_state.recipe_time_left || null
         }
         this.condition = config.condition;
         this.mechanic = config.mechanic;
@@ -248,6 +249,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.hud_data.intentions = state.intentions;
         this.hud_data.triplet_time_left = (state.triplet_time_left !== undefined) ? state.triplet_time_left : null;
         this.hud_data.triplet_display_orders = state.triplet_display_orders || null;
+        this.hud_data.recipe_time_left = state.recipe_time_left || null;
         this.state = state.state;
     }
 
@@ -1137,7 +1139,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         // Use triplet_display_orders (always 3 recipes from layout) if available, else fall back to all_orders
         const displayOrders = hud_data.triplet_display_orders || hud_data.all_orders;
         if (typeof(hud_data.all_orders) !== 'undefined') {
-            this._drawAllOrders(displayOrders, sprites, board_height, board_width, undefined, hud_data.triplet_time_left); // affiche les recettes restantes
+            this._drawAllOrders(displayOrders, sprites, board_height, board_width, undefined, hud_data.triplet_time_left, hud_data.recipe_time_left); // affiche les recettes restantes
         }
         /* if (typeof(hud_data.bonus_orders) !== 'undefined') {
             this._drawBonusOrders(hud_data.bonus_orders, sprites, board_height);
@@ -1182,7 +1184,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                 this._drawGoalIntentions(hud_data.intentions.goal, sprites, board_height, board_width);
             }                   
             if (typeof(hud_data.all_orders) !== 'undefined' && this.condition.recipe_hud) {
-                this._drawAllOrders(displayOrders, sprites, board_height, board_width, hud_data.intentions.recipe, hud_data.triplet_time_left);
+                this._drawAllOrders(displayOrders, sprites, board_height, board_width, hud_data.intentions.recipe, hud_data.triplet_time_left, hud_data.recipe_time_left);
             }
         }
         // [COMM JOUEUR→IA] Boutons de communication d'intention (sections distale / proximale),
@@ -1237,7 +1239,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
      * The server (PlanningGame) manages triplet rotation and sends only the
      * current triplet's unserved orders in state.all_orders.
      */
-    _drawAllOrders(orders, sprites, board_height, board_width, intentions, triplet_time_left) {
+    _drawAllOrders(orders, sprites, board_height, board_width, intentions, triplet_time_left, recipe_time_left) {
         if (typeof(orders) !== 'undefined' && orders !== null) {
             const orders_str = "All Orders: ";
             if (typeof(sprites['all_orders']) !== 'undefined') {
@@ -1262,6 +1264,16 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                     orderSprite.setDisplaySize(60, 60);
                     orderSprite.setOrigin(0);
                     orderSprite.depth = 1;
+
+                    // Compte à rebours par recette (recettes temporaires)
+                    if (recipe_time_left && recipe_time_left[i] !== undefined && recipe_time_left[i] !== null) {
+                        let timerText = this.add.text(
+                            board_width + 40 * i, 95, recipe_time_left[i] + 's',
+                            { font: '14px Arial', fill: '#ffffff', align: 'left' }
+                        );
+                        timerText.depth = 2;
+                        sprites['all_orders']['orders'].push(timerText);
+                    }
                 }
 
                 // Triplet countdown timer

@@ -76,6 +76,15 @@ affichage d'un trio de recette au lieu du all order de 6, si une recette est com
 régle de durée du trio de recette (durée aléatoire et bornée) =
 "triplet_display_min" : 10,
 "triplet_display_max" : 30,
+active la durée de vie limitée des recettes (remplacées à l'expiration) =
+"temporary_recipe" : false,
+durée de vie aléatoire (true) ou exacte (false) des recettes temporaires =
+"random_temporary_recipe" : false,
+durée de vie minimum/maximum en secondes quand aléatoire =
+"minimum_time_temporary_recipe" : 10,
+"maximum_time_temporary_recipe" : 50,
+durée de vie exacte en secondes quand non aléatoire =
+"exact_time_temporary_recipe" : 50,
 ralentissement des actions de l'AA lorsqu'il communique ses intentions =
 "ai_slowdown_enabled": true,
 permet à l'IA de voir l'objet tenu dans les mains du participant =
