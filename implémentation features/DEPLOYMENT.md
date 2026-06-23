@@ -73,7 +73,7 @@ sudo cp deploy/overcooked.env.example /etc/overcooked.env
 python3 -c "import os;print(os.urandom(32).hex())"
 sudoedit /etc/overcooked.env   # coller SECRET_KEY, régler CORS_ALLOWED_ORIGINS=https://<FQDN>
 sudo chmod 600 /etc/overcooked.env
-sudo chown cesar:cesar /etc/overcooked.env
+sudo chown root:root /etc/overcooked.env
 ```
 
 Variables clés : `FLASK_ENV=production`, `SECRET_KEY=...` (stable !), `CORS_ALLOWED_ORIGINS`,
@@ -85,16 +85,54 @@ Variables clés : `FLASK_ENV=production`, `SECRET_KEY=...` (stable !), `CORS_ALL
   phase de jeu + marge). À **ajuster avec le load-test** (étape 9).
 - Vérifier `config_test.completion_link` = bon code de complétion Prolific.
 
-## 6. nginx + TLS (Let's Encrypt)
+## 6. nginx + passage HTTP → HTTPS (Let's Encrypt)
+
+Le vhost livré (`deploy/nginx-overcooked.conf`) est **HTTP seul** : on met d'abord le serveur
+en place sur le port 80, puis **`certbot --nginx` ajoute lui-même tout le bloc HTTPS** (port 443,
+certificat, redirection). C'est l'ordre correct — `nginx -t` ne peut pas valider de directives
+TLS tant que le certificat n'existe pas.
+
+> **Pré-requis** : le FQDN doit déjà **résoudre vers l'IP du VPS** (`dig +short "$FQDN"`) et les
+> ports **80/443** doivent être ouverts (ufw **et** pare-feu OVH). Le hostname OVH par défaut
+> `vps-5d41a539.vps.ovh.net` pointe déjà vers le VPS : rien à configurer côté DNS.
 
 ```bash
+cd ~/python-projects/Overcooked-coop-voice
+FQDN=vps-5d41a539.vps.ovh.net           # FQDN public du serveur (ici le hostname OVH)
+
+# 1) Déposer le vhost HTTP et l'adapter (domaine + chemin du dépôt pour /static)
 sudo cp deploy/nginx-overcooked.conf /etc/nginx/sites-available/overcooked
-sudo sed -i 's/overcooked.exemple.fr/<VOTRE_FQDN>/g' /etc/nginx/sites-available/overcooked
-# adapter aussi le chemin alias /static/ si le dépôt n'est pas dans /home/cesar/...
-sudo ln -s /etc/nginx/sites-available/overcooked /etc/nginx/sites-enabled/
+sudo sed -i "s/overcooked.exemple.fr/$FQDN/g" /etc/nginx/sites-available/overcooked
+sudo sed -i "s#/home/cesar/python-projects/Overcooked-coop-voice#$HOME/python-projects/Overcooked-coop-voice#g" \
+  /etc/nginx/sites-available/overcooked
+sudo ln -sf /etc/nginx/sites-available/overcooked /etc/nginx/sites-enabled/
+
+# 2) Désactiver le vhost par défaut de nginx : il écoute aussi sur :80 (default_server)
+#    et fait échouer certbot (« no matching server block ») / sert la page « Welcome to nginx ».
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# 3) Laisser nginx (www-data) traverser le home pour servir /static
+sudo chmod o+x "$HOME"
+
+# 4) Valider et activer en HTTP
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d <VOTRE_FQDN>     # émet le certificat + réécrit le vhost + renouvellement auto
+
+# 5) Passer en HTTPS : certbot obtient le certificat ET injecte le bloc 443 + la redirection
+sudo certbot --nginx -d "$FQDN" --redirect --agree-tos -m cesar.constanty@onera.fr --no-eff-email
 ```
+
+**Durée :** étape 5 ≈ **30 s à 2 min** (vérification DNS + défi ACME + émission du certificat +
+rechargement nginx). L'ensemble du §6 prend **2 à 5 min**. Le certificat est valable **90 jours**
+et **renouvelé automatiquement** (timer `certbot.timer` ; vérifier avec
+`systemctl list-timers | grep certbot` et `sudo certbot renew --dry-run`).
+
+Après certbot, `/etc/nginx/sites-available/overcooked` contient désormais le bloc HTTPS :
+**ne pas recopier** `deploy/nginx-overcooked.conf` par-dessus (cela réintroduirait un vhost HTTP
+seul et casserait `nginx -t`). Vérifier : `curl -fsS https://$FQDN/healthz` → `ok`.
+
+> **Si certbot échoue** (« challenge failed » / « could not find a matching server block ») :
+> vérifier que `dig +short "$FQDN"` renvoie bien l'IP du VPS, que le **port 80 est joignable
+> depuis Internet** (ufw + pare-feu OVH), et que `sudo nginx -T | grep server_name` affiche `$FQDN`.
 
 ## 7. Service systemd
 

@@ -49,15 +49,18 @@ sudo apt install -y build-essential python3-dev
 
 ```bash
 # 1) Récupérer le code (overcooked_ai_py est VENDORÉ dans le dépôt : pas d'install pip)
-git clone https://github.com/CesarConstanty/Overcooked-coop-voice.git \
-  /home/<user>/python-projects/Overcooked-coop-voice
-cd /home/<user>/python-projects/Overcooked-coop-voice
+#    Le jeu est sur la branche PUBLIQUE `serveur_test` : clone anonyme, aucun token requis.
+#    `~` = home de l'utilisateur courant du serveur (peu importe son nom) ; git crée les dossiers parents.
+git clone -b serveur_test \
+  https://github.com/CesarConstanty/Overcooked-coop-voice.git \
+  ~/python-projects/Overcooked-coop-voice
+cd ~/python-projects/Overcooked-coop-voice
 ls overcooked_ai_py/   # DOIT être non vide
 
 # 2) Créer le venv et installer les dépendances de déploiement
-python3 -m venv /home/<user>/environnements/overcooked
-/home/<user>/environnements/overcooked/bin/pip install -U pip
-/home/<user>/environnements/overcooked/bin/pip install -r requirements.txt
+python3 -m venv ~/environnements/overcooked
+~/environnements/overcooked/bin/pip install -U pip
+~/environnements/overcooked/bin/pip install -r python-projects/Overcooked-coop-voice/requirements_serv.txt
 ```
 
 `requirements.txt` ne contient que le **runtime serveur**, en versions épinglées
@@ -103,10 +106,10 @@ surface d'attaque) :
 ## 7. Vérification post-installation
 
 ```bash
-VENV=/home/<user>/environnements/overcooked/bin
+VENV=~/environnements/overcooked/bin
 
 # a) Le module s'importe (déclenche le préchauffage des caches MDP/MLAM)
-cd /home/<user>/python-projects/Overcooked-coop-voice
+cd ~/python-projects/Overcooked-coop-voice
 FLASK_ENV=development $VENV/python -c "import app; print('IMPORT OK')"
 
 # b) Cohérence des dépendances
@@ -125,7 +128,7 @@ kill %1
 
 Pour figer l'environnement exact installé :
 ```bash
-/home/<user>/environnements/overcooked/bin/pip freeze > requirements.lock.txt
+~/environnements/overcooked/bin/pip freeze > requirements.lock.txt
 ```
 et réinstaller depuis ce lock sur les futures machines.
 
