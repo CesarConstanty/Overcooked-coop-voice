@@ -138,6 +138,8 @@ seul et casserait `nginx -t`). Vérifier : `curl -fsS https://$FQDN/healthz` →
 
 ```bash
 sudo cp deploy/overcooked.service /etc/systemd/system/overcooked.service
+sudo sed -i 's/cesar/debian/g' /etc/systemd/system/overcooked.service
+
 # adapter User/Group, WorkingDirectory et le chemin du venv si besoin
 sudo systemctl daemon-reload
 sudo systemctl enable --now overcooked
