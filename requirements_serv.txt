@@ -1,0 +1,63 @@
+# =====================================================================
+# Dépendances de DÉPLOIEMENT (serveur de jeu) — versions épinglées,
+# testées ensemble sur Debian 12 / Python 3.11.2 (eventlet + Flask-SocketIO).
+#   Install : pip install -r requirements.txt
+# NB : overcooked_ai_py est vendoré dans le dépôt (pas de paquet PyPI).
+# =====================================================================
+
+# --- Stack Flask ---
+Flask==3.1.0
+Werkzeug==3.1.3
+Jinja2==3.1.5
+MarkupSafe==3.0.2
+itsdangerous==2.2.0
+click==8.1.8
+blinker==1.9.0
+
+# --- Temps réel (WebSocket) — trio sensible à la compatibilité, à garder aligné ---
+Flask-SocketIO==5.5.1
+python-socketio==5.12.1
+python-engineio==4.11.2
+bidict==0.23.1
+simple-websocket==1.1.0
+wsproto==1.2.0
+h11==0.14.0
+
+# --- Sessions / base de données ---
+Flask-Session==0.8.0
+cachelib==0.13.0
+msgspec==0.19.0
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.38
+typing_extensions==4.12.2
+
+# --- Serveur asynchrone (UN worker eventlet ; voir gunicorn.conf.py) ---
+# IMPORTANT : gunicorn<23 — le worker eventlet a été retiré dans gunicorn>=23.
+eventlet==0.39.0
+greenlet==3.1.1
+dnspython==2.7.0
+gunicorn==22.0.0
+
+# --- Moteur de jeu (overcooked_ai_py : MDP / planification) ---
+numpy==2.3.2
+scipy==1.16.0
+tqdm==4.67.1
+
+# --- Divers (tiré transitivement, épinglé pour la reproductibilité) ---
+requests==2.32.3
+certifi==2025.1.31
+charset-normalizer==3.4.1
+idna==3.10
+urllib3==2.3.0
+six==1.17.0
+packaging==24.2
+
+# =====================================================================
+# OPTIONNEL — NON requis par le serveur de jeu.
+# Outils dev / conception de layouts / notebooks (creation_layout.py,
+# compute_mlam.py, layout_explore.ipynb). À installer séparément si besoin :
+#   pip install matplotlib ipython ipywidgets pandas scikit-learn
+# Test de charge (scripts/loadtest.py) :
+#   pip install "python-socketio[client]" websocket-client
+# (flask-login et gevent étaient déclarés mais ne sont plus utilisés au runtime.)
+# =====================================================================
