@@ -1266,11 +1266,14 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
                     orderSprite.depth = 1;
 
                     // Compte à rebours par recette (recettes temporaires)
+                    // Centré horizontalement sous l'icône de la recette : celle-ci fait
+                    // 60 px (origine 0) posée tous les 40 px, donc son centre est à +30.
                     if (recipe_time_left && recipe_time_left[i] !== undefined && recipe_time_left[i] !== null) {
                         let timerText = this.add.text(
-                            board_width + 40 * i, 95, recipe_time_left[i] + 's',
-                            { font: '14px Arial', fill: '#ffffff', align: 'left' }
+                            board_width + 40 * i + 30, 95, recipe_time_left[i] + 's',
+                            { font: '14px Arial', fill: '#ffffff', align: 'center' }
                         );
+                        timerText.setOrigin(0.5, 0);
                         timerText.depth = 2;
                         sprites['all_orders']['orders'].push(timerText);
                     }

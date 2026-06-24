@@ -941,6 +941,13 @@ class PlanningGame(OvercookedGame):
         # État runtime : {ingredients(tuple): timestamp d'expiration}, réinitialisé par essai
         self.recipe_expiry = {}
 
+        # infinite_all_order — configuration (constante sur l'expérience)
+        # Quand actif, l'essai n'épuise jamais ses commandes : on maintient en permanence
+        # `number_shown_recipes` recettes affichées, réapprovisionnées (unique) depuis le
+        # pool du layout (start_all_orders) après chaque livraison/expiration.
+        self.infinite_all_order = bool(self.config.get('infinite_all_order', False))
+        self.number_shown_recipes = int(self.config.get('number_shown_recipes', 5))
+
     def _update_ai_speed(self):
         """Update AI speed based on slowdown state (PlanningGame only)."""
         if not self.ai_slowdown_enabled:
@@ -1114,6 +1121,46 @@ class PlanningGame(OvercookedGame):
                 self.recipe_expiry[r.ingredients] = now + self._recipe_lifetime()
 
     # ------------------------------------------------------------------
+    # infinite_all_order : flux continu de recettes, `number_shown_recipes` affichées
+    # ------------------------------------------------------------------
+
+    def _infinite_orders_active(self):
+        """infinite_all_order : réapprovisionne en continu l'affichage jusqu'à
+        `number_shown_recipes`. Mutuellement exclusif avec le triplet (prioritaire)."""
+        return self.infinite_all_order and not self.order_triplets
+
+    def _infinite_recipe_target(self):
+        """Nombre de recettes à maintenir affichées, borné par la taille du pool du layout
+        (on ne peut pas afficher plus de recettes UNIQUES que n'en contient start_all_orders)."""
+        pool_size = len(self.mdp.start_all_orders)
+        return max(0, min(self.number_shown_recipes, pool_size))
+
+    def _init_infinite_recipes(self):
+        """Démarre l'essai avec exactement `number_shown_recipes` recettes : un
+        sous-ensemble aléatoire du pool du layout (start_all_orders)."""
+        target = self._infinite_recipe_target()
+        pool = [Recipe.from_dict(d) for d in self.mdp.start_all_orders]
+        random.shuffle(pool)
+        self.state._all_orders = pool[:target]
+
+    def _replenish_infinite_recipes(self):
+        """Complète state._all_orders jusqu'à `number_shown_recipes` en piochant (unique)
+        dans le pool du layout. Les recettes ajoutées reçoivent une durée de vie si le
+        système de recettes temporaires est actif."""
+        target = self._infinite_recipe_target()
+        pool = [Recipe.from_dict(d) for d in self.mdp.start_all_orders]
+        now = time()
+        while len(self.state._all_orders) < target:
+            present = {r.ingredients for r in self.state._all_orders}
+            candidates = [r for r in pool if r.ingredients not in present]
+            if not candidates:
+                break
+            new_r = random.choice(candidates)
+            self.state._all_orders.append(new_r)
+            if self._temporary_recipes_active():
+                self.recipe_expiry[new_r.ingredients] = now + self._recipe_lifetime()
+
+    # ------------------------------------------------------------------
 
     def _curr_game_over(self): # Vérifie si le all_order est complété ou si la durée maximum de l'essai est dépassée
         if self.mechanic == "recipe":
@@ -1227,6 +1274,11 @@ class PlanningGame(OvercookedGame):
             # Apply first triplet immediately so to_json() sends the correct subset
             self.state._all_orders = self._get_current_triplet_orders()
 
+        # infinite_all_order : démarre l'essai avec exactement number_shown_recipes recettes
+        # (sous-ensemble du pool). À faire AVANT l'affectation des durées de vie ci-dessous.
+        if self._infinite_orders_active():
+            self._init_infinite_recipes()
+
         # Réinitialise les durées de vie des recettes temporaires pour ce nouvel essai
         self.recipe_expiry = {}
         if self._temporary_recipes_active():
@@ -1279,6 +1331,11 @@ class PlanningGame(OvercookedGame):
         # Temporary recipe system : expirer/remplacer les recettes en fin de vie
         if self._temporary_recipes_active():
             self._update_temporary_recipes()
+
+        # infinite_all_order : réapprovisionne jusqu'à number_shown_recipes après
+        # chaque livraison/expiration, pour que l'affichage ne s'épuise jamais.
+        if self._infinite_orders_active():
+            self._replenish_infinite_recipes()
 
         if joint_action[1] != (0, 0):
             self.human_action_count += 1
