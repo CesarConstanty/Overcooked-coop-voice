@@ -362,7 +362,15 @@ class PlanningAgent(Agent):
         if self.auto_unstuck:
             # HACK: if two agents get stuck, select an action at random that would
             # change the player positions if the other player were not to move
-            if self.prev_state is not None and state.players_pos_and_or == self.prev_state.players_pos_and_or:
+            # [CUTTING BOARD] Un INTERACT est une action VOLONTAIRE « sur place » :
+            # déposer / découper / récupérer un ingrédient sur une planche demande
+            # plusieurs INTERACT consécutifs (chop_time interactions) sans que la
+            # position de l'agent change. L'agent travaille, il n'est PAS bloqué : il
+            # ne faut donc pas le compter comme "stuck", sinon l'anti-blocage le fait
+            # dériver d'une case entre chaque découpe au lieu de simplement couper.
+            if chosen_action == Action.INTERACT:
+                self.stuck_frames = 0
+            elif self.prev_state is not None and state.players_pos_and_or == self.prev_state.players_pos_and_or:
                 self.stuck_frames += 1
                 # Only activate anti-blocking after being stuck for 2 consecutive frames
                 if self.stuck_frames >= 2:
