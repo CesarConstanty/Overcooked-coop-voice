@@ -1,13 +1,15 @@
 {
-    "grid":  """XXXXPXX
-                B  X  X
+    "grid":  """XXXXPTX
+                T  X  X
                 X  X2 S
-                X     A
-                X1XYE X
-                X     X
-                XDTOCXX""",
+                T     T
+                X1XXX X
+                X     O
+                XDTOXXX""",
     "start_all_orders": [{"ingredients": ["onion"]}, {"ingredients": ["tomato"]}, {"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["tomato", "tomato"]}, {"ingredients": ["onion", "onion", "onion"]}],
-    "order_triplets": [[0, 1, 2], [3, 4, 5],[2, 1, 0],[2, 1, 5],[3, 4, 2]],
     "counter_goals":[],
-    "cutting_board_symbol" : "C"
+    "onion_value" : 3,
+    "tomato_value" : 2,
+    "onion_time" : 9,
+    "tomato_time" : 6
 }
