@@ -9,7 +9,6 @@ layouts = [
     "test01",
     "test01_180",
     "test01_90",
-    "test01_dispenser",
     "test02",
     "test02_180",
     "test02_90",

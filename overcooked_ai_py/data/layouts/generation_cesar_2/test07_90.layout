@@ -5,7 +5,7 @@
 				X  X  X
 				X XXP X
 				X    1X
-				XTXXXXX""",
+				XTXXXXC""",
 	"start_all_orders": [{'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}],
 	"rew_shaping_params": None,
 	"counter_goals": [],

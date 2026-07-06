@@ -4,7 +4,7 @@
                 X P   O
                 X XXX X
                 D   X X
-                X2    X
+                X2    C
                 XXXTXXX""",
     "start_all_orders": [{"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["tomato", "tomato"]}, {"ingredients": ["onion", "onion", "onion"]}, {"ingredients": ["onion", "onion", "tomato"]}, {"ingredients": ["onion", "tomato", "tomato"]}],
     "counter_goals":[],

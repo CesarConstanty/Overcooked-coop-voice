@@ -1,15 +1,16 @@
 {
-    "grid":  """XXXXPTX
+    "grid":  """XXXXPXX
                 T  X  X
                 X  X2 S
-                T     T
-                X1XXX X
+                X     X
+                X1XCX X
                 X     O
-                XDTOXXX""",
-    "start_all_orders": [{"ingredients": ["onion"]}, {"ingredients": ["tomato"]}, {"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["tomato", "tomato"]}, {"ingredients": ["onion", "onion", "onion"]}],
-    "counter_goals":[],
-    "onion_value" : 3,
-    "tomato_value" : 2,
-    "onion_time" : 9,
-    "tomato_time" : 6
+                XDXOXXX""",
+    'start_all_orders': [{'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}],
+    'counter_goals': [],
+    'onion_value': 3,
+    'tomato_value': 2,
+    'onion_time': 9,
+    'tomato_time': 6,
+    'cutting_board_symbol': 'C',
 }

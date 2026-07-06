@@ -58,9 +58,9 @@
         "visual_intention_show_asset": true,
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["test01","test02","test03"],
-            "1": ["test01","test02","test03"],
-            "2": ["test01","test02","test03"]
+            "0": ["test01","test02","test03","test04","test05","test06","test07","test08","test09","test10","test11","test12"],
+            "1": ["test01_90","test02_90","test03_90","test04_90","test05_90","test06_90","test07_90","test08_90","test09_90","test10_90","test11_90","test12_90"],
+            "2": ["test01_180","test02_180","test03_180","test04_180","test05_180","test06_180","test07_180","test08_180","test09_180","test10_180","test11_180","test12_180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -146,9 +146,9 @@
         "visual_intention_show_asset": true,
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
         "blocs" : {
-            "0": ["test01","test02","test03"],
-            "1": ["test01","test02","test03"],
-            "2": ["test01","test02","test03"]
+            "0": ["test01","test02","test03","test04","test05","test06","test07","test08","test09","test10","test11","test12"],
+            "1": ["test01_90","test02_90","test03_90","test04_90","test05_90","test06_90","test07_90","test08_90","test09_90","test10_90","test11_90","test12_90"],
+            "2": ["test01_180","test02_180","test03_180","test04_180","test05_180","test06_180","test07_180","test08_180","test09_180","test10_180","test11_180","test12_180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
