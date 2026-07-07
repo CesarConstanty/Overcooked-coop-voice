@@ -122,6 +122,14 @@ def get_user_lock(user_id):
 # Mapping of user id's to the current game (room) they are in
 USER_ROOMS = ThreadSafeDict()
 
+# Mapping user_id -> sid du socket qui « possède » la partie active de l'utilisateur.
+# get_current_user() est indexé par SESSION (uid partagé par tous les sockets/onglets du
+# navigateur), pas par sid. Lors d'une navigation de page, l'ancien et le nouveau socket
+# coexistent brièvement ; sans cette table, le disconnect (tardif) d'un socket périmé
+# démontait la partie que la nouvelle page venait de créer, laissant le client bloqué sur
+# l'écran de chargement (le seul chemin serveur muet est le retour anticipé de on_create).
+USER_ACTIVE_SID = ThreadSafeDict()
+
 # Arrêt en douceur (drain) : quand True, on refuse les nouvelles parties afin de
 # laisser les essais en cours se terminer et être sauvegardés avant l'arrêt.
 DRAINING = False
@@ -744,7 +752,10 @@ def _create_game(user_id, game_name, params={}):
         cleanup_game(existing_game)
     game, err = try_create_game(game_name, **params)
     if not game:
-        emit("creation_failed", {"error": err.__repr__()}, to=current_user.uid)
+        # emit() par défaut -> sid demandeur. (Auparavant `to=current_user.uid` visait une
+        # room où aucun sid n'est jamais joint : le message était perdu et le client, resté
+        # sur l'écran de chargement, ne voyait jamais l'échec.)
+        emit("creation_failed", {"error": err.__repr__()})
         print("error:" + (err.__repr__()))
         return
     spectating = True
@@ -758,7 +769,10 @@ def _create_game(user_id, game_name, params={}):
         socketio.close_room(game.id) # ensure the same client is not in the same room with two sids after connect/disconnect . Will need to be changed in case of multiplayer games
         join_room(game.id)
         set_curr_room(user_id, game.id)
-        game.activate() 
+        # Le sid courant devient le propriétaire de la partie active : seul son disconnect
+        # sera autorisé à la démonter (cf. on_disconnect), pas celui d'un socket périmé.
+        USER_ACTIVE_SID[user_id] = request.sid
+        game.activate()
         ACTIVE_GAMES.add(game.id)
 # Déclenche l'évènement pour lancer la partie qui est écouté par planning.js
 # va également déclencher play_game qui permet de mettre à jour la partie
@@ -1168,19 +1182,31 @@ def index():
                 config["conditions"][bloc]={
             "recipe_head": False,
             "recipe_hud" : False,
-            "asset_hud" : True,
+            "asset_hud" : False,
             "motion_goal" : False,
             "asset_sound" : True,
-            "recipe_sound" : False
+            "recipe_sound" : False,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000),
+            "visual_intention_show_recipe": config.get("visual_intention_show_recipe", True),
+            "visual_intention_show_asset": config.get("visual_intention_show_asset", False)
             }
             elif value =="Er" :
                 config["conditions"][bloc]={
             "recipe_head": False,
-            "recipe_hud" : True,
+            "recipe_hud" : False,
             "asset_hud" : False,
             "motion_goal" : False,
             "asset_sound" : False,
-            "recipe_sound" : True
+            "recipe_sound" : True,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000),
+            "visual_intention_show_recipe": config.get("visual_intention_show_recipe", True),
+            "visual_intention_show_asset": config.get("visual_intention_show_asset", False)
             }
             elif value =="EVH" :
                 config["conditions"][bloc]={
@@ -1197,7 +1223,36 @@ def index():
             "visual_intention_show_recipe": config.get("visual_intention_show_recipe", True),
             "visual_intention_show_asset": config.get("visual_intention_show_asset", True)
             }
-
+            elif value =="VHa" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000),
+            "visual_intention_show_recipe": config.get("visual_intention_show_recipe", False),
+            "visual_intention_show_asset": config.get("visual_intention_show_asset", True)
+            }
+            elif value =="VHr" :
+                config["conditions"][bloc]={
+            "recipe_head": False,
+            "recipe_hud" : False,
+            "asset_hud" : False,
+            "motion_goal" : False,
+            "asset_sound" : False,
+            "recipe_sound" : False,
+            "visual_bubbles" : True,
+            "visual_intention_recipe_duration": config.get("visual_intention_recipe_duration", 2000),
+            "visual_intention_asset_duration": config.get("visual_intention_asset_duration", 1500),
+            "visual_intention_next_duration": config.get("visual_intention_next_duration", 1000),
+            "visual_intention_show_recipe": config.get("visual_intention_show_recipe", True),
+            "visual_intention_show_asset": config.get("visual_intention_show_asset", False)
+            }    
     except KeyError:
         return render_template('UID_error.html')
 
@@ -2330,40 +2385,47 @@ def debug():
 def on_create(data):
     current_user = get_current_user()
     user_id = current_user.uid
-    
-    
-    #print(data)
-    curr_game = get_curr_game(user_id) # Vérifie si un jeu existe déjà pour cet UID
-    if curr_game:
-        # Cannot create if currently in a game
-        return
-    is_planning_design = bool(data.get("planning_design", None))
-    if is_planning_design:
-        #data.pop("planning_design")
-        current_user.config["mechanic"] = data["params"]["mechanic"]
-        current_user.config["blocs"] = {"0": data['params']['layouts']}
-        current_user.config["agent"] = data['params']["playerOne"] if data[
-            'params']["playerOne"] != "human" else data['params']["playerZero"]
-        current_user.config["gameTime"] = data['params']['gameTime']
-        current_user.config["conditions"] = {
-            "0": data['params']['condition']}
-    params = data.get('params', {})
-    game_name = data.get('game_name', 'overcooked')
 
-    # Déclenche la création du jeu avec les données fournies.
-    # single_trial : l'expérience joue UN essai par session (puis questionnaires
-    # en pages HTML autonomes). L'outil planning_design garde la séquence complète.
-    _create_game(
-        user_id, game_name, {
-            "id": current_user.uid,
-            "player_uid": current_user.uid,
-            "step": int(current_user.step),
-            "curr_trial_in_game": int(current_user.trial) - 1,  # trial doit être 0 ici pour commencer au premier essai
-            "single_trial": not is_planning_design,
-            "is_first_trial_of_block": int(current_user.trial) == 0,
-            "config": current_user.config
-        }
-    )
+    # Verrou utilisateur (comme on_join) : sérialise la création avec le disconnect pour
+    # qu'un nettoyage concurrent ne démonte pas la partie en cours de création.
+    with get_user_lock(user_id):
+        # Une partie « fantôme » peut encore être référencée pour cet uid (ex. partie d'une
+        # page précédente dont le disconnect n'a pas encore été traité — l'uid est partagé
+        # par session). Auparavant on_create retournait ICI silencieusement, SANS émettre
+        # start_game : le client restait bloqué à jamais sur l'écran de chargement (seul un
+        # rechargement manuel, dont le disconnect nettoyait l'état, débloquait). On évince
+        # donc la partie résiduelle et on repart proprement, de sorte que on_create finit
+        # toujours par émettre start_game (ou creation_failed).
+        if get_curr_game(user_id):
+            _leave_game(user_id)
+
+        is_planning_design = bool(data.get("planning_design", None))
+        if is_planning_design:
+            #data.pop("planning_design")
+            current_user.config["mechanic"] = data["params"]["mechanic"]
+            current_user.config["blocs"] = {"0": data['params']['layouts']}
+            current_user.config["agent"] = data['params']["playerOne"] if data[
+                'params']["playerOne"] != "human" else data['params']["playerZero"]
+            current_user.config["gameTime"] = data['params']['gameTime']
+            current_user.config["conditions"] = {
+                "0": data['params']['condition']}
+        params = data.get('params', {})
+        game_name = data.get('game_name', 'overcooked')
+
+        # Déclenche la création du jeu avec les données fournies.
+        # single_trial : l'expérience joue UN essai par session (puis questionnaires
+        # en pages HTML autonomes). L'outil planning_design garde la séquence complète.
+        _create_game(
+            user_id, game_name, {
+                "id": current_user.uid,
+                "player_uid": current_user.uid,
+                "step": int(current_user.step),
+                "curr_trial_in_game": int(current_user.trial) - 1,  # trial doit être 0 ici pour commencer au premier essai
+                "single_trial": not is_planning_design,
+                "is_first_trial_of_block": int(current_user.trial) == 0,
+                "config": current_user.config
+            }
+        )
 
 
 @socketio.on('join')
@@ -2508,12 +2570,22 @@ def on_disconnect():
         return
     user_id = current_user.uid
 
-    if user_id not in USERS:
+    # get_current_user() est indexé par session : le disconnect d'un socket périmé (page
+    # précédente encore ouverte) cible le même uid et démonterait la partie que la nouvelle
+    # page vient de créer. On n'autorise le nettoyage QUE si le socket qui se déconnecte est
+    # celui qui possède la partie active. Un socket périmé est ignoré : il ne touche ni à la
+    # partie ni à la comptabilité USERS/USER_ROOMS dont dépend le socket vivant.
+    owner_sid = USER_ACTIVE_SID.get(user_id)
+    if owner_sid is not None and request.sid != owner_sid:
+        logger.debug("[DISCONNECT] sid périmé ignoré uid=%s sid=%s owner=%s",
+                     user_id, request.sid, owner_sid)
         return
+
     logger.debug("[DISCONNECT] uid=%s", user_id)
     with get_user_lock(user_id):
         _leave_game(user_id)
 
+    USER_ACTIVE_SID.pop(user_id, None)
     USERS.pop(user_id, None)
 
 # NB : les anciens handlers socket de questionnaires (new_trial, post_qpt,

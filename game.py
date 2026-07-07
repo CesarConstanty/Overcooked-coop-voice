@@ -1443,6 +1443,8 @@ class PlanningGame(OvercookedGame):
             print(f"[TIMER_DEBUG] Trial {self.curr_trial_in_game+1}: max_time={self.max_time}, elapsed={elapsed_time:.2f}, time_left={time_left}")
         
         state_dict['time_left'] = time_left
+        # Durée écoulée depuis le début de l'essai en cours (option show_time_in_trial)
+        state_dict['time_elapsed'] = max(elapsed_time, 0)
         # Triplet timer
         if self.order_triplets and self.triplet_start_time is not None:
             triplet_elapsed = time() - self.triplet_start_time

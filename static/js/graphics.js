@@ -92,6 +92,7 @@ function graphics_start(graphics_config) {
     scene_config.condition = graphics_config.condition;
     scene_config.mechanic = graphics_config.mechanic;
     scene_config.Game_Trial_Timer = graphics_config.Game_Trial_Timer;
+    scene_config.show_time_in_trial = graphics_config.show_time_in_trial;
     scene_config.show_counter_drop = graphics_config.show_counter_drop;
     scene_config.show_score = graphics_config.show_score;
     // [COMM JOUEUR→IA] Active l'affichage des boutons de communication d'intention bidirectionnelle
@@ -218,6 +219,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             potential : config.start_state.potential,
             score : config.start_state.score,
             time : config.start_state.time_left,
+            time_elapsed : config.start_state.time_elapsed,
             bonus_orders : config.start_state.state.bonus_orders,
             all_orders : config.start_state.state.all_orders,
             intentions : config.start_state.intentions,
@@ -229,6 +231,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.mechanic = config.mechanic;
         // console.log(config);
         this.Game_Trial_Timer = config.Game_Trial_Timer;
+        this.show_time_in_trial = config.show_time_in_trial;
         this.show_counter_drop = config.show_counter_drop;
         this.show_score = config.show_score;
         this.currentRecipe = null; // Property to store the current recipe
@@ -244,6 +247,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.hud_data.potential = state.potential;
         this.hud_data.score = state.score;
         this.hud_data.time = Math.round(state.time_left);
+        this.hud_data.time_elapsed = Math.round(state.time_elapsed);
         this.hud_data.bonus_orders = state.state.bonus_orders;
         this.hud_data.all_orders = state.state.all_orders;
         this.hud_data.intentions = state.intentions;
@@ -1150,6 +1154,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
             this._drawTimeLeft(hud_data.time, sprites, board_height, board_width);
             //this._validateOrder(sprites, board_height, board_width);
         }
+        // Affiche la durée écoulée de l'essai en cours, au même endroit que le "Time Left"
+        if (typeof(hud_data.time_elapsed) !== 'undefined' && this.mechanic == "recipe" && this.show_time_in_trial) {
+            this._drawTimeElapsed(hud_data.time_elapsed, sprites, board_height, board_width);
+        }
         // Score unique : toujours affiché dans le tutoriel (show_score forcé à true côté tutorial.js),
         // et dans les trials uniquement si la config a show_score === true.
         if (typeof(hud_data.score) !== 'undefined' && this.show_score) {
@@ -1709,7 +1717,25 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         }
     }
 
-    _validateOrder(sprites, board_height, board_width) {       
+    _drawTimeElapsed(time_elapsed, sprites, board_height, board_width) {
+        // Même emplacement que _drawTimeLeft (board_width + 5, 130)
+        let text = "Trial Time : "+time_elapsed+" s";
+        if (typeof(sprites['time_elapsed']) !== 'undefined') {
+            sprites['time_elapsed'].setText(text);
+        }
+        else {
+            sprites['time_elapsed'] = this.add.text(
+                board_width + 5, 130, text,
+                {
+                    font: "20px Arial",
+                    fill: "red",
+                    align: "left"
+                }
+            )
+        }
+    }
+
+    _validateOrder(sprites, board_height, board_width) {
         //TODO: add the validation of the recipe 1st see(overcooked_mdp:633) 
 
         let valid_order = ' '

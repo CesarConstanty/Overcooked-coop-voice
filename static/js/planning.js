@@ -27,6 +27,10 @@ var condition = "U";
 let startCountdownId = null;
 let startCountdownRemaining = 0;
 let startTriggered = false;
+// Filet de sécurité : si après un 'create' le serveur ne renvoie rien (start_game /
+// waiting / creation_failed), on ré-affiche le bouton au lieu de laisser l'utilisateur
+// bloqué indéfiniment sur l'écran de chargement.
+let createGuardId = null;
 
 
 
@@ -65,6 +69,13 @@ function clearStartCountdown() {
         startCountdownId = null;
     }
     $('#start-countdown').hide();
+}
+
+function clearCreateGuard() {
+    if (createGuardId !== null) {
+        clearTimeout(createGuardId);
+        createGuardId = null;
+    }
 }
 
 function beginStartCountdown() {
@@ -143,6 +154,16 @@ function triggerGameStart(source) {
     $('#waiting').show();
     $('#lobby').hide();
     hideStartOverlay();
+
+    // Filet de sécurité : si aucune réponse serveur (start_game / waiting / creation_failed)
+    // n'arrive dans les 10 s, on ré-affiche le bouton plutôt que de laisser l'utilisateur
+    // bloqué sur l'écran de chargement. La création normale émet start_game bien avant.
+    clearCreateGuard();
+    createGuardId = setTimeout(function () {
+        createGuardId = null;
+        $('#waiting').hide();
+        showStartOverlay('Le lancement de la partie a échoué, merci de cliquer à nouveau.');
+    }, 10000);
 }
 
 $(function() { // le $ signifie que la fonction attend que le document html soit chargé
@@ -206,6 +227,7 @@ socket.on("connect", function () {
 });
 
 socket.on('waiting', function (data) {
+    clearCreateGuard();
     // Show game lobby
     $('#error-exit').hide();
     $('#waiting').hide();
@@ -231,6 +253,7 @@ socket.on('waiting', function (data) {
 });
 
 socket.on('creation_failed', function(data) {
+    clearCreateGuard();
     // Tell user what went wrong
     let err = data['error']
     $("#overcooked").empty();
@@ -245,6 +268,7 @@ socket.on('creation_failed', function(data) {
 });
 // déclenché suite à une requette de app.py
 socket.on('start_game', function(data) {
+    clearCreateGuard();
     // Hide game-over and lobby, show game title header
     if (window.intervalID !== -1) {
         clearInterval(window.intervalID);
@@ -256,6 +280,7 @@ socket.on('start_game', function(data) {
         condition : data.config.conditions[data.config.bloc_order[data.step]],
         mechanic : data.config.mechanic,
         Game_Trial_Timer : data.config.Game_Trial_Timer,
+        show_time_in_trial : data.config.show_time_in_trial === true,
         show_counter_drop : data.config.show_counter_drop,
         show_score : data.config.show_score === true,
         triplet_display_min : data.config.triplet_display_min || 10,
@@ -312,6 +337,7 @@ socket.on('reset_game', function(data) {
             start_info : data.state, 
             condition : data.condition,
             Game_Trial_Timer : data.config.Game_Trial_Timer,
+            show_time_in_trial : data.config.show_time_in_trial === true,
             triplet_display_min : data.config.triplet_display_min || 10,
             triplet_display_max : data.config.triplet_display_max || 30,
             bidirectionnelle : data.config.bidirectionnelle === true,
