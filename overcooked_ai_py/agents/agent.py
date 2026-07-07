@@ -278,6 +278,8 @@ class PlanningAgent(Agent):
         self.chosen_goal = None
         self.hl_objective_switch = 0
         self.stuck_frames = 0
+        # [CUTTING BOARD] Drapeau d'attente volontaire d'une planche (voir action()).
+        self._intentional_wait = False
         Recipe.configure({})
         # None = aucun objectif réel encore choisi. La première affectation d'une vraie
         # recette ne doit pas compter comme un switch (None n'est jamais dans all_recipes).
@@ -334,6 +336,11 @@ class PlanningAgent(Agent):
         return actions_and_infos_n
 
     def action(self, state):
+        # [CUTTING BOARD] Attente volontaire : remis à False à chaque décision, puis mis à
+        # True par _chop_or_wait_actions quand l'IA choisit d'ATTENDRE qu'une planche se
+        # libère (plutôt que de jeter un ingrédient encore nécessaire). Sert à exempter
+        # cette attente du mécanisme anti-blocage (cf. plus bas), comme pour un INTERACT.
+        self._intentional_wait = False
         # [COMM JOUEUR→IA] Forçage STRICT d'une sous-tâche demandée par le joueur (section proximale).
         # L'IA ne fait QUE l'étape demandée ; si elle n'est pas réalisable dans l'état courant,
         # elle reste immobile (STAY), sans déclencher la logique auto_unstuck.
@@ -346,6 +353,17 @@ class PlanningAgent(Agent):
             self.motion_goal = forced_goals
         else:
             self.motion_goal = self.ml_action(state)
+
+        # [CUTTING BOARD] Attente volontaire d'une planche occupée : l'IA tient un
+        # ingrédient encore nécessaire mais toutes les planches sont prises (partenaire
+        # en train de découper). On reste STAY sur place jusqu'à libération, SANS passer
+        # par le planner (le goal « sur place » peut ne pas affronter une feature selon
+        # l'orientation courante) ni par l'anti-blocage. Miroir du court-circuit du mode
+        # forcé ci-dessus. C'est ce qui remplace l'ancien comportement « jeter l'oignon ».
+        if self._intentional_wait:
+            self.chosen_goal = state.players_pos_and_or[self.agent_index]
+            self.prev_state = state
+            return Action.STAY, {"action_probs": self.a_probs_from_action(Action.STAY)}
 
         # Once we have identified the motion goals for the medium
         # level action we want to perform, select the one with lowest cost
@@ -368,6 +386,8 @@ class PlanningAgent(Agent):
             # position de l'agent change. L'agent travaille, il n'est PAS bloqué : il
             # ne faut donc pas le compter comme "stuck", sinon l'anti-blocage le fait
             # dériver d'une case entre chaque découpe au lieu de simplement couper.
+            # NB : l'attente volontaire d'une planche occupée est déjà court-circuitée en
+            # STAY plus haut (self._intentional_wait) et n'atteint jamais ce bloc.
             if chosen_action == Action.INTERACT:
                 self.stuck_frames = 0
             elif self.prev_state is not None and state.players_pos_and_or == self.prev_state.players_pos_and_or:
@@ -501,6 +521,24 @@ class PlanningAgent(Agent):
             if trash_goals:
                 return trash_goals, 'E'
         return am.place_obj_on_counter_actions(state), 'X'
+
+    def _chop_or_wait_actions(self, state, player):
+        """[CUTTING BOARD] Motion goals pour amener l'ingrédient BRUT tenu vers une
+        planche LIBRE afin de le découper.
+
+        Si toutes les planches sont occupées (p.ex. le partenaire est justement en
+        train de découper sur la seule planche), l'ingrédient tenu reste NÉCESSAIRE à
+        la recette : il devra être coupé une fois la planche libérée. Dans ce cas on
+        NE le jette PAS — on attend (STAY) que la planche se libère.
+        Repli sur [] seulement si le layout n'a aucune planche (recette impossible),
+        pour laisser la logique appelante gérer ce cas dégénéré."""
+        am = self.mlam
+        goals = am.put_ingredient_on_board_actions(state)
+        if not goals and am.mdp.get_cutting_board_locations():
+            goals = am.wait_actions(player)
+            # Attente volontaire de la planche : ne PAS déclencher l'anti-blocage.
+            self._intentional_wait = True
+        return goals
 
     def _resolve_hl_action(self, state):
         """[COMM JOUEUR→IA] Sélection de la recette cible haut niveau.
@@ -762,9 +800,11 @@ class PlanningAgent(Agent):
                 if 'onion' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
                     # [POUBELLE] Oignon non requis : jeter (poubelle en priorité)
                     motion_goals, self.intentions['goal'] = self._discard_actions(state)
-                # [CUTTING BOARD] découper l'oignon avant de le mettre au pot si la recette l'exige
+                # [CUTTING BOARD] découper l'oignon avant de le mettre au pot si la recette l'exige.
+                # Si la planche est occupée (partenaire en train de découper), l'oignon reste
+                # nécessaire : on attend qu'elle se libère plutôt que de le jeter.
                 elif cutting_enabled and self._held_needs_chopping(player_obj):
-                    motion_goals = am.put_ingredient_on_board_actions(state)
+                    motion_goals = self._chop_or_wait_actions(state, player)
                     self.intentions['goal'] = 'C'
                 else:
                     motion_goals = am.put_onion_in_pot_actions(
@@ -776,9 +816,10 @@ class PlanningAgent(Agent):
                 if 'tomato' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
                     # [POUBELLE] Tomate non requise : jeter (poubelle en priorité)
                     motion_goals, self.intentions['goal'] = self._discard_actions(state)
-                # [CUTTING BOARD] découper la tomate avant de la mettre au pot si la recette l'exige
+                # [CUTTING BOARD] découper la tomate avant de la mettre au pot si la recette l'exige.
+                # Si la planche est occupée, la tomate reste nécessaire : on attend au lieu de la jeter.
                 elif cutting_enabled and self._held_needs_chopping(player_obj):
-                    motion_goals = am.put_ingredient_on_board_actions(state)
+                    motion_goals = self._chop_or_wait_actions(state, player)
                     self.intentions['goal'] = 'C'
                 else:
                     motion_goals = am.put_tomato_in_pot_actions(
@@ -808,7 +849,13 @@ class PlanningAgent(Agent):
             player.pos_and_or, mg)]
 
         if len(motion_goals) == 0:
-            if player.has_object():
+            if self._intentional_wait:
+                # [CUTTING BOARD] Attente volontaire d'une planche : le goal « sur place »
+                # a pu être filtré (orientation courante ne faisant pas face à une feature).
+                # NE PAS jeter l'ingrédient (il reste nécessaire) et NE PAS écraser
+                # l'intention 'C'. Un goal factice suffit : action() court-circuitera en STAY.
+                motion_goals = am.wait_actions(player)
+            elif player.has_object():
                 # [POUBELLE] Repli de rejet : poubelle en priorité, sinon comptoir/zone d'échange
                 motion_goals, self.intentions['goal'] = self._discard_actions(state)
             else:
