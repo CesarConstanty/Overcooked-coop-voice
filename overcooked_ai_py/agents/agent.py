@@ -523,22 +523,41 @@ class PlanningAgent(Agent):
         return am.place_obj_on_counter_actions(state), 'X'
 
     def _chop_or_wait_actions(self, state, player):
-        """[CUTTING BOARD] Motion goals pour amener l'ingrédient BRUT tenu vers une
-        planche LIBRE afin de le découper.
+        """[CUTTING BOARD] Motion goals pour découper l'ingrédient BRUT tenu.
 
-        Si toutes les planches sont occupées (p.ex. le partenaire est justement en
-        train de découper sur la seule planche), l'ingrédient tenu reste NÉCESSAIRE à
-        la recette : il devra être coupé une fois la planche libérée. Dans ce cas on
-        NE le jette PAS — on attend (STAY) que la planche se libère.
-        Repli sur [] seulement si le layout n'a aucune planche (recette impossible),
-        pour laisser la logique appelante gérer ce cas dégénéré."""
+        Cas normal : une planche est LIBRE -> aller l'y déposer.
+
+        Sinon (toutes les planches occupées, p.ex. le partenaire découpe déjà) :
+        l'ingrédient tenu reste NÉCESSAIRE à la recette (il sera coupé une fois la
+        planche libérée) — on NE le jette PAS. Comportement voulu : l'IA va d'abord se
+        placer DEVANT une planche occupée et lui faire face, PUIS attend (STAY) là
+        jusqu'à libération.
+          - pas encore en place -> renvoyer les motion goals vers la planche occupée
+            (déplacement normal : l'IA marche jusqu'à la planche puis se tourne) ;
+          - arrivée et face à la planche -> poser self._intentional_wait (action()
+            court-circuitera en STAY) plutôt que d'INTERAGIR sur une planche occupée
+            (no-op) ou de dériver.
+        Repli : aucune position d'attente atteignable (planche accessible seulement du
+        côté du partenaire) -> attendre sur place (self._intentional_wait) ; retour []
+        uniquement si le layout n'a AUCUNE planche, pour laisser l'appelant gérer ce
+        cas dégénéré."""
         am = self.mlam
         goals = am.put_ingredient_on_board_actions(state)
-        if not goals and am.mdp.get_cutting_board_locations():
-            goals = am.wait_actions(player)
-            # Attente volontaire de la planche : ne PAS déclencher l'anti-blocage.
+        if goals:
+            return goals   # une planche libre : aller la remplir
+        board_locs = am.mdp.get_cutting_board_locations()
+        if not board_locs:
+            return goals   # layout sans planche : cas dégénéré, repli de l'appelant
+        # Toutes les planches occupées : viser une position DEVANT une planche occupée,
+        # en ne gardant que celles réellement atteignables depuis la case courante.
+        occupied = [p for p in board_locs if state.has_object(p)]
+        wait_goals = [mg for mg in am._get_ml_actions_for_positions(occupied)
+                      if am.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+        # Déjà en place et face à une planche, OU aucune position atteignable -> attendre.
+        if (not wait_goals) or (player.pos_and_or in wait_goals):
             self._intentional_wait = True
-        return goals
+            return am.wait_actions(player)
+        return wait_goals   # s'y rendre d'abord (puis on attendra une fois arrivé)
 
     def _resolve_hl_action(self, state):
         """[COMM JOUEUR→IA] Sélection de la recette cible haut niveau.
