@@ -423,6 +423,13 @@ socket.on('end_lobby', function() {
 
 function enable_key_listener() {
     $(document).on('keydown', function(e) {
+        // Ignore les répétitions automatiques du clavier quand une touche reste
+        // enfoncée : un appui prolongé doit produire une seule action, exactement
+        // comme un appui unique. (jQuery 1.10 ne normalise pas `repeat` -> originalEvent)
+        if (e.repeat || (e.originalEvent && e.originalEvent.repeat)) {
+            e.preventDefault();
+            return;
+        }
         let action = 'STAY'
         switch (e.which) {
             case 37: // left
