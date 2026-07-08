@@ -2620,6 +2620,18 @@ def trial_save_routine(data, completed=True):
         logger.error("[TRIAL_SAVE] données non-dict (%s) reçues : impossible de sauvegarder", type(data).__name__)
         return
 
+    # Rien à sauvegarder : un essai interrompu AVANT toute action de jeu a une
+    # trajectoire vide -> PlanningGame.get_data() lève IndexError -> game.data reste sa
+    # valeur initiale [] -> l'appelant (play_game / flush_active_trials) la coerce en {}.
+    # Un tel essai ne contient AUCUNE donnée rejouable : écrire un fichier
+    # _interrupted/UNKNOWN_UNKNOWN_*.json (contenant « {} ») ne conserverait rien et
+    # remplit le dossier de secours de fichiers vides (cf. bug fichiers vides). On
+    # n'écrit donc rien. « Jamais de perte d'essai » ne concerne que des données
+    # réelles ; il n'y en a aucune ici (voir aussi trial-data-must-always-be-saved).
+    if not data:
+        logger.debug("[TRIAL_SAVE_SKIP] essai vide (aucune trajectoire) : rien à sauvegarder (completed=%s)", completed)
+        return
+
     uid = data.get("uid", "UNKNOWN")
     trial_id = data.get("trial_id", "UNKNOWN")
     config = data.get("config") if isinstance(data.get("config"), dict) else {}

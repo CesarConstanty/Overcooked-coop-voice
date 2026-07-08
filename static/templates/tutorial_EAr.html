@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tutorial : Vocal communication of recipes</title>
+  <link rel="Favicon" href="static/favicon.ico" />
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .muted{color:var(--muted)}
+    .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+    .step{background:rgba(56,189,248,.1);border:1px solid var(--accent);padding:12px 18px;border-radius:12px;font-weight:600;min-width:120px;text-align:center}
+    .arrow{font-size:22px;color:var(--accent)}
+    figure{margin:0}
+    figure img{width:100%;max-width:520px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:12px;border:1px solid var(--ring);vertical-align:middle}
+    th{background:#0b1325}
+    tr:nth-child(even){background:#111a2f}
+    .thumb{width:60px;height:60px;border-radius:8px;border:1px solid var(--ring);background:#0b1325;image-rendering:pixelated}
+    .tag{display:inline-block;font-size:12px;color:#0f172a;background:#38bdf8;border-radius:999px;padding:2px 8px;font-weight:700}
+    .play{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .play:hover{filter:brightness(1.05)}
+    .group{background:rgba(56,189,248,.12);color:#e2e8f0}
+    .start-button{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:16px 32px;border-radius:12px;cursor:pointer;font-size:18px;margin:32px auto;display:block}
+    .start-button:hover{filter:brightness(1.05)}
+  </style>
+</head>
+
+<body>
+  <!-- Variables cachées pour les scripts -->
+  <div id="uid" style="display:none;">{{uid}}</div>
+  <div id="condition" style="display:none;">EAr</div>
+  <div id="bloc_id" style="display:none;">{{bloc_id}}</div>
+
+  <div class="wrap">
+    <div class="crumbs">Tutorial · Condition EAr</div>
+    <div class="title">Tutorial : <span style="color:var(--accent)">Vocal</span> communication of <span style="color:var(--accent)">recipes</span></div>
+
+    <section class="card">
+      <h2>Vocal communication of recipes</h2>
+      <p>Here the artificial agent communicates its intentions using <strong>audio messages</strong>. In this condition, every message tells you which <strong>recipe</strong> the agent is currently preparing — that is, the exact combination of onions and tomatoes it is aiming to cook.</p>
+      <p class="muted">In this condition the agent does <strong>not</strong> announce the individual assets it is fetching: only the recipe it is working on is communicated out loud.</p>
+    </section>
+
+    <section class="card">
+      <h2>Sequence explanation</h2>
+      <p class="muted">The agent announces the recipe it is preparing, then announces the next one when it moves on:</p>
+      <div class="flow">
+        <div class="step">Recipe</div>
+        <div class="arrow">→</div>
+        <div class="step">Next recipe</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>In-game example of the artificial agent behaviour</h2>
+      <figure>
+        <img src="static/images/tutorial/vocal_bloc_exemple.gif" alt="Example of vocal communication of a recipe in-game"/>
+        <figcaption>Example — the agent vocally announces the recipe it is preparing.</figcaption>
+      </figure>
+    </section>
+
+    <section class="card">
+      <h2>Familiarize with the vocal messages</h2>
+      <p>Below is the <strong>complete list</strong> of recipe intentions the agent can announce. Click ▶ to hear the associated audio message.</p>
+      <table>
+        <tr class="group"><th colspan="3">Recipes</th></tr>
+        <tr><th>Intention</th><th>Visual</th><th>Audio</th></tr>
+        <tbody id="recipes-table">
+          <!-- Recipes will be loaded dynamically -->
+        </tbody>
+      </table>
+
+      <script>
+        function playOnly(id){
+          const audios=[...document.querySelectorAll('audio')];
+          audios.forEach(a=>{if(a.id!==id){a.pause();a.currentTime=0}});
+          const el=document.getElementById(id); if(el){el.play();}
+        }
+
+        // Function to create sprite canvas from atlas
+        function createSpriteCanvas(atlasImg, frame) {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = frame.w;
+          canvas.height = frame.h;
+
+          ctx.drawImage(
+            atlasImg,
+            frame.x, frame.y, frame.w, frame.h,
+            0, 0, frame.w, frame.h
+          );
+
+          return canvas;
+        }
+
+        // Load and display recipes only (this condition communicates recipes, not assets)
+        async function loadSprites() {
+          try {
+            // Load JSON data (only the atlas useful for recipes)
+            const soupsData = await fetch('static/assets/soups.json').then(r => r.json());
+
+            // Load atlas image
+            const soupsImg = new Image();
+            await new Promise(resolve => {
+              soupsImg.onload = resolve;
+              soupsImg.src = 'static/assets/soups.png';
+            });
+
+            // Recipe mappings (with the associated audio messages)
+            const recipeMapping = [
+              {id: "0o1t", label: "One tomato", soupKey: "soup_done_tomato_1_onion_0.png", audioFile: "recette_0o_1t.mp3", buttonText: "Small tomato"},
+              {id: "0o2t", label: "Two tomatoes", soupKey: "soup_done_tomato_2_onion_0.png", audioFile: "recette_0o_2t.mp3", buttonText: "Tomatoes"},
+              {id: "0o3t", label: "Three tomatoes", soupKey: "soup_done_tomato_3_onion_0.png", audioFile: "recette_0o_3t.mp3", buttonText: "Big tomato"},
+              {id: "1o0t", label: "One onion", soupKey: "soup_done_tomato_0_onion_1.png", audioFile: "recette_1o_0t.mp3", buttonText: "Small onion"},
+              {id: "2o0t", label: "Two onions", soupKey: "soup_done_tomato_0_onion_2.png", audioFile: "recette_2o_0t.mp3", buttonText: "Onions"},
+              {id: "3o0t", label: "Three onions", soupKey: "soup_done_tomato_0_onion_3.png", audioFile: "recette_3o_0t.mp3", buttonText: "Big onion"},
+              {id: "1o1t", label: "One onion + One tomato", soupKey: "soup_done_tomato_1_onion_1.png", audioFile: "recette_1o_1t.mp3", buttonText: "Onion and tomato"},
+              {id: "1o2t", label: "One onion + Two tomatoes", soupKey: "soup_done_tomato_2_onion_1.png", audioFile: "recette_1o_2t.mp3", buttonText: "Tomatoes and onion"},
+              {id: "2o1t", label: "Two onions + One tomato", soupKey: "soup_done_tomato_1_onion_2.png", audioFile: "recette_2o_1t.mp3", buttonText: "Onions and tomato"}
+            ];
+
+            // Populate recipes table
+            const recipesTable = document.getElementById('recipes-table');
+            recipeMapping.forEach(recipe => {
+              const soupFrame = soupsData.textures[0].frames.find(f => f.filename === recipe.soupKey);
+              if (soupFrame) {
+                const canvas = createSpriteCanvas(soupsImg, soupFrame.frame);
+                canvas.className = 'thumb';
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.transform = 'scale(1.5)';
+                canvas.style.transformOrigin = 'center';
+                canvas.style.width = '60px';
+                canvas.style.height = '60px';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td>${recipe.label} <span class="tag">Recipe</span></td>
+                  <td style="text-align: center; padding: 25px;"></td>
+                  <td><button class="play" onclick="playOnly('a_${recipe.id}')">▶ ${recipe.buttonText}</button><audio id="a_${recipe.id}" src="static/audio/${recipe.audioFile}"></audio></td>
+                `;
+                row.cells[1].appendChild(canvas);
+                recipesTable.appendChild(row);
+              }
+            });
+
+          } catch (error) {
+            console.error('Error loading sprites:', error);
+          }
+        }
+
+        // Load sprites when page loads
+        document.addEventListener('DOMContentLoaded', loadSprites);
+      </script>
+    </section>
+
+    <button id="start-bloc" class="start-button">
+      Start the game!
+    </button>
+  </div>
+
+  <!-- Scripts -->
+  <script src="static/lib/jquery-min.js"></script>
+  <script src="static/js/page-timer.js"></script>
+  <script>
+    // Script pour gérer le bouton de démarrage du bloc avec timer
+    $(document).ready(function() {
+      // Initialiser le système de timer pour les tutoriels de bloc
+      // Timer maximum supprimé - seulement le timer minimum est conservé
+      const timerMin = {{ timer_min|default(60) }};
+      const timerMax = 0;  // Pas de limite de temps maximum
+      initPageTimer(timerMin, timerMax, '#start-bloc');
+
+      $('#start-bloc').click(function() {
+        window.location.href = '/planning?from_condition_tutorial=true';
+      });
+    });
+  </script>
+</body>
+</html>
