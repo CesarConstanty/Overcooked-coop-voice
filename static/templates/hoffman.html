@@ -82,9 +82,10 @@
       </div>
     </div>
     <form id="likertForm" method="POST" action="{{ post_url }}">
-      <h1 class="likert-header">Human–Robot Interaction Survey</h1>
-      <h6 class="likert-header">This questionnaire assesses how you experienced to play with the artificial agent in Overcooked.</h6>
-    <fieldset class="question" data-cat="Team Fluency" data-reversed="false">
+      <h1 class="likert-header">Human Robot Interaction Fluency</h1>
+      <h6 class="likert-header">Please answer the following questions keeping in mind the games since the beginning of this block</h6>
+      <h6 class="likert-header">You will be presented with a series of statements. For each, please indicate your level of agreement on a 7-point scale, from &ldquo;Strongly disagree&rdquo; (1) to &ldquo;Strongly agree&rdquo; (7). Some statements may seem repetitive; this is intentional.</h6>    
+      <fieldset class="question" data-cat="Team Fluency" data-reversed="false">
       <legend class="q-title">The human-artificial agent team worked fluently together.</legend>
       <div class="likert-row">
         <span class="likert-end">Strongly disagree</span>
@@ -132,6 +133,22 @@
         <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
+    <fieldset class="question" data-cat="Relative Contribution" data-reversed="true">
+      <legend class="q-title">I had to carry the weight to make the human-artificial agent team better</legend>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q4" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q4" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q4" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q4" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q4" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q4" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q4" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
+      </div>
+    </fieldset>
     <fieldset class="question" data-cat="Relative Contribution" data-reversed="false">
       <legend class="q-title">The artificial agent was the most important team member.</legend>
       <div class="likert-row">
@@ -144,6 +161,38 @@
           <label><input type="radio" name="Q4" value="5"><span>5</span></label>
           <label><input type="radio" name="Q4" value="6"><span>6</span></label>
           <label><input type="radio" name="Q4" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
+      </div>
+    </fieldset>
+    <fieldset class="question" data-cat="Relative Contribution" data-reversed="false">
+      <legend class="q-title">The artificial agent contributed equally to the team performance.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q4" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q4" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q4" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q4" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q4" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q4" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q4" value="7"><span>7</span></label>
+        </div>
+        <span class="likert-end right">Strongly agree</span>
+      </div>
+    </fieldset>
+    <fieldset class="question" data-cat="Attention Check" data-expected="1" data-reversed="false">
+      <legend class="q-title">Please select &ldquo;3&rdquo; for this question.</legend>
+      <div class="likert-row">
+        <span class="likert-end">Strongly disagree</span>
+        <div class="choices">
+          <label><input type="radio" name="Q6" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q6" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q6" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q6" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q6" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q6" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q6" value="7"><span>7</span></label>
         </div>
         <span class="likert-end right">Strongly agree</span>
       </div>
@@ -164,18 +213,18 @@
         <span class="likert-end right">Strongly agree</span>
       </div>
     </fieldset>
-    <fieldset class="question" data-cat="Working Alliance" data-reversed="false">
+    <fieldset class="question" data-cat="Positive Teammate Traits" data-reversed="false">
       <legend class="q-title">The artificial agent was committed to the task.</legend>
       <div class="likert-row">
         <span class="likert-end">Strongly disagree</span>
         <div class="choices">
-          <label><input type="radio" name="Q6" value="1" required><span>1</span></label>
-          <label><input type="radio" name="Q6" value="2"><span>2</span></label>
-          <label><input type="radio" name="Q6" value="3"><span>3</span></label>
-          <label><input type="radio" name="Q6" value="4"><span>4</span></label>
-          <label><input type="radio" name="Q6" value="5"><span>5</span></label>
-          <label><input type="radio" name="Q6" value="6"><span>6</span></label>
-          <label><input type="radio" name="Q6" value="7"><span>7</span></label>
+          <label><input type="radio" name="Q5" value="1" required><span>1</span></label>
+          <label><input type="radio" name="Q5" value="2"><span>2</span></label>
+          <label><input type="radio" name="Q5" value="3"><span>3</span></label>
+          <label><input type="radio" name="Q5" value="4"><span>4</span></label>
+          <label><input type="radio" name="Q5" value="5"><span>5</span></label>
+          <label><input type="radio" name="Q5" value="6"><span>6</span></label>
+          <label><input type="radio" name="Q5" value="7"><span>7</span></label>
         </div>
         <span class="likert-end right">Strongly agree</span>
       </div>
@@ -261,7 +310,7 @@
       </div>
     </fieldset>
     <fieldset class="question" data-cat="Attention Check" data-expected="6" data-reversed="false">
-      <legend class="q-title">Please select &ldquo;6&rdquo; for this question.</legend>
+      <legend class="q-title">You have to respond  &ldquo;6&rdquo; for this question.</legend>
       <div class="likert-row">
         <span class="likert-end">Strongly disagree</span>
         <div class="choices">

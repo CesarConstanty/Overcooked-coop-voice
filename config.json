@@ -249,8 +249,8 @@
         "questionnaires" : {
             "begin"      : ["PTTA","QVG","GAbstractionP"],
             "post_trial" : [],
-            "post_bloc"  : ["hoffman"],
-            "end"        : ["preference", "debriefing"]
+            "post_bloc"  : ["hoffman","AAT_L"],
+            "end"        : ["debriefing"]
         },
         "tomato_value" : 2,
         "onion_value" : 3,
