@@ -1373,7 +1373,6 @@ class PlanningGame(OvercookedGame):
             "agent_action_count": self.agent_action_count,
             "agent_stuck_loop": self.npc_policies[self.planning_agent_id].stuck_frames,
             "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch,
-            "TEST" : "données jeu via apply action de la class PlanningGame(OvercookedGame)"
 
         }
         transition.update(prev_state.to_dict())

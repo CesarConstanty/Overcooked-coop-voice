@@ -260,7 +260,8 @@ class PageTracker:
             'tutorial.html': "Tutorial - Introduction",
             'planning.html': "Interface de jeu",
             'experience_video_games_en.html': "Page questionnaire Jeux Vidéo",
-            'preference order_en.html': "Page questionnaire Préférence"
+            'preference order_en.html': "Page questionnaire Préférence",
+            'debriefing.html': "Page débriefing"
         }
         
         if page_name in page_mappings:
@@ -338,7 +339,9 @@ class PageTracker:
             return 'PTT_A_en.html'
         elif 'preference.json' in filename:
             return 'preference order_en.html'
-        
+        elif 'debriefing.json' in filename:
+            return 'debriefing.html'
+
         # Tutorials - enchaînement séquentiel depuis tutorial.html
         elif 'tutorial0.json' in filename:
             return 'tutorial.html'
@@ -758,6 +761,8 @@ class PageTracker:
             return 'PTT_A_en.html'
         elif 'preference.json' in filename:
             return 'preference order_en.html'
+        elif 'debriefing.json' in filename:
+            return 'debriefing.html'
         elif 'CONSENT.json' in filename:
             return 'index.html'
         

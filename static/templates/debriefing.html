@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Debriefing</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: auto;
+      line-height: 1.6;
+    }
+
+    h2 { margin-bottom: 0.5rem; }
+
+    .debrief {
+      margin-bottom: 1.5rem;
+      padding: 20px;
+      background: #f9f9f9;
+      border-left: 4px solid #0077cc;
+      border-radius: 5px;
+    }
+
+    .debrief p {
+      margin: 0 0 1rem 0;
+      text-align: justify;
+    }
+
+    .debrief p:last-child {
+      margin-bottom: 0;
+      font-weight: bold;
+    }
+
+    .debrief a {
+      color: #0077cc;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-family: sans-serif;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      padding: 10px 20px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Debriefing</h2>
+
+  <div class="debrief">
+    <p>Thank you for participating in our study. We have got useful information on the effects of the communication of intentions upon collaboration with an artificial agent. The purpose of this experiment was to investigate how different ways of communicating intention from an artificial agent can influence human-machine collaboration. Specifically, we are interested in how the level of intention expressed by the agent (proximal vs. distal) and the modality of communication (voice vs. visual display) affect your experience during the task. We measured aspects such as your perceived level of control (sense of agency), how effectively you felt you cooperated with the agent, and in game performances.</p>
+    <p>We expect that the communication of intention will enhance cooperation and the modality used to communicate will interact with this effect, being higher with the vocal modality for more abstract intentions.</p>
+    <p>This project follows previous studies using the same levels of intention on collaboration and the sense of agency (to explore this topic in more detail, refer to Marine Pagliari (2023) and Marin le Guillou (2023)).</p>
+    <p>All data collected will be kept confidential and used only for research purposes. If you have any questions about the study or would like to receive a summary of the results once the study is complete, feel free to contact us at : <a href="mailto:cesar.constanty@onera.fr">cesar.constanty@onera.fr</a>.</p>
+    <p>Once again, thank you for your participation !</p>
+  </div>
+
+  <div style="margin-top: 1.5rem;">
+    <h3 style="margin-bottom: 0.5rem; font-size: 1rem;">Comments and remarks</h3>
+    <p style="margin-top: 0; font-size: 0.9rem; color: #555;">
+      Feel free to share any comment, remark or feedback about the experiment.
+    </p>
+    <textarea id="commentText" rows="6" cols="80"
+      placeholder="You can add any comments or remarks here (optional)..."></textarea>
+  </div>
+
+  <form id="debriefingForm" method="POST" action="{{ post_url }}">
+    <input type="hidden" name="comment_text" id="commentDataInput">
+    <button type="submit" id="submitBtn">Valider</button>
+  </form>
+
+  <script>
+    // Pas de timer : temps de lecture illimite. Le commentaire est optionnel.
+    const DEV_MODE = {{ dev_mode|default(false)|tojson }};
+    let debriefingSubmitted = false;
+
+    const debriefingForm = document.getElementById('debriefingForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const commentText = document.getElementById('commentText');
+    const commentDataInput = document.getElementById('commentDataInput');
+
+    // Protection contre la double soumission ; on recopie le commentaire
+    // (optionnel) dans le champ cache juste avant l'envoi du formulaire.
+    debriefingForm.addEventListener('submit', function (event) {
+      if (debriefingSubmitted) {
+        event.preventDefault();
+        return;
+      }
+      debriefingSubmitted = true;
+      submitBtn.disabled = true;
+      commentDataInput.value = commentText.value;
+    });
+  </script>
+
+</body>
+</html>

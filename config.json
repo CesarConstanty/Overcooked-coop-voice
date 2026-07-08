@@ -70,7 +70,7 @@
             "begin"      : [],
             "post_trial" : ["agency"],
             "post_bloc"  : ["AAT_L"],
-            "end"        : ["preference"]
+            "end"        : ["preference", "debriefing"]
         },
         "tomato_value" : 2,
         "onion_value" : 3,
@@ -160,8 +160,8 @@
         "questionnaires" : {
             "begin"      : [],
             "post_trial" : [],
-            "post_bloc"  : ["hoffman", "AAT_L"],
-            "end"        : ["preference"]
+            "post_bloc"  : [],
+            "end"        : ["debriefing"]
         },
         "tomato_value" : 2,
         "onion_value" : 3,
@@ -250,7 +250,7 @@
             "begin"      : ["PTTA","QVG","GAbstractionP"],
             "post_trial" : [],
             "post_bloc"  : ["hoffman"],
-            "end"        : ["preference"]
+            "end"        : ["preference", "debriefing"]
         },
         "tomato_value" : 2,
         "onion_value" : 3,

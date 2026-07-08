@@ -1726,6 +1726,11 @@ def _path_preference(uid, step, trial, cid, slot=None, name=None):
         return f"trajectories/{cid}/{uid}/Post_experiment/{uid}_{step}_preference.json"
     return _path_generic(uid, step, trial, cid, slot, name or "preference")
 
+def _path_debriefing(uid, step, trial, cid, slot=None, name=None):
+    if slot in (None, "end"):
+        return f"trajectories/{cid}/{uid}/Post_experiment/{uid}_{step}_debriefing.json"
+    return _path_generic(uid, step, trial, cid, slot, name or "debriefing")
+
 
 # --- Fonctions de sauvegarde (corps repris verbatim des anciens handlers) --
 def save_qvg(user, form_req, slot=None, name=None):
@@ -1918,6 +1923,31 @@ def save_preference(user, form_req, slot=None, name=None):
         safe_json_write(file_name, form_data, uid)
 
 
+def save_debriefing(user, form_req, slot=None, name=None):
+    """Sauvegarde du débriefing de fin : uniquement le commentaire libre
+    (optionnel) laissé par le participant. Même modèle que save_preference."""
+    uid = user.uid
+    config = user.config
+    config_id = config["config_id"]
+    step = user.step
+    form_data = {}
+    form_data["step"] = step
+    form_data["user_agent"] = request.headers.get('User-Agent')
+    try:
+        bloc_key = config["bloc_order"][step]
+        condition = config["conditions"][bloc_key]
+    except (KeyError, IndexError):
+        form_data["condition"] = "N/A"
+    form_data["uid"] = uid
+    form_data["timestamp"] = gmtime()
+    form_data["date"] = asctime(form_data["timestamp"])
+    form_data["comment_text"] = form_req.get('comment_text', '')
+    file_name = _path_debriefing(uid, step, user.trial, config_id, slot, name)
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(file_name):
+        safe_json_write(file_name, form_data, uid)
+
+
 # --- Fonctions de contexte de rendu (variables passées au template) --------
 def _ctx_default(user, slot=None):
     return {}
@@ -1960,6 +1990,7 @@ QUESTIONNAIRE_REGISTRY = {
     "GAbstractionP":    {"slot": QUESTIONNAIRE_SLOTS, "template": "GAbstractionP.html",        "path": _path_generic, "save": save_generic_likert, "context": _ctx_default},
     "GAbstractionP_fr": {"slot": QUESTIONNAIRE_SLOTS, "template": "GAbstractionP_fr.html",     "path": _path_generic, "save": save_generic_likert, "context": _ctx_default},
     "preference": {"slot": QUESTIONNAIRE_SLOTS, "template": "preference order_en.html",       "path": _path_preference, "save": save_preference, "context": _ctx_preference},
+    "debriefing": {"slot": QUESTIONNAIRE_SLOTS, "template": "debriefing.html",                 "path": _path_debriefing, "save": save_debriefing, "context": _ctx_default},
 }
 
 
