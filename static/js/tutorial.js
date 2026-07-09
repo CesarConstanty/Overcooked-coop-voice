@@ -7,27 +7,24 @@ var config;
 
 var tutorial_instructions = () => [
     `
-    <p>How it works: <b>Recipes &amp; the Random Dispenser</b></p>
+    <p>How it works: <b>Recipes &amp; Ingredients</b></p>
     <p>Your goal is to cook and deliver a soup that matches one of the orders shown in <b>All Orders</b>. Only recipes in <b>All Orders</b> earn points.</p>
-    <p>Your ingredients come from the <b>random dispenser</b> (the highlighted tile on the wall). Each time you grab from it, it gives a <b>random ingredient</b> &mdash; watch its icon change after each pickup.</p>
-    <p>If you draw an ingredient you don't need, drop it in the <b>bin</b> (the trash tile) and grab again.</p>
-    <p>Then put your ingredient(s) in the <b>pot</b>, wait for it to cook, pick up a <b>plate</b> from the dish dispenser, collect the soup and deliver it to the <b>serving window</b>.</p>
+    <p>Grab your ingredients from the <b>onion</b> and <b>tomato dispensers</b> on the walls. Put your ingredient(s) in the <b>pot</b>, wait for the soup to cook, pick up a <b>plate</b> from the dish dispenser, collect the soup and deliver it to the <b>serving window</b>.</p>
     <p>Good luck!</p>
     <br></br>
     `,
     `
     <p>How it works: <b>The Cutting Board</b></p>
     <p>From now on, every ingredient must be <b>chopped</b> before it can go into the pot &mdash; you will not be able to drop a raw ingredient into the pot.</p>
-    <p>Grab an ingredient from the random dispenser, drop it on the <b>cutting board</b>, then press <b>spacebar</b> several times to chop it. When it's done, pick it up and put it in the pot.</p>
-    <p>If the dispenser ever gives you a plate (or anything you don't want), just toss it in the <b>bin</b>.</p>
+    <p>Grab an ingredient from a <b>dispenser</b>, drop it on the <b>cutting board</b>, then press <b>spacebar</b> several times to chop it. When it's done, pick it up and put it in the pot.</p>
     <p>Cook, plate and deliver a chopped soup to advance.</p>
     <p>Good luck!</p>
     <br></br>
     `,
     `
-    <p>How it works: <b>Put it all together</b></p>
-    <p>This kitchen has everything: regular and <b>random dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window.</p>
-    <p>Read <b>All Orders</b>, gather your ingredients, <b>chop</b> them, bin any mistakes, cook, plate and deliver one valid order to finish the tutorial.</p>
+    <p>How it works: <b>Cooking together</b></p>
+    <p>This kitchen has <b>onion</b> and <b>tomato dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window &mdash; and this time an <b>AI teammate</b> (the blue cook) prepares soups alongside you.</p>
+    <p>Work together to complete <b>all three orders</b> shown in <b>All Orders</b>: gather ingredients, <b>chop</b> them, cook, plate and deliver each one. The tutorial ends once the three orders are done.</p>
     <br></br>
     `
 ];
@@ -45,7 +42,7 @@ var tutorial_hints = () => [
     `
     ,
     `
-    <p>Remember: every ingredient must be <b>chopped</b> on the cutting board before it goes into the pot. Use the <b>bin</b> to discard unwanted items.</p>
+    <p>Remember: every ingredient must be <b>chopped</b> on the cutting board before it goes into the pot. Split the work with your <b>AI teammate</b> and deliver all three orders to finish.</p>
     `
 ]
 
