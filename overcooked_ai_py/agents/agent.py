@@ -578,16 +578,20 @@ class PlanningAgent(Agent):
 
         Retourne (motion_goals, goal_symbol)."""
         am = self.mlam
-        # Marmites qui vont produire une soupe à emporter : en remplissage (partielles)
-        # ou pleines mais pas encore en cuisson. (Les 'cooking'/'ready' sont déjà
-        # traitées en amont par only_nearly_ready.)
+        # Marmites en cours de traitement : en remplissage (partielles) OU pleines pas
+        # encore lancées. Dans les DEUX cas on GARDE l'assiette et on attend : elle
+        # servira à emporter la soupe une fois cuite. IMPORTANT : même si la marmite
+        # pleine forme une recette INVALIDE ([O,O,T]...), l'assiette reste NÉCESSAIRE —
+        # c'est en emportant la soupe (invalide) avec l'assiette qu'on VIDE la marmite
+        # pour poursuivre le jeu (la soupe, elle, sera jetée par la branche 'soup'). Ne
+        # JAMAIS jeter l'assiette dans ce cas.
         pending = (am.mdp.get_partially_full_pots(pot_states_dict)
                    + am.mdp.get_full_but_not_cooking_pots(pot_states_dict))
         if not pending:
             # Aucune soupe à venir : l'assiette ne sert à rien -> jeter.
             return self._discard_actions(state)
-        # Une soupe s'assemble : attendre sur place qu'elle cuise, sans encombrer la
-        # marmite que le partenaire doit encore atteindre.
+        # Une soupe s'assemble / est à cuire : attendre sur place qu'elle cuise, sans
+        # encombrer la marmite que le partenaire doit encore atteindre.
         self._intentional_wait = True
         return am.wait_actions(player), 'P'
 
@@ -604,17 +608,38 @@ class PlanningAgent(Agent):
         couloir devant le partenaire venu justement emporter la soupe (donc libérer la
         marmite). En STAY, l'agent devient un « yielder » que la couche coop écarte.
 
+        Priorité au déblocage : s'il existe une marmite qui n'attend qu'un INTERACT
+        mains vides pour cuire — pleine (même en une recette invalide déposée par le
+        partenaire, à cuire puis jeter pour libérer la place) OU partielle formant déjà
+        une commande complète maximale — l'ingrédient tenu EMPÊCHE de la lancer : on
+        JETTE pour libérer une main, puis (mains vides) on lance sa cuisson au tick
+        suivant. Attendre serait un INTERBLOCAGE : une marmite pleine-non-cuisson ne se
+        « libère » JAMAIS toute seule (contrairement à une marmite en cuisson/prête).
+
+        Sinon, seule une marmite en cuisson/prête va réellement se libérer en emportant
+        sa soupe -> on ATTEND (``self._intentional_wait`` -> STAY) au lieu de poser/
+        reprendre l'ingrédient en boucle sur un comptoir. Ce « churn » est un INTERACT
+        « protégé » par la couche coop : il fige un couloir devant le partenaire venu
+        justement emporter la soupe. En STAY l'agent devient un « yielder » écarté.
+
         Anti-blocage : si le partenaire tient LUI AUSSI un ingrédient (deux mains
         pleines, personne pour emporter la soupe et libérer la marmite), ne pas attendre
         tous les deux -> jeter pour libérer une main (et pouvoir prendre une assiette).
 
-        Repli : aucune marmite occupée (rien ne se libérera) -> jeter.
+        Repli : aucune marmite ne se libérera -> jeter.
         Retourne (motion_goals, goal_symbol)."""
         if fill_goals:
             return fill_goals, 'P'
         mdp = self.mlam.mdp
-        occupied = (pot_states_dict['ready'] + pot_states_dict['cooking']
-                    + mdp.get_full_but_not_cooking_pots(pot_states_dict))
+        # Marmites qui n'attendent qu'un INTERACT mains vides pour cuire. L'ingrédient
+        # tenu bloque leur lancement -> libérer la main (jeter), puis les cuire.
+        needs_cook_start = (mdp.get_full_but_not_cooking_pots(pot_states_dict)
+                            + self._maximal_complete_pots(state, pot_states_dict))
+        if needs_cook_start:
+            return self._discard_actions(state)
+        # Seules 'ready'/'cooking' se libéreront d'elles-mêmes (soupe emportée). NE PAS
+        # inclure les pleines-non-cuisson : rien ne les cuit tant que l'agent attend.
+        occupied = pot_states_dict['ready'] + pot_states_dict['cooking']
         partner = state.players[1 - self.agent_index]
         partner_holds_ingredient = (partner.has_object()
                                     and partner.get_object().name in ('onion', 'tomato'))
@@ -812,10 +837,12 @@ class PlanningAgent(Agent):
                     goals = am._get_ml_actions_for_positions(self._cookable_pots(state, pot_states_dict))
                     self.intentions['goal'] = 'P'
             elif is_chopped_ingredient or (held_name in ('onion', 'tomato') and not self._held_needs_chopping(held)):
-                if held_name == 'onion':
-                    goals = am.put_onion_in_pot_actions(pot_states_dict)
-                else:
-                    goals = am.put_tomato_in_pot_actions(pot_states_dict)
+                # [RECETTE VALIDE] Même sur ordre EXPLICITE du joueur, ne jamais créer une
+                # recette absente de all_orders : ne viser que les marmites où l'ajout
+                # reste compatible (cf. branches autonomes). Si aucune (p.ex. marmite déjà
+                # complète [O,T] -> [O,O,T] interdit), ne rien faire (goals=[] -> STAY)
+                # plutôt que de gâcher la marmite.
+                goals = self._valid_fill_pots(state, pot_states_dict, held_name)
                 self.intentions['goal'] = 'P'
             elif is_raw_ingredient:
                 pass   # ingrédient brut encore pertinent (à découper) : on le garde → STAY
