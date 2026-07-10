@@ -522,6 +522,195 @@ class PlanningAgent(Agent):
                 return trash_goals, 'E'
         return am.place_obj_on_counter_actions(state), 'X'
 
+    # ==================================================================
+    # [ÉCHANGE] Coopération asymétrique par passage d'objets (zone d'échange 'Y')
+    # ------------------------------------------------------------------
+    # Sur un layout asymétrique (p.ex. test_asym01), certaines ressources d'une
+    # recette ne sont accessibles qu'à UN des deux joueurs : oignon/tomate/pot/
+    # service d'un côté, planche à découper 'C'/assiette 'D' de l'autre, séparés par
+    # un mur de comptoirs d'échange 'Y' (mdp.counter_goals). Aucun joueur ne peut
+    # compléter une commande seul. Comportement voulu : chaque agent fait AVANCER
+    # l'objet aussi loin que ses ressources accessibles le permettent, puis, s'il ne
+    # peut aller plus loin alors que le PARTENAIRE le peut, il DÉPOSE l'objet sur un
+    # comptoir d'échange atteignable par les deux (« passer dans l'état le plus avancé
+    # possible ») au lieu de le jeter. Symétriquement, il ne RÉCUPÈRE d'un comptoir
+    # d'échange qu'un objet qu'il peut lui-même faire avancer (sinon il reprendrait en
+    # boucle ce qu'il vient de passer = churn).
+    #
+    # Toutes ces branches sont conditionnées par « ressource inatteignable par MOI mais
+    # atteignable par le PARTENAIRE » : sur un layout auto-suffisant (ressources
+    # atteignables des deux côtés + counter_goals vide) elles sont des no-op et le
+    # comportement greedy historique est strictement inchangé.
+
+    def _reachable(self, pos_and_or, feature_positions):
+        """True si au moins un motion goal vers l'une de ces positions de feature est
+        atteignable depuis pos_and_or (même composante connexe + fait face à la feature)."""
+        if not feature_positions:
+            return False
+        mp = self.mlam.motion_planner
+        for g in self.mlam._get_ml_actions_for_positions(list(feature_positions)):
+            if mp.is_valid_motion_start_goal_pair(pos_and_or, g):
+                return True
+        return False
+
+    def _partner_reach(self, state, feature_positions):
+        return self._reachable(state.players[1 - self.agent_index].pos_and_or, feature_positions)
+
+    def _ingredient_needs_chop(self, state, chopped):
+        """True si un ingrédient (déjà coupé=chopped) devrait être découpé avant le pot
+        pour CET agent : découpe activée, pas encore coupé, et (découpe imposée à ce
+        joueur OU recette courante l'exigeant). Miroir de _held_needs_chopping pour un
+        ingrédient hypothétique (posé sur un comptoir)."""
+        mdp = self.mlam.mdp
+        if not getattr(mdp, 'cutting_enabled', False) or chopped:
+            return False
+        if getattr(mdp, 'is_forced_cutting_player', None) and mdp.is_forced_cutting_player(self.agent_index):
+            return True
+        try:
+            return mdp.recipe_requires_chopping(self.next_order_info["recipe"])
+        except (TypeError, KeyError):
+            return False
+
+    def _can_advance_item(self, state, item_name, chopped):
+        """True si CET agent peut faire avancer d'au moins une étape un objet donné,
+        depuis son état courant, avec les ressources qu'il peut ATTEINDRE. Sert à décider
+        s'il faut passer l'objet au partenaire, et à ne récupérer d'un comptoir d'échange
+        que ce qu'on peut réellement traiter (anti-churn)."""
+        mdp = self.mlam.mdp
+        me = state.players[self.agent_index].pos_and_or
+        if item_name in ('onion', 'tomato'):
+            if self._ingredient_needs_chop(state, chopped):
+                return self._reachable(me, mdp.get_cutting_board_locations())
+            return self._reachable(me, mdp.get_pot_locations())
+        if item_name == 'dish':
+            return self._reachable(me, mdp.get_pot_locations())
+        if item_name == 'soup':
+            return self._reachable(me, mdp.get_serving_locations())
+        return True
+
+    def _exchange_handoff_actions(self, state):
+        """Motion goals pour DÉPOSER l'objet tenu sur un comptoir d'échange (counter_goals)
+        VIDE, atteignable à la fois par MOI et par le PARTENAIRE (pour qu'il puisse le
+        reprendre). Retour [] si aucun tel comptoir (l'appelant retombe sur attendre/jeter)."""
+        mdp = self.mlam.mdp
+        mp = self.mlam.motion_planner
+        me = state.players[self.agent_index].pos_and_or
+        partner = state.players[1 - self.agent_index].pos_and_or
+        goals = []
+        for c in mdp.counter_goals:
+            if state.has_object(c):
+                continue
+            if not self._reachable(partner, [c]):
+                continue
+            for g in self.mlam._get_ml_actions_for_positions([c]):
+                if mp.is_valid_motion_start_goal_pair(me, g):
+                    goals.append(g)
+        return goals
+
+    def _handoff_if_partner_only(self, state, needed_positions):
+        """Si la ressource `needed_positions` (nécessaire pour faire avancer l'objet tenu)
+        est INATTEIGNABLE par moi mais ATTEIGNABLE par le partenaire, renvoie les motion
+        goals pour passer l'objet via un comptoir d'échange. Sinon None (l'appelant
+        poursuit sa logique attendre/jeter habituelle)."""
+        me = state.players[self.agent_index].pos_and_or
+        if self._reachable(me, needed_positions):
+            return None
+        if not self._partner_reach(state, needed_positions):
+            return None
+        return self._exchange_handoff_actions(state) or None
+
+    def _in_transit_to_partner(self, state, item_name):
+        """True si un exemplaire de `item_name` est déjà « en aval » côté partenaire : tenu
+        par lui, posé sur un comptoir d'ÉCHANGE, ou en cours de traitement sur une PLANCHE à
+        découper. Throttle fournisseur : n'en fournir un nouveau qu'une fois le précédent
+        consommé (mis au pot). Inclure la planche évite la sur-production (sinon on fournit
+        un 2e exemplaire pendant que le partenaire découpe le 1er)."""
+        mdp = self.mlam.mdp
+        partner = state.players[1 - self.agent_index]
+        if partner.has_object() and partner.get_object().name == item_name:
+            return True
+        downstream = set(mdp.counter_goals) | set(mdp.get_cutting_board_locations())
+        for pos, obj in state.objects.items():
+            if obj.name == item_name and pos in downstream:
+                return True
+        return False
+
+    def _filter_counter_pickups(self, state, counter_objects):
+        """Retire des candidats de ramassage sur comptoir les objets posés sur un comptoir
+        d'ÉCHANGE que CET agent ne peut pas faire avancer (ils sont en transit vers le
+        partenaire ; les reprendre = churn). No-op si le layout n'a pas de comptoir
+        d'échange (counter_goals vide) -> comportement historique préservé."""
+        mdp = self.mlam.mdp
+        exchange = set(mdp.counter_goals)
+        if not exchange:
+            return counter_objects
+        filtered = defaultdict(list)
+        for name, positions in counter_objects.items():
+            for pos in positions:
+                if pos in exchange:
+                    obj = state.get_object(pos) if state.has_object(pos) else None
+                    chopped = bool(getattr(obj, 'chopped', False)) if obj is not None else False
+                    if not self._can_advance_item(state, name, chopped):
+                        continue
+                filtered[name].append(pos)
+        return filtered
+
+    def _fetch_or_supply(self, state, item, counter_objects):
+        """Empty-handed : obtenir `item` (oignon/tomate) pour avancer la recette.
+
+        Priorité RECEVEUR : s'il existe sur un comptoir un exemplaire que je peux faire
+        AVANCER moi-même (typiquement un ingrédient DÉJÀ COUPÉ que le partenaire m'a
+        renvoyé et que je peux mettre au pot), aller le CONSOMMER — jamais bloqué par le
+        throttle. Sinon FOURNISSEUR : aller en chercher un au dispenser ; mais si je ne
+        peux pas faire avancer un `item` brut moi-même (je ne fais que le passer) et qu'un
+        exemplaire est déjà en aval côté partenaire, ATTENDRE (ne pas sur-approvisionner).
+        `counter_objects` est déjà filtré (règle du receveur). Retour (motion_goals, symbole)."""
+        am = self.mlam
+        mp = am.motion_planner
+        mdp = am.mdp
+        player = state.players[self.agent_index]
+        sym = 'O' if item == 'onion' else 'T'
+        pick = am.pickup_onion_actions if item == 'onion' else am.pickup_tomato_actions
+        # [NO-OP] Layout auto-suffisant (aucun comptoir d'échange) : la coopération par
+        # passage n'a pas lieu d'être -> comportement greedy historique STRICTEMENT
+        # inchangé (dispenser + comptoirs combinés, coût le plus faible choisi ensuite).
+        if not mdp.counter_goals:
+            return pick(counter_objects, state=state, player_idx=self.agent_index), sym
+        # 1) RECEVEUR : consommer un exemplaire posé sur comptoir que je peux faire avancer.
+        consumable = list(counter_objects.get(item, []))
+        cons_goals = [g for g in am._get_ml_actions_for_positions(consumable)
+                      if mp.is_valid_motion_start_goal_pair(player.pos_and_or, g)]
+        if cons_goals:
+            return cons_goals, sym
+        # 2) FOURNISSEUR : aller au dispenser.
+        disp = (mdp.get_onion_dispenser_locations() if item == 'onion'
+                else mdp.get_tomato_dispenser_locations())
+        disp += am._get_asymmetric_dispenser_locations_for_item(state, self.agent_index, item)
+        disp_goals = [g for g in am._get_ml_actions_for_positions(disp)
+                      if mp.is_valid_motion_start_goal_pair(player.pos_and_or, g)]
+        if disp_goals:
+            if (not self._can_advance_item(state, item, chopped=False)) \
+                    and self._in_transit_to_partner(state, item):
+                # Pur fournisseur + un exemplaire déjà en aval -> ne pas empiler, attendre.
+                self._intentional_wait = True
+                return am.wait_actions(player), sym
+            return disp_goals, sym
+        # 3) Aucune source atteignable : l'ingrédient viendra du partenaire -> attendre.
+        self._intentional_wait = True
+        return am.wait_actions(player), sym
+
+    def _fetch_dish_or_wait(self, state, player, counter_objects):
+        """Empty-handed : aller chercher une assiette (comptoirs filtrés = règle du
+        receveur). Throttle fournisseur : si je ne peux pas emporter la soupe moi-même
+        (aucune marmite atteignable -> je ne fais que PASSER l'assiette) et qu'une assiette
+        est déjà en transit vers le partenaire, j'ATTENDS au lieu de sur-approvisionner."""
+        am = self.mlam
+        if (not self._can_advance_item(state, 'dish', chopped=False)) \
+                and self._in_transit_to_partner(state, 'dish'):
+            self._intentional_wait = True
+            return am.wait_actions(player)
+        return am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
+
     def _chop_or_wait_actions(self, state, player):
         """[CUTTING BOARD] Motion goals pour découper l'ingrédient BRUT tenu.
 
@@ -540,19 +729,35 @@ class PlanningAgent(Agent):
         Repli : aucune position d'attente atteignable (planche accessible seulement du
         côté du partenaire) -> attendre sur place (self._intentional_wait) ; retour []
         uniquement si le layout n'a AUCUNE planche, pour laisser l'appelant gérer ce
-        cas dégénéré."""
+        cas dégénéré.
+
+        [ÉCHANGE] Si AUCUNE planche n'est atteignable par moi mais que le PARTENAIRE peut
+        en atteindre une, je ne peux pas faire avancer l'ingrédient brut : je le PASSE au
+        partenaire via un comptoir d'échange (état le plus avancé possible = brut) au lieu
+        de le jeter. L'appelant doit lire self.intentions['goal'] (positionné ici)."""
         am = self.mlam
-        goals = am.put_ingredient_on_board_actions(state)
-        if goals:
-            return goals   # une planche libre : aller la remplir
+        mp = am.motion_planner
         board_locs = am.mdp.get_cutting_board_locations()
+        # Planches VIDES atteignables par moi : aller y déposer l'ingrédient à couper.
+        reachable_empty = [g for g in am.put_ingredient_on_board_actions(state)
+                           if mp.is_valid_motion_start_goal_pair(player.pos_and_or, g)]
+        if reachable_empty:
+            self.intentions['goal'] = 'C'
+            return reachable_empty
         if not board_locs:
-            return goals   # layout sans planche : cas dégénéré, repli de l'appelant
-        # Toutes les planches occupées : viser une position DEVANT une planche occupée,
-        # en ne gardant que celles réellement atteignables depuis la case courante.
+            self.intentions['goal'] = 'C'
+            return []   # layout sans planche : cas dégénéré, repli de l'appelant
+        # [ÉCHANGE] Aucune planche atteignable par moi mais le partenaire peut découper.
+        handoff = self._handoff_if_partner_only(state, board_locs)
+        if handoff is not None:
+            self.intentions['goal'] = 'X'
+            return handoff
+        # Planches atteignables par moi mais toutes occupées (partenaire découpe déjà) :
+        # aller se placer DEVANT une planche occupée et attendre sa libération.
+        self.intentions['goal'] = 'C'
         occupied = [p for p in board_locs if state.has_object(p)]
         wait_goals = [mg for mg in am._get_ml_actions_for_positions(occupied)
-                      if am.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+                      if mp.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
         # Déjà en place et face à une planche, OU aucune position atteignable -> attendre.
         if (not wait_goals) or (player.pos_and_or in wait_goals):
             self._intentional_wait = True
@@ -578,6 +783,12 @@ class PlanningAgent(Agent):
 
         Retourne (motion_goals, goal_symbol)."""
         am = self.mlam
+        # [ÉCHANGE] Je tiens une assiette mais ne peux atteindre AUCUNE marmite (pour
+        # emporter la soupe) alors que le partenaire le peut : lui passer l'assiette via
+        # un comptoir d'échange (c'est lui qui plate/emporte la soupe de son côté).
+        handoff = self._handoff_if_partner_only(state, am.mdp.get_pot_locations())
+        if handoff is not None:
+            return handoff, 'X'
         # Marmites en cours de traitement : en remplissage (partielles) OU pleines pas
         # encore lancées. Dans les DEUX cas on GARDE l'assiette et on attend : elle
         # servira à emporter la soupe une fois cuite. IMPORTANT : même si la marmite
@@ -627,10 +838,24 @@ class PlanningAgent(Agent):
         tous les deux -> jeter pour libérer une main (et pouvoir prendre une assiette).
 
         Repli : aucune marmite ne se libérera -> jeter.
+
+        [ÉCHANGE] Si aucune marmite n'est ATTEIGNABLE par moi (fill vidé par le filtre de
+        reachability) mais que le PARTENAIRE peut en atteindre une, je passe l'ingrédient
+        (coupé = état le plus avancé de mon côté) au partenaire via un comptoir d'échange
+        au lieu de le jeter. (Si une marmite m'est atteignable mais que fill est vide pour
+        cause d'INCOMPATIBILITÉ recette, _handoff_if_partner_only renvoie None -> on garde
+        la logique cuire/attendre/jeter.)
         Retourne (motion_goals, goal_symbol)."""
-        if fill_goals:
-            return fill_goals, 'P'
+        mp = self.mlam.motion_planner
+        # Ne garder que les marmites remplissables réellement ATTEIGNABLES par moi.
+        reachable_fill = [g for g in fill_goals
+                          if mp.is_valid_motion_start_goal_pair(player.pos_and_or, g)]
+        if reachable_fill:
+            return reachable_fill, 'P'
         mdp = self.mlam.mdp
+        handoff = self._handoff_if_partner_only(state, mdp.get_pot_locations())
+        if handoff is not None:
+            return handoff, 'X'
         # Marmites qui n'attendent qu'un INTERACT mains vides pour cuire. L'ingrédient
         # tenu bloque leur lancement -> libérer la main (jeter), puis les cuire.
         needs_cook_start = (mdp.get_full_but_not_cooking_pots(pot_states_dict)
@@ -909,9 +1134,14 @@ class PlanningAgent(Agent):
             other_has_dish = other_player.has_object(
             ) and other_player.get_object().name == 'dish'
 
+            # [ÉCHANGE] Candidats de ramassage sur comptoir filtrés (règle du receveur) :
+            # ne pas reprendre d'un comptoir d'échange un objet qu'on ne peut pas faire
+            # avancer soi-même (anti-churn). No-op sur layout auto-suffisant.
+            pickup_counter_objects = self._filter_counter_pickups(state, counter_objects)
+
             if soup_nearly_ready and not other_has_dish:
                 self.intentions['goal'] = 'D'
-                motion_goals = am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
+                motion_goals = self._fetch_dish_or_wait(state, player, pickup_counter_objects)
             else:
                 self.next_order_info = self._resolve_hl_action(state)
                 self.intentions["recipe"] = self.next_order_info["recipe"].ingredients
@@ -960,9 +1190,21 @@ class PlanningAgent(Agent):
                         # coop et bloque le partenaire venu livrer. On s'abstient donc.
                         ma_pot = self.next_order_info["most_advanced_pot"]
                         ma_has_soup = ma_pot is not None and state.has_object(ma_pot)
-                        if ma_has_soup and not other_has_dish:
+                        # [ÉCHANGE] `missing_ingredients` a pu être vidé par ai_see_asset alors
+                        # que le pot n'est PAS réellement complet : le partenaire TIENT encore
+                        # l'ingrédient (sur un layout d'échange il est loin d'être potté — il doit
+                        # d'abord être découpé puis repassé). Aller chercher une assiette
+                        # (inatteignable) mènerait, via le repli go_to_closest_feature, à CUIRE le
+                        # pot INCOMPLET (ex. [O,O] au lieu de [O,O,T]). On ATTEND que le partenaire
+                        # dépose réellement l'ingrédient. Gardé sur counter_goals -> no-op strict
+                        # sur layout auto-suffisant (comportement historique inchangé).
+                        raw_missing = self.next_order_info["missing_ingredients_in_MA_pot"]
+                        if self.mlam.mdp.counter_goals and ma_has_soup and len(raw_missing) > 0:
+                            self._intentional_wait = True
+                            motion_goals = am.wait_actions(player)
+                        elif ma_has_soup and not other_has_dish:
                             self.intentions['goal'] = 'D'
-                            motion_goals = am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
+                            motion_goals = self._fetch_dish_or_wait(state, player, pickup_counter_objects)
                         else:
                             # Assiette redondante (le partenaire tient déjà une assiette,
                             # ou la soupe est déjà emportée/livrée -> pot vide) : ne rien
@@ -973,11 +1215,13 @@ class PlanningAgent(Agent):
                             self._intentional_wait = True
                             motion_goals = am.wait_actions(player)
                     elif 'onion' in missing_ingredients:
-                        self.intentions['goal'] = 'O'
-                        motion_goals = am.pickup_onion_actions(counter_objects, state=state, player_idx=self.agent_index)
+                        # [ÉCHANGE] fetch/supply oignon (comptoirs filtrés + throttle fournisseur)
+                        motion_goals, self.intentions['goal'] = self._fetch_or_supply(
+                            state, 'onion', pickup_counter_objects)
                     elif 'tomato' in missing_ingredients:
-                        self.intentions['goal'] = 'T'
-                        motion_goals = am.pickup_tomato_actions(counter_objects, state=state, player_idx=self.agent_index)
+                        # [ÉCHANGE] fetch/supply tomate (comptoirs filtrés + throttle fournisseur)
+                        motion_goals, self.intentions['goal'] = self._fetch_or_supply(
+                            state, 'tomato', pickup_counter_objects)
                     else:
                         motion_goals = am.wait_actions(player)
                         motion_goals
@@ -986,15 +1230,23 @@ class PlanningAgent(Agent):
                     motion_goals
 
             # [CUTTING BOARD] Priorité: si un ingrédient est en cours de découpe / déjà coupé
-            # sur une planche, finir la découpe ou le récupérer avant toute autre action.
+            # sur une planche ATTEIGNABLE par moi, finir la découpe ou le récupérer avant
+            # toute autre action. [ÉCHANGE] Ne considérer que les planches de MON côté :
+            # sinon un agent qui ne peut pas atteindre la planche du partenaire viserait un
+            # but inatteignable (-> jeté au repli). Réinitialise aussi _intentional_wait car
+            # on a désormais un objectif concret (couper/récupérer), pas une attente.
             if cutting_enabled and board_objs:
-                chopped_objs = [o for o in board_objs if getattr(o, 'chopped', False)]
-                unchopped_objs = [o for o in board_objs if not getattr(o, 'chopped', False)]
-                self.intentions['goal'] = 'C'
-                if chopped_objs:
-                    motion_goals = am.pickup_chopped_actions(chopped_objs)
-                else:
-                    motion_goals = am.chop_actions(unchopped_objs)
+                my_board_objs = [o for o in board_objs
+                                 if self._reachable(player.pos_and_or, [o.position])]
+                if my_board_objs:
+                    self._intentional_wait = False
+                    chopped_objs = [o for o in my_board_objs if getattr(o, 'chopped', False)]
+                    unchopped_objs = [o for o in my_board_objs if not getattr(o, 'chopped', False)]
+                    self.intentions['goal'] = 'C'
+                    if chopped_objs:
+                        motion_goals = am.pickup_chopped_actions(chopped_objs)
+                    else:
+                        motion_goals = am.chop_actions(unchopped_objs)
 
         else:
             player_obj = player.get_object()
@@ -1015,8 +1267,8 @@ class PlanningAgent(Agent):
                 # Si la planche est occupée (partenaire en train de découper), l'oignon reste
                 # nécessaire : on attend qu'elle se libère plutôt que de le jeter.
                 elif cutting_enabled and self._held_needs_chopping(player_obj):
+                    # [ÉCHANGE] découpe / attente / passage au partenaire (intention posée dedans)
                     motion_goals = self._chop_or_wait_actions(state, player)
-                    self.intentions['goal'] = 'C'
                 else:
                     # [RECETTE VALIDE] Ne viser que les marmites où ajouter l'oignon reste
                     # compatible avec une commande (exclut p.ex. une marmite [O,T] complète
@@ -1033,8 +1285,8 @@ class PlanningAgent(Agent):
                 # [CUTTING BOARD] découper la tomate avant de la mettre au pot si la recette l'exige.
                 # Si la planche est occupée, la tomate reste nécessaire : on attend au lieu de la jeter.
                 elif cutting_enabled and self._held_needs_chopping(player_obj):
+                    # [ÉCHANGE] découpe / attente / passage au partenaire (intention posée dedans)
                     motion_goals = self._chop_or_wait_actions(state, player)
-                    self.intentions['goal'] = 'C'
                 else:
                     # [RECETTE VALIDE] cf. branche oignon : ne viser que les marmites où
                     # ajouter la tomate reste compatible avec une commande.
@@ -1046,6 +1298,11 @@ class PlanningAgent(Agent):
                 self.intentions['goal'] = 'P'
                 motion_goals = am.pickup_soup_with_dish_actions(
                     pot_states_dict, only_nearly_ready=True)
+                # [ÉCHANGE] Ne garder que les marmites ATTEIGNABLES : si la seule soupe
+                # prête/en cuisson est du côté du partenaire, motion_goals se vide et
+                # _plate_or_wait_actions décide (passer l'assiette au partenaire / attendre).
+                motion_goals = [mg for mg in motion_goals
+                                if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
                 if motion_goals == []:
                    # [ASSIETTE] Aucune soupe prête/en cuisson à emporter. Si une soupe
                    # est en cours d'assemblage, l'assiette reste nécessaire : attendre
@@ -1060,7 +1317,19 @@ class PlanningAgent(Agent):
                     motion_goals, self.intentions['goal'] = self._discard_actions(state)
                 else :
                     self.intentions['goal'] = 'S'
-                    motion_goals = am.deliver_soup_actions()
+                    deliver = am.deliver_soup_actions()
+                    reachable = [g for g in deliver
+                                 if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, g)]
+                    if reachable:
+                        motion_goals = reachable
+                    else:
+                        # [ÉCHANGE] Service inatteignable par moi mais le partenaire peut
+                        # livrer : lui passer la soupe (état le plus avancé) via l'échange.
+                        handoff = self._handoff_if_partner_only(state, self.mlam.mdp.get_serving_locations())
+                        if handoff is not None:
+                            motion_goals, self.intentions['goal'] = handoff, 'X'
+                        else:
+                            motion_goals = deliver   # repli : sera filtré -> jeté si vraiment bloqué
 
             else:
                 raise ValueError()
