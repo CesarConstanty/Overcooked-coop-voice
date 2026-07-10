@@ -711,6 +711,58 @@ class PlanningAgent(Agent):
             return am.wait_actions(player)
         return am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
 
+    def _can_obtain_ingredient(self, state, item):
+        """[ÉCHANGE] True si l'agent peut obtenir `item` MAINTENANT : son dispenser est
+        atteignable, OU un exemplaire qu'il peut faire avancer est posé sur un comptoir
+        atteignable (passé par le partenaire). Sert à viser en priorité l'ingrédient
+        manquant réellement disponible plutôt que de rester bloqué sur un ingrédient
+        inaccessible."""
+        mdp = self.mlam.mdp
+        me = state.players[self.agent_index].pos_and_or
+        disp = (mdp.get_onion_dispenser_locations() if item == 'onion'
+                else mdp.get_tomato_dispenser_locations())
+        disp += self.mlam._get_asymmetric_dispenser_locations_for_item(state, self.agent_index, item)
+        if self._reachable(me, disp):
+            return True
+        for pos, obj in state.objects.items():
+            if obj.name == item and mdp.get_terrain_type_at_pos(pos) == 'X' \
+                    and self._reachable(me, [pos]) \
+                    and self._can_advance_item(state, item, bool(getattr(obj, 'chopped', False))):
+                return True
+        return False
+
+    def _committed_ingredients(self, state):
+        """[ÉCHANGE] Multiensemble (Counter) des ingrédients oignon/tomate actuellement
+        ENGAGÉS dans le pipeline de la recette en cours d'assemblage : présents dans une
+        marmite PAS ENCORE EN CUISSON, sur une planche à découper, sur un comptoir d'échange,
+        ou tenus par un joueur. Exclut les soupes en cuisson/prêtes (recette déjà figée, plus
+        rien à assembler) et les dispensers. AGNOSTIQUE au joueur (même valeur pour les deux)
+        -> objectifs cohérents entre partenaires.
+
+        Sert à choisir une recette cible STABLE et ACCUMULATIVE (GreedyAgent.hl_action) :
+        chaque tomate qui ENTRE dans le pipeline fait grimper l'objectif
+        ([O,O,O]->[O,O,T]->[O,T,T]) et celui-ci RESTE stable tant que la tomate y est (tenue /
+        planche / échange / marmite en assemblage), au lieu de « redescendre » vers [O,O,O]
+        dès qu'elle est repassée. L'objectif ne se relâche qu'une fois la soupe lancée en
+        cuisson (pipeline vidé)."""
+        mdp = self.mlam.mdp
+        c = Counter()
+        placed = set(mdp.counter_goals) | set(mdp.get_cutting_board_locations())
+        for pot_pos in mdp.get_pot_locations():
+            if state.has_object(pot_pos):
+                soup = state.get_object(pot_pos)
+                if not soup.is_cooking and not soup.is_ready:
+                    for ing in soup.ingredients:
+                        if ing in ('onion', 'tomato'):
+                            c[ing] += 1
+        for pos, obj in state.objects.items():
+            if obj.name in ('onion', 'tomato') and pos in placed:
+                c[obj.name] += 1
+        for pl in state.players:
+            if pl.has_object() and pl.get_object().name in ('onion', 'tomato'):
+                c[pl.get_object().name] += 1
+        return c
+
     def _chop_or_wait_actions(self, state, player):
         """[CUTTING BOARD] Motion goals pour découper l'ingrédient BRUT tenu.
 
@@ -1214,14 +1266,18 @@ class PlanningAgent(Agent):
                             # de le figer par un INTERACT « protégé »).
                             self._intentional_wait = True
                             motion_goals = am.wait_actions(player)
-                    elif 'onion' in missing_ingredients:
-                        # [ÉCHANGE] fetch/supply oignon (comptoirs filtrés + throttle fournisseur)
+                    elif 'onion' in missing_ingredients or 'tomato' in missing_ingredients:
+                        # [ÉCHANGE] Viser en priorité l'ingrédient manquant qu'on peut RÉELLEMENT
+                        # obtenir maintenant (dispenser atteignable, ou exemplaire avançable passé
+                        # sur l'échange) : un découpeur à qui on passe une tomate ne doit pas rester
+                        # bloqué à attendre des oignons inaccessibles. Sur layout auto-suffisant
+                        # (counter_goals vide) l'ordre historique oignon>tomate est conservé (les
+                        # deux obtenables -> tri stable -> bit-identique).
+                        cand = [i for i in ('onion', 'tomato') if i in missing_ingredients]
+                        if self.mlam.mdp.counter_goals:
+                            cand.sort(key=lambda i: 0 if self._can_obtain_ingredient(state, i) else 1)
                         motion_goals, self.intentions['goal'] = self._fetch_or_supply(
-                            state, 'onion', pickup_counter_objects)
-                    elif 'tomato' in missing_ingredients:
-                        # [ÉCHANGE] fetch/supply tomate (comptoirs filtrés + throttle fournisseur)
-                        motion_goals, self.intentions['goal'] = self._fetch_or_supply(
-                            state, 'tomato', pickup_counter_objects)
+                            state, cand[0], pickup_counter_objects)
                     else:
                         motion_goals = am.wait_actions(player)
                         motion_goals
@@ -1251,12 +1307,20 @@ class PlanningAgent(Agent):
         else:
             player_obj = player.get_object()
             all_recipes = self.hl_info(state)
-            try :
-                self.next_order_info["missing_ingredients_in_MA_pot"] = all_recipes[self.next_order_info["recipe"]]["missing_ingredients_in_MA_pot"]
-            except KeyError:
-                # Recipe triplet changed — the cached recipe is no longer valid; replan.
-                if all_recipes:
-                    self.next_order_info = self._resolve_hl_action(state)
+            # [ÉCHANGE] Si l'agent TIENT un ingrédient sur un layout d'échange, ré-évaluer la
+            # recette cible pour l'ADAPTER à cet ingrédient (une tomate reçue alors qu'il visait
+            # les oignons -> bascule vers la meilleure recette contenant une tomate, incrémente
+            # hl_switch, et la traite au lieu de la jeter). Gardé sur counter_goals -> no-op
+            # (branche historique) sur layout auto-suffisant.
+            if self.mlam.mdp.counter_goals and player_obj.name in ('onion', 'tomato') and all_recipes:
+                self.next_order_info = self._resolve_hl_action(state)
+            else:
+                try :
+                    self.next_order_info["missing_ingredients_in_MA_pot"] = all_recipes[self.next_order_info["recipe"]]["missing_ingredients_in_MA_pot"]
+                except KeyError:
+                    # Recipe triplet changed — the cached recipe is no longer valid; replan.
+                    if all_recipes:
+                        self.next_order_info = self._resolve_hl_action(state)
 
             if player_obj.name == 'onion':
                 # self.next_order_info["min_cost_to_complete"] == any([10000, 0]):
@@ -1507,15 +1571,36 @@ class GreedyAgent(PlanningAgent):
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
             return self.next_order_info
-        cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["value"])  
+        cheapest = max(all_recipes, key= lambda key : all_recipes.get(key)["value"])
         #cheapest = max(filter(lambda recipe : sorted(recipe.ingredients) not in cooking_or_ready_soups, all_recipes), key="point_time_ratio")
+        # [ÉCHANGE] Recette cible STABLE et ACCUMULATIVE pilotée par les ingrédients ENGAGÉS
+        # dans le pipeline (_committed_ingredients) : la meilleure recette (par valeur) dont le
+        # multiensemble engagé reste un SOUS-MULTIENSEMBLE (donc encore complétable). Chaque
+        # tomate qui entre fait grimper l'objectif ([O,O,O]->[O,O,T]->[O,T,T]) et l'objectif
+        # RESTE stable tant que la tomate est dans le pipeline (au lieu de « redescendre » vers
+        # [O,O,O] dès qu'elle est repassée). Équivaut au value-max quand rien n'est imposé
+        # (le multiensemble engagé est alors sous-ensemble de la recette de plus haute valeur).
+        # No-op hors layout d'échange (counter_goals vide -> value-max historique inchangé).
+        forced = False
+        if self.mlam.mdp.counter_goals:
+            committed = self._committed_ingredients(state)
+            compatible = [r for r in all_recipes
+                          if all(committed[i] <= Counter(r.ingredients)[i] for i in committed)]
+            if compatible:
+                cheapest = max(compatible, key=lambda r: all_recipes[r]["value"])
+            # [hl_switch] Changement IMPOSÉ = le pipeline engagé n'est PLUS compatible avec
+            # l'objectif courant (une tomate reçue le dépasse) -> il FAUT changer sinon la
+            # recette visée est incomplétable (aucune action scorante). Les changements
+            # VOLONTAIRES ne satisfont pas cette condition et ne comptent pas : re-choix par
+            # valeur, recette suivante après livraison, et retour au défaut une fois la soupe
+            # en cuisson (pipeline vidé -> committed vide -> compatible avec tout).
+            if self.hl_goal is not None and self.hl_goal in all_recipes:
+                hg = Counter(self.hl_goal.ingredients)
+                forced = any(committed[i] > hg[i] for i in committed)
         if cheapest != self.hl_goal :
             #cheapest.update_cost_to_complete(state, self.mlam, self.agent_index)
             #cheapest.update_point_time_ratio(self.mlam)
-            # On ne compte un switch que si l'ancien objectif est ENCORE réalisable.
-            # S'il a disparu de all_recipes (recette complétée / en cours de cuisson),
-            # passer à la suivante n'est pas un changement d'avis.
-            if self.hl_goal in all_recipes:
+            if forced:
                 self.hl_objective_switch += 1
             self.hl_goal =cheapest
         cheapest_info = {
