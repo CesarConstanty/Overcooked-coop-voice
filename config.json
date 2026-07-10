@@ -150,7 +150,7 @@
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html",
                                 "VHr": "tutorial_EVr.html", "VHa":"tutorial_EVa.html"},
         "blocs" : {
-            "0": ["test01"],
+            "0": ["test_asym01","test01"],
             "1": ["test01_90"],
             "2": ["test01_180"]
         },
