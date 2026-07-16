@@ -1380,7 +1380,13 @@ class PlanningGame(OvercookedGame):
 
     def get_policy(self, npc_id,  idx):
         #self.mdp = OvercookedGridworld.from_layout_name(self.layouts[-1], self.layouts_dir, **self.mdp_params)
-        if "Lazy" in self.planning_agent_id:
+        # NB : "GreedyCoop" CONTIENT "Greedy" -> le tester AVANT le greedy classique.
+        # Import PARESSEUX : n'importe simulation_exchange (et son effet de bord de module)
+        # que si un GreedyCoop est réellement sélectionné en config.
+        if "GreedyCoop" in self.planning_agent_id:
+            from agent_coop import GreedyCoopAgent
+            agent = GreedyCoopAgent()
+        elif "Lazy" in self.planning_agent_id:
             agent = LazyAgent()
         elif "Greedy" in self.planning_agent_id:
             agent = GreedyAgent()

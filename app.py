@@ -2201,7 +2201,7 @@ def planning_design():
     # Suivi temporel : enregistrer la visite de planning_design
     track_page_view('planning_design.html', uid, 'design')
     
-    return render_template('planning_design.html', uid="design", agent_names=["Lazy", "Greedy", "Rational", "Random"], layouts=layouts)
+    return render_template('planning_design.html', uid="design", agent_names=["Lazy", "Greedy", "GreedyCoop", "Rational", "Random"], layouts=layouts)
 
 
 @app.route('/goodbye')
