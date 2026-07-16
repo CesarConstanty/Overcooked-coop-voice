@@ -163,11 +163,30 @@ C'est le cœur de la contribution récente : faire coopérer deux greedy sur un 
 > zones est décidé — comme demandé — par **estimation du gain en pas, l'agent OBSERVANT la
 > position de son partenaire**.
 
-### 6.1 Les rôles, par proximité
+### 6.1 Les rôles — statiques entre 2 IA, **dynamiques face à un humain**
 
-Comme il n'y a plus de composantes, les rôles sont attribués par **proximité** au démarrage :
-le **cook** est le chef le plus proche du bloc *marmite / service / distributeurs* ; le
-**prep** est l'autre (proche *planche / assiette*).
+Les rôles sont attribués par **proximité** : le **cook** est le chef le plus « cuisine »
+(proche du bloc *marmite / service / distributeurs*), le **prep** l'autre (proche *planche /
+assiette*). Selon le contexte :
+
+- **Deux IA** (compare / visual) → rôles **quasi-statiques**, mais la bascule cook↔prep est
+  **autorisée sous garde de quiescence** (`_maybe_swap_roles`, cf. §6.7). Historiquement on
+  l'interdisait totalement : deux greedy symétriques n'ont pas de partenaire à « épouser » et une
+  bascule fondée sur l'affinité instantanée ne fait qu'**osciller** (thrashing → la soupe rebondit
+  entre les deux sans être servie ; observé sur `test_exchange_benefit3`). La garde de quiescence
+  (bascule **uniquement à un point mort** du pipeline) supprime ce risque : les rôles restent de
+  fait stables sur les layouts de test, mais peuvent changer si les agents dérivent.
+- **Face à un humain** (`solo_action`, mode manuel) → rôles **DYNAMIQUES** : l'IA prend le
+  rôle **complémentaire** de l'humain (voir §8), avec **hystérésis** (avantage d'affinité
+  minimal + délai minimal entre deux bascules) pour éviter l'oscillation. Un seul « cerveau
+  cook » (`GreedyAgent`) existe ; on lui **ré-affecte l'index** du chef qui joue le cook lors
+  d'une bascule → la recette reste continue à travers les changements de rôle.
+
+> **Le prep n'entre jamais dans la zone cuisine.** Un coupé / une assiette destinés à la
+> marmite (côté cook) sont **toujours relayés** par le prep sur une zone d'échange, jamais
+> livrés par lui : sinon il se garerait dans le **cul-de-sac d'accès à la marmite** et y
+> coincerait le cook (interblocage vu sur `test_exchange_benefit3`). Un prep oisif ne
+> stationne pas non plus sur un cul-de-sac (`_park` : il en sort d'un pas).
 
 ### 6.2 Le calcul de gain — `_relay_gain` (le cœur)
 
@@ -235,6 +254,82 @@ Sur `test_exchange_benefit2`, le service est dans un cul-de-sac du côté prep :
 | Soupes relayées cook→prep | 0 | **7 / 7** |
 | Passages du cook dans le cul-de-sac | 21 tics | **1 tic** |
 
+### 6.6 Exploiter la fenêtre de cuisson — pré-sourcing (temps mort → travail utile)
+
+**Le manque à gagner.** Quand tous les ingrédients sont dans la marmite et qu'elle **cuit**
+(~26 tics pour `[O,O,O]`), le `GreedyAgent` de base fait aller le cook chercher l'**assiette**
+puis **attendre** au bord de la marmite (boucle INTERACT) que la soupe soit prête ; le prep,
+n'ayant plus rien à découper, reste **immobile**. Résultat : pendant toute la cuisson **les deux
+chefs sont oisifs** et personne ne prépare la commande suivante.
+
+**Le correctif (`cook_action` + `_presource_*`).** Pendant la fenêtre de cuisson, le cook
+**PRÉ-SOURCE** les ingrédients de la **prochaine** recette au dispenser et les **relaie au prep
+qui les découpe** — de sorte qu'à la fin de la cuisson : soupe dressée immédiatement (l'assiette
+est fournie/relayée) **ET** ingrédients suivants déjà coupés, en attente sur une zone → la
+marmite se re-remplit **sans temps mort**. C'est une **réaffectation de rôle DANS la fenêtre** :
+le cook devient sourceur, le prep fournit l'assiette puis pré-découpe. Mécanique :
+
+- *Quelle recette pré-sourcer ?* On rejoue le greedy du cook sur un état « pré-source » où la
+  soupe **en cuisson** ET l'**ordre** qu'elle honore sont retirés (`_presource_state`) : le
+  greedy y voit la marmite libre et la commande déjà honorée → il vise la **recette suivante**.
+  Retirer l'ordre est indispensable — sinon le cook re-sourcerait la recette en cuisson (absente
+  une 2ᵉ fois de la carte de commandes) = **surproduction / orphelins**.
+- *Combien ?* Sourcing **dirigé** vers le type le plus **déficitaire** encore requis, borné par
+  le throttle **par type** (`_oversupplied`) et par les **zones libres** : le cook enchaîne
+  plusieurs ingrédients dans la fenêtre (oignon throttlé → tomate…) sans jamais dépasser le
+  besoin réel ni saturer les passes.
+- *Repli garanti (jamais de soupe non emportée).* Le cook garde un **budget** : tant qu'il reste
+  plus de cuisson que le coût estimé pour aller prendre l'assiette et revenir dresser
+  (`_dish_eta` + marge), il pré-source ; en-deçà — ou si aucune assiette n'est sécurisée — il
+  part dresser normalement. Un verrou `_serve_committed` évite l'oscillation (l'ETA dépend de la
+  position du cook).
+
+**Où c'est actif.** Partout SAUF s'il existe une zone d'échange **« pincée »** — une zone dont
+*toutes* les cases d'accès sont des cul-de-sacs (`_zone_pinched`). Une telle zone est un **piège** :
+un ingrédient qu'on y relaie n'est repris qu'en **entrant dans un cul-de-sac**, où un partenaire
+oisif qui se gare **interbloque** le cook (`coop_deconflict` ne peut dénouer un couloir 1-large ;
+deadlock tracé sur `benefit2`, zone (1,4) pincée — 2 zones seulement, la 2ᵉ portant l'assiette).
+En l'absence de zone pincée, tout relais atterrit sur une case **ouverte** → pré-sourcing sûr,
+**même** en présence d'autres cul-de-sacs (`benefit3` a des cul-de-sacs mais aucun sur une zone).
+Quand une zone est pincée, `cook_action` reste **strictement** le comportement d'origine
+(**jamais de régression**). Critère **mécaniste**, pas un réglage par layout.
+
+| Layout (7 commandes) | Avant | Après | Fenêtre de cuisson |
+|---|---|---|---|
+| `test_exchange_benefit` (ouvert) | 619 | **531** (−14 %) | pré-sourcing actif |
+| `test_exchange_benefit3` (cul-de-sacs, 0 zone pincée) | 599 | **579** | pré-sourcing actif |
+| `test_exchange_benefit2` (zone pincée) | 650 | 650 | désactivé (inchangé) |
+
+> **Note 1.** Sur `benefit`, le relais reste plus lent que deux greedy libres (407) — c'est un
+> layout ouvert où spécialiser les rôles déséquilibre la charge (cf. §9.2) ; le pré-sourcing
+> **réduit** cet écart sans l'annuler. Le gain est net là où le relais est utilisé.
+>
+> **Note 2 — `benefit2`, limite fondamentale.** Il n'a que **2 zones**, dont une **pincée** (1,4).
+> L'assiette occupe déjà une zone ; tout ingrédient pré-sourcé se relaierait donc **forcément** sur
+> la zone pincée → piège. Aucune configuration ne l'évite avec 2 zones : le pré-sourcing y est
+> intrinsèquement risqué et reste désactivé (les deux chefs y restent oisifs pendant la cuisson).
+
+### 6.7 Changement de rôle EN COURS DE PARTIE (cook ↔ prep)
+
+Le rôle d'un chef n'est plus figé : il peut **changer pendant la partie**, selon le contexte.
+
+- **Réaffectation *fonctionnelle* dans la fenêtre de cuisson** (§6.6) : sans échanger les
+  identités, le cook devient *sourceur* et le prep *fournisseur d'assiette + pré-découpeur* le
+  temps de la cuisson, puis chacun reprend son rôle.
+- **Face à un HUMAIN** (`solo_action`) : l'IA prend le rôle **complémentaire** de l'humain d'après
+  la position de celui-ci, avec **hystérésis** (`ROLE_HYST`/`ROLE_DWELL`) et une garde
+  **anti-rebond** (elle ne rebascule que **mains vides**, pour ne pas lâcher/rerouter un objet à
+  mi-pipeline). Humain côté planche → IA cook ; humain côté marmite → IA prep.
+- **Entre 2 IA** (`joint` → `_maybe_swap_roles`, activé par `dynamic_roles=True`) : la bascule
+  cook↔prep est **autorisée mais sous garde de QUIESCENCE** — uniquement à un **point mort** du
+  pipeline (`_quiescent` : mains vides des deux, aucune zone occupée, pas de soupe en cuisson) +
+  hystérésis. Cette garde supprime le **thrashing** historique (deux greedy symétriques dont
+  l'affinité oscille → la soupe rebondit sans être servie → livelock, cf. §6.1). Conséquence : à
+  un point mort chacun est déjà près de son bloc, donc **aucune bascule parasite** sur les layouts
+  de test (numéros inchangés), mais la **capacité** de rebasculer existe et se déclenche si les
+  agents ont **dérivé** au point que le prep serait nettement mieux placé pour tenir la cuisine
+  (vérifié : un cook mal placé et un prep près de la marmite → échange des rôles au point mort).
+
 ---
 
 ## 7. La dé-confliction des déplacements
@@ -248,9 +343,15 @@ les **déplacements** qui entreraient en collision :
 1. un chef qui **travaille** (`INTERACT`) n'est jamais dérangé ;
 2. un chef qui **attend** (`STAY`) cède le passage ;
 3. à défaut, l'index 0 est prioritaire ; le cédant recalcule un chemin qui évite la case du
-   prioritaire.
+   prioritaire ;
+4. **cul-de-sac** : si le cédant est **piégé** dans un cul-de-sac dont l'unique sortie est la
+   case du prioritaire (et que le prioritaire veut justement y entrer — p.ex. une marmite
+   dont l'accès est un cul-de-sac), c'est le **prioritaire qui s'écarte** pour laisser sortir
+   le piégé (il reviendra au tick suivant). Sans cette règle, les deux se figent pour de bon
+   (interblocage de `test_exchange_benefit3`).
 
-> Cette couche fait passer une paire greedy de « ~2/36 layouts complétés » à **36/36**. En
+> Cette couche fait passer une paire greedy de « ~2/36 layouts complétés » à **36/36** (les
+> layouts auto-suffisants restent inchangés — la règle 4 ne s'arme que dans le cas piégé). En
 > **jeu manuel** (§8), elle est absente : le partenaire humain gère lui-même les collisions.
 
 ---
@@ -270,9 +371,18 @@ commandes soient livrées (ou l'horizon atteint).
 **Mode manuel** *(désactivé par défaut — s'active avec `--mode manual`)* : le chercheur
 contrôle un chef au clavier — **Flèches / ZQSD** = se déplacer ou pivoter, **Espace** (ou E)
 = interagir (maintenir pour découper), **Échap** = quitter. `--human-index {0,1}` choisit le
-chef contrôlé (défaut 1, comme en prod où l'IA est le chef 0). Le partenaire est un
-`GreedyAgent` **simple** (pas la couche de relais), exactement comme en production, créé avec
-`auto_unstuck=True` puisqu'il n'y a pas de dé-confliction.
+chef contrôlé (défaut 1, comme en prod où l'IA est le chef 0).
+
+Le **partenaire IA** s'adapte à la topologie :
+
+- **Layout connexe** (les deux chefs atteignent tout) → **IA ADAPTATIVE** (`solo_action`) :
+  elle **observe ta position** et prend le **rôle complémentaire**, en **changeant de rôle en
+  cours de partie**. Si tu occupes le bloc *prep* (planche / assiette), l'IA prend **cook**
+  (elle va tenir la marmite, cuire, servir) ; si tu descends à la **marmite**, l'IA repasse
+  **prep** (elle découpe, fournit les assiettes, relaie). Même hystérésis qu'en §6.1.
+- **Layout séparé** (ou `--no-relay`) → `GreedyAgent` **simple** (déjà adaptatif ; sur un
+  layout séparé il relaie via la logique de passe de `agent.py`), créé avec `auto_unstuck=True`
+  puisqu'il n'y a pas de dé-confliction.
 
 **Lecture du verdict de `compare` :**
 

@@ -58,7 +58,7 @@ from copy import copy
 import numpy as np
 import random
 
-from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
+from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld, Recipe
 from overcooked_ai_py.mdp.actions import Action
 from overcooked_ai_py.planning import planners as _PL
 from overcooked_ai_py.planning.planners import MediumLevelActionManager, COUNTERS_MLG_PARAMS
@@ -109,6 +109,14 @@ def make_greedy(mdp, mlam, idx, ai_see_asset=True, auto_unstuck=False):
     a.set_agent_index(idx)
     a.mdp = mdp
     a.mlam = mlam
+    # [RECIPE GLOBAL] GreedyAgent.__init__ appelle Recipe.configure({}) qui EFFACE la config
+    # globale des recettes (valeurs/temps -> None). Elle n'est normalement restaurée que
+    # PARESSEUSEMENT au 1er action() de l'agent (agent.py ~1505). Or ici un agent peut ne
+    # JAMAIS jouer le rôle cook (face à un humain, l'IA reste prep) : la config resterait
+    # effacée et toute mise en marmite / livraison planterait (recipe.value == None -> compare
+    # '>' NoneType, cf. is_potting_optimal / deliver_soup). On la restaure DÈS la construction
+    # depuis le MDP de l'agent (source de vérité) pour garantir un Recipe cohérent en continu.
+    Recipe.configure(mdp.recipe_config)
     return a
 
 
@@ -376,6 +384,33 @@ class CoopExchangePolicy(ExchangePolicy):
         et la SOUPE->service(prep) quand le service est du côté prep (cf. test_exchange_
         benefit2, où le cook passe le plat au prep au lieu de traverser jusqu'au service).
 
+    [FENÊTRE DE CUISSON] Pendant qu'une soupe CUIT (~26 tics), le cook n'attend plus, planté au
+    bord de la marmite, l'assiette à la main : il PRÉ-SOURCE les ingrédients de la PROCHAINE
+    recette (au dispenser) et les relaie au prep qui les DÉCOUPE pendant la cuisson — si bien
+    qu'à la fin de cuisson la soupe se dresse tout de suite ET les ingrédients suivants sont
+    déjà coupés, en attente sur une zone : la marmite se re-remplit sans temps mort (cf.
+    cook_action + _presource_*). Repli garanti : dès qu'il ne reste plus assez de cuisson pour
+    revenir dresser À TEMPS (_dish_eta), ou qu'aucune assiette n'est sécurisée, le cook va la
+    chercher et sert normalement — jamais de soupe non emportée. C'est une RÉAFFECTATION de rôle
+    DANS LA FENÊTRE : le cook devient sourceur, le prep fournit l'assiette puis pré-découpe.
+    ACTIVÉ SAUF si une zone d'échange est PINCÉE (toutes ses cases d'accès sont des cul-de-sacs,
+    cf. _zone_pinched) : là un ingrédient relayé se ferait piéger et un partenaire oisif garant le
+    cul-de-sac interbloquerait le cook (benefit2, 2 zones dont une pincée -> pré-sourcing OFF,
+    comportement d'origine STRICTEMENT inchangé). Sans zone pincée, tout relais atterrit sur une
+    case ouverte -> sûr, même en présence d'autres cul-de-sacs (benefit3 : 599 -> 579).
+
+    [BASCULE DYNAMIQUE DES RÔLES] Le rôle cook/prep peut CHANGER en cours de partie :
+      * face à un HUMAIN (`solo_action`) : l'IA prend le rôle complémentaire de l'humain d'après
+        SA position, avec hystérésis + garde ANTI-REBOND (ne bascule que mains vides, pour ne pas
+        lâcher un objet à mi-pipeline) ;
+      * entre 2 IA (`joint` + `_maybe_swap_roles`, `dynamic_roles=True`) : bascule cook<->prep
+        SEULEMENT à un POINT MORT du pipeline (`_quiescent` : mains vides, aucune zone occupée,
+        pas de soupe en cuisson) + hystérésis. La garde de quiescence supprime le thrashing
+        historique (deux greedy symétriques dont l'affinité oscille -> soupe qui rebondit -> live-
+        lock) : à un point mort chacun est près de son bloc, donc AUCUNE bascule parasite sur les
+        layouts de test (numéros inchangés), mais la CAPACITÉ de rebasculer si les agents ont
+        dérivé existe et est sûre.
+
     NB — l'estimation est PAR OBJET (locale). Sur un layout connexe OUVERT (boucle) où deux
     greedy libres équilibrent déjà la charge, spécialiser les rôles peut rester GLOBALEMENT
     plus lent que le greedy libre malgré des gains par objet positifs (planche/marmite unique
@@ -396,7 +431,7 @@ class CoopExchangePolicy(ExchangePolicy):
     retarder l'objet). `_relay_gain` renvoie (y, solo − drop) = gain estimé, ou None.
     """
 
-    def __init__(self, mdp, mlam, counter_goals):
+    def __init__(self, mdp, mlam, counter_goals, dynamic_roles=True):
         self.mdp, self.mlam, self.mp = mdp, mlam, mlam.motion_planner
         self.neighbors = simulation.build_neighbors(mdp)
         self.dist = all_pairs_dist(self.neighbors)
@@ -408,10 +443,10 @@ class CoopExchangePolicy(ExchangePolicy):
                           "S": mdp.get_serving_locations()}
         # zones d'échange praticables (au moins une case pour s'y tenir)
         self.exchange = [c for c in counter_goals if stand_tiles(mdp, c)]
-        # rôles par proximité : cook = agent relativement le plus proche du bloc CUISINE
-        cook_feats = (mdp.get_pot_locations() + mdp.get_serving_locations()
-                      + mdp.get_onion_dispenser_locations() + mdp.get_tomato_dispenser_locations())
-        prep_feats = self.boards + self.dishes
+        # blocs de stations de chaque rôle (servent aussi à jauger l'affinité cook/prep).
+        self.cook_feats = (mdp.get_pot_locations() + mdp.get_serving_locations()
+                           + mdp.get_onion_dispenser_locations() + mdp.get_tomato_dispenser_locations())
+        self.prep_feats = self.boards + self.dishes
         # « maison » de chaque rôle = sa station de travail CŒUR (ancrage STABLE du gain :
         # livrer un objet ailleurs oblige à REVENIR faire tourner sa boucle — cook->marmite
         # pour cuire la suivante, prep->planche pour découper la suivante). N'inclure QUE le
@@ -420,25 +455,64 @@ class CoopExchangePolicy(ExchangePolicy):
         # permet d'échanger aussi les PLATS (soupes) quand le service est côté prep.
         self.cook_home = mdp.get_pot_locations()
         self.prep_home = self.boards
-        starts = mdp.start_player_positions
-        score = [self._reg_dist(starts[i], prep_feats) - self._reg_dist(starts[i], cook_feats)
-                 for i in (0, 1)]                     # ↑ = plus loin du prep, plus près du cook
-        self.cook_i = 0 if score[0] >= score[1] else 1
-        self.prep_i = 1 - self.cook_i
         self.cook_comp, self.prep_comp = 0, 1         # côtés virtuels (réutilise _dest/_other)
-        self.cook = make_greedy(mdp, mlam, self.cook_i, ai_see_asset=False)
-        self._prep_shim = _Shim()
-        self._shims = [None, None]
-        self._shims[self.cook_i] = self.cook
-        self._shims[self.prep_i] = self._prep_shim
-        self._shims = tuple(self._shims)
+        # UN seul « cerveau cook » (GreedyAgent) : on lui ré-affecte l'index du chef qui joue
+        # le cook lors d'une bascule de rôle (continuité de la recette). En 2 IA les rôles sont
+        # STATIQUES ; face à un humain (`solo_action`) ils sont DYNAMIQUES.
+        self.cook = make_greedy(mdp, mlam, 0, ai_see_asset=False)
+        # miroirs (un par index) pour exposer .chosen_goal à coop_deconflict même après bascule.
+        self._shims = (_Shim(), _Shim())
         self.MARGIN = 1                               # gain minimal (pas) pour daigner relayer
         self.DEPTH = 2                                 # profondeur max du pipeline (throttle)
-        logger.info("CoopExchange : cook=idx%d, prep=idx%d | %d zone(s) d'échange | "
+        # [FENÊTRE DE CUISSON] Pendant qu'une soupe cuit, le cook PRÉ-SOURCE la recette
+        # suivante au lieu d'attendre l'assiette au pot (cf. cook_action / _presource_*).
+        self.COOK_DISH_MARGIN = 2                     # marge (pas) avant la fin de cuisson pour aller dresser À TEMPS
+        self._serve_committed = False                 # verrou anti-oscillation : engagé à dresser (plus de pré-source)
+        self._presource_cells = set(self.exchange) | set(self.boards)  # cases dont on masque les ingrédients en transit
+        # Pré-sourcing activé SAUF s'il existe une zone d'échange « PINCÉE » : une zone dont
+        # TOUTES les cases d'accès praticables sont des cul-de-sacs (≤1 voisin). Une telle zone
+        # est un PIÈGE : un ingrédient qu'on y relaie ne peut être repris qu'en ENTRANT dans un
+        # cul-de-sac, où un partenaire oisif qui se gare interbloque le cook (coop_deconflict ne
+        # peut dénouer un couloir 1-large ; deadlock tracé sur benefit2, zone (1,4) pincée). En
+        # l'absence de zone pincée (benefit : layout ouvert ; benefit3 : cul-de-sacs présents mais
+        # AUCUN sur une zone), tout ingrédient relayé atterrit sur une zone accessible depuis une
+        # case OUVERTE -> pré-sourcing sûr. Garde-fou CONSERVATEUR et MÉCANISTE (pas un réglage
+        # par layout) : quand une zone est pincée, cook_action reste STRICTEMENT le comportement
+        # d'origine (aucune régression). Vérifié : benefit 531, benefit3 579, benefit2 inchangé.
+        self._presource_enabled = not any(self._zone_pinched(c) for c in self.exchange)
+        # hystérésis des bascules de rôle (solo_action face à un humain ET bascule 2 IA).
+        self.ROLE_HYST = 3                            # avantage d'affinité mini pour BASCULER
+        self.ROLE_DWELL = 15                          # ticks mini entre deux bascules (anti-oscillation)
+        self._last_switch = -10 ** 9
+        # Bascule DYNAMIQUE cook<->prep entre 2 IA (mode compare/visual). Historiquement STATIQUE
+        # (deux greedy symétriques -> l'affinité oscille et fait REBONDIR la soupe = livelock, cf.
+        # test_exchange_benefit3). Réactivée ici sous GARDE DE QUIESCENCE stricte : on ne bascule
+        # qu'entre deux tâches (aucun objet en transit, pas de soupe dans le pipeline, aucune zone
+        # occupée) ET avec hystérésis (ROLE_HYST/ROLE_DWELL) -> jamais de rebond d'une recette en
+        # cours. À un tel point mort chacun est près de son bloc -> aucune bascule parasite sur les
+        # layouts de test (numéros INCHANGÉS) ; la bascule ne se déclenche que si les agents ont
+        # DÉRIVÉ au point que le prep serait nettement mieux placé pour cuisiner. `_maybe_swap_roles`.
+        self._dynamic_roles = dynamic_roles
+        starts = mdp.start_player_positions
+        aff = [self._reg_dist(starts[i], self.prep_feats) - self._reg_dist(starts[i], self.cook_feats)
+               for i in (0, 1)]
+        self.cook_i = 0 if aff[0] >= aff[1] else 1
+        self.prep_i = 1 - self.cook_i
+        self.cook.set_agent_index(self.cook_i)
+        logger.info("CoopExchange : cook=idx%d, prep=idx%d (rôles statiques 2 IA / dynamiques vs humain) "
+                    "| %d zone(s) | "
                     "planches=%s pot=%s assiette=%s", self.cook_i, self.prep_i,
                     len(self.exchange), self.boards, self.feat_locs["P"], self.dishes)
 
     # ------- utilitaires géométriques -------
+    def _zone_pinched(self, c):
+        """Une zone d'échange est PINCÉE si TOUTES ses cases d'accès praticables sont des
+        cul-de-sacs (≤1 voisin) : un objet qu'on y relaie n'est repris qu'en entrant dans un
+        cul-de-sac -> risque d'interblocage avec un partenaire qui s'y gare. Sert à décider si le
+        pré-sourcing de la fenêtre de cuisson est sûr (cf. `_presource_enabled`)."""
+        stands = [s for s in stand_tiles(self.mdp, c) if s in self.neighbors]
+        return bool(stands) and all(len(self.neighbors.get(s, {})) <= 1 for s in stands)
+
     def _reg_dist(self, pos, feat_locs):
         """Plus court trajet praticable de `pos` à une case bordant l'une des features."""
         d = self.dist.get(pos, {})
@@ -448,6 +522,92 @@ class CoopExchangePolicy(ExchangePolicy):
                 if d.get(s, INF) < best:
                     best = d[s]
         return best
+
+    # ------- rôles : bascule DYNAMIQUE sous quiescence (2 IA) OU DYNAMIQUE vs humain (solo_action) -------
+    def _quiescent(self, state):
+        """« Point mort » du pipeline : aucun objet en transit (mains vides des deux, aucune zone
+        d'échange occupée) et aucune soupe en cuisson/prête. C'est le SEUL moment sûr pour
+        basculer les rôles entre 2 IA : rien n'est à mi-relais, donc rien ne peut « rebondir »
+        d'un chef à l'autre (le thrashing qui rendait la bascule 2 IA dangereuse). Entre deux
+        commandes, typiquement."""
+        if any(pl.has_object() for pl in state.players):
+            return False
+        if any(state.has_object(y) for y in self.exchange):
+            return False
+        psd = self.mdp.get_pot_states(state)
+        return not (psd.get("cooking") or psd.get("ready"))
+
+    def _maybe_swap_roles(self, state, t):
+        """Bascule cook<->prep entre 2 IA — UNIQUEMENT à un point mort (`_quiescent`) et avec
+        hystérésis (ROLE_HYST + ROLE_DWELL). On échange les rôles si le PREP est devenu nettement
+        mieux placé que le cook pour tenir la cuisine (les agents ont dérivé). Même convention
+        d'affinité qu'à l'init (`dist(prep_feats) - dist(cook_feats)`, plus haut = meilleur cook).
+        À un point mort chacun est près de son bloc -> la garde ne se déclenche pas sur les layouts
+        de test (rôles de fait stables), mais la CAPACITÉ de changer de rôle en cours de partie
+        existe et est sûre (jamais de rebond de recette)."""
+        if (t - self._last_switch) < self.ROLE_DWELL or not self._quiescent(state):
+            return
+        c, p = state.players[self.cook_i], state.players[self.prep_i]
+        aff_cook = self._reg_dist(c.position, self.prep_feats) - self._reg_dist(c.position, self.cook_feats)
+        aff_prep = self._reg_dist(p.position, self.prep_feats) - self._reg_dist(p.position, self.cook_feats)
+        if aff_prep > aff_cook + self.ROLE_HYST:      # le prep serait un bien meilleur cook -> échanger
+            self.cook_i, self.prep_i = self.prep_i, self.cook_i
+            self.cook.set_agent_index(self.cook_i)
+            self._last_switch = t
+            logger.debug("CoopExchange t%s : bascule rôles 2 IA -> cook=idx%d (le prep était mieux placé)",
+                         t, self.cook_i)
+
+    def joint(self, state, t):
+        """Deux IA (compare/visual). Rôles STATIQUES par défaut de fait, mais bascule cook<->prep
+        AUTORISÉE en cours de partie sous garde de QUIESCENCE (`_maybe_swap_roles` : uniquement à
+        un point mort du pipeline + hystérésis). Historiquement on interdisait toute bascule 2 IA
+        car l'affinité de deux greedy symétriques OSCILLE et fait rebondir la soupe (livelock,
+        test_exchange_benefit3) ; la garde de quiescence supprime ce risque (on ne bascule que
+        quand rien n'est à mi-relais). Miroirs de but tenus à jour pour coop_deconflict."""
+        if self._dynamic_roles:
+            self._maybe_swap_roles(state, t)
+        self.cook.set_agent_index(self.cook_i)
+        out = [None, None]
+        out[self.cook_i] = self.cook_action(state)    # exécute self.cook.action -> fixe chosen_goal
+        out[self.prep_i] = self.prep_action(state)
+        self._shims[self.cook_i].chosen_goal = self.cook.chosen_goal or state.players[self.cook_i].pos_and_or
+        self._shims[self.prep_i].chosen_goal = state.players[self.prep_i].pos_and_or
+        return tuple(out)
+
+    def solo_action(self, state, my_index, t):
+        """[PARTENAIRE HUMAIN] Action pour UN seul agent IA (index `my_index`) qui OBSERVE
+        son partenaire (humain) et prend le rôle COMPLÉMENTAIRE de ce que fait l'humain :
+
+          - l'humain est près du bloc PREP (planche/assiette) -> il découpe -> je prends COOK
+            (je vais tenir la marmite, cuire, servir) ;
+          - l'humain est près du bloc CUISINE (marmite/sources) -> il cuisine -> je prends PREP.
+
+        On se cale sur la POSITION DU PARTENAIRE (et non la mienne) : sinon une IA à l'arrêt
+        ne « deviendrait » jamais cook faute d'être déjà près de la marmite (poule & œuf).
+        Bascule seulement si le rôle du partenaire est NET (écart ≥ hystérésis), après un délai
+        mini (anti-oscillation), ET mains vides (anti-rebond : ne pas lâcher/rerouter un objet
+        en cours de pipeline en changeant de rôle en plein portage). C'est ce qui permet à l'IA
+        de CHANGER DE RÔLE en cours de partie pour épouser ce que fait l'humain, sans faire
+        rebondir un ingrédient/plat. Réutilise `cook_action` / `prep_action`."""
+        partner = 1 - my_index
+        dp = self._reg_dist(state.players[partner].position, self.prep_feats)
+        dc = self._reg_dist(state.players[partner].position, self.cook_feats)
+        want_cook = dp <= dc                          # partenaire côté prep => moi cook
+        cur_is_cook = (self.cook_i == my_index)
+        # [ANTI-REBOND] ne réévaluer le rôle que si l'IA a les mains libres (rien à mi-pipeline).
+        can_switch = not state.players[my_index].has_object()
+        if (can_switch and want_cook != cur_is_cook and abs(dp - dc) >= self.ROLE_HYST
+                and (t - self._last_switch) >= self.ROLE_DWELL):
+            cur_is_cook = want_cook
+            self._last_switch = t
+            logger.debug("CoopExchange t%s : IA(idx%d) bascule -> %s", t, my_index,
+                         "COOK" if cur_is_cook else "PREP")
+        if cur_is_cook:
+            self.cook_i, self.prep_i = my_index, partner
+            self.cook.set_agent_index(my_index)
+            return self.cook_action(state)
+        self.cook_i, self.prep_i = partner, my_index
+        return self.prep_action(state)
 
     def _relay_gain(self, holder_i, held, state):
         """Estime le gain en pas de « relayer l'objet tenu via une zone d'échange (le
@@ -556,9 +716,122 @@ class CoopExchangePolicy(ExchangePolicy):
             return "tomato"
         return None
 
+    # ------- FENÊTRE DE CUISSON : pré-sourcer la recette suivante au lieu d'attendre -------
+    def _cooking_remaining(self, state):
+        """Ticks restants de la soupe EN CUISSON la moins avancée (celle qui se libérera en
+        dernier), ou None si aucune marmite ne cuit — ou si une soupe est déjà PRÊTE (plus de
+        fenêtre à exploiter : il faut dresser tout de suite). Sert de budget au pré-sourcing."""
+        psd = self.mdp.get_pot_states(state)
+        if psd.get("ready"):
+            return None
+        rem = None
+        for pot in psd.get("cooking", []):
+            r = state.get_object(pot).cook_time_remaining
+            rem = r if rem is None else min(rem, r)
+        return rem
+
+    def _dish_grabbable(self, state):
+        """Zones d'échange portant une assiette (relayée par le prep), que le cook peut
+        PRENDRE immédiatement. []  si aucune."""
+        return [y for y in self.exchange
+                if state.has_object(y) and state.get_object(y).name == "dish"]
+
+    def _dish_secured(self, state):
+        """Une assiette est-elle DISPONIBLE pour le cook — posée sur une zone d'échange, ou
+        tenue par le prep (qui la relaiera) ? Sinon le cook ne pré-source PAS : il ira la
+        chercher lui-même (repli), pour ne jamais laisser une soupe non emportée."""
+        if self._dish_grabbable(state):
+            return True
+        prep = state.players[self.prep_i]
+        return prep.has_object() and prep.get_object().name == "dish"
+
+    def _dish_eta(self, state, p):
+        """Coût estimé pour que le cook aille PRENDRE une assiette PUIS revienne à la marmite
+        (pour dresser). Seuil du pré-sourcing : tant que la cuisson dure PLUS que cet ETA
+        (+ marge), le cook peut pré-sourcer ; en-deçà il part dresser pour arriver À TEMPS."""
+        grab = self._dish_grabbable(state)
+        cells = grab if grab else self.exchange     # assiette déjà posée, sinon zone où le prep la déposera
+        if not cells:
+            return INF
+        return (self.mp.min_cost_to_feature(p.pos_and_or, cells)
+                + self.mp.min_cost_between_features(cells, self.cook_home))
+
+    def _presource_state(self, state):
+        """État « pré-source » : la/les soupe(s) EN CUISSON (non prêtes) et l'ORDRE qu'elles
+        honorent sont retirés, et les ingrédients EN TRANSIT (bruts/coupés posés sur zones
+        d'échange ou planches) sont masqués. Le greedy du cook y voit alors la marmite LIBRE
+        et la commande en cours DÉJÀ honorée -> il vise la PROCHAINE recette et va PUISER un
+        ingrédient neuf au dispenser (qu'on relaiera au prep). Le masquage des ingrédients en
+        transit l'empêche de reprendre un coupé (rôle du prep) ou de tenter de POTER dans une
+        marmite en réalité occupée. Retirer l'ordre honoré évite la SURPRODUCTION (sinon le
+        cook re-sourcerait la recette en cuisson, absente une 2ᵉ fois de la carte de commandes)."""
+        s = state.deepcopy()
+        for pot in self.mdp.get_pot_locations():
+            if s.has_object(pot):
+                o = s.get_object(pot)
+                if o.is_cooking and not o.is_ready:
+                    rec = Recipe(list(o.ingredients))
+                    if rec in s.all_orders:
+                        s.clear_order(rec)
+                    s.remove_object(pot)
+        for c in [c for c, obj in s.objects.items()
+                  if obj.name in ("onion", "tomato") and c in self._presource_cells]:
+            s.remove_object(c)
+        return s
+
+    def _presource_action(self, state, p):
+        """Action de PRÉ-SOURCING du cook : le fait aller PUISER au dispenser un ingrédient de
+        la PROCHAINE recette (qu'on relaiera ensuite au prep pour découpe). On lit la prochaine
+        recette via le greedy joué sur l'état « pré-source » (marmite masquée LIBRE + ordre en
+        cuisson retiré), puis on source DIRECTEMENT le type encore requis dont il ne circule
+        pas assez (throttle PAR TYPE) — le plus déficitaire d'abord. Sourcing dirigé (et non la
+        1ʳᵉ envie du greedy) pour enchaîner PLUSIEURS ingrédients dans la fenêtre : oignon
+        throttlé -> tomate, etc. Renvoie None si rien d'utile à puiser (throttle plein, pas de
+        zone d'échange libre pour relayer, ou dispenser hors d'atteinte) -> l'appelant repasse
+        en comportement normal (le cook va chercher l'assiette et dresse)."""
+        if self._nearest_free_exchange(p, state) is None:   # aucune zone libre où relayer -> ne pas puiser
+            return None
+        ps = self._presource_state(state)
+        self.cook.set_agent_index(self.cook_i)
+        self.cook.action(ps)                         # -> next_order_info = PROCHAINE recette (marmite masquée)
+        noi = self.cook.next_order_info
+        if not noi or not noi.get("recipe"):
+            return None
+        needed = list(noi["recipe"].ingredients)     # types requis par la prochaine recette
+        disp = {"onion": self.mdp.get_onion_dispenser_locations(),
+                "tomato": self.mdp.get_tomato_dispenser_locations()}
+        cands = []
+        for ing in set(needed):
+            if disp.get(ing) and not self._oversupplied(state, ing):   # borne PAR TYPE
+                cands.append((needed.count(ing) - self._in_flight_of(state, ing), ing))
+        cands = [c for c in cands if c[0] > 0]       # ne puiser que ce qui MANQUE encore
+        if not cands:
+            return None
+        cands.sort(reverse=True)                     # plus gros déficit d'abord
+        return self._nav(p, disp[cands[0][1]])       # aller au dispenser puiser (None si inatteignable)
+
     def cook_action(self, state):
         p = state.players[self.cook_i]
         held = p.get_object() if p.has_object() else None
+        # [FENÊTRE DE CUISSON] Plutôt que d'aller chercher l'assiette et d'ATTENDRE au bord de
+        # la marmite pendant toute la cuisson (temps mort), le cook PRÉ-SOURCE l'ingrédient de
+        # la PROCHAINE recette (relayé au prep qui le découpe pendant la cuisson). On ne le
+        # fait que s'il reste ASSEZ de cuisson pour revenir dresser À TEMPS (repli sinon), et
+        # qu'une assiette est sécurisée -> jamais de soupe non emportée. `_serve_committed`
+        # verrouille l'engagement à dresser (anti-oscillation : l'ETA dépend de la position).
+        if self._presource_enabled:
+            psd = self.mdp.get_pot_states(state)
+            if not (psd.get("cooking") or psd.get("ready")):
+                self._serve_committed = False        # fenêtre terminée (soupe emportée) -> ré-arme
+            if held is None and not self._serve_committed:
+                rem = self._cooking_remaining(state)
+                if rem is not None and self._dish_secured(state):
+                    if rem > self._dish_eta(state, p) + self.COOK_DISH_MARGIN:
+                        a = self._presource_action(state, p)
+                        if a is not None:
+                            return a                 # pré-source (sinon : throttle/zones -> comportement normal)
+                    else:
+                        self._serve_committed = True  # trop tard pour pré-sourcer -> s'engager à dresser
         act, _ = self.cook.action(self._mask_raw_on_exchange(state))   # met à jour chosen_goal
         if held is not None:
             # Relayer un objet dont la station suivante est du CÔTÉ du prep : un brut à
@@ -586,6 +859,25 @@ class CoopExchangePolicy(ExchangePolicy):
         cook_p = state.players[self.cook_i]
         return cook_p.has_object() and cook_p.get_object().name == "dish"
 
+    def _partner_side(self, ft):
+        """La station de type `ft` est-elle du CÔTÉ du cook (plus proche de sa maison-marmite
+        que de la maison-planche du prep) ? Sert à décider si le prep doit RELAYER (station
+        cook) ou livrer lui-même (station prep : sa planche, ou son service s'il est de son côté)."""
+        dloc = self.feat_locs.get(ft, [])
+        return bool(dloc) and (self.mp.min_cost_between_features(dloc, self.cook_home)
+                               < self.mp.min_cost_between_features(dloc, self.prep_home))
+
+    def _nearest_free_exchange(self, p, state):
+        """Zone d'échange LIBRE la moins chère à atteindre pour y déposer, ou None."""
+        best, bc = None, INF
+        for y in self.exchange:
+            if state.has_object(y):
+                continue
+            c = self.mp.min_cost_to_feature(p.pos_and_or, [y])
+            if c < bc:
+                bc, best = c, y
+        return best
+
     def prep_action(self, state):
         p = state.players[self.prep_i]
         held = p.get_object() if p.has_object() else None
@@ -593,11 +885,23 @@ class CoopExchangePolicy(ExchangePolicy):
             ft = self._dest(held)
             if ft == "C":                              # brut : le découper sur une planche (côté PREP)
                 empty = [b for b in self.boards if not state.has_object(b)]
-                return self._nav(p, empty) or Action.STAY
-            g = self._relay_gain(self.prep_i, held, state)   # coupé / assiette -> côté cook
-            if g is not None:
-                return self._nav(p, [g[0]]) or Action.STAY
-            return self._nav(p, self.feat_locs.get(ft, [])) or Action.STAY   # sinon livrer soi-même
+                return self._nav(p, empty) or self._park(p)
+            if ft == "S":                              # PLAT (soupe) = FIN de pipeline : SERVIR soi-même,
+                # JAMAIS relayer un plat. Sinon, quand le service est du côté cook
+                # (_partner_side("S") vrai), le prep le reposerait sur une zone d'échange, le
+                # reprendrait au tick suivant, etc. -> va-et-vient infini (livelock signalé en
+                # jeu MANUEL : plat déposé par l'humain repris/reposé en boucle). Le service
+                # est toujours atteignable sur un layout CONNEXE : on livre directement.
+                return self._nav(p, self.feat_locs.get("S", [])) or self._park(p)
+            if self._partner_side(ft):
+                # destination CÔTÉ COOK (marmite) : le prep RELAIE toujours, il n'entre JAMAIS
+                # dans la zone cuisine pour livrer lui-même — sinon il se gare dans le cul-de-sac
+                # d'accès au pot et y coince le cook (cf. test_exchange_benefit3). Zone préférée
+                # = celle du gain estimé ; sinon la zone libre la plus proche ; sinon ATTENDRE.
+                g = self._relay_gain(self.prep_i, held, state)
+                y = g[0] if g is not None else self._nearest_free_exchange(p, state)
+                return (self._nav(p, [y]) or self._park(p)) if y is not None else self._park(p)
+            return self._nav(p, self.feat_locs.get(ft, [])) or self._park(p)   # station PREP -> livrer
         # mains vides :
         soup_ys = [y for y in self.exchange            # 0) SERVIR un plat (soupe) relayé par le cook
                    if state.has_object(y) and state.get_object(y).name == "soup"]
@@ -613,7 +917,19 @@ class CoopExchangePolicy(ExchangePolicy):
         if (self.dishes and self._dish_needed(state)   # 3) fournir une assiette au cook (soupe en cours)
                 and not self._dish_in_transit(state)):
             return self._nav(p, self.dishes) or Action.STAY
-        return Action.STAY                             # 4) rien à traiter -> attendre (yielder)
+        return self._park(p)                           # 4) rien à traiter -> se garer SANS bloquer
+
+    def _park(self, p):
+        """Attente NON bloquante d'un prep oisif : ne PAS rester planté sur un CUL-DE-SAC
+        (≤1 voisin praticable), où le cook viendrait le coincer sans issue (`coop_deconflict`
+        ne peut rien dans un cul-de-sac) — en sortir d'un pas. Ailleurs, attendre sur place
+        (STAY). Filet de sécurité, complémentaire du fait que le prep ne va JAMAIS livrer au
+        pot lui-même (il relaie) : il ne devrait donc pas se retrouver dans le cul-de-sac du pot."""
+        nb = self.neighbors.get(p.position, {})
+        if len(nb) <= 1:
+            for d in nb:                                # unique sortie du cul-de-sac
+                return d
+        return Action.STAY
 
 
 # ---------------------------------------------------------------------------
@@ -871,11 +1187,23 @@ def run_manual(args, config):
     grid = ["".join(r) for r in grid]
     human_i = args.human_index if args.human_index in (0, 1) else 1
     ai_i = 1 - human_i
-    ai = make_greedy(mdp, mlam, ai_i, auto_unstuck=True)   # partenaire greedy autonome
-    logger.info("Jeu MANUEL : tu joues le chef %d ; l'IA (greedy) joue le chef %d | layout=%s | %d zone(s)",
-                human_i, ai_i, args.layout, len(cg))
+    # Partenaire IA : sur un layout CONNEXE exploitable, IA ADAPTATIVE qui OBSERVE le joueur
+    # et CHANGE DE RÔLE en cours de partie pour le compléter (cook si tu prépares, prep si tu
+    # cuisines) — via CoopExchangePolicy.solo_action. Sinon (layout séparé, ou --no-relay :
+    # pas de zones), greedy simple (déjà adaptatif, et sur layout séparé il relaie via agent.py).
+    comp_of = components(simulation.build_neighbors(mdp))
+    s0, s1 = mdp.start_player_positions
+    connected = comp_of.get(s0) is not None and comp_of.get(s0) == comp_of.get(s1)
+    adaptive = CoopExchangePolicy(mdp, mlam, cg) if (connected and _connected_exploitable(mdp, cg)) else None
+    ai = None if adaptive is not None else make_greedy(mdp, mlam, ai_i, auto_unstuck=True)
+    logger.info("Jeu MANUEL : tu joues le chef %d ; l'IA (%s) joue le chef %d | layout=%s | %d zone(s)",
+                human_i, "greedy ADAPTATIVE — change de rôle" if adaptive else "greedy", ai_i,
+                args.layout, len(cg))
     print("  Commandes : Flèches / ZQSD = se déplacer ou pivoter | Espace (ou E) = interagir "
           "(maintenir pour découper) | Échap = quitter")
+    if adaptive is not None:
+        print("  Partenaire IA ADAPTATIF : il change de rôle selon toi (tu prépares -> il cuisine, "
+              "et inversement).")
 
     KEY_TO_DIR = {
         pygame.K_UP: Direction.NORTH, pygame.K_z: Direction.NORTH, pygame.K_w: Direction.NORTH,
@@ -945,7 +1273,10 @@ def run_manual(args, config):
             human_action = read_human()
             if quit_flag["v"]:
                 break
-            ai_action, _ = ai.action(state)
+            if adaptive is not None:
+                ai_action = adaptive.solo_action(state, ai_i, t)   # rôle choisi en observant le joueur
+            else:
+                ai_action, _ = ai.action(state)
             joint = [None, None]
             joint[human_i] = human_action
             joint[ai_i] = ai_action
