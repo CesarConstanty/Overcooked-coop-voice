@@ -139,7 +139,7 @@
         "explications_block_min": 5,
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
-        "agent" : "Greedy",
+        "agent" : "GreedyCoopAgent",
         "conditions" : {"0":"VHr", "1":"VHa", "2":"U"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,

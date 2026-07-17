@@ -481,7 +481,14 @@ class CoopExchangePolicy(ExchangePolicy):
         # d'origine (aucune régression). Vérifié : benefit 531, benefit3 579, benefit2 inchangé.
         self._presource_enabled = not any(self._zone_pinched(c) for c in self.exchange)
         # hystérésis des bascules de rôle (solo_action face à un humain ET bascule 2 IA).
-        self.ROLE_HYST = 3                            # avantage d'affinité mini pour BASCULER
+        self.ROLE_HYST = 3                            # avantage d'affinité mini pour BASCULER (2 IA)
+        # [FACE À UN HUMAIN] Hystérésis DÉDIÉE au chemin solo_action. Bien plus faible que
+        # ROLE_HYST (2 IA) : sur les petits layouts d'expérience, l'écart de proximité aux CŒURS
+        # de station (planche vs marmite) reste petit (0-2) ; exiger 3 empêchait toute bascule et
+        # l'IA restait figée sur son rôle initial. 1 case d'écart NET suffit ; c'est `ROLE_DWELL`
+        # (délai mini entre deux bascules) qui garde l'anti-oscillation. NB : distinct de ROLE_HYST
+        # pour ne PAS toucher la bascule 2 IA (`_maybe_swap_roles`) et ses chiffres de test.
+        self.ROLE_HYST_SOLO = 1
         self.ROLE_DWELL = 15                          # ticks mini entre deux bascules (anti-oscillation)
         self._last_switch = -10 ** 9
         # Bascule DYNAMIQUE cook<->prep entre 2 IA (mode compare/visual). Historiquement STATIQUE
@@ -574,6 +581,39 @@ class CoopExchangePolicy(ExchangePolicy):
         self._shims[self.prep_i].chosen_goal = state.players[self.prep_i].pos_and_or
         return tuple(out)
 
+    def _human_prep_score(self, state, partner):
+        """[FACE À UN HUMAIN] Score signé de l'ACTIVITÉ du partenaire humain, servant à
+        décider le rôle COMPLÉMENTAIRE de l'IA. `> 0` : l'humain agit en PREP (=> l'IA doit
+        COOK) ; `< 0` : l'humain agit en COOK/service (=> l'IA doit PREP) ; `0` : indécis
+        (l'IA garde son rôle). |score| = confiance, utilisé comme hystérésis (ROLE_HYST_SOLO).
+
+        Deux sources, la main tenue PRIME sur la position (intention plus fiable) :
+
+        1. CE QU'IL TIENT (intention forte, ±BIG) : un ingrédient BRUT (pas encore coupé) en
+           main => il va à la planche découper => il PRÉPARE => l'IA COOK. Une assiette ou une
+           soupe en main => il dresse / sert => il fait le rôle COOK => l'IA PREP. Un ingrédient
+           DÉJÀ coupé est ambigu (il l'apporte peut-être au pot) : on n'en tire pas de signal
+           fort et on retombe sur la position.
+        2. À DÉFAUT, PROXIMITÉ AUX CŒURS de station : distance à `cook_home` (marmite) moins
+           distance à `prep_home` (planche). On compare aux CŒURS (nettement séparés) et NON aux
+           `*_feats` complets : distributeurs et zones de service y sont dispersés (souvent un
+           distributeur côté prep) et brouillent le signal sur les petits layouts — c'est ce qui
+           empêchait la bascule (l'humain paraissait toujours « côté cook »)."""
+        h = state.players[partner]
+        BIG = 99
+        if h.has_object():
+            o = h.get_object()
+            if o.name in ("onion", "tomato") and not chopped(o):
+                return BIG                             # ingrédient BRUT -> il va découper -> PREP => IA COOK
+            if o.name in ("dish", "soup"):
+                return -BIG                            # assiette/soupe -> il dresse/sert -> COOK => IA PREP
+            # ingrédient DÉJÀ coupé (ou autre) : ambigu -> on tranche sur la position (ci-dessous).
+        dc = self._reg_dist(h.position, self.cook_home)
+        dp = self._reg_dist(h.position, self.prep_home)
+        if dc == INF or dp == INF:                     # cœur inatteignable (ne devrait pas arriver) : indécis
+            return 0
+        return dc - dp                                 # >0 : plus proche du prep-cœur -> il prépare -> IA cook
+
     def solo_action(self, state, my_index, t):
         """[PARTENAIRE HUMAIN] Action pour UN seul agent IA (index `my_index`) qui OBSERVE
         son partenaire (humain) et prend le rôle COMPLÉMENTAIRE de ce que fait l'humain :
@@ -589,19 +629,25 @@ class CoopExchangePolicy(ExchangePolicy):
         en cours de pipeline en changeant de rôle en plein portage). C'est ce qui permet à l'IA
         de CHANGER DE RÔLE en cours de partie pour épouser ce que fait l'humain, sans faire
         rebondir un ingrédient/plat. Réutilise `cook_action` / `prep_action`."""
+        # [FACE À UN HUMAIN] Aucun `coop_deconflict` ici (il n'arbitre que 2 IA) : le cerveau cook
+        # doit pouvoir se DÉGAGER seul s'il reste coincé contre le joueur -> auto_unstuck. Réglé
+        # depuis solo_action UNIQUEMENT : compare/visual n'appellent QUE `joint` (jamais solo_action),
+        # donc leurs step-counts testés restent inchangés. Idempotent (relu à chaque cook.action).
+        self.cook.auto_unstuck = True
         partner = 1 - my_index
-        dp = self._reg_dist(state.players[partner].position, self.prep_feats)
-        dc = self._reg_dist(state.players[partner].position, self.cook_feats)
-        want_cook = dp <= dc                          # partenaire côté prep => moi cook
+        # Signal d'ACTIVITÉ du partenaire (humain) : >0 il agit en PREP (=> moi COOK), <0 il agit
+        # en COOK (=> moi PREP). |score| = netteté, sert d'hystérésis (cf. _human_prep_score).
+        score = self._human_prep_score(state, partner)
+        want_cook = score > 0                         # partenaire au prep => moi cook
         cur_is_cook = (self.cook_i == my_index)
         # [ANTI-REBOND] ne réévaluer le rôle que si l'IA a les mains libres (rien à mi-pipeline).
         can_switch = not state.players[my_index].has_object()
-        if (can_switch and want_cook != cur_is_cook and abs(dp - dc) >= self.ROLE_HYST
+        if (can_switch and want_cook != cur_is_cook and abs(score) >= self.ROLE_HYST_SOLO
                 and (t - self._last_switch) >= self.ROLE_DWELL):
             cur_is_cook = want_cook
             self._last_switch = t
-            logger.debug("CoopExchange t%s : IA(idx%d) bascule -> %s", t, my_index,
-                         "COOK" if cur_is_cook else "PREP")
+            logger.debug("CoopExchange t%s : IA(idx%d) bascule -> %s (score humain=%+d)",
+                         t, my_index, "COOK" if cur_is_cook else "PREP", score)
         if cur_is_cook:
             self.cook_i, self.prep_i = my_index, partner
             self.cook.set_agent_index(my_index)
