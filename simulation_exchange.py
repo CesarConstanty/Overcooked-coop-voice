@@ -1,46 +1,6 @@
 #!/usr/bin/env python3
-"""simulation_exchange.py — Deux GreedyAgent qui EXPLOITENT les zones d'échange (Y).
 
-Contexte (vérifié dans le code) : un GreedyAgent ne dépose JAMAIS spontanément sur un
-comptoir pour aider le partenaire — il ne pose sur un `X`/`Y` que pour *jeter* un objet
-inutile ou en repli quand sa cible est inatteignable (overcooked_ai_py/agents/agent.py).
-Sur un layout CONNEXE (tout lui est accessible) il ignore donc les passes et fait le tour.
-
-Pour qu'on VOIE les deux greedy exploiter les passes, ce script ajoute DEUX politiques de
-relais, choisies selon la STRUCTURE du layout (cf. `_make_policy`) :
-
-1. `ExchangePolicy` — layout SÉPARÉ : les deux agents démarrent dans DEUX COMPOSANTES
-   praticables distinctes reliées seulement par des passes Y (ex. test_exchange_forced).
-   Rôles ÉMERGENTS : CUISINE = agent de la composante contenant la marmite (vrai
-   GreedyAgent : recette / remplissage / cuisson / dressage / service) ; PREP = l'autre
-   (processeur : découpe ce qui lui arrive, fournit des assiettes, relaie le reste). Routage
-   par appartenance à une composante : un objet dont la station est « de l'autre côté » est
-   DÉPOSÉ sur la passe pont, le partenaire l'y reprend — brut->planche(C), coupé->marmite(P),
-   assiette->marmite(P), soupe->service(S). Anti-churn : on ne reprend jamais ce qu'on vient
-   de poster.
-
-2. `CoopExchangePolicy` — layout CONNEXE (les deux agents atteignent TOUT ; les passes ne
-   sont que des RACCOURCIS). Là, ExchangePolicy dégénère (pas de composantes séparées) et
-   les deux greedy feraient le tour complet. On rétablit un pipeline dont l'usage des zones
-   est décidé — COMME DEMANDÉ — par ESTIMATION du gain en pas, l'agent OBSERVANT la position
-   de son partenaire : il ne dépose sur une zone que s'il estime y gagner des pas vs livrer
-   lui-même (le partenaire, mieux placé, termine). Voir la docstring de la classe.
-
-Objectif mesuré : NOMBRE DE STEPS pour livrer TOUTES les commandes, AVEC zones (relais)
-vs SANS zones (deux greedy libres, passes = murs). « Steps minimum avec usage OPTIMAL des
-zones » = min(AVEC, SANS) : utiliser les zones quand elles aident, s'en passer sinon.
-
-NB (résultats) : les zones font GAGNER (ou rendent RÉALISABLE) le niveau quand la topologie
-FORCE la coopération : régions séparées reliées uniquement par les passes (test_exchange_
-forced : 7/7 AVEC, infaisable SANS) ou couloir/cul-de-sac où deux greedy libres s'inter-
-bloquent (test_exchange_benefit2 : 7/7 AVEC, infaisable SANS). Sur un layout CONNEXE OUVERT
-(boucle), deux greedy libres parallélisent déjà mieux et le relais est plus LENT
-(test_exchange_benefit) — résultat mesuré et rapporté tel quel.
-
-Perf : le MediumLevelActionManager complet précalcule un JointMotionPlanner en O(P^4)
-(30-40 min ici). Le GreedyAgent n'utilise QUE le MotionPlanner mono-agent : on neutralise
-donc `_populate_all_plans` -> mlam construit instantanément, comportement inchangé.
-
+"""
 Exemples :
   python simulation_exchange.py --mode compare
   python simulation_exchange.py --mode visual                 # relais général (utilise les Y)

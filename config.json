@@ -132,7 +132,7 @@
             "email": "bruno.berberian@onera.fr",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 50,
+        "gameTime" : 600,
         "explications_generales_max": 600,
         "explications_generales_min": 5,
         "explications_block_max": 300,
