@@ -311,6 +311,21 @@ def coop_deconflict(mdp, state, agents, acts, neighbors):
                 d = cand_d
                 break
 
+    if d is None and next_high == pos_y:
+        # [CUL-DE-SAC] Le cédant est PIÉGÉ dans un cul-de-sac dont l'UNIQUE sortie est la
+        # case du prioritaire, et le prioritaire veut justement entrer dans ce cul-de-sac
+        # (p.ex. accès unique à la marmite qui est aussi un cul-de-sac — layout benefit3).
+        # Ni l'un ni l'autre ne peut céder « normalement » -> interblocage permanent.
+        # Solution : le PRIORITAIRE s'écarte (libère sa case, de préférence vers une case
+        # NON cul-de-sac) pour laisser SORTIR le piégé ; il reviendra au tick suivant.
+        asides = [(hd, hpos) for hd, hpos in neighbors[pos_high].items() if hpos != pos_y]
+        asides.sort(key=lambda hp: len(neighbors.get(hp[1], {})), reverse=True)
+        if asides:
+            out = [None, None]
+            out[high] = asides[0][0]
+            out[yielder] = Action.STAY
+            return tuple(out)
+
     out = [None, None]
     out[high] = acts[high]
     out[yielder] = d if d is not None else Action.STAY

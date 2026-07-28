@@ -132,14 +132,14 @@
             "email": "bruno.berberian@onera.fr",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 50,
+        "gameTime" : 600,
         "explications_generales_max": 600,
         "explications_generales_min": 5,
         "explications_block_max": 300,
         "explications_block_min": 5,
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
-        "agent" : "Greedy",
+        "agent" : "GreedyCoopAgent",
         "conditions" : {"0":"VHr", "1":"VHa", "2":"U"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
@@ -150,7 +150,7 @@
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html",
                                 "VHr": "tutorial_EVr.html", "VHa":"tutorial_EVa.html"},
         "blocs" : {
-            "0": ["test_asym01","test01"],
+            "0": ["test_exchange_benefit2","test_exchange_benefit","test_asym01","test01"],
             "1": ["test01_90"],
             "2": ["test01_180"]
         },
