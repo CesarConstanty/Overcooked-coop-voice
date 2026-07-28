@@ -26,8 +26,10 @@ lorsqu'un `GreedyCoop` est effectivement joué.
 """
 import logging
 
+import numpy as np
+
 from overcooked_ai_py.agents.agent import GreedyAgent
-from overcooked_ai_py.mdp.actions import Action
+from overcooked_ai_py.mdp.actions import Action, Direction
 
 logger = logging.getLogger("overcooked.agent_coop")
 
@@ -51,6 +53,10 @@ class GreedyCoopAgent(GreedyAgent):
         self._coop_crash_logged = False
         self._shared_recipe = None     # recette cible partagée (stable entre les bascules de rôle)
         self._chopped = None           # helper simulation_exchange.chopped (stocké à la construction)
+        # [ANTI-BLOCAGE role-agnostique] compteur maison (voir _anti_block). Reflété sur
+        # self.stuck_frames pour la journalisation (agent_stuck_loop), quel que soit le rôle.
+        self._stuck_frames = 0
+        self._prev_block_pos = None
 
     def reset(self):
         super().reset()
@@ -59,6 +65,8 @@ class GreedyCoopAgent(GreedyAgent):
         self._t = 0
         self._coop_crash_logged = False
         self._shared_recipe = None
+        self._stuck_frames = 0
+        self._prev_block_pos = None
 
     # ------------------------------------------------------------------
     # Construction paresseuse de la politique coopérative
@@ -106,6 +114,7 @@ class GreedyCoopAgent(GreedyAgent):
                 self._t += 1
                 if act is None:
                     act = Action.STAY
+                act = self._anti_block(state, act)
                 self._mirror_intentions(state)
                 return act, {"action_probs": self.a_probs_from_action(act)}
             except Exception:
@@ -117,6 +126,56 @@ class GreedyCoopAgent(GreedyAgent):
         return super().action(state)
 
     # ------------------------------------------------------------------
+    # Anti-blocage ROLE-AGNOSTIQUE (face à un humain) + comptage de stuck_frames
+    # ------------------------------------------------------------------
+    def _anti_block(self, state, act):
+        """Débloque l'IA et compte `stuck_frames`, QUEL QUE SOIT le rôle (cook OU prep).
+
+        Pourquoi ici et pas dans le cerveau greedy : l'`auto_unstuck` natif ne tourne QUE quand
+        l'IA joue COOK (le PREP se déplace via `prep_action`/`_nav`, sans ce mécanisme) et son
+        compteur n'avance que par intermittence -> une IA-prep coincée par le joueur dans un
+        couloir 1-large PIÉTINAIT sans jamais être débloquée NI comptée (d'où `agent_stuck_loop=0`
+        trompeur dans les traces). Le wrapper, lui, voit CHAQUE décision.
+
+        Règle : blocage = l'IA VEUT avancer vers une case FRANCHISSABLE mais le PARTENAIRE
+        l'occupe (vrai deadlock de couloir 1-large). Après 2 frames bloquées, on choisit un pas
+        latéral vers une case LIBRE pour briser la symétrie (partenaire supposé immobile). Un
+        « pas » vers un mur/comptoir n'est PAS un blocage : c'est une RÉORIENTATION pour interagir
+        (déposer/découper) — sinon on ferait dériver l'IA en pleine découpe. Les STAY / INTERACT
+        volontaires (throttle, park, attente) ne sont pas comptés non plus."""
+        me = self.agent_index
+        cur = state.players[me].position
+        partner_pos = state.players[1 - me].position
+        orient = state.players[me].orientation
+        wants_move = act not in (Action.STAY, Action.INTERACT)
+        blocked = wants_move and self._steps_onto(cur, orient, act) == partner_pos
+        if blocked:
+            self._stuck_frames = self._stuck_frames + 1 if cur == self._prev_block_pos else 1
+            self._prev_block_pos = cur
+            if self._stuck_frames >= 2:
+                alt = self._pick_unblock(cur, orient, partner_pos)
+                if alt is not None:
+                    act = alt
+        else:
+            self._stuck_frames = 0
+            self._prev_block_pos = None
+        self.stuck_frames = self._stuck_frames         # reflété pour la journalisation (agent_stuck_loop)
+        return act
+
+    def _steps_onto(self, cur, orient, act):
+        """Case où l'IA IRAIT avec `act` (terrain seul) ; == `cur` si c'est un mur/comptoir."""
+        return self.mdp._move_if_direction(cur, orient, act)[0]
+
+    def _pick_unblock(self, cur, orient, partner_pos):
+        """Un pas (parmi N/S/E/O) menant vers une case LIBRE (ni mur/comptoir, ni le partenaire),
+        tiré au hasard pour ne pas rejouer indéfiniment la direction bloquée ; None si encaissée."""
+        cands = [d for d in Direction.ALL_DIRECTIONS
+                 if self._steps_onto(cur, orient, d) not in (cur, partner_pos)]
+        if not cands:
+            return None
+        return cands[np.random.randint(len(cands))]
+
+    # ------------------------------------------------------------------
     # Miroir des intentions (pour le visuel / les ralentissements du jeu)
     # ------------------------------------------------------------------
     def _mirror_intentions(self, state):
@@ -126,8 +185,9 @@ class GreedyCoopAgent(GreedyAgent):
         déclencheur de ralentissement « changement de recette »."""
         pol = self._coop
         cook = pol.cook
-        # Champs journalisés / cumulatifs : toujours refléter le cerveau cook.
-        self.stuck_frames = cook.stuck_frames
+        # Champs journalisés / cumulatifs : toujours refléter le cerveau cook. NB : `stuck_frames`
+        # n'est PLUS pris ici (le cerveau cook ne tourne qu'en rôle COOK et compterait faux) : il
+        # est tenu par `_anti_block`, role-agnostique et calé sur la cadence réelle des décisions.
         self.hl_objective_switch = cook.hl_objective_switch
         self.next_order_info = cook.next_order_info
         cook_recipe = cook.intentions.get("recipe")

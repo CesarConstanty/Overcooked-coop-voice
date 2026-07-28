@@ -451,6 +451,10 @@ class CoopExchangePolicy(ExchangePolicy):
         self.ROLE_HYST_SOLO = 1
         self.ROLE_DWELL = 15                          # ticks mini entre deux bascules (anti-oscillation)
         self._last_switch = -10 ** 9
+        # [FACE À UN HUMAIN] Armé à True au 1er solo_action. Débride les TÂCHES SECONDAIRES utiles
+        # (au lieu d'un STAY inutile) — voir cook_action / prep_action. Reste False en 2 IA (joint),
+        # ce qui garantit des chiffres de compare/visual INCHANGÉS (benefit 531, benefit3 579, …).
+        self._solo = False
         # Bascule DYNAMIQUE cook<->prep entre 2 IA (mode compare/visual). Historiquement STATIQUE
         # (deux greedy symétriques -> l'affinité oscille et fait REBONDIR la soupe = livelock, cf.
         # test_exchange_benefit3). Réactivée ici sous GARDE DE QUIESCENCE stricte : on ne bascule
@@ -589,11 +593,12 @@ class CoopExchangePolicy(ExchangePolicy):
         en cours de pipeline en changeant de rôle en plein portage). C'est ce qui permet à l'IA
         de CHANGER DE RÔLE en cours de partie pour épouser ce que fait l'humain, sans faire
         rebondir un ingrédient/plat. Réutilise `cook_action` / `prep_action`."""
-        # [FACE À UN HUMAIN] Aucun `coop_deconflict` ici (il n'arbitre que 2 IA) : le cerveau cook
-        # doit pouvoir se DÉGAGER seul s'il reste coincé contre le joueur -> auto_unstuck. Réglé
-        # depuis solo_action UNIQUEMENT : compare/visual n'appellent QUE `joint` (jamais solo_action),
-        # donc leurs step-counts testés restent inchangés. Idempotent (relu à chaque cook.action).
-        self.cook.auto_unstuck = True
+        # [FACE À UN HUMAIN] Marque le chemin solo (partenaire humain). Débride les tâches
+        # secondaires utiles (cook_action / prep_action) et signale au wrapper (agent_coop) qu'il
+        # doit assurer lui-même l'anti-blocage RÔLE-AGNOSTIQUE : ici pas de `coop_deconflict` (il
+        # n'arbitre que 2 IA) et l'`auto_unstuck` du cerveau greedy ne tourne QUE quand l'IA est
+        # COOK — un PREP coincé par le joueur piétinerait sans être débloqué NI compté.
+        self._solo = True
         partner = 1 - my_index
         # Signal d'ACTIVITÉ du partenaire (humain) : >0 il agit en PREP (=> moi COOK), <0 il agit
         # en COOK (=> moi PREP). |score| = netteté, sert d'hystérésis (cf. _human_prep_score).
@@ -854,8 +859,75 @@ class CoopExchangePolicy(ExchangePolicy):
         if cg is not None:
             ingredient = self._fetch_ingredient(cg)
             if ingredient is not None and self._oversupplied(state, ingredient):
+                # [ANTI-STAY INUTILE] L'envie greedy vise un type déjà saturé. Plutôt qu'ATTENDRE
+                # bêtement (le cook figé pendant que l'humain tarde à relayer), tenter une TÂCHE
+                # SECONDAIRE utile (face à un humain seulement ; en 2 IA on garde le STAY historique
+                # pour ne pas bouger les chiffres testés). Repli STAY si vraiment rien d'utile.
+                if self._solo:
+                    alt = self._cook_secondary_task(state, p, ingredient)
+                    if alt is not None:
+                        return alt
                 return Action.STAY
         return act
+
+    def _cook_secondary_task(self, state, p, saturated):
+        """[FACE À UN HUMAIN] Tâche secondaire utile d'un cook dont l'envie greedy pointe un type
+        `saturated` déjà en circulation, pour éviter un STAY inutile :
+          0) aller POTER un ingrédient COUPÉ, DÉJÀ prêt sur une zone, d'un type encore requis
+             (au lieu d'attendre l'autre ingrédient saturé que l'humain tarde à relayer) ;
+          1) sinon PUISER un AUTRE ingrédient encore manquant et NON saturé (le plus déficitaire) ;
+          2) sinon, si une soupe cuit/est prête et qu'aucune assiette n'est ni dispo ni en transit,
+             aller CHERCHER une assiette d'avance (dressage sans temps mort) ;
+        None si rien d'utile -> l'appelant repasse en STAY."""
+        a = self._fetch_ready_chopped(state, p)
+        if a is not None:
+            return a
+        a = self._fetch_other_missing(state, p, saturated)
+        if a is not None:
+            return a
+        psd = self.mdp.get_pot_states(state)
+        if ((psd.get("cooking") or psd.get("ready")) and self.dishes
+                and not self._dish_secured(state) and not self._dish_in_transit(state)):
+            return self._nav(p, self.dishes)          # sécuriser une assiette (None si inatteignable)
+        return None
+
+    def _fetch_ready_chopped(self, state, p):
+        """Aller PRENDRE un ingrédient DÉJÀ COUPÉ, posé sur une zone d'échange ATTEIGNABLE, d'un
+        type encore attendu par la marmite courante (le cook le potera ensuite). Permet, quand
+        l'envie greedy porte sur un type saturé, d'avancer la recette avec ce qui est prêt au lieu
+        d'attendre. On vise la zone la moins chère. None si aucune. (Les BRUTS restent l'affaire
+        du prep — `chopped()` les exclut ; cohérent avec `_mask_raw_on_exchange`.)"""
+        try:
+            missing = set(self.cook.next_order_info["missing_ingredients_in_MA_pot"])
+        except (TypeError, KeyError, AttributeError):
+            return None
+        if not missing:
+            return None
+        cells = [y for y in self.exchange
+                 if state.has_object(y) and state.get_object(y).name in missing
+                 and chopped(state.get_object(y))
+                 and self.mp.min_cost_to_feature(p.pos_and_or, [y]) < INF]
+        return self._nav(p, cells) if cells else None
+
+    def _fetch_other_missing(self, state, p, exclude):
+        """Puiser au dispenser un ingrédient MANQUANT dans la marmite courante, d'un type
+        != `exclude` et NON saturé (throttle PAR TYPE), le plus déficitaire d'abord. None sinon."""
+        try:
+            missing = self.cook.next_order_info["missing_ingredients_in_MA_pot"]
+        except (TypeError, KeyError, AttributeError):
+            return None
+        disp = {"onion": self.mdp.get_onion_dispenser_locations(),
+                "tomato": self.mdp.get_tomato_dispenser_locations()}
+        cands = []
+        for ing in set(missing):
+            if ing == exclude or not disp.get(ing) or self._oversupplied(state, ing):
+                continue
+            cands.append((list(missing).count(ing) - self._in_flight_of(state, ing), ing))
+        cands = [c for c in cands if c[0] > 0]
+        if not cands:
+            return None
+        cands.sort(reverse=True)
+        return self._nav(p, disp[cands[0][1]])
 
     # ------- rôle PREP : processeur explicite (découpe / assiettes / relais des coupés) -------
     def _dish_in_transit(self, state):
@@ -923,7 +995,44 @@ class CoopExchangePolicy(ExchangePolicy):
         if (self.dishes and self._dish_needed(state)   # 3) fournir une assiette au cook (soupe en cours)
                 and not self._dish_in_transit(state)):
             return self._nav(p, self.dishes) or Action.STAY
-        return self._park(p)                           # 4) rien à traiter -> se garer SANS bloquer
+        if self._solo:                                 # 4) [ANTI-STAY INUTILE] tâche secondaire utile
+            sec = self._prep_secondary_task(state, p)  #    avant de se garer (face à un humain)
+            if sec is not None:
+                return sec
+        return self._park(p)                           # 5) rien à traiter -> se garer SANS bloquer
+
+    def _is_cook_side(self, pos):
+        """La case `pos` est-elle DU CÔTÉ CUISINE (plus proche du cœur-marmite que du cœur-planche) ?
+        Sert à interdire au prep d'aller y opérer : c'est là que joue l'humain-cook (anti-collision)."""
+        return (self.mp.min_cost_between_features([pos], self.cook_home)
+                < self.mp.min_cost_between_features([pos], self.prep_home))
+
+    def _prep_secondary_task(self, state, p):
+        """[FACE À UN HUMAIN] Tâche secondaire utile d'un prep OISIF (rien à découper/relayer/
+        dresser) -> éviter un STAY inutile : PRÉ-PUISER un ingrédient BRUT requis par une commande
+        visible et pas déjà assez en circulation, pour le découper d'avance. UNIQUEMENT depuis un
+        dispenser de SON côté (jamais côté cuisine, où opère l'humain-cook : anti-collision).
+        None si aucun dispenser sûr/atteignable ou rien d'utile -> l'appelant se gare."""
+        disp = {"onion": self.mdp.get_onion_dispenser_locations(),
+                "tomato": self.mdp.get_tomato_dispenser_locations()}
+        wanted = set()
+        for o in state.all_orders:
+            for ing in o.ingredients:
+                wanted.add(ing)
+        cands = []
+        for ing in wanted:
+            if self._in_flight_of(state, ing) >= self.DEPTH:        # déjà assez en circulation
+                continue
+            locs = [d for d in disp.get(ing, []) if not self._is_cook_side(d)]
+            if not locs:
+                continue
+            c = self.mp.min_cost_to_feature(p.pos_and_or, locs)
+            if c < INF:
+                cands.append((c, locs))
+        if not cands:
+            return None
+        cands.sort(key=lambda x: x[0])                 # dispenser sûr le plus proche
+        return self._nav(p, cands[0][1])
 
     def _park(self, p):
         """Attente NON bloquante d'un prep oisif : ne PAS rester planté sur un CUL-DE-SAC

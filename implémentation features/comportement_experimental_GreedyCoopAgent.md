@@ -231,25 +231,58 @@ dresser/servir — position figée le temps de la cuisson.
 |---|---|---|---|
 | 1. Ralentissement (cadence + slowdowns) | mécanisme d'intention | avance par à-coups, se fige | ✅ oui (expérimental) |
 | 2. Découpe sur place | tâche productive | immobile mais « travaille » | ✅ oui |
-| 3. Throttle anti-surproduction | attente rationnelle | **fige longtemps, raison invisible** | ⚠️ oui, mais friction si le joueur retient l'objet |
-| 4. Prep oisif (`_park`) | pas de tâche disponible | attend, inactif | ✅ oui (non bloquant) |
-| 5. Bloquée par le joueur | conflit de couloir | piétine sur place | ❌ non désiré (atténué par `auto_unstuck`) |
+| 3. Throttle anti-surproduction | attente rationnelle | fige longtemps, raison invisible | ✅ oui — **friction corrigée** (§5) |
+| 4. Prep oisif (`_park`) | pas de tâche disponible | attend, inactif | ✅ oui — **atténué** (§5) |
+| 5. Bloquée par le joueur | conflit de couloir | piétine sur place | ❌ non désiré — **corrigé** (§5) |
 | 6. Attente de cuisson | temps mort inévitable | stationne près du pot | ✅ oui |
 
 **L'essentiel de l'immobilité est voulu** : la cadence/ralentissement (cause 1) domine, et les
-attentes 2/3/4/6 traduisent une coordination correcte avec l'humain. Les deux frictions réelles :
-
-- **Cause 3** — l'attente peut être **très longue** si le joueur garde en main un ingrédient déjà
-  en circulation ; l'IA ne se rabat pas sur l'autre ingrédient manquant. *Piste* : dans
-  `_oversupplied`, au lieu de `STAY`, tenter de **réorienter le but vers un type manquant NON
-  saturé** avant d'attendre.
-- **Cause 5** — piétinement quand le joueur bloque l'unique passage ; déjà atténué par
-  l'`auto_unstuck` du cerveau cook côté humain, mais un `coop_deconflict` léger vis-à-vis du
-  joueur réduirait encore les à-coups.
+attentes 2/3/4/6 traduisent une coordination correcte avec l'humain. Les deux frictions réelles
+(causes 3 et 5) ont été **corrigées** — voir §5.
 
 ---
 
-## 5. Repères pour re-vérifier
+## 5. Corrections apportées (immobilité)
+
+Deux corrections, validées sans régression (chiffres 2 IA `compare` inchangés : benefit 531,
+benefit3 579, benefit2 650, forced 615 ; bascule de rôle et livraisons préservées).
+
+### 6.1 Anti-blocage RÔLE-AGNOSTIQUE + comptage correct (cause 5, point « auto_unstuck »)
+
+Constat : l'`auto_unstuck` natif vit **dans le cerveau cook** ; il ne tourne donc **que** quand
+l'IA joue COOK (le PREP se meut via `prep_action`/`_nav`), et son compteur n'avance que par
+intermittence → une **IA-prep coincée par le joueur** piétinait sans être ni débloquée ni comptée
+(d'où le `agent_stuck_loop = 0` trompeur des traces).
+
+Correctif dans [`agent_coop.py`](../agent_coop.py) (`GreedyCoopAgent._anti_block`), au niveau du
+**wrapper** qui voit *chaque* décision, donc rôle-agnostique :
+- **blocage** = l'IA veut avancer vers une case **franchissable occupée par le partenaire** (vrai
+  deadlock de couloir) — un « pas » vers un mur/comptoir (réorientation pour interagir) n'est
+  **pas** compté ;
+- après **2 frames** bloquées → pas latéral vers une case libre pour briser la symétrie ;
+- `stuck_frames` est désormais tenu par le wrapper et **reflété** correctement (journalisation
+  `agent_stuck_loop`), quel que soit le rôle.
+
+Vérifié : déclenche sur la Cause 5 (g203-227, pas de dégagement `E`) ; **aucun** faux positif
+pendant la découpe (g474-521, `max_stuck = 0`).
+
+### 6.2 Tâche secondaire utile au lieu d'un STAY inutile (causes 3 et 4)
+
+Gaté sur le chemin humain (`self._solo`, armé dans `solo_action`) → **2 IA (`joint`) inchangé**.
+
+- **Cook** ([`simulation_exchange.py`](../simulation_exchange.py) `_cook_secondary_task`) : quand
+  l'envie greedy pointe un type **saturé**, au lieu de `STAY` — (0) aller **poter un ingrédient
+  coupé déjà prêt** sur une zone d'un type encore requis ; sinon (1) **puiser un autre ingrédient
+  manquant non saturé** ; sinon (2) **sécuriser une assiette** si une soupe cuit. Sur la Cause 3
+  (g814-969, ex-156 gameloops figés), la décision passe de `STAY` à un déplacement productif.
+- **Prep** (`_prep_secondary_task`) : un prep **oisif** pré-puise un ingrédient brut requis pour
+  le découper d'avance — **uniquement depuis un dispenser de son côté** (jamais côté cuisine où
+  opère l'humain : anti-collision). N'agit donc que là où c'est sûr (aucun effet sur benefit2,
+  dont les dispensers sont côté cook).
+
+---
+
+## 6. Repères pour re-vérifier
 
 - Détection des épisodes : position IA figée ≥ 25 gameloops.
 - Rejeu introspectif : reconstruire chaque état (`OvercookedState.from_dict`) puis
