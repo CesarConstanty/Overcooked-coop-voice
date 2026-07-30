@@ -1,0 +1,14 @@
+{
+    "grid":  """XOXXXXXX
+                X 1    X
+                D  XYE X
+                X  Y   X
+                X  Y CXX
+                T XX 2 X
+                X      S
+                XXXXPXXX""",
+    'start_all_orders': [],
+    'order_triplets': [],
+    'counter_goals': [],
+    'cutting_board_symbol': 'C',
+}

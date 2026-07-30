@@ -1990,6 +1990,7 @@ QUESTIONNAIRE_REGISTRY = {
     "GAbstractionP":    {"slot": QUESTIONNAIRE_SLOTS, "template": "GAbstractionP.html",        "path": _path_generic, "save": save_generic_likert, "context": _ctx_default},
     "GAbstractionP_fr": {"slot": QUESTIONNAIRE_SLOTS, "template": "GAbstractionP_fr.html",     "path": _path_generic, "save": save_generic_likert, "context": _ctx_default},
     "preference": {"slot": QUESTIONNAIRE_SLOTS, "template": "preference order_en.html",       "path": _path_preference, "save": save_preference, "context": _ctx_preference},
+    "preference_niveaux_intention": {"slot": QUESTIONNAIRE_SLOTS, "template": "preference order niveaux intention_en.html",       "path": _path_preference, "save": save_preference, "context": _ctx_preference},
     "debriefing": {"slot": QUESTIONNAIRE_SLOTS, "template": "debriefing.html",                 "path": _path_debriefing, "save": save_debriefing, "context": _ctx_default},
 }
 

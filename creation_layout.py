@@ -122,7 +122,6 @@ except Exception as exc:  # pragma: no cover - dépend de l'environnement
 _INF_SENTINEL = "__OC_INF__"
 _NEG_INF_SENTINEL = "__OC_NEG_INF__"
 
-
 def parse_layout_text(text):
     """Renvoie le dict d'un fichier .layout sans exécuter de code arbitraire."""
     safe = (
@@ -397,6 +396,31 @@ def materialize_counter_goals(rows, metadata):
         if 0 <= y < len(rows) and 0 <= x < len(rows[0]):
             rows[y][x] = "Y"
 
+def rotate_grid_90_right(rows):
+    """Rotation de la grille de 90 degrés vers la droite."""
+    return [
+        list(row)
+        for row in zip(*rows[::-1])
+    ]
+
+
+def rotate_grid_180(rows):
+    """Rotation de la grille de 180 degrés."""
+    return [
+        row[::-1]
+        for row in rows[::-1]
+    ]
+
+
+def apply_save_rotation(rows, mode):
+    """Applique la rotation choisie avant sauvegarde."""
+    if mode == "90":
+        return rotate_grid_90_right(rows)
+
+    if mode == "180":
+        return rotate_grid_180(rows)
+
+    return rows
 
 # ===========================================================================
 # 4. Cache de sprites (découpe PIL des spritesheets)
@@ -858,10 +882,51 @@ class GridCanvas(ttk.Frame):
 
 class MetadataPanel(ttk.Frame):
     """Édition des clés présentes dans test01.layout + autres clés préservées."""
+    def refresh_save_buttons(self, *_):
+            for mode in self.save_buttons:
+                self.update_save_button_state(mode)
+                
+    def update_save_button_state(self, mode):
+        """
+        Passe le bouton en vert si le fichier attendu existe.
+        """
+        folder = self.var_save_path.get()
+        filename = self.var_save_name.get()
+        if not filename.endswith(".layout"):
+            filename += ".layout"
 
+        base, ext = os.path.splitext(filename)
+
+        if mode == "90":
+            filename = base + "_90.layout"
+
+        elif mode == "180":
+            filename = base + "_180.layout"
+
+        path = os.path.join(
+            folder,
+            filename
+        )
+
+        button = self.save_buttons[mode]
+
+        if os.path.exists(path):
+
+            button.configure(
+                bg="#8be28b",
+                activebackground="#8be28b"
+            )
+
+        else:
+            button.configure(
+                bg=button.default_bg,
+                activebackground=button.default_bg
+            )
+            
     def __init__(self, parent, app):
         super().__init__(parent, padding=6)
         self.app = app
+        self.save_buttons = {}
 
         ttk.Label(self, text="Métadonnées", font=("", 11, "bold")).pack(anchor="w")
 
@@ -898,10 +963,104 @@ class MetadataPanel(ttk.Frame):
         self.lbl_goals = ttk.Label(cfg, text="counter-goals : 0 (auto depuis Y)")
         self.lbl_goals.pack(anchor="w", pady=2)
 
+        # ------------------------------------------------------------------
+        # Paramètres d'enregistrement
+        # ------------------------------------------------------------------
+        save = ttk.LabelFrame(
+            self,
+            text="Enregistrement",
+            padding=4
+        )
+        save.pack(fill="x", pady=6)
+
+        # Chemin
+        ttk.Label(
+            save,
+            text="Dossier :"
+        ).pack(anchor="w")
+
+        path_row = ttk.Frame(save)
+        path_row.pack(fill="x")
+
+        self.var_save_path = tk.StringVar(
+            value=self.app.layouts_dir
+        )
+
+        ttk.Entry(
+            path_row,
+            textvariable=self.var_save_path,
+            width=25
+        ).pack(side="left", fill="x", expand=True)
+
+        ttk.Button(
+            path_row,
+            text="...",
+            width=3,
+            command=self.select_save_folder
+        ).pack(side="right")
+
+
+        # Nom fichier
+        ttk.Label(
+            save,
+            text="Nom fichier :"
+        ).pack(anchor="w", pady=(4,0))
+
+        self.var_save_name = tk.StringVar(
+            value="nouveau_layout.layout"
+        )
+
+        self.var_save_name.trace_add(
+            "write",
+            self.refresh_save_buttons
+        )
+
+        self.var_save_path.trace_add(
+            "write",
+            self.refresh_save_buttons
+        )
+
+        ttk.Entry(
+            save,
+            textvariable=self.var_save_name,
+            width=30
+        ).pack(fill="x")
+
+
+        # ------------------------------------------------------------------
+        # Boutons d'enregistrement direct
+        # ------------------------------------------------------------------
+
+        ttk.Label(
+            save,
+            text="Enregistrer :"
+        ).pack(anchor="w", pady=(4,0))
+
+        for label, mode in [
+            ("Tel quel", "original"),
+            ("Rotation droite 90°", "90"),
+            ("Rotation 180°", "180")
+        ]:
+
+            btn = tk.Button(save,text=label,width=25,command=lambda m=mode: self.app.save_from_panel(m))
+            # Sauvegarde de la couleur native du bouton pour restauration
+            btn.default_bg = btn.cget("bg")
+            btn.pack(
+                fill="x",
+                pady=2
+            )
+            self.save_buttons[mode] = btn
+
         # Clés préservées (lecture seule)
         self.lbl_other = ttk.Label(self, text="", foreground="#666", wraplength=240, justify="left")
         self.lbl_other.pack(anchor="w", pady=4)
 
+    def select_save_folder(self):
+        folder = filedialog.askdirectory(
+            initialdir=self.var_save_path.get()
+        )
+        if folder:
+            self.var_save_path.set(folder)
     # --- helpers ----------------------------------------------------------
     @staticmethod
     def _recipe_label(recipe):
@@ -1005,6 +1164,27 @@ class StatusBar(ttk.Frame):
 class LayoutEditorApp(tk.Tk):
     """Fenêtre principale et orchestration."""
 
+    def save_from_panel(self, rotation="original"):
+        folder = self.meta_panel.var_save_path.get()
+        filename = self.meta_panel.var_save_name.get()
+        if not filename.endswith(".layout"):
+            filename += ".layout"
+        base, ext = os.path.splitext(filename)
+        if rotation == "90":
+            filename = base + "_90.layout"
+        elif rotation == "180":
+            filename = base + "_180.layout"
+        path = os.path.join(
+            folder,
+            filename
+        )
+        self._save_to(
+            path,
+            rotation,
+            show_popup=False
+        )
+        self.meta_panel.refresh_save_buttons()
+    
     def __init__(self, layouts_dir, initial_layout=None):
         super().__init__()
         self.title("Éditeur de layout Overcooked")
@@ -1214,7 +1394,7 @@ class LayoutEditorApp(tk.Tk):
         if path:
             self._save_to(path)
 
-    def _save_to(self, path):
+    def _save_to(self,path,rotation="original",show_popup=True):
         # Réconciliation Y / counter_goals : la grille fait foi.
         if self.model.has_counter_goals():
             self.model.metadata["counter_goals"] = []
@@ -1231,7 +1411,15 @@ class LayoutEditorApp(tk.Tk):
                 return
 
         try:
-            text = serialize_layout(self.model.grid, self.model.metadata)
+            save_grid = apply_save_rotation(
+                self.model.grid,
+                rotation
+            )
+
+            text = serialize_layout(
+                save_grid,
+                self.model.metadata
+            )
             tmp = path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
                 f.write(text)
@@ -1255,7 +1443,11 @@ class LayoutEditorApp(tk.Tk):
                     "Fichier enregistré, mais le moteur n'a pas pu le charger :\n%s" % exc,
                 )
                 return
-        messagebox.showinfo("Enregistré", "Layout enregistré :\n%s" % path)
+        if show_popup:
+            messagebox.showinfo(
+                "Enregistré",
+                "Layout enregistré :\n%s" % path
+            )
 
     def cmd_resize(self):
         dlg = SizeDialog(self, "Redimensionner la grille", self.model.width, self.model.height)
