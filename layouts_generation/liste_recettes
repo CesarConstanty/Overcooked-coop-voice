@@ -1,0 +1,107 @@
+Ensemble 1 (14 ingrédients)
+[{'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato']}]
+
+Ensemble 2 (13 ingrédients)
+[{'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato']}]
+
+Ensemble 3 (13 ingrédients)
+[{'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}]
+
+Ensemble 4 (14 ingrédients)
+[{'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}]
+
+Ensemble 5 (14 ingrédients)
+[{'ingredients': ['tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}]
+
+Ensemble 6 (12 ingrédients)
+[{'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}]
+
+Ensemble 7 (14 ingrédients)
+[{'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion']}]
+
+Ensemble 8 (14 ingrédients)
+[{'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}]
+
+Ensemble 9 (13 ingrédients)
+[{'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}]
+
+Ensemble 10 (12 ingrédients)
+[{'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato']}]
+
+Ensemble 11 (12 ingrédients)
+[{'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}]
+
+Ensemble 12 (13 ingrédients)
+[{'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato']}]
+
+Ensemble 13 (13 ingrédients)
+[{'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['tomato', 'tomato']}]
+
+Ensemble 14 (13 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}]
+
+Ensemble 15 (14 ingrédients)
+[{'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}]
+
+Ensemble 16 (13 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}]
+
+Ensemble 17 (12 ingrédients)
+[{'ingredients': ['tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}]
+
+Ensemble 18 (14 ingrédients)
+[{'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion']}]
+
+Ensemble 19 (14 ingrédients)
+[{'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato']}]
+
+Ensemble 20 (14 ingrédients)
+[{'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}]
+
+Ensemble 21 (14 ingrédients)
+[{'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}]
+
+Ensemble 22 (11 ingrédients)
+[{'ingredients': ['tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion']}]
+
+Ensemble 23 (13 ingrédients)
+[{'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}]
+
+Ensemble 24 (12 ingrédients)
+[{'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}]
+
+Ensemble 25 (11 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}]
+
+Ensemble 26 (13 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion']}]
+
+Ensemble 27 (13 ingrédients)
+[{'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion']}]
+
+Ensemble 28 (12 ingrédients)
+[{'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion']}]
+
+Ensemble 29 (14 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}]
+
+Ensemble 30 (12 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato']}]
+
+Ensemble 31 (12 ingrédients)
+[{'ingredients': ['tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'onion']}]
+
+Ensemble 32 (14 ingrédients)
+[{'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}]
+
+Ensemble 33 (14 ingrédients)
+[{'ingredients': ['onion', 'onion']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'onion', 'onion']}]
+
+Ensemble 34 (12 ingrédients)
+[{'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato', 'tomato']}]
+
+Ensemble 35 (14 ingrédients)
+[{'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'tomato']}]
+
+Ensemble 36 (11 ingrédients)
+[{'ingredients': ['onion']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}]
