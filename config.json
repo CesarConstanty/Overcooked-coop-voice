@@ -60,9 +60,9 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["map01","map02"],
-            "1": ["map01_90","map02_90"],
-            "2": ["map01_180","map02_180"]
+            "0": ["map01","map02","map03_PrCu_Co","map04_Pr_CuCo"],
+            "1": ["map01_90","map02_90","map03_PrCu_Co_90","map04_Pr_CuCo_90"],
+            "2": ["map01_180","map02_180","map03_PrCu_Co_180","map04_Pr_CuCo_180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -111,7 +111,7 @@
         "Human_forced_cutting" : true,
         "AI_forced_cutting" : true
     },
-    "config_pretest02" : {
+    "config_pretest01" : {
         "dev" : "True",
         "mechanic" : "recipe",
         "fps" : 10,
@@ -120,7 +120,7 @@
         "show_trial_time" : true,
         "show_time_in_trial" : true,
         "show_score" : true,
-        "bidirectionnelle" : true,
+        "bidirectionnelle" : false,
         "completion_link" : "https://app.prolific.com/submissions/complete?cc=CKE8HXOR",
         "researcher" : {
             "name": "Constanty Cesar",
@@ -133,7 +133,7 @@
             "email": "bruno.berberian@onera.fr",
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
-        "gameTime" : 20,
+        "gameTime" : 600,
         "explications_generales_max": 600,
         "explications_generales_min": 5,
         "explications_block_max": 300,
@@ -147,20 +147,21 @@
         "visual_intention_next_duration": 1000,
         "visual_intention_show_recipe": true,
         "visual_intention_show_asset": true,
-        "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html"},
+        "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
+                                "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["map01","map02"],
-            "1": ["map01_90","map02_90"],
-            "2": ["map01_180","map02_180"]
+            "0": ["map01","map02","map03_PrCu_Co","map04_Pr_CuCo"],
+            "1": ["map01_90","map02_90","map03_PrCu_Co_90","map04_Pr_CuCo_90"],
+            "2": ["map01_180","map02_180","map03_PrCu_Co_180","map04_Pr_CuCo_180"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
-            "begin"      : [],
-            "post_trial" : ["agency"],
-            "post_bloc"  : ["AAT_L"],
-            "end"        : ["preference", "debriefing"]
+            "begin"      : ["QVG","PTTA","GAbstractionP"],
+            "post_trial" : [],
+            "post_bloc"  : ["AAT_L","hoffman"],
+            "end"        : ["preference_niveaux_intention", "debriefing"]
         },
         "tomato_value" : 2,
         "onion_value" : 3,
@@ -170,7 +171,7 @@
         "max_num_ingredients" : 3,
         "infinite_all_order" : false,
         "number_shown_recipes" : 3,
-        "Game_Trial_Timer" : true,
+        "Game_Trial_Timer" : false,
         "triplet" : false,
         "triplet_display_min" : 10,
         "triplet_display_max" : 30,

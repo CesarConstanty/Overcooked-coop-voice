@@ -349,9 +349,6 @@ class LayoutModel:
         if not self.in_bounds(x, y):
             return False, None
         if symbol in PLAYER_DIGITS:
-            if self.is_border(x, y):
-                return False, "Un départ joueur doit être à l'intérieur (pas sur un bord)."
-            # Unicité : effacer l'éventuelle occurrence existante de ce joueur.
             for yy in range(self.height):
                 for xx in range(self.width):
                     if self.grid[yy][xx] == symbol:

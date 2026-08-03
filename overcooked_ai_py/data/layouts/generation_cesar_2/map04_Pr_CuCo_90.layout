@@ -1,0 +1,13 @@
+{
+    "grid":  """XXXXCXXXX
+                S       P
+                XX EYX XX
+                X2     1X
+                XXX   XXX
+                T       O
+                XXXXDXXXX""",
+    'start_all_orders': [{'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}],
+    'order_triplets': [],
+    'counter_goals': [],
+    'cutting_board_symbol': 'C',
+}
