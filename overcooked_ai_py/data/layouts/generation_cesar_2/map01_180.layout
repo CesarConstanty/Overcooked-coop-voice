@@ -8,7 +8,10 @@
                 X    1 X
                 XXXXXXOX""",
     'start_all_orders': [{'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}],
-    'order_triplets': [],
-    'counter_goals': [],
-    'cutting_board_symbol': 'C',
+	"rew_shaping_params": None,
+	"counter_goals": [],
+	"onion_value": 3,
+	"tomato_value": 2,
+	"onion_time": 9,
+	"tomato_time": 6
 }
