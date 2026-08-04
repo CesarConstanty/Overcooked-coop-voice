@@ -1751,6 +1751,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
     
 
     _ingredientsToSpriteFrame(ingredients, status, chopped=false) {
+        ingredients = Array.isArray(ingredients) ? ingredients : [];
         let num_tomatoes = ingredients.filter(x => x === 'tomato').length;
         let num_onions = ingredients.filter(x => x === 'onion').length;
         // [CUTTING BOARD] dans l'atlas soups_cut, seules les frames "idle" portent le suffixe _cut
@@ -1773,8 +1774,10 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         if (this.isPlayingRecipe || this.isPlayingAsset) return;
 
         // Récupère l'intention de recette courante
-        let chef = state.players[0];
-        let ingredients = chef && chef.intentions ? chef.intentions.recipe : [];
+        let chef = state?.players?.[0];
+        let ingredients = Array.isArray(chef?.intentions?.recipe)
+            ? chef.intentions.recipe
+            : [];
         let currentRecipe = ingredients.join(",");
 
         // Récupère les intentions d'assets courantes

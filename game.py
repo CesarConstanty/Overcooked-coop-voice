@@ -1473,19 +1473,28 @@ class PlanningGame(OvercookedGame):
             ]
         else:
             state_dict['recipe_time_left'] = None
-        state_dict['intentions'] = self.get_intentions(self.planning_agent_id)
-        state_dict['state']['players'][int(
-            self.planning_agent_id[-1])]['motion_goal'] = self.get_motion_goal(self.planning_agent_id)
-        state_dict['state']['players'][int(
-            self.planning_agent_id[-1])]['intentions'] = self.get_intentions(self.planning_agent_id)
-        # [ASYMMETRIC DISPENSERS] Le client humain (joueur 0) ne voit que les items des dispensers 'A'
-        # TODO: réactiver ce filtre après les tests visuels (supprimer le commentaire ci-dessous)
-        # if self.mdp.has_asymmetric_dispensers():
-        #     b_positions = {tuple(p) for p in self.mdp.get_player1_dispenser_locations()}
-        #     state_dict['state']['dispenser_items'] = [
-        #         entry for entry in state_dict['state'].get('dispenser_items', [])
-        #         if (entry[0], entry[1]) not in b_positions
-        #     ]
+        raw_intentions = self.get_intentions(self.planning_agent_id) or {}
+
+        intentions = {
+            **raw_intentions,
+            "recipe": list(raw_intentions.get("recipe") or []),
+            "goal": raw_intentions.get("goal") or [],
+        }
+
+        state_dict["intentions"] = intentions
+
+        agent_index = int(self.planning_agent_id[-1])
+        state_dict["state"]["players"][agent_index]["motion_goal"] = (
+            self.get_motion_goal(self.planning_agent_id)
+        )
+        state_dict["state"]["players"][agent_index]["intentions"] = intentions
+
+        if self.mdp.has_asymmetric_dispensers():
+            b_positions = {tuple(p) for p in self.mdp.get_player1_dispenser_locations()}
+            state_dict['state']['dispenser_items'] = [
+                entry for entry in state_dict['state'].get('dispenser_items', [])
+                if (entry[0], entry[1]) not in b_positions
+            ]
         state_dict['show_post_trial_questionnaire'] = self.should_show_post_trial_questionnaire()
         state_dict['is_last_trial_in_bloc'] = self.is_last_trial_in_bloc()
         state_dict['curr_trial_in_game'] = self.curr_trial_in_game
