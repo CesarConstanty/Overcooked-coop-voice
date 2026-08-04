@@ -2001,7 +2001,18 @@ class TutorialCoopAI(GreedyAgent):
     """
 
     def __init__(self, *args, **kwargs):
+        # PlanningAgent.__init__ appelle Recipe.configure({}), alors que Recipe est
+        # une configuration globale partagée. Lorsqu'un MDP de tutoriel provient du
+        # cache, aucune reconstruction ne la rétablit ensuite : le premier dépôt
+        # d'ingrédient dans une marmite peut donc lever un TypeError et figer la boucle.
+        # TutorialCoopAI ne doit pas modifier la configuration déjà active.
+        try:
+            recipe_config = deepcopy(Recipe.configuration)
+        except ValueError:
+            recipe_config = None
         super(TutorialCoopAI, self).__init__(*args, **kwargs)
+        if recipe_config is not None:
+            Recipe.configure(recipe_config)
         # Activé uniquement à l'étape 3 (phase 2) par OvercookedTutorial.activate().
         self.tutorial_active = False
 

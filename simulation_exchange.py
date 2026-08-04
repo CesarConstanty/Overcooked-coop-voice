@@ -323,14 +323,7 @@ class CoopExchangePolicy(ExchangePolicy):
     """Relais coopératif pour layout CONNEXE (les deux agents atteignent TOUT, mais les
     zones d'échange 'Y' sont des RACCOURCIS géométriques).
 
-    Sur un tel layout, ExchangePolicy dégénère en greedy libre : n'ayant PAS deux
-    composantes séparées, aucune de ses conditions de relais (fondées sur l'appartenance
-    à une composante) ne se déclenche, et les deux greedy font le TOUR COMPLET de la
-    boucle pour chaque étape de recette (oignon→planche→pot→…). C'est pourquoi
-    `simulation_exchange` retombait sur `GreedyPair` (0 usage des Y ; AVEC == SANS).
-
-    Ici on rétablit un pipeline coopératif dont l'usage des zones est décidé — comme
-    demandé — par ESTIMATION du gain en pas, l'agent OBSERVANT la position de son
+    Ici l'usage des zones est décidé par ESTIMATION du gain en pas, l'agent OBSERVANT la position de son
     partenaire :
 
       * rôles ÉMERGENTS par proximité : CUISINE (`cook`, vrai GreedyAgent) = agent le plus
