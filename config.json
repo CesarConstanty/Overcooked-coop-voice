@@ -60,12 +60,12 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["map01","map02"],
+            "0": ["map04_Pr_CuCo","map04_Pr_CuCo"],
             "1": ["map03_PrCu_Co_90","map04_Pr_CuCo_90"],
             "2": ["map03_PrCu_Co","map04_Pr_CuCo"]
         },
-        "shuffle_trials" : true,
-        "shuffle_blocs" : true,
+        "shuffle_trials" : false,
+        "shuffle_blocs" : false,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
             "begin"      : ["QVG","PTTA","GAbstractionP"],

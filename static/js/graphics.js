@@ -123,7 +123,7 @@ function graphics_reset(graphics_config) {
     let start_info = graphics_config.start_info;
     start_info.counter_goals.forEach(element => start_info.terrain[element[1]][element[0]] = 'Y');
     game_config.scene.terrain = start_info.terrain;
-    game_config.scene.tileSize = 600/start_info.terrain[0].length;
+    game_config.scene.tileSize = 600 / Math.max(start_info.terrain.length, start_info.terrain[0].length);
     game_config.scene.start_state = start_info.state;
     game_config.scene.condition = graphics_config.condition;
 
@@ -187,7 +187,7 @@ class OvercookedScene extends Phaser.Scene { // dessine les éléments individue
         this.state = config.start_state.state;
         this.player_colors = config.player_colors;
         this.terrain = config.terrain;
-        this.tileSize = 600/config.terrain[0].length//config.tileSize;
+        this.tileSize = 600 / Math.max(config.terrain.length, config.terrain[0].length);
         this.animation_duration = config.animation_duration;
         this.show_post_cook_time = config.show_post_cook_time;
         this.cook_time = config.cook_time;
