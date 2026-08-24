@@ -12,7 +12,7 @@ import argparse
 import json
 import logging
 import os
-from collections import deque
+from collections import deque, Counter
 from copy import copy
 
 import numpy as np
@@ -245,10 +245,68 @@ class ExchangePolicy:
         return self._go_counter(player, cands[0][1], cands[0][2])
 
     def _dish_needed(self, state):
-        ps = self.mdp.get_pot_states(state)
-        return bool(ps.get("ready") or ps.get("cooking")
-                    or self.mdp.get_partially_full_pots(ps)
-                    or ps.get("2_items") or ps.get("3_items"))
+    pot_states = self.mdp.get_pot_states(state)
+
+    # La soupe doit déjà être dressée ou va bientôt l'être.
+    if pot_states.get("ready") or pot_states.get("cooking"):
+        return True
+
+    info = self.cook.next_order_info or {}
+    recipe = info.get("recipe") or self.cook.hl_goal
+
+    if recipe is None:
+        return False
+
+    required = Counter(recipe.ingredients)
+    cook_player = state.players[self.cook_i]
+
+    # Ingrédient actuellement tenu par le joueur.
+    candidate = None
+    if cook_player.has_object():
+        obj = cook_player.get_object()
+        if obj.name in Recipe.ALL_INGREDIENTS and chopped(obj):
+            candidate = obj
+
+    # Ou ingrédient que le joueur s'apprête à récupérer sur l'échange.
+    else:
+        faced_position = Action.move_in_direction(
+            cook_player.pos_and_or[0],
+            cook_player.pos_and_or[1]
+        )
+
+        if faced_position in self.exchange and state.has_object(faced_position):
+            obj = state.get_object(faced_position)
+            if obj.name in Recipe.ALL_INGREDIENTS and chopped(obj):
+                candidate = obj
+
+    if candidate is None:
+        return False
+
+    # Vérifier que cet objet est bien le dernier ingrédient de la recette.
+    for pot_position in self.mdp.get_pot_locations():
+        ingredients_in_pot = Counter()
+
+        if state.has_object(pot_position):
+            soup = state.get_object(pot_position)
+
+            if soup.is_cooking or soup.is_ready:
+                continue
+
+            ingredients_in_pot = Counter(soup.ingredients)
+
+        # Le contenu du pot doit être compatible avec la recette cible.
+        if ingredients_in_pot - required:
+            continue
+
+        missing = required - ingredients_in_pot
+
+        if (
+            sum(missing.values()) == 1
+            and missing[candidate.name] == 1
+        ):
+            return True
+
+    return False
 
     # ------- rôle CUISINE : greedy + relais de tout objet destiné à l'autre zone -------
     def cook_action(self, state):
