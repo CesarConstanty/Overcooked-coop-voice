@@ -2,9 +2,9 @@
     "grid":  """XTXXXSX
                 X X2X X
                 X X   X
-                X   E X
-                X   Y C
-                X   D X
+                X   E C
+                X   Y X
+                X   X D
                 X X   X
                 X X1X X
                 XOXXXPX""",
