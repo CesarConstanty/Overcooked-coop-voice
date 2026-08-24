@@ -1629,12 +1629,18 @@ class OvercookedTutorial(OvercookedGame):
         - phase_two_score (float): The exact sparse reward the user must obtain to advance past phase 2
     """
 
-    def __init__(self, layouts=["tutorial_0", "tutorial_1", "tutorial_2"], mdp_params={}, playerZero='human', playerOne='AI', phaseTwoScore=15,
+    def __init__(self, layouts=["tutorial_0", "tutorial_1", "tutorial_2", "tutorial_3"], mdp_params={}, playerZero='human', playerOne='AI', phaseTwoScore=15,
                  **kwargs):
+        # La configuration historique ne référence que les trois premières étapes.
+        # Ajouter explicitement la leçon d'échange sans imposer une migration des configs.
+        layouts = list(layouts)
+        if "tutorial_3" not in layouts:
+            layouts.append("tutorial_3")
         super(OvercookedTutorial, self).__init__(layouts=layouts, mdp_params=mdp_params, playerZero=playerZero,
                                                  playerOne=playerOne, showPotential=False, **kwargs)
         self.phase_two_score = phaseTwoScore
         self.phase_two_finished = False
+        self.phase_three_finished = False
         self.config = kwargs.get("config")
         self.max_time = 0
         self.max_players = 2
@@ -1645,9 +1651,7 @@ class OvercookedTutorial(OvercookedGame):
         # reset()), curr_trial_in_game DOIT partir de -1 : le 1er activate() le porte à 0 = phase 0.
         # Le handler 'join' transmet curr_trial_in_game = current_user.trial - 1 (utile pour
         # l'expérience, mais dénué de sens ici). Si trial != 0, les deux compteurs se décalent et
-        # le reset de fin de phase 2 tente layouts[3] -> IndexError côté serveur (invisible dans la
-        # console navigateur), 'reset_game' n'est jamais émis et le tutoriel reste bloqué en phase 2.
-        # On force donc -1 : le tutoriel rejoue toujours ses 3 layouts fixes depuis le début.
+        # On force donc -1 : le tutoriel rejoue toujours ses layouts fixes depuis le début.
         self.curr_trial_in_game = -1
         self.curr_layout = self.layouts[0]
         self.participant_uid = kwargs.get('player_uid', '-1')
@@ -1670,17 +1674,24 @@ class OvercookedTutorial(OvercookedGame):
             # (phase_two_finished, cf. apply_actions). Pas de repli sur score > 0 : une seule
             # livraison ne doit plus terminer l'étape.
             reset_needed = self.phase_two_finished
+        elif self.curr_phase == 3:
+            # Étape 4 : une soupe doit être réalisée en utilisant les comptoirs d'échange.
+            reset_needed = self.phase_three_finished
         
         if reset_needed:
-            print(f"[TUTORIAL] Phase {self.curr_phase} completed, needs_reset = True, score = {self.score}, phase_two_finished = {self.phase_two_finished}")
+            print(
+                f"[TUTORIAL] Phase {self.curr_phase} completed, needs_reset = True, "
+                f"score = {self.score}, phase_two_finished = {self.phase_two_finished}, "
+                f"phase_three_finished = {self.phase_three_finished}"
+            )
         
         return reset_needed
     
     def is_finished(self):
         """
-        Tutorial est terminé quand on a terminé toutes les phases (curr_phase >= 3)
+        Le tutoriel est terminé lorsque toutes les phases configurées ont été réalisées.
         """
-        finished = self.curr_phase >= 3
+        finished = self.curr_phase >= len(self.layouts)
         if finished:
             print(f"[TUTORIAL] Tutorial is finished! curr_phase = {self.curr_phase}")
         return finished
@@ -1692,6 +1703,7 @@ class OvercookedTutorial(OvercookedGame):
         self.data = self.get_data()
         self.score = 0  # Remettre le score à zéro à chaque phase
         self.phase_two_finished = False  # Réinitialiser la validation de la phase 2
+        self.phase_three_finished = False  # Réinitialiser la validation de la phase 3
         super(OvercookedTutorial, self).reset()
 
     def _phase_mdp_config(self, phase, base):
@@ -1717,7 +1729,7 @@ class OvercookedTutorial(OvercookedGame):
             # (cutting_enabled reste False).
             pass
         else:
-            # Leçons 2 et 3 : découpe activée et imposée. À l'étape 3 (phase 2) le partenaire IA
+            # Leçons 2 à 4 : découpe activée et imposée. À partir de l'étape 3, le partenaire IA
             # cuisine avec le participant : on impose donc la découpe à l'humain ET à l'IA, comme
             # dans l'expérience. La liste couvre les recettes de l'étape 2 ([onion], [tomato]) et
             # de l'étape 3 ([onion], [onion,tomato], [onion,tomato,tomato]).
@@ -1733,12 +1745,12 @@ class OvercookedTutorial(OvercookedGame):
 
     def activate(self):
         self.trial_id = "tutorial" + str(self.curr_phase)
-        # [TUTORIEL] Le partenaire IA ne cuisine qu'à l'étape 3 (phase 2) ; il reste immobile
-        # pendant l'apprentissage solo (phases 0 et 1). On (dé)active AVANT super().activate() car
+        # [TUTORIEL] Le partenaire IA coopère pendant les étapes 3 et 4 ; il reste immobile pendant
+        # l'apprentissage solo (phases 0 et 1). On (dé)active AVANT super().activate() car
         # celui-ci démarre les threads de décision de l'agent.
         for pol in self.npc_policies.values():
             if isinstance(pol, TutorialCoopAI):
-                pol.tutorial_active = (self.curr_phase == 2)
+                pol.tutorial_active = self.curr_phase in (2, 3)
         # [TUTORIEL] On permute self.config par les overrides MDP de la phase courante UNIQUEMENT
         # le temps de la construction du MDP dans super().activate() (qui lit self.config en
         # mdp_overrides_from_config + Human_forced_cutting), puis on restaure la vraie config
@@ -1755,7 +1767,7 @@ class OvercookedTutorial(OvercookedGame):
 
     def get_policy(self, npc_id=None, idx=1):
         # [TUTORIEL] Partenaire IA : GreedyAgent réel (comme l'expérience), mais actif seulement
-        # à l'étape 3 (phase 2). Le mlam de la phase (géométrie du layout) est injecté par
+        # aux étapes 3 et 4. Le mlam de la phase (géométrie du layout) est injecté par
         # OvercookedGame.activate() car TutorialCoopAI est un PlanningAgent. idx=1 : le partenaire
         # est le joueur 2 ('2' dans les layouts) ; l'humain est le joueur 1 (index 0).
         agent = TutorialCoopAI()
@@ -1782,6 +1794,13 @@ class OvercookedTutorial(OvercookedGame):
                 if not self.phase_two_finished:
                     print("[TUTORIAL] Phase 2 completed! All 3 orders delivered, setting phase_two_finished = True")
                 self.phase_two_finished = True
+        elif self.curr_phase == 3:
+            # [TUTORIEL ÉCHANGE] Le layout sépare physiquement les deux partenaires : vider
+            # all_orders prouve que les transferts nécessaires ont bien été réalisés.
+            if len(self.state.all_orders) == 0:
+                if not self.phase_three_finished:
+                    print("[TUTORIAL] Phase 3 completed! Exchange order delivered")
+                self.phase_three_finished = True
         transition = {
             "joint_action": json.dumps(joint_action),
             "time_left": max(self.max_time - (time() - self.start_time), 0),
@@ -1992,7 +2011,7 @@ class TutorialCoopAI(GreedyAgent):
 
     - Reste immobile (Action.STAY) pendant les étapes d'apprentissage solo (phases 0 et 1) : le
       participant y apprend seul les mécaniques (recette, découpe).
-    - À l'étape 3 (phase 2), coopère réellement comme l'agent de l'expérience : c'est un
+    - Aux étapes 3 et 4 (phases 2 et 3), coopère réellement comme l'agent de l'expérience : c'est un
       GreedyAgent (planificateur) qui va chercher les ingrédients, les découpe, remplit la marmite,
       dresse l'assiette et sert. Le mlam de la phase (géométrie du layout) est injecté par
       OvercookedGame.activate() car TutorialCoopAI est un PlanningAgent.
@@ -2013,7 +2032,7 @@ class TutorialCoopAI(GreedyAgent):
         super(TutorialCoopAI, self).__init__(*args, **kwargs)
         if recipe_config is not None:
             Recipe.configure(recipe_config)
-        # Activé uniquement à l'étape 3 (phase 2) par OvercookedTutorial.activate().
+        # Activé aux étapes 3 et 4 par OvercookedTutorial.activate().
         self.tutorial_active = False
 
     def action(self, state):

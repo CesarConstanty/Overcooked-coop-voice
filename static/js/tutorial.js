@@ -26,6 +26,13 @@ var tutorial_instructions = () => [
     <p>This kitchen has <b>onion</b> and <b>tomato dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window &mdash; and this time an <b>AI teammate</b> (the blue cook) prepares soups alongside you.</p>
     <p>Work together to complete <b>all three orders</b> shown in <b>All Orders</b>: gather ingredients, <b>chop</b> them, cook, plate and deliver each one. The tutorial ends once the three orders are done.</p>
     <br></br>
+    `,
+    `
+    <p>How it works: <b>Exchange zones</b></p>
+    <p>This kitchen is divided into two separate work areas. The shared counters in the middle are <b>exchange zones</b>: neither cook can cross the barrier, but both can use these counters.</p>
+    <p>Your AI teammate has access to the ingredient dispensers, the pot and the serving window. You have access to the <b>cutting board</b> and the <b>plate dispenser</b>.</p>
+    <p>Pick up the raw onion placed by the AI on an exchange counter, chop it, then place the chopped onion back on an exchange counter. Also pass a plate to the AI when it is needed. Complete the onion soup to finish the tutorial.</p>
+    <br></br>
     `
 ];
 
@@ -43,6 +50,9 @@ var tutorial_hints = () => [
     ,
     `
     <p>Remember: every ingredient must be <b>chopped</b> on the cutting board before it goes into the pot. Split the work with your <b>AI teammate</b> and deliver all three orders to finish.</p>
+    `,
+    `
+    <p>Face an <b>empty exchange counter</b> and press <b>spacebar</b> to leave the object there. Your teammate can pick it up from the other side. Keep at least one exchange counter free for the next transfer.</p>
     `
 ]
 
@@ -146,9 +156,9 @@ socket.on('start_game', function(data) {
 
 socket.on('reset_game', function(data) {
     curr_tutorial_phase++;
-    // À la fin de la dernière phase, le serveur émet un dernier reset_game (curr_phase passe à 3)
-    // juste avant end_game. Cet index dépasse alors le nombre d'instructions : on l'ignore pour
-    // éviter d'afficher "undefined" / "Phase 4/3" le temps que end_game prenne le relais.
+    // Ã€ la fin de la derniÃ¨re phase, le serveur Ã©met un dernier reset_game (curr_phase passe Ã  3)
+    // juste avant end_game. Cet index dÃ©passe alors le nombre d'instructions : on l'ignore pour
+    // Ã©viter d'afficher "undefined" / "Phase 4/3" le temps que end_game prenne le relais.
     if (curr_tutorial_phase >= tutorial_instructions.length) {
         return;
     }
@@ -212,8 +222,8 @@ socket.on('end_game', function(data) {
 
 function enable_key_listener() {
     $(document).on('keydown', function(e) {
-        // Ignore les répétitions automatiques du clavier quand une touche reste
-        // enfoncée : un appui prolongé doit produire une seule action, exactement
+        // Ignore les rÃ©pÃ©titions automatiques du clavier quand une touche reste
+        // enfoncÃ©e : un appui prolongÃ© doit produire une seule action, exactement
         // comme un appui unique. (jQuery 1.10 ne normalise pas `repeat` -> originalEvent)
         if (e.repeat || (e.originalEvent && e.originalEvent.repeat)) {
             e.preventDefault();
@@ -285,3 +295,4 @@ var arrToJSON = function(arr) {
     }
     return retval;
 };
+
