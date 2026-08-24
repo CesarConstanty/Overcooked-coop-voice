@@ -150,7 +150,7 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["map01","map02","map03_PrCu_Co","map04_Pr_CuCo"],
+            "0": ["map02","map01","map03_PrCu_Co","map04_Pr_CuCo"],
             "1": ["map01_90","map02_90","map03_PrCu_Co_90","map04_Pr_CuCo_90"],
             "2": ["map01_180","map02_180","map03_PrCu_Co_180","map04_Pr_CuCo_180"]
         },
