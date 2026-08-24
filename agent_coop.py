@@ -46,21 +46,16 @@ class GreedyCoopAgent(GreedyAgent):
     def __init__(self, *args, ai_see_asset=True, **kwargs):
         super().__init__(*args, ai_see_asset=ai_see_asset, **kwargs)
         self.intentions["agent_name"] = "greedy_coop"
-        # _coop : None = pas encore construit ; False = repli greedy (layout non exploitable) ;
-        # sinon une instance de CoopExchangePolicy.
         self._coop = None
         self._t = 0                    # compteur de décisions (hystérésis de bascule de rôle)
         self._coop_crash_logged = False
         self._shared_recipe = None     # recette cible partagée (stable entre les bascules de rôle)
         self._chopped = None           # helper simulation_exchange.chopped (stocké à la construction)
-        # [ANTI-BLOCAGE role-agnostique] compteur maison (voir _anti_block). Reflété sur
-        # self.stuck_frames pour la journalisation (agent_stuck_loop), quel que soit le rôle.
         self._stuck_frames = 0
         self._prev_block_pos = None
 
     def reset(self):
         super().reset()
-        # Nouvel essai (le layout change entre essais) : re-déclencher la construction.
         self._coop = None
         self._t = 0
         self._coop_crash_logged = False
@@ -68,9 +63,6 @@ class GreedyCoopAgent(GreedyAgent):
         self._stuck_frames = 0
         self._prev_block_pos = None
 
-    # ------------------------------------------------------------------
-    # Construction paresseuse de la politique coopérative
-    # ------------------------------------------------------------------
     def _build_coop(self):
         """Construit `CoopExchangePolicy` si le layout s'y prête (CONNEXE + exploitable),
         sinon marque le repli greedy (`_coop = False`). Réplique la décision de

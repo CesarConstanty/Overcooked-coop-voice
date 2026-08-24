@@ -3,16 +3,17 @@
                 X X2X X
                 X X   X
                 X   E X
-                D   Y C
-                X   X X
+                X   Y C
+                X   D X
                 X X   X
                 X X1X X
                 XOXXXPX""",
     'start_all_orders': [{'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}, {'ingredients': ['tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion']}, {'ingredients': ['onion', 'tomato']}],
-	"rew_shaping_params": None,
-	"counter_goals": [],
-	"onion_value": 3,
-	"tomato_value": 2,
-	"onion_time": 9,
-	"tomato_time": 6
+    'rew_shaping_params': None,
+    'counter_goals': [],
+    'onion_value': 3,
+    'tomato_value': 2,
+    'onion_time': 9,
+    'tomato_time': 6,
+    'cutting_board_symbol': 'C',
 }
