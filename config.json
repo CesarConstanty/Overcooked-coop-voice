@@ -22,7 +22,7 @@
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
     "config_pretest01" : {
-        "dev" : "True",
+        "dev" : true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -112,7 +112,7 @@
         "AI_forced_cutting" : true
     },
     "config_pretest02" : {
-        "dev" : "True",
+        "dev" : true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -202,7 +202,7 @@
         "AI_forced_cutting" : true
     },
     "config_pretest03" : {
-        "dev" : "True",
+        "dev" : true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -293,7 +293,7 @@
         "tutorial_steps" : 3
     },
     "config_pretest04" : {
-        "dev" : "False",
+        "dev" : true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
