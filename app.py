@@ -2255,11 +2255,11 @@ def tutorial():
     if is_test != "test" :
         # Suivi temporel : enregistrer la visite du tutoriel
         track_page_view('tutorial.html', uid, current_user.config.get("config_id"))
-        return render_template('tutorial.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
+        return render_template('tutorial.html', uid=uid, seq_id=step, config=tutorial_config_json, timer_max=timer_max)
     else :
         # Suivi temporel : enregistrer la visite du tutoriel de test
         track_page_view('tutorialTest.html', uid, current_user.config.get("config_id"))
-        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
+        return render_template('tutorialTest.html', uid=uid, seq_id=step, config=tutorial_config_json, timer_max=timer_max)
 
 
 

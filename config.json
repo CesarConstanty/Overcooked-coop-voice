@@ -1,5 +1,5 @@
 {
-    "mode" : "test",
+    "mode" : "expe",
     "logfile" : "app.log",
     "ai_slowdown_enabled": true,
     "ai_base_speed": 4,
@@ -293,7 +293,7 @@
         "tutorial_steps" : 3
     },
     "config_pretest04" : {
-        "dev" : "True",
+        "dev" : "False",
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -321,7 +321,7 @@
         "explications_block_min": 5,
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
-        "agent" : "GreedyCoopAgent",
+        "agent" : "GreedyAgent",
         "conditions" : {"0":"U", "1":"EAa", "2":"EAr"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
@@ -331,9 +331,9 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["test01"],
-            "1": ["test02"],
-            "2": ["test03"]
+            "0": ["test01C"],
+            "1": ["test02C"],
+            "2": ["test03C"]
         },
         "shuffle_trials" : false,
         "shuffle_blocs" : false,
@@ -381,7 +381,7 @@
         "cutting_board_symbol" : "C",
         "Human_forced_cutting" : true,
         "AI_forced_cutting" : true,
-        "tutorial_steps" : 2
+        "tutorial_steps" : 3
     },
     "tutorial" : {
         "tutorialParams" : {
