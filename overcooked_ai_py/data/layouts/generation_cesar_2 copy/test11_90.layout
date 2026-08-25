@@ -3,7 +3,7 @@
 				X    1X
 				X X O D
 				X X   X
-				X  X XX
+				X  Y XX
 				S 2   X
 				XPXXXXX""",
 	"start_all_orders": [{'ingredients': ['onion', 'onion']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'onion']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}],

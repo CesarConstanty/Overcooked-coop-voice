@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Instructions</title>
+  <link rel="Favicon" href="static/favicon.ico" />
+  <style>
+    :root{--bg:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--ring:#334155;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#0f172a;color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:32px}
+    .crumbs{font-size:14px;color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:20px}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin:14px 0}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .card h3{margin:0 0 12px;font-size:24px;color:var(--accent);text-align:center}
+    .card h4{margin:0 0 8px;font-size:18px;color:var(--accent)}
+    .card h5{margin:0 0 6px;font-size:16px;color:var(--accent)}
+    .muted{color:var(--muted)}
+    .center{text-align:center}
+    figure{margin:20px 0}
+    figure img{width:100%;max-width:600px;border-radius:12px;border:1px solid var(--ring);display:block;margin:auto}
+    figcaption{font-size:14px;color:var(--muted);text-align:center;margin-top:8px}
+    .flex-container{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;align-items:flex-start}
+    .flex-item{flex:1;max-width:500px;min-width:300px}
+    .start-button{background:#38bdf8;border:none;color:#0f172a;font-weight:800;padding:16px 32px;border-radius:12px;cursor:pointer;font-size:18px;margin:32px auto;display:block;text-decoration:none;text-align:center}
+    .start-button:hover{filter:brightness(1.05);color:#0f172a;text-decoration:none}
+    .header{background:rgba(255,255,255,.03);border:1px solid var(--ring);border-radius:16px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .header.white-bg{background:white;color:#0f172a}
+    .header.white-bg h1{color:#0f172a}
+    .header img{height:60px;max-width:200px}
+    .header h1{margin:0;font-size:1.8rem;text-align:center;flex:1;color:var(--accent)}
+    .warning{background:rgba(255,193,7,.1);border:1px solid #ffc107;border-radius:12px;padding:16px;margin:16px 0;color:#ffc107}
+    .important{background:rgba(220,53,69,.1);border:1px solid #dc3545;border-radius:12px;padding:16px;margin:16px 0;color:#dc3545}
+    @media (max-width: 768px) {
+      .header{flex-direction:column;text-align:center;gap:16px}
+      .flex-container{flex-direction:column;gap:20px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="crumbs">Instructions · Game Tutorial</div>
+    <div class="title">Overcooked <span style="color:var(--accent)">Experiment</span></div>
+
+    <!-- Header with logos -->
+    <div class="header white-bg">
+      <img src="static/images/logo_airudit.png" alt="Airudit">
+      <h1>Cooking Game Instructions</h1>
+      <img src="static/images/ONERA.png" alt="ONERA">
+    </div>
+
+    <section class="card">
+      <p>Hello! Welcome to this video game all about... cooking! In this experiment you will play as a chef in a restaurant specialized in soups!</p>
+    </section>
+
+    <section class="card">
+      <h3>Your Goal</h3>
+      <p>For each game, you will have a list of recipes to make. The goal of the game is to complete all these recipes in the shortest time possible. Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.</p>
+
+      <p>the <strong>All Orders</strong> list shows which recipes you need to complete: any prepared or served soup which is not on this list will not be counted and it will make you lose time.</p>
+
+      <p>When a soup is served at the serving counter, it is automatically validated, and disappears from the <strong>All Orders</strong> list of the recipes you have to realize during the game.</p>
+
+      <p><strong>Your goal</strong> is to make all the recipes in the All Orders lists <strong>AS FAST AS POSSIBLE</strong>.</p>
+
+      <figure>
+        <img src="static/images/info-panel_recipe.png" alt="Recipe panel" style="max-width:400px;">
+      </figure>
+
+      <p>In the example above, you have to complete 3 recipes:</p>
+      <ul>
+        <li>tomato + tomato + tomato</li>
+        <li>tomato + onion</li>
+        <li>onion + onion + tomato</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3>Layouts</h3>
+      <div class="center">
+        <p>This is an exemple of what the kitchen (one level of the game) looks like:</p>
+        <figure>
+          <img src="static/images/basic_map_exchange_V2_exp2.png" alt="Kitchen layout" style="max-width:500px;">
+        </figure>
+
+        <p>Here you will interact with several objects:</p>
+        <figure>
+          <img src="static/images/basic_map_exchange_V2_legend_exp2.png" alt="Kitchen objects legend" style="max-width:800px;">
+        </figure>
+      </div>
+    </section>
+    <section class="card">
+      <h3>Exchange zones</h3>
+      <p>Some kitchens are divided into separate work areas. The <strong>exchange zones</strong> are the shared counters that both cooks can reach from opposite sides.</p>
+
+      <figure>
+        <img src="static/images/onion_exchange.gif" alt="Passing an onion through an exchange zone" style="max-width:500px;">
+        <figcaption>An object is placed on an exchange counter, then collected from the other side.</figcaption>
+      </figure>
+
+      <ul>
+        <li>To pass an object, face an <strong>empty exchange counter</strong> while holding the object and press <strong>spacebar</strong>.</li>
+        <li>Your teammate can then collect it from the other side. The same action works in both directions.</li>
+        <li>Depending on the kitchen, raw ingredients may need to be passed toward the cutting board, while chopped ingredients or plates may need to be passed back toward the pot.</li>
+      </ul>
+
+      <p>You cannot walk through an exchange counter or hand an object directly to your teammate. Keep at least one exchange counter free so that the next object can be transferred.</p>
+    </section>
+
+    <section class="card">
+
+      <h3>Gameplay Basics</h3>
+
+      <!-- First row: Movement and Cooking -->
+      <div class="flex-container">
+        <div class="flex-item">
+          <h4>Movement and interactions</h4>
+          <figure>
+            <img src="static/images/space-arrows.png" alt="Controls" style="max-width:150px;">
+          </figure>
+          <p>You can move up, down, left, and right using the <strong>arrow keys</strong>, and interact with objects using the <strong>spacebar</strong>.</p>
+          <p>You can interact with objects by facing them and pressing <strong>spacebar</strong>. Here are some examples:</p>
+          <ul>
+            <li>Pick up ingredients (onions or tomatoes) by facing the ingredient area and pressing <strong>spacebar</strong>.</li>
+            <li>If you are holding an ingredient and facing an empty counter, pressing <strong>spacebar</strong> puts the item down.</li>
+            <li>Face a pot and press <strong>spacebar</strong> to add an ingredient (if it is not full).</li>
+            <li>Face a non-empty pot while holding nothing and press <strong>spacebar</strong> to begin cooking.</li>
+          </ul>
+          <p><u><strong>You cannot occupy the same location as the artificial agent.</strong></u></p>
+        </div>
+
+        <div class="flex-item">
+          <h4>Cooking</h4>
+          <figure>
+            <img src="static/images/soup_exp2.png" alt="Soup cooking" style="max-width:250px;">
+          </figure>
+          <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to 3 ingredients.</p>
+          <p>A red number appears over the pot to indicate the cooking time. It counts upwards until the soup is done. Each onion adds {{ onion_time }}s and each tomato adds {{ tomato_time }}s to the cooking time. Remember that onions are worth more points than tomatoes, but take longer to cook!</p>
+          <p>Once an ingredient is in the pot, you must cook it to remove it — whether or not it matches a valid order. Do not forget to hold a plate to collect the soup!</p>
+        </div>
+      </div>
+
+    {% if cutting_enabled %}
+    <section class="card">
+      <h3>Chopping (cutting board)</h3>
+      <p>Recipes require their ingredients to be <strong>chopped on a cutting board</strong> before being placed in the pot.</p>
+      <p>To chop: pick up a raw ingredient, place it on the cutting board (<strong>spacebar</strong>), then press <strong>spacebar</strong> repeatedly to chop it. A counter shows the chopping progress. Once finished, pick the chopped ingredient back up and bring it to the pot.</p>
+      {% if chop_time is mapping %}
+      <p>Number of chops required:
+        {% for ingredient, ticks in chop_time.items() %}{{ ingredient }}: {{ ticks }}{% if not loop.last %}, {% endif %}{% endfor %}.
+      </p>
+      {% elif chop_time %}
+      <p>Number of chops required per ingredient: {{ chop_time }}.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="card important">
+      <h4 class="center">Please pay VERY close attention to this part. It is AS IMPORTANT AS the game itself.</h4>
+    </section>
+
+    <section class="card">
+      <h3>Course of the experiment</h3>
+      <p>You will start by performing a tutorial to familiarize yourself with the interface.</p>
+      <p>You will start each block with two practice game to learn how to play with the agent. This game will look like other games but we will not use the data collected.</p>
+      <p>During the experiment you will complete 3 blocks containing 12 games each.</p>
+      <p>You will be able to take a small break between each block on the instruction page.</p>
+    </section>
+
+    <section class="card warning">
+      <h3>PLEASE READ THIS BEFORE STARTING THE EXPERIMENT</h3>
+      <p>It is possible that, for some reason, you have the impression that the page is loading incorrectly.</p>
+      <p>1. RELOAD the page immediately — this usually solves the problem.</p>
+      <p>2. REPORT the problem at the end of the experiment during the final questionnaire.</p>
+      <p>3. CONTACT the experimenter through the Prolific platform.</p>
+    </section>
+
+    <a href="./questionnaire/begin" class="start-button">
+      Start the experiment
+    </a>
+  </div>
+
+  <!-- Scripts -->
+  <script src="static/lib/jquery-min.js"></script>
+  <script type="module" src="static/lib/js.cookie.min.js"></script>
+  <script src="static/js/page-timer.js"></script>
+  <script>
+    // Initialiser le système de timer pour les instructions générales
+    // Timer maximum supprimé - seulement le timer minimum est conservé
+    const timerMin = {{ timer_min|default(120) }};
+    const timerMax = 0;  // Pas de limite de temps maximum
+    initPageTimer(timerMin, timerMax, '.start-button');
+  </script>
+</body>
+</html>
