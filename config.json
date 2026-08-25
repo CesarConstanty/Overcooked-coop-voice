@@ -293,7 +293,7 @@
         "tutorial_steps" : 3
     },
     "config_pretest04" : {
-        "dev" : true,
+        "dev" : false,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -331,9 +331,9 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["test01C"],
-            "1": ["test02C"],
-            "2": ["test03C"]
+            "0": ["test01C","test02C","test03C"],
+            "1": ["test01C_90","test02_90C","test03_90C"],
+            "2": ["test01C_180","test02C_180","test03C_180"]
         },
         "shuffle_trials" : false,
         "shuffle_blocs" : false,
