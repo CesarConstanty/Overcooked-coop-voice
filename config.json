@@ -381,7 +381,7 @@
         "cutting_board_symbol" : "C",
         "Human_forced_cutting" : true,
         "AI_forced_cutting" : true,
-        "tutorial_steps" : 3
+        "tutorial_steps" : 4
     },
     "tutorial" : {
         "tutorialParams" : {

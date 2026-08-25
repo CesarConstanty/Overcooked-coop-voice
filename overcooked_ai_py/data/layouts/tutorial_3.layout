@@ -4,9 +4,8 @@
                 XYYYYYX
                 O   1 S
                 XXDXPXX""",
-    "start_all_orders": [{"ingredients": ["tomato","tomato"]}, {"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato", "tomato"]}],
+    "start_all_orders": [{"ingredients": ["tomato","tomato"]}, {"ingredients": ["onion", "onion","tomato"]}, {"ingredients": ["onion", "tomato", "tomato"]}],
     'start_bonus_orders': [{'ingredients': ['onion', 'tomato', 'tomato']}],
-    'order_bonus': float('inf'),
     'onion_value': 21,
     'tomato_value': 13,
     'onion_time': 15,

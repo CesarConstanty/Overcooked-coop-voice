@@ -2852,8 +2852,26 @@ def play_game(game, fps=15):
     print(f"[PLAY_GAME] Starting game loop for game {game.id} with FPS {fps}")
 
     while status != Game.Status.DONE and status != Game.Status.INACTIVE:
-        with game.lock:
-            status = game.tick()
+        try:
+            with game.lock:
+                status = game.tick()
+        except Exception:
+            logger.exception(
+                "[GAME_LOOP_CRASH] game_id=%s layout=%s tick=%s",
+                game.id,
+                getattr(game, "curr_layout", None),
+                getattr(game, "curr_tick", None),
+            )
+            status = Game.Status.ERROR
+            socketio.emit(
+                "end_game",
+                {
+                    "status": Game.Status.ERROR,
+                    "error": "server_game_loop_error",
+                },
+                room=game.id,
+            )
+            break
         if status == Game.Status.RESET:
             # Reset intra-session : seul l'outil planning_design / les tutoriels
             # multi-layouts y passent. En mode single_trial (expérience), ce cas

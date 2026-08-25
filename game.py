@@ -64,9 +64,16 @@ def get_cached_mdp(layout, layouts_dir, mdp_params):
     """
     key = _mdp_cache_key(layout, layouts_dir, mdp_params)
     mdp = MDP_CACHE.get(key, None)
+
     if mdp is None:
-        mdp = OvercookedGridworld.from_layout_name(layout, layouts_dir, **mdp_params)
+        mdp = OvercookedGridworld.from_layout_name(
+            layout, layouts_dir, **mdp_params
+        )
         MDP_CACHE[key] = mdp
+
+    # Un accès au cache ne reconstruit pas le MDP et ne configure donc pas Recipe.
+    Recipe.configure(mdp.recipe_config)
+
     return mdp, key
 
 

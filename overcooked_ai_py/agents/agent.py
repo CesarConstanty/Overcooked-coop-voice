@@ -280,7 +280,7 @@ class PlanningAgent(Agent):
         self.stuck_frames = 0
         # [CUTTING BOARD] Drapeau d'attente volontaire d'une planche (voir action()).
         self._intentional_wait = False
-        Recipe.configure({})
+        #Recipe.configure({}) #pourrevenirsibesoin
         # None = aucun objectif réel encore choisi. La première affectation d'une vraie
         # recette ne doit pas compter comme un switch (None n'est jamais dans all_recipes).
         self.hl_goal = None
