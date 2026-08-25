@@ -61,8 +61,9 @@ var curr_tutorial_phase;
 // Read in game config provided by server
 $(function() {
     config = JSON.parse($('#config').text());
-    tutorial_instructions = tutorial_instructions();
-    tutorial_hints = tutorial_hints();
+    const tutorialStepCount = config.tutorialParams.layouts.length;
+    tutorial_instructions = tutorial_instructions().slice(0, tutorialStepCount);
+    tutorial_hints = tutorial_hints().slice(0, tutorialStepCount);
     $('#quit').show();
 });
 

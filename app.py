@@ -2243,7 +2243,15 @@ def tutorial():
     
     # Récupérer la valeur du timer depuis la configuration utilisateur
     timer_max = current_user.config.get('timer_tuto_max', 600)  # 600s par défaut si absent
-    
+
+    # Nombre d'étapes demandé par la configuration expérimentale.
+    tutorial_steps = current_user.config.get("tutorial_steps", 4)
+
+    tutorial_config = deepcopy(CONFIG["tutorial"])
+    tutorial_config["tutorialParams"]["layouts"] = (
+    tutorial_config["tutorialParams"]["layouts"][:tutorial_steps])
+    tutorial_config_json = json.dumps(tutorial_config)
+
     if is_test != "test" :
         # Suivi temporel : enregistrer la visite du tutoriel
         track_page_view('tutorial.html', uid, current_user.config.get("config_id"))
@@ -2252,6 +2260,7 @@ def tutorial():
         # Suivi temporel : enregistrer la visite du tutoriel de test
         track_page_view('tutorialTest.html', uid, current_user.config.get("config_id"))
         return render_template('tutorialTest.html', uid=uid, seq_id=step, config=TUTORIAL_CONFIG, timer_max=timer_max)
+
 
 
 @app.route('/condition_tutorial')

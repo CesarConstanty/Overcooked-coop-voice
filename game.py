@@ -1634,8 +1634,10 @@ class OvercookedTutorial(OvercookedGame):
         # La configuration historique ne référence que les trois premières étapes.
         # Ajouter explicitement la leçon d'échange sans imposer une migration des configs.
         layouts = list(layouts)
-        if "tutorial_3" not in layouts:
-            layouts.append("tutorial_3")
+        #pourrevenirsibesoin
+        #if "tutorial_3" not in layouts:
+        #    layouts.append("tutorial_3")
+
         super(OvercookedTutorial, self).__init__(layouts=layouts, mdp_params=mdp_params, playerZero=playerZero,
                                                  playerOne=playerOne, showPotential=False, **kwargs)
         self.phase_two_score = phaseTwoScore
