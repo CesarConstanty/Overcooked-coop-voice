@@ -22,7 +22,7 @@
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
     "config_pretest01" : {
-        "dev" : true,
+        "dev" : "True",
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -60,9 +60,9 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["map04_Pr_CuCo","map04_Pr_CuCo"],
-            "1": ["map03_PrCu_Co_90","map04_Pr_CuCo_90"],
-            "2": ["map03_PrCu_Co","map04_Pr_CuCo"]
+            "0": ["test01C","test02C","test03C"],
+            "1": ["test01C_90","test02_90C","test03_90C"],
+            "2": ["test01C_180","test02C_180","test03C_180"]
         },
         "shuffle_trials" : false,
         "shuffle_blocs" : false,
@@ -112,7 +112,7 @@
         "AI_forced_cutting" : true
     },
     "config_pretest02" : {
-        "dev" : true,
+        "dev" : "True",
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -202,7 +202,7 @@
         "AI_forced_cutting" : true
     },
     "config_pretest03" : {
-        "dev" : true,
+        "dev" : "True",
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -381,7 +381,7 @@
         "cutting_board_symbol" : "C",
         "Human_forced_cutting" : true,
         "AI_forced_cutting" : true,
-        "tutorial_steps" : 4
+        "tutorial_steps" : 3
     },
     "tutorial" : {
         "tutorialParams" : {
