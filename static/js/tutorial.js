@@ -21,8 +21,8 @@ var tutorial_instructions = () => [
     `,
     `
     <p>How it works: <b>Cooking together</b></p>
-    <p>Some kitchens are quite small, making it difficul to cook together.</br>
-    <p>Fortunately, you can continiously walk into your partner to push them back and clear your way</br>
+    <p>This kitchen has <b>onion</b> and <b>tomato dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window &mdash; and this time an <b>AI teammate</b> (the blue cook) prepares soups alongside you.</p>
+    <p>Work together to complete <b>all three orders</b> shown in <b>All Orders</b>: gather ingredients, <b>chop</b> them, cook, plate and deliver each one. This step ends once the three orders are done.</p>
     <br></br>
     `,
     `
@@ -51,11 +51,205 @@ var tutorial_hints = () => [
 
 var curr_tutorial_phase;
 
-// Read in game config provided by server
+var TUTORIAL_CANVAS_WIDTH = 960;
+var TUTORIAL_CANVAS_HEIGHT = 600;
+
+var SOUP_LEGEND_WIDTH = 200;
+var SOUP_LEGEND_COLUMN_WIDTH = 240;
+
+/*
+ * Place Soup Legend et le jeu dans deux colonnes distinctes.
+ *
+ * La première colonne mesure toujours 240 px et contient uniquement
+ * la légende. Le jeu occupe exclusivement la seconde colonne.
+ *
+ * Cette séparation structurelle empêche l'image de la légende
+ * de se superposer au canvas, quelle que soit la taille de la fenêtre.
+ */
+function configureTutorialLayout() {
+    var gameContainer =
+        document.getElementById('overcooked-container');
+
+    var soupLegend =
+        document.getElementById('soup-icons');
+
+    if (!gameContainer || !soupLegend) {
+        return;
+    }
+
+    var mainWrapper = gameContainer.parentElement;
+
+    /*
+     * Transformation du conteneur principal en grille à deux colonnes.
+     */
+    mainWrapper.style.display = 'grid';
+
+    mainWrapper.style.gridTemplateColumns =
+        SOUP_LEGEND_COLUMN_WIDTH + 'px minmax(0, 1fr)';
+
+    mainWrapper.style.alignItems = 'stretch';
+    mainWrapper.style.justifyContent = 'stretch';
+    mainWrapper.style.width = '100%';
+    mainWrapper.style.boxSizing = 'border-box';
+
+    /*
+     * Annule le positionnement absolu défini dans tutorial.html.
+     * La légende appartient maintenant réellement à la première colonne.
+     */
+    soupLegend.style.position = 'static';
+    soupLegend.style.gridColumn = '1';
+    soupLegend.style.alignSelf = 'end';
+    soupLegend.style.width = '100%';
+
+    soupLegend.style.maxWidth =
+        SOUP_LEGEND_COLUMN_WIDTH + 'px';
+
+    soupLegend.style.boxSizing = 'border-box';
+    soupLegend.style.padding = '0 20px 20px 20px';
+    soupLegend.style.margin = '0';
+
+    /*
+     * Même si une largeur incorrecte était appliquée à l'image,
+     * son contenu ne pourrait pas sortir de la colonne de la légende.
+     */
+    soupLegend.style.overflow = 'hidden';
+
+    var soupLegendImage =
+        soupLegend.querySelector('img');
+
+    if (soupLegendImage) {
+        soupLegendImage.style.display = 'block';
+        soupLegendImage.style.maxWidth = '100%';
+        soupLegendImage.style.height = 'auto';
+    }
+
+    /*
+     * Le jeu appartient exclusivement à la seconde colonne.
+     */
+    gameContainer.style.gridColumn = '2';
+    gameContainer.style.width = '100%';
+    gameContainer.style.minWidth = '0';
+    gameContainer.style.boxSizing = 'border-box';
+
+    /*
+     * Sécurité supplémentaire : le canvas ne peut pas sortir
+     * horizontalement de la colonne du jeu.
+     */
+    gameContainer.style.overflowX = 'hidden';
+}
+
+/*
+ * Redimensionne visuellement le canvas sans modifier ses dimensions
+ * internes. Le layout et All Orders restent donc dans le même canvas.
+ */
+function resizeTutorialCanvas() {
+    var gameContainer =
+        document.getElementById('overcooked-container');
+
+    var canvasContainer =
+        document.getElementById('overcooked');
+
+    var canvas = canvasContainer
+        ? canvasContainer.querySelector('canvas')
+        : null;
+
+    if (!gameContainer || !canvasContainer || !canvas) {
+        return;
+    }
+
+    /*
+     * gameContainer correspond uniquement à la colonne du jeu.
+     * La largeur de Soup Legend est déjà exclue de ce calcul.
+     */
+    var availableWidth = Math.max(
+        1,
+        gameContainer.clientWidth - 24
+    );
+
+    var scale = Math.min(
+        1,
+        availableWidth / TUTORIAL_CANVAS_WIDTH
+    );
+
+    var displayWidth = Math.max(
+        1,
+        Math.floor(TUTORIAL_CANVAS_WIDTH * scale)
+    );
+
+    var displayHeight = Math.max(
+        1,
+        Math.floor(TUTORIAL_CANVAS_HEIGHT * scale)
+    );
+
+    canvasContainer.style.width =
+        displayWidth + 'px';
+
+    canvasContainer.style.height =
+        displayHeight + 'px';
+
+    canvasContainer.style.margin =
+        '0 auto';
+
+    canvasContainer.style.maxWidth =
+        '100%';
+
+    canvas.style.setProperty(
+        'width',
+        displayWidth + 'px',
+        'important'
+    );
+
+    canvas.style.setProperty(
+        'height',
+        displayHeight + 'px',
+        'important'
+    );
+
+    canvas.style.setProperty(
+        'max-width',
+        '100%',
+        'important'
+    );
+
+    canvas.style.setProperty(
+        'display',
+        'block',
+        'important'
+    );
+
+    /*
+     * L'image de la légende utilise le même facteur de réduction
+     * que le canvas, sans jamais dépasser sa propre colonne.
+     */
+    var soupLegendImage =
+        document.querySelector('#soup-icons img');
+
+    if (soupLegendImage) {
+        soupLegendImage.style.width =
+            Math.max(
+                1,
+                Math.floor(SOUP_LEGEND_WIDTH * scale)
+            ) + 'px';
+
+        soupLegendImage.style.maxWidth = '100%';
+        soupLegendImage.style.height = 'auto';
+    }
+}
+
+window.addEventListener('resize', function() {
+    requestAnimationFrame(resizeTutorialCanvas);
+});
+
+/*
+ * Read in game config provided by server.
+ */
 $(function() {
+    configureTutorialLayout();
+
     config = JSON.parse($('#config').text());
 
-    const tutorialStepCount = config.tutorialParams.layouts.length;
+    const tutorialStepCount =
+        config.tutorialParams.layouts.length;
 
     tutorial_instructions = tutorial_instructions().slice(
         0,
@@ -94,7 +288,11 @@ $(function() {
 $(function() {
     $('#show-hint').click(function() {
         let text = $(this).text();
-        let new_text = text === "Show Hint" ? "Hide Hint" : "Show Hint";
+
+        let new_text =
+            text === "Show Hint"
+                ? "Hide Hint"
+                : "Show Hint";
 
         $('#hint-wrapper').toggle();
         $(this).text(new_text);
@@ -128,7 +326,6 @@ $(function() {
  * * * * * * * * * * * * */
 
 socket.on('creation_failed', function(data) {
-    // Tell user what went wrong
     let err = data['error'];
 
     $("#overcooked").empty();
@@ -180,14 +377,17 @@ socket.on('start_game', function(data) {
 
     enable_key_listener();
     graphics_start(graphics_config);
+
+    requestAnimationFrame(resizeTutorialCanvas);
 });
 
 socket.on('reset_game', function(data) {
     curr_tutorial_phase++;
 
-    // Le serveur émet un dernier reset_game lorsque la dernière étape configurée
-    // est validée. On affiche immédiatement la fin du tutoriel, qu'il comporte
-    // 3 ou 4 étapes, sans attendre l'événement end_game.
+    /*
+     * Le serveur émet un dernier reset_game lorsque la dernière étape
+     * configurée est validée.
+     */
     if (curr_tutorial_phase >= tutorial_instructions.length) {
         graphics_end();
         disable_key_listener();
@@ -223,7 +423,8 @@ socket.on('reset_game', function(data) {
         `Tutorial in Progress, Phase ${curr_tutorial_phase + 1}/${tutorial_instructions.length}`
     );
 
-    let button_pressed = $('#show-hint').text() === 'Hide Hint';
+    let button_pressed =
+        $('#show-hint').text() === 'Hide Hint';
 
     if (button_pressed) {
         $('#show-hint').click();
@@ -240,16 +441,17 @@ socket.on('reset_game', function(data) {
     };
 
     graphics_start(graphics_config);
+
+    requestAnimationFrame(resizeTutorialCanvas);
+
     enable_key_listener();
 });
 
 socket.on('state_pong', function(data) {
-    // Draw state update
     drawState(data['state']);
 });
 
 socket.on('end_game', function(data) {
-    // Hide game data and display game-over html
     graphics_end();
     disable_key_listener();
 
@@ -261,7 +463,6 @@ socket.on('end_game', function(data) {
     $('#quit').hide();
 
     if (data.status === 'inactive') {
-        // Game ended unexpectedly
         $('#error-exit').show();
 
         window.top.postMessage(
@@ -278,14 +479,16 @@ socket.on('end_game', function(data) {
     $('#startExperiment').show();
 });
 
-/* * * * * * * * * * * * * *
+/* * * * * * * * * * * * *
  * Game Key Event Listener
- * * * * * * * * * * * * * */
+ * * * * * * * * * * * * */
 
 function enable_key_listener() {
     $(document).on('keydown', function(e) {
-        // Ignore les répétitions automatiques du clavier
-        if (e.repeat || (e.originalEvent && e.originalEvent.repeat)) {
+        if (
+            e.repeat ||
+            (e.originalEvent && e.originalEvent.repeat)
+        ) {
             e.preventDefault();
             return;
         }
