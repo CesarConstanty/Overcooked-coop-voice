@@ -1,0 +1,14 @@
+{
+    "grid":  """XXSXPXXX
+                O      X
+                T  12  D
+                C      X
+                XXEXYXXX""",
+    "start_all_orders": [{"ingredients": ["onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["onion", "tomato", "tomato"]}],
+    "counter_goals":[],
+    "cutting_board_symbol" : "C",
+    "onion_value":3,
+    "tomato_value":2,
+    "onion_time":9,
+    "tomato_time":6
+}
