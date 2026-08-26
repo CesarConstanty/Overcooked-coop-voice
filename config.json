@@ -112,7 +112,7 @@
         "AI_forced_cutting" : true,
         "tutorial_steps" : 3
     },
-    "EV_7a12maps_allQ" : {
+    "vis_7a12maps_allQ" : {
         "dev" : false,
         "mechanic" : "recipe",
         "fps" : 10,
@@ -142,7 +142,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"U", "1":"EVa", "2":"EVr"},
+        "conditions" : {"0":"U", "1":"VHa", "2":"VHr"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
@@ -324,7 +324,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"U", "1":"EAa", "2":"EAr"},
+        "conditions" : {"0":"U", "1":"VHa", "2":"VHr"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
