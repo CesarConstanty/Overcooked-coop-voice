@@ -34,21 +34,6 @@ var tutorial_instructions = () => [
     `
 ];
 
-var tutorial_hints = () => [
-    `
-    <p>You must <b>chop before potting</b>: drop the ingredient on the cutting board, press <b>spacebar</b> repeatedly until it is fully cut, then pick it up and add it to the pot.</p>
-    `,
-    `
-    <p>Share the work with the blue cook and complete every order displayed in <b>All Orders</b>.</p>
-    `,
-    `
-    <p>Remember: every ingredient must be <b>chopped</b> on the cutting board before it goes into the pot. Split the work with your <b>AI teammate</b> and deliver all three orders to finish.</p>
-    `,
-    `
-    <p>Face an <b>empty exchange counter</b> and press <b>spacebar</b> to leave the object there. Your teammate can pick it up from the other side. Keep at least one exchange counter free for the next transfer.</p>
-    `
-];
-
 var curr_tutorial_phase;
 
 var TUTORIAL_CANVAS_WIDTH = 960;
@@ -256,11 +241,6 @@ $(function() {
         tutorialStepCount
     );
 
-    tutorial_hints = tutorial_hints().slice(
-        0,
-        tutorialStepCount
-    );
-
     $('#quit').show();
 });
 
@@ -282,20 +262,6 @@ $(function() {
 
         socket.emit("join", data);
         $('try-again').attr("disable", true);
-    });
-});
-
-$(function() {
-    $('#show-hint').click(function() {
-        let text = $(this).text();
-
-        let new_text =
-            text === "Show Hint"
-                ? "Hide Hint"
-                : "Show Hint";
-
-        $('#hint-wrapper').toggle();
-        $(this).text(new_text);
     });
 });
 
@@ -356,8 +322,6 @@ socket.on('start_game', function(data) {
     $('#game-over').hide();
     $('#try-again').hide();
     $('#try-again').attr('disabled', true);
-    $('#hint-wrapper').hide();
-    $('#show-hint').text('Show Hint');
 
     $('#game-title').text(
         `Tutorial in Progress, Phase ${curr_tutorial_phase + 1}/${tutorial_instructions.length}`
@@ -370,10 +334,6 @@ socket.on('start_game', function(data) {
     );
 
     $('#instructions-wrapper').show();
-
-    $('#hint').append(
-        tutorial_hints[curr_tutorial_phase]
-    );
 
     enable_key_listener();
     graphics_start(graphics_config);
@@ -395,8 +355,6 @@ socket.on('reset_game', function(data) {
         $("#overcooked").empty();
         $('#game-title').hide();
         $('#instructions-wrapper').hide();
-        $('#hint-wrapper').hide();
-        $('#show-hint').hide();
         $('#game-over').show();
         $('#quit').hide();
         $('#startExperiment').show();
@@ -409,26 +367,14 @@ socket.on('reset_game', function(data) {
 
     $("#overcooked").empty();
     $('#tutorial-instructions').empty();
-    $('#hint').empty();
 
     $("#tutorial-instructions").append(
         tutorial_instructions[curr_tutorial_phase]
     );
 
-    $("#hint").append(
-        tutorial_hints[curr_tutorial_phase]
-    );
-
     $('#game-title').text(
         `Tutorial in Progress, Phase ${curr_tutorial_phase + 1}/${tutorial_instructions.length}`
     );
-
-    let button_pressed =
-        $('#show-hint').text() === 'Hide Hint';
-
-    if (button_pressed) {
-        $('#show-hint').click();
-    }
 
     graphics_config = {
         container_id: "overcooked",
@@ -457,8 +403,6 @@ socket.on('end_game', function(data) {
 
     $('#game-title').hide();
     $('#instructions-wrapper').hide();
-    $('#hint-wrapper').hide();
-    $('#show-hint').hide();
     $('#game-over').show();
     $('#quit').hide();
 
