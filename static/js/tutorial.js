@@ -5,24 +5,24 @@ var config;
 
 var tutorial_instructions = () => [
     `
-    <p>How it works: <b>Recipes &amp; Ingredients</b></p>
-    <p>Your goal is to cook and deliver a soup that matches one of the orders shown in <b>All Orders</b>. Only recipes in <b>All Orders</b> earn points.</p>
-    <p>Grab your ingredients from the <b>onion</b> and <b>tomato dispensers</b> on the walls. Put your ingredient(s) in the <b>pot</b>, wait for the soup to cook, pick up a <b>plate</b> from the dish dispenser, collect the soup and deliver it to the <b>serving window</b>.</p>
-    <p>Good luck!</p>
-    <br></br>
-    `,
-    `
     <p>How it works: <b>The Cutting Board</b></p>
-    <p>From now on, every ingredient must be <b>chopped</b> before it can go into the pot &mdash; you will not be able to drop a raw ingredient into the pot.</p>
+    <p>Every ingredient must be <b>chopped</b> before it can go into the pot &mdash; you will not be able to drop a raw ingredient into the pot.</p>
     <p>Grab an ingredient from a <b>dispenser</b>, drop it on the <b>cutting board</b>, then press <b>spacebar</b> several times to chop it. When it's done, pick it up and put it in the pot.</p>
     <p>Cook, plate and deliver a chopped soup to advance.</p>
     <p>Good luck!</p>
     <br></br>
     `,
     `
+    <p>How it works: <b>Cooking with an AI teammate</b></p>
+    <p>An <b>AI teammate</b> (the blue cook) now prepares recipes alongside you.</p>
+    <p>Work together to complete every order shown in <b>All Orders</b>: gather and chop the ingredients, cook the soups, plate them and deliver them.</p>
+    <p>This step ends once all the displayed orders have been delivered.</p>
+    <br></br>
+    `,
+    `
     <p>How it works: <b>Cooking together</b></p>
-    <p>This kitchen has <b>onion</b> and <b>tomato dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window &mdash; and this time an <b>AI teammate</b> (the blue cook) prepares soups alongside you.</p>
-    <p>Work together to complete <b>all three orders</b> shown in <b>All Orders</b>: gather ingredients, <b>chop</b> them, cook, plate and deliver each one. The tutorial ends once the three orders are done.</p>
+    <p>Some kitchens are quite small, making it difficul to cook together.</br>
+    <p>Fortunately, you can continiously walk into your partner to push them back and clear your way</br>
     <br></br>
     `,
     `
@@ -36,14 +36,10 @@ var tutorial_instructions = () => [
 
 var tutorial_hints = () => [
     `
-    <p>
-        You move up, down, left and right with the <b>arrow keys</b>,
-        and interact (grab, drop, use a tile) with the <b>spacebar</b>.
-        Face a tile, then press spacebar to use it.
-    </p>
+    <p>You must <b>chop before potting</b>: drop the ingredient on the cutting board, press <b>spacebar</b> repeatedly until it is fully cut, then pick it up and add it to the pot.</p>
     `,
     `
-    <p>You must <b>chop before potting</b>: drop the ingredient on the cutting board, press <b>spacebar</b> repeatedly until it is fully cut, then pick it up and add it to the pot.</p>
+    <p>Share the work with the blue cook and complete every order displayed in <b>All Orders</b>.</p>
     `,
     `
     <p>Remember: every ingredient must be <b>chopped</b> on the cutting board before it goes into the pot. Split the work with your <b>AI teammate</b> and deliver all three orders to finish.</p>
@@ -268,20 +264,17 @@ socket.on('end_game', function(data) {
         // Game ended unexpectedly
         $('#error-exit').show();
 
-        // Propagate game stats to parent window with psiturk code
         window.top.postMessage(
             { name: "error" },
             "*"
         );
     } else {
-        // Propagate game stats to parent window with psiturk code
         window.top.postMessage(
             { name: "tutorial-done" },
             "*"
         );
     }
 
-    // $('#finish').show();
     $('#startExperiment').show();
 });
 
@@ -291,9 +284,7 @@ socket.on('end_game', function(data) {
 
 function enable_key_listener() {
     $(document).on('keydown', function(e) {
-        // Ignore les répétitions automatiques du clavier quand une touche reste
-        // enfoncée : un appui prolongé doit produire une seule action, exactement
-        // comme un appui unique.
+        // Ignore les répétitions automatiques du clavier
         if (e.repeat || (e.originalEvent && e.originalEvent.repeat)) {
             e.preventDefault();
             return;
@@ -302,23 +293,23 @@ function enable_key_listener() {
         let action = 'STAY';
 
         switch (e.which) {
-            case 37: // left
+            case 37:
                 action = 'LEFT';
                 break;
 
-            case 38: // up
+            case 38:
                 action = 'UP';
                 break;
 
-            case 39: // right
+            case 39:
                 action = 'RIGHT';
                 break;
 
-            case 40: // down
+            case 40:
                 action = 'DOWN';
                 break;
 
-            case 32: // space
+            case 32:
                 action = 'SPACE';
                 break;
 
@@ -344,7 +335,6 @@ function disable_key_listener() {
  * * * * * * * * * * * */
 
 socket.on("connect", function() {
-    // Config for this specific game
     params = $('#user_config').text();
 
     let data = {
@@ -352,7 +342,6 @@ socket.on("connect", function() {
         "game_name": "tutorial"
     };
 
-    // Create (or join if it exists) new game
     socket.emit("join", data);
 });
 

@@ -1682,7 +1682,8 @@ class OvercookedTutorial(OvercookedGame):
         if self.curr_phase == 0:
             reset_needed = self.score > 0
         elif self.curr_phase == 1:
-            reset_needed = self.score > 0
+            # Étape 2 : le participant et l'IA doivent livrer toutes les recettes.
+            reset_needed = len(self.state.all_orders) == 0
         elif self.curr_phase == 2:
             # Étape 3 validée uniquement quand les 3 recettes affichées ont été livrées
             # (phase_two_finished, cf. apply_actions). Pas de repli sur score > 0 : une seule
@@ -1723,13 +1724,11 @@ class OvercookedTutorial(OvercookedGame):
     def _phase_mdp_config(self, phase, base):
         """[TUTORIEL] Paramètres MDP propres à chaque phase pédagogique.
 
-        Le tutoriel ne peut pas hériter de la config expérimentale (config_test) pour le MDP :
-        celle-ci force globalement cutting_enabled / Human_forced_cutting / recipes_requiring_chopping,
-        ce qui rendrait la phase 0 (recette simple, SANS découpe) injouable et bloquerait la pose
-        en marmite. On reconstruit donc, par phase, uniquement les overrides MDP voulus
-        (cf. CONFIG_DRIVEN_MDP_PARAMS) en gardant l'économie (valeurs/temps des ingrédients) identique
-        à l'expérience pour la cohérence. Les ingrédients proviennent de distributeurs réguliers
-        (oignon 'O', tomate 'T') : il n'y a plus aucun distributeur aléatoire dans le tutoriel.
+        Le tutoriel ne doit pas hériter implicitement de tous les paramètres de la
+        configuration expérimentale. On reconstruit ici uniquement les overrides MDP
+        utiles, en gardant l'économie des ingrédients identique à l'expérience.
+        La découpe est active dès la phase 0, puisque l'ancienne leçon de découpe est
+        désormais la première étape du tutoriel.
         """
         base = base or {}
         cfg = {
@@ -1738,33 +1737,26 @@ class OvercookedTutorial(OvercookedGame):
             "onion_time":   base.get("onion_time", 9),
             "tomato_time":  base.get("tomato_time", 6),
         }
-        if phase == 0:
-            # Leçon 1 : découvrir les recettes et les distributeurs oignon/tomate. Pas de découpe
-            # (cutting_enabled reste False).
-            pass
-        else:
-            # Leçons 2 à 4 : découpe activée et imposée. À partir de l'étape 3, le partenaire IA
-            # cuisine avec le participant : on impose donc la découpe à l'humain ET à l'IA, comme
-            # dans l'expérience. La liste couvre les recettes de l'étape 2 ([onion], [tomato]) et
-            # de l'étape 3 ([onion], [onion,tomato], [onion,tomato,tomato]).
-            cfg["cutting_enabled"] = True
-            cfg["chop_time"] = base.get("chop_time", {"onion": 3, "tomato": 2})
-            cfg["recipes_requiring_chopping"] = base.get(
-                "recipes_requiring_chopping",
-                [["onion"], ["tomato"], ["onion", "tomato"],
-                 ["onion", "tomato", "tomato"]])
-            cfg["Human_forced_cutting"] = True
-            cfg["AI_forced_cutting"] = True
+        # La première leçon est désormais l'ancienne leçon de découpe.
+        # La découpe reste donc active dans toutes les phases.
+        cfg["cutting_enabled"] = True
+        cfg["chop_time"] = base.get("chop_time", {"onion": 3, "tomato": 2})
+        cfg["recipes_requiring_chopping"] = base.get(
+            "recipes_requiring_chopping",
+            [["onion"], ["tomato"], ["onion", "tomato"],
+             ["onion", "tomato", "tomato"]])
+        cfg["Human_forced_cutting"] = True
+        cfg["AI_forced_cutting"] = True
         return cfg
 
     def activate(self):
         self.trial_id = "tutorial" + str(self.curr_phase)
-        # [TUTORIEL] Le partenaire IA coopère pendant les étapes 3 et 4 ; il reste immobile pendant
-        # l'apprentissage solo (phases 0 et 1). On (dé)active AVANT super().activate() car
+        # [TUTORIEL] Le partenaire IA coopère pendant les étapes 2 à 4 ; il reste immobile pendant
+        # l'apprentissage solo de la découpe (phase 0). On (dé)active AVANT super().activate() car
         # celui-ci démarre les threads de décision de l'agent.
         for pol in self.npc_policies.values():
             if isinstance(pol, TutorialCoopAI):
-                pol.tutorial_active = self.curr_phase in (2, 3)
+                pol.tutorial_active = self.curr_phase in (1, 2, 3)
         # [TUTORIEL] On permute self.config par les overrides MDP de la phase courante UNIQUEMENT
         # le temps de la construction du MDP dans super().activate() (qui lit self.config en
         # mdp_overrides_from_config + Human_forced_cutting), puis on restaure la vraie config
@@ -1780,8 +1772,8 @@ class OvercookedTutorial(OvercookedGame):
         super(OvercookedTutorial, self).deactivate()
 
     def get_policy(self, npc_id=None, idx=1):
-        # [TUTORIEL] Partenaire IA : GreedyAgent réel (comme l'expérience), mais actif seulement
-        # aux étapes 3 et 4. Le mlam de la phase (géométrie du layout) est injecté par
+        # [TUTORIEL] Partenaire IA : GreedyAgent réel (comme l'expérience), actif
+        # aux étapes 2 à 4. Le mlam de la phase (géométrie du layout) est injecté par
         # OvercookedGame.activate() car TutorialCoopAI est un PlanningAgent. idx=1 : le partenaire
         # est le joueur 2 ('2' dans les layouts) ; l'humain est le joueur 1 (index 0).
         agent = TutorialCoopAI()
@@ -2023,9 +2015,9 @@ class TutorialAI():
 class TutorialCoopAI(GreedyAgent):
     """[TUTORIEL] Partenaire IA du tutoriel de familiarisation.
 
-    - Reste immobile (Action.STAY) pendant les étapes d'apprentissage solo (phases 0 et 1) : le
-      participant y apprend seul les mécaniques (recette, découpe).
-    - Aux étapes 3 et 4 (phases 2 et 3), coopère réellement comme l'agent de l'expérience : c'est un
+    - Reste immobile (Action.STAY) pendant l'étape d'apprentissage solo (phase 0), où le
+      participant apprend la découpe.
+    - Aux étapes 2 à 4 (phases 1 à 3), coopère réellement comme l'agent de l'expérience : c'est un
       GreedyAgent (planificateur) qui va chercher les ingrédients, les découpe, remplit la marmite,
       dresse l'assiette et sert. Le mlam de la phase (géométrie du layout) est injecté par
       OvercookedGame.activate() car TutorialCoopAI est un PlanningAgent.
@@ -2046,7 +2038,7 @@ class TutorialCoopAI(GreedyAgent):
         super(TutorialCoopAI, self).__init__(*args, **kwargs)
         if recipe_config is not None:
             Recipe.configure(recipe_config)
-        # Activé aux étapes 3 et 4 par OvercookedTutorial.activate().
+        # Activé aux étapes 2 à 4 par OvercookedTutorial.activate().
         self.tutorial_active = False
 
     def action(self, state):
