@@ -962,27 +962,32 @@ class PlanningGame(OvercookedGame):
             return
         
         old_speed = self.ticks_per_ai_action
-        
-        # Priority: trial start slowdown > asset change slowdown > recipe change slowdown > normal speed
         if self.trial_start_slow_remaining_ticks > 0:
-            self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
-            self.trial_start_slow_remaining_ticks -= 1
-            #if old_speed != self.ticks_per_ai_action:
-                #print(f"[AI_SLOWDOWN] Speed changed to TRIAL START SLOW: {self.ticks_per_ai_action} (remaining: {self.trial_start_slow_remaining_ticks})")
-        elif self.asset_slow_remaining_ticks > 0:
-            self.ticks_per_ai_action = self.asset_slow_ticks_per_ai_action
-            self.asset_slow_remaining_ticks -= 1
-            #if old_speed != self.ticks_per_ai_action:
-                #print(f"[AI_SLOWDOWN] Speed changed to ASSET CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.asset_slow_remaining_ticks})")
-        elif self.slow_remaining_ticks > 0:
-            self.ticks_per_ai_action = self.slow_ticks_per_ai_action
-            self.slow_remaining_ticks -= 1
-            #if old_speed != self.ticks_per_ai_action:
-                #print(f"[AI_SLOWDOWN] Speed changed to RECIPE CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
+                    self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
+                    self.trial_start_slow_remaining_ticks -= 1
         else:
             self.ticks_per_ai_action = self.base_ticks_per_ai_action
-            #if old_speed != self.ticks_per_ai_action:
-                #print(f"[AI_SLOWDOWN] Speed returned to NORMAL: {self.ticks_per_ai_action}")
+        
+        # # Priority: trial start slowdown > asset change slowdown > recipe change slowdown > normal speed
+        # if self.trial_start_slow_remaining_ticks > 0:
+        #     self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
+        #     self.trial_start_slow_remaining_ticks -= 1
+        #     #if old_speed != self.ticks_per_ai_action:
+        #         #print(f"[AI_SLOWDOWN] Speed changed to TRIAL START SLOW: {self.ticks_per_ai_action} (remaining: {self.trial_start_slow_remaining_ticks})")
+        # elif self.asset_slow_remaining_ticks > 0:
+        #     self.ticks_per_ai_action = self.asset_slow_ticks_per_ai_action
+        #     self.asset_slow_remaining_ticks -= 1
+        #     #if old_speed != self.ticks_per_ai_action:
+        #         #print(f"[AI_SLOWDOWN] Speed changed to ASSET CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.asset_slow_remaining_ticks})")
+        # elif self.slow_remaining_ticks > 0:
+        #     self.ticks_per_ai_action = self.slow_ticks_per_ai_action
+        #     self.slow_remaining_ticks -= 1
+        #     #if old_speed != self.ticks_per_ai_action:
+        #         #print(f"[AI_SLOWDOWN] Speed changed to RECIPE CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
+        # else:
+        #     self.ticks_per_ai_action = self.base_ticks_per_ai_action
+        #     #if old_speed != self.ticks_per_ai_action:
+        #         #print(f"[AI_SLOWDOWN] Speed returned to NORMAL: {self.ticks_per_ai_action}")
 
     def _check_recipe_intention_change(self):
         """Check if AI recipe intention has changed and trigger slowdown (PlanningGame only)."""
@@ -1007,10 +1012,10 @@ class PlanningGame(OvercookedGame):
                     self.slow_remaining_ticks = self.slow_duration_ticks
                 
                 self.last_recipe_intention = current_recipe
-            else:
-                # Log when intentions are not available
-                if self.curr_tick % 60 == 0:  # Log every 60 ticks
-                    #print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No recipe intentions available - intentions={intentions}")
+            # else:
+            #     # Log when intentions are not available
+            #     if self.curr_tick % 60 == 0:  # Log every 60 ticks
+            #         #print(f"[AI_SLOWDOWN_DEBUG] Tick {self.curr_tick}: No recipe intentions available - intentions={intentions}")
         #else:
             # Log when planning agent is not available
             #if self.curr_tick % 60 == 0:  # Log every 60 ticks
