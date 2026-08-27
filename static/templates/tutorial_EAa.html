@@ -43,16 +43,30 @@
 
   <div class="wrap">
     <div class="crumbs">Tutorial · Condition EAa</div>
-    <div class="title">Tutorial : <span style="color:var(--accent)">Vocal</span> communication of <span style="color:var(--accent)">assets</span></div>
+    <div class="title">
+      Tutorial :
+      <span style="color:var(--accent)">Vocal</span>
+      communication of
+      <span style="color:var(--accent)">assets</span>
+    </div>
 
     <section class="card">
       <h2>Vocal communication of assets</h2>
-      <p>Here the artificial agent communicates its intentions using <strong>audio messages</strong>. In this condition, every message tells you which <strong>asset</strong> (ingredient or action) the agent is currently going to fetch.
+      <p>
+        Here the artificial agent communicates its intentions using
+        <strong>audio messages</strong>. In this condition, every message
+        tells you which <strong>asset</strong> (ingredient or action) the
+        agent is currently going to fetch.
+      </p>
     </section>
 
     <section class="card">
       <h2>Sequence explanation</h2>
-      <p class="muted">The agent announces each asset out loud, one after another, as it goes to collect them:</p>
+      <p class="muted">
+        The agent announces each asset out loud, one after another, as it
+        goes to collect them:
+      </p>
+
       <div class="flow">
         <div class="step">Asset</div>
         <div class="arrow">→</div>
@@ -64,86 +78,178 @@
 
     <section class="card">
       <h2>Familiarize with the vocal messages</h2>
-      <p>Below is the <strong>complete list</strong> of asset intentions the agent can announce. Click ▶ to hear the associated audio message.</p>
+
+      <p>
+        Below is the <strong>complete list</strong> of asset intentions the
+        agent can announce. Click ▶ to hear the associated audio message.
+      </p>
+
       <table>
-        <tr class="group"><th colspan="3">Assets &amp; Actions</th></tr>
-        <tr><th>Intention</th><th>Visual</th><th>Audio</th></tr>
+        <tr class="group">
+          <th colspan="3">Assets &amp; Actions</th>
+        </tr>
+
+        <tr>
+          <th>Intention</th>
+          <th>Visual</th>
+          <th>Audio</th>
+        </tr>
+
         <tbody id="assets-table">
           <!-- Assets will be loaded dynamically -->
         </tbody>
       </table>
 
       <script>
-        function playOnly(id){
-          const audios=[...document.querySelectorAll('audio')];
-          audios.forEach(a=>{if(a.id!==id){a.pause();a.currentTime=0}});
-          const el=document.getElementById(id); if(el){el.play();}
+        function playOnly(id) {
+          const audios = [...document.querySelectorAll('audio')];
+
+          audios.forEach(audio => {
+            if (audio.id !== id) {
+              audio.pause();
+              audio.currentTime = 0;
+            }
+          });
+
+          const selectedAudio = document.getElementById(id);
+
+          if (selectedAudio) {
+            selectedAudio.play();
+          }
         }
 
-        // Function to create sprite canvas from atlas
+        // Create a sprite canvas from an atlas frame
         function createSpriteCanvas(atlasImg, frame) {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
+
           canvas.width = frame.w;
           canvas.height = frame.h;
 
           ctx.drawImage(
             atlasImg,
-            frame.x, frame.y, frame.w, frame.h,
-            0, 0, frame.w, frame.h
+            frame.x,
+            frame.y,
+            frame.w,
+            frame.h,
+            0,
+            0,
+            frame.w,
+            frame.h
           );
 
           return canvas;
         }
 
-        // Load and display assets only (this condition communicates assets, not recipes)
+        // Load and display assets only
         async function loadSprites() {
           try {
-            // Load JSON data (only the atlases useful for assets)
-            const [objectsData, terrainData] = await Promise.all([
-              fetch('static/assets/objects.json').then(r => r.json()),
-              fetch('static/assets/terrain.json').then(r => r.json())
+            // Load the atlases used by the displayed intentions
+            const [
+              objectsData,
+              terrainData,
+              objectsCutData
+            ] = await Promise.all([
+              fetch('static/assets/objects.json').then(response => response.json()),
+              fetch('static/assets/terrain.json').then(response => response.json()),
+              fetch('static/assets/objects_cut.json').then(response => response.json())
             ]);
 
             // Load atlas images
             const objectsImg = new Image();
             const terrainImg = new Image();
+            const objectsCutImg = new Image();
 
             await Promise.all([
               new Promise(resolve => {
                 objectsImg.onload = resolve;
                 objectsImg.src = 'static/assets/objects.png';
               }),
+
               new Promise(resolve => {
                 terrainImg.onload = resolve;
                 terrainImg.src = 'static/assets/terrain.png';
+              }),
+
+              new Promise(resolve => {
+                objectsCutImg.onload = resolve;
+                objectsCutImg.src = 'static/assets/objects_cut.png';
               })
             ]);
 
-            // Asset mappings (with the associated audio messages)
+            // Asset mappings with their associated audio messages
             const assetMapping = [
-              {id: "oignon", label: "Onion", type: "Asset", audioFile: "oignon.mp3", objectKey: "onion.png", atlas: "objects", buttonText: "onion"},
-              {id: "tomate", label: "Tomato", type: "Asset", audioFile: "tomate.mp3", objectKey: "tomato.png", atlas: "objects", buttonText: "tomato"},
-              {id: "assiette", label: "Plate", type: "Asset", audioFile: "assiette.mp3", objectKey: "dish.png", atlas: "objects", buttonText: "plate"},
-              {id: "service", label: "Serving", type: "Action", audioFile: "service.mp3", objectKey: "serve.png", atlas: "terrain", buttonText: "I serve"}
+              {
+                id: "oignon",
+                label: "Onion",
+                type: "Asset",
+                audioFile: "oignon.mp3",
+                objectKey: "onion.png",
+                atlas: "objects",
+                buttonText: "onion"
+              },
+              {
+                id: "tomate",
+                label: "Tomato",
+                type: "Asset",
+                audioFile: "tomate.mp3",
+                objectKey: "tomato.png",
+                atlas: "objects",
+                buttonText: "tomato"
+              },
+              {
+                id: "assiette",
+                label: "Plate",
+                type: "Asset",
+                audioFile: "assiette.mp3",
+                objectKey: "dish.png",
+                atlas: "objects",
+                buttonText: "plate"
+              },
+              {
+                id: "cutting",
+                label: "Cutting ingredient",
+                type: "Action",
+                audioFile: "illcut.mp3",
+                objectKey: "knife.png",
+                atlas: "objects_cut",
+                buttonText: "I'll cut"
+              },
+              {
+                id: "service",
+                label: "Serving",
+                type: "Action",
+                audioFile: "service.mp3",
+                objectKey: "serve.png",
+                atlas: "terrain",
+                buttonText: "I serve"
+              }
             ];
 
             // Populate assets table
             const assetsTable = document.getElementById('assets-table');
-            assetMapping.forEach(asset => {
-              let objectFrame, atlasImg;
 
-              // Choose the correct atlas and frame structure based on asset type
+            assetMapping.forEach(asset => {
+              let objectFrame;
+              let atlasImg;
+
               if (asset.atlas === "terrain") {
                 objectFrame = terrainData.frames[asset.objectKey];
                 atlasImg = terrainImg;
+              } else if (asset.atlas === "objects_cut") {
+                objectFrame = objectsCutData.frames[asset.objectKey];
+                atlasImg = objectsCutImg;
               } else {
                 objectFrame = objectsData.frames[asset.objectKey];
                 atlasImg = objectsImg;
               }
 
               if (objectFrame) {
-                const canvas = createSpriteCanvas(atlasImg, objectFrame.frame);
+                const canvas = createSpriteCanvas(
+                  atlasImg,
+                  objectFrame.frame
+                );
+
                 canvas.className = 'thumb';
                 canvas.style.imageRendering = 'pixelated';
                 canvas.style.transform = 'scale(1.5)';
@@ -152,22 +258,36 @@
                 canvas.style.height = '60px';
 
                 const row = document.createElement('tr');
+
                 row.innerHTML = `
-                  <td>${asset.label} <span class="tag">${asset.type}</span></td>
-                  <td style="text-align: center; padding: 25px;"></td>
-                  <td><button class="play" onclick="playOnly('a_${asset.id}')">▶ ${asset.buttonText}</button><audio id="a_${asset.id}" src="static/audio/${asset.audioFile}"></audio></td>
+                  <td>
+                    ${asset.label}
+                    <span class="tag">${asset.type}</span>
+                  </td>
+                  <td style="text-align:center;padding:25px;"></td>
+                  <td>
+                    <button
+                      class="play"
+                      onclick="playOnly('a_${asset.id}')"
+                    >
+                      ▶ ${asset.buttonText}
+                    </button>
+                    <audio
+                      id="a_${asset.id}"
+                      src="static/audio/${asset.audioFile}"
+                    ></audio>
+                  </td>
                 `;
+
                 row.cells[1].appendChild(canvas);
                 assetsTable.appendChild(row);
               }
             });
-
           } catch (error) {
             console.error('Error loading sprites:', error);
           }
         }
 
-        // Load sprites when page loads
         document.addEventListener('DOMContentLoaded', loadSprites);
       </script>
     </section>
@@ -180,13 +300,12 @@
   <!-- Scripts -->
   <script src="static/lib/jquery-min.js"></script>
   <script src="static/js/page-timer.js"></script>
+
   <script>
-    // Script pour gérer le bouton de démarrage du bloc avec timer
     $(document).ready(function() {
-      // Initialiser le système de timer pour les tutoriels de bloc
-      // Timer maximum supprimé - seulement le timer minimum est conservé
       const timerMin = {{ timer_min|default(60) }};
-      const timerMax = 0;  // Pas de limite de temps maximum
+      const timerMax = 0;
+
       initPageTimer(timerMin, timerMax, '#start-bloc');
 
       $('#start-bloc').click(function() {
