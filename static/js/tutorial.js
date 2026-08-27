@@ -21,8 +21,8 @@ var tutorial_instructions = () => [
     `,
     `
     <p>How it works: <b>Cooking together</b></p>
-    <p>Some kitchens are quite small, making it difficul to cook together.</br>
-    <p>Fortunately, you can continiously walk into your partner to push them back and clear your way</br>
+    <p>Some kitchens are quite small, making it difficult to cook together.</p>
+    <p>Fortunately, you can continuously walk into your partner to push them back and clear your way.</p>
     <br></br>
     `,
     `
@@ -35,6 +35,7 @@ var tutorial_instructions = () => [
 ];
 
 var curr_tutorial_phase;
+var waiting_for_tutorial_start = false;
 
 var TUTORIAL_CANVAS_WIDTH = 960;
 var TUTORIAL_CANVAS_HEIGHT = 600;
@@ -242,6 +243,53 @@ $(function() {
     );
 
     $('#quit').show();
+
+    /*
+     * Bouton commun à tutorial.html et tutorialTest.html.
+     * Il est inséré juste avant le canvas du jeu.
+     */
+    $('<button>', {
+        id: 'startTutorialPhase',
+        type: 'button',
+        class: 'btn btn-primary',
+        text: 'Start this tutorial step'
+    })
+        .hide()
+        .insertBefore('#overcooked');
+
+    $('#startTutorialPhase').click(function() {
+        const button = $(this);
+
+        button.prop('disabled', true);
+
+        /*
+         * Le jeu ne démarre graphiquement qu'après confirmation du serveur.
+         */
+        socket.emit(
+            'start_tutorial_phase',
+            {},
+            function(response) {
+                if (!response || !response.ok) {
+                    button.prop('disabled', false);
+                    return;
+                }
+
+                graphics_config.start_info = response.state;
+
+                graphics_start(graphics_config);
+
+                waiting_for_tutorial_start = false;
+
+                button.hide();
+
+                requestAnimationFrame(
+                    resizeTutorialCanvas
+                );
+
+                enable_key_listener();
+            }
+        );
+    });
 });
 
 /* * * * * * * * * * * * * * * *
@@ -261,28 +309,28 @@ $(function() {
         };
 
         socket.emit("join", data);
-        $('try-again').attr("disable", true);
+        $('#try-again').attr("disabled", true);
     });
 });
 
 $(function() {
     $('#quit').click(function() {
         socket.emit("leave", {});
-        $('quit').attr("disable", true);
+        $('#quit').attr("disabled", true);
         window.location.href = "./";
     });
 });
 
 $(function() {
     $('#finish').click(function() {
-        $('finish').attr("disable", true);
+        $('#finish').attr("disabled", true);
         window.location.href = "./";
     });
 });
 
 $(function() {
     $('#startExperiment').click(function() {
-        $('startTraining').attr("disable", true);
+        $('#startExperiment').attr("disabled", true);
         window.location.href = "./planning";
     });
 });
@@ -297,7 +345,7 @@ socket.on('creation_failed', function(data) {
     $("#overcooked").empty();
 
     $('#overcooked').append(
-        `<h4>Sorry, tutorial creation code failed with error: ${JSON.stringify(err)}</>`
+        `<h4>Sorry, tutorial creation code failed with error: ${JSON.stringify(err)}</h4>`
     );
 
     $('#try-again').show();
@@ -306,6 +354,7 @@ socket.on('creation_failed', function(data) {
 
 socket.on('start_game', function(data) {
     curr_tutorial_phase = 0;
+    waiting_for_tutorial_start = false;
 
     graphics_config = {
         container_id: "overcooked",
@@ -319,7 +368,9 @@ socket.on('start_game', function(data) {
     };
 
     $("#overcooked").empty();
+
     $('#game-over').hide();
+    $('#startTutorialPhase').hide();
     $('#try-again').hide();
     $('#try-again').attr('disabled', true);
 
@@ -329,6 +380,7 @@ socket.on('start_game', function(data) {
 
     $('#game-title').show();
 
+    $('#tutorial-instructions').empty();
     $('#tutorial-instructions').append(
         tutorial_instructions[curr_tutorial_phase]
     );
@@ -349,10 +401,14 @@ socket.on('reset_game', function(data) {
      * configurée est validée.
      */
     if (curr_tutorial_phase >= tutorial_instructions.length) {
+        waiting_for_tutorial_start = false;
+
         graphics_end();
         disable_key_listener();
 
         $("#overcooked").empty();
+
+        $('#startTutorialPhase').hide();
         $('#game-title').hide();
         $('#instructions-wrapper').hide();
         $('#game-over').show();
@@ -365,6 +421,8 @@ socket.on('reset_game', function(data) {
     graphics_end();
     disable_key_listener();
 
+    waiting_for_tutorial_start = true;
+
     $("#overcooked").empty();
     $('#tutorial-instructions').empty();
 
@@ -372,13 +430,18 @@ socket.on('reset_game', function(data) {
         tutorial_instructions[curr_tutorial_phase]
     );
 
+    $('#instructions-wrapper').show();
+
     $('#game-title').text(
         `Tutorial in Progress, Phase ${curr_tutorial_phase + 1}/${tutorial_instructions.length}`
     );
 
+    $('#game-title').show();
+
     graphics_config = {
         container_id: "overcooked",
         start_info: data.state,
+        mechanic: data.config.mechanic,
         show_score: true,
         player_colors: {
             0: 'green',
@@ -386,21 +449,32 @@ socket.on('reset_game', function(data) {
         }
     };
 
-    graphics_start(graphics_config);
-
-    requestAnimationFrame(resizeTutorialCanvas);
-
-    enable_key_listener();
+    /*
+     * Le serveur et les commandes du joueur restent bloqués
+     * jusqu'au clic sur ce bouton.
+     */
+    $('#startTutorialPhase')
+        .show()
+        .prop('disabled', false);
 });
 
 socket.on('state_pong', function(data) {
-    drawState(data['state']);
+    /*
+     * Évite de dessiner un état alors que le canvas est détruit
+     * et que le participant lit les instructions.
+     */
+    if (!waiting_for_tutorial_start) {
+        drawState(data['state']);
+    }
 });
 
 socket.on('end_game', function(data) {
+    waiting_for_tutorial_start = false;
+
     graphics_end();
     disable_key_listener();
 
+    $('#startTutorialPhase').hide();
     $('#game-title').hide();
     $('#instructions-wrapper').hide();
     $('#game-over').show();
@@ -428,6 +502,11 @@ socket.on('end_game', function(data) {
  * * * * * * * * * * * * */
 
 function enable_key_listener() {
+    /*
+     * Évite d'enregistrer plusieurs fois le même gestionnaire.
+     */
+    disable_key_listener();
+
     $(document).on('keydown', function(e) {
         if (
             e.repeat ||

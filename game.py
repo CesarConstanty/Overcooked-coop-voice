@@ -1672,6 +1672,7 @@ class OvercookedTutorial(OvercookedGame):
         self.trial_id = "tutorial" + str(self.curr_phase)
         self.data = []
         self.trajectory = []
+        self.waiting_for_phase_start = False
 
     @property
     def reset_timeout(self):
@@ -1767,6 +1768,12 @@ class OvercookedTutorial(OvercookedGame):
             super(OvercookedTutorial, self).activate()
         finally:
             self.config = real_config
+        # Les layouts tutorial_1 à tutorial_3 attendent le clic du participant.
+        self.waiting_for_phase_start = self.curr_layout in (
+            "tutorial_1",
+            "tutorial_2",
+            "tutorial_3",
+        )
 
     def deactivate(self):
         super(OvercookedTutorial, self).deactivate()
@@ -1841,7 +1848,21 @@ class OvercookedTutorial(OvercookedGame):
                 "total_trials_in_bloc": self.total_trials_in_bloc if hasattr(self, 'total_trials_in_bloc') else 1}
         self.trajectory = []
         return data
+    
+    def start_tutorial_phase(self):
+            """Autorise le démarrage de l'étape courante une seule fois."""
+            if not self.waiting_for_phase_start:
+                return False
 
+            self.waiting_for_phase_start = False
+            return True
+
+    def tick(self):
+        # Aucun déplacement, calcul temporel ou enregistrement pendant la lecture.
+        if self.waiting_for_phase_start:
+            return self.Status.ACTIVE
+
+        return super(OvercookedTutorial, self).tick()
 
 class DummyOvercookedGame(OvercookedGame):
     """

@@ -2531,6 +2531,26 @@ def on_leave(data):
         else:
             emit('end_lobby', to=current_user.uid)
 
+@socketio.on('start_tutorial_phase')
+def on_start_tutorial_phase(data=None):
+    current_user = get_current_user()
+    if not current_user:
+        return {"ok": False}
+
+    game = get_curr_game(current_user.uid)
+    if not isinstance(game, OvercookedTutorial):
+        return {"ok": False}
+
+    with game.lock:
+        if not game.start_tutorial_phase():
+            return {"ok": False}
+
+        state = game.to_json()
+
+    return {
+        "ok": True,
+        "state": state,
+    }
 
 @socketio.on('action')
 def on_action(data):
