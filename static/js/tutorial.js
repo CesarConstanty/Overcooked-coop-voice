@@ -21,8 +21,8 @@ var tutorial_instructions = () => [
     `,
     `
     <p>How it works: <b>Cooking together</b></p>
-    <p>This kitchen has <b>onion</b> and <b>tomato dispensers</b>, a <b>cutting board</b>, a <b>bin</b> and the serving window &mdash; and this time an <b>AI teammate</b> (the blue cook) prepares soups alongside you.</p>
-    <p>Work together to complete <b>all three orders</b> shown in <b>All Orders</b>: gather ingredients, <b>chop</b> them, cook, plate and deliver each one. This step ends once the three orders are done.</p>
+    <p>Some kitchens are quite small, making it difficul to cook together.</br>
+    <p>Fortunately, you can continiously walk into your partner to push them back and clear your way</br>
     <br></br>
     `,
     `
