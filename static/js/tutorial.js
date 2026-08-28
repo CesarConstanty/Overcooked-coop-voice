@@ -519,23 +519,27 @@ function enable_key_listener() {
         let action = 'STAY';
 
         switch (e.which) {
-            case 37:
+            case 65: // A
+            case 37: // Flèche gauche
                 action = 'LEFT';
                 break;
 
-            case 38:
+            case 87: // W
+            case 38: // Flèche haut
                 action = 'UP';
                 break;
 
-            case 39:
+            case 68: // D
+            case 39: // Flèche droite
                 action = 'RIGHT';
                 break;
 
-            case 40:
+            case 83: // S
+            case 40: // Flèche bas
                 action = 'DOWN';
                 break;
 
-            case 32:
+            case 32: // Barre d'espace
                 action = 'SPACE';
                 break;
 

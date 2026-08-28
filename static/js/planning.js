@@ -423,40 +423,49 @@ socket.on('end_lobby', function() {
 
 function enable_key_listener() {
     $(document).on('keydown', function(e) {
-        // Ignore les répétitions automatiques du clavier quand une touche reste
-        // enfoncée : un appui prolongé doit produire une seule action, exactement
-        // comme un appui unique. (jQuery 1.10 ne normalise pas `repeat` -> originalEvent)
+        // Un appui prolongé ne produit qu'une seule action.
         if (e.repeat || (e.originalEvent && e.originalEvent.repeat)) {
             e.preventDefault();
             return;
         }
-        let action = 'STAY'
+
+        let action = 'STAY';
+
         switch (e.which) {
-            case 37: // left
+            case 65: // A
+            case 37: // Flèche gauche
                 action = 'LEFT';
                 break;
 
-            case 38: // up
+            case 87: // W
+            case 38: // Flèche haut
                 action = 'UP';
                 break;
 
-            case 39: // right
+            case 68: // D
+            case 39: // Flèche droite
                 action = 'RIGHT';
                 break;
 
-            case 40: // down
+            case 83: // S
+            case 40: // Flèche bas
                 action = 'DOWN';
                 break;
 
-            case 32: //space
+            case 32: // Barre d'espace
                 action = 'SPACE';
                 break;
 
-            default: // exit this handler for other keys
-                return; 
+            default:
+                return;
         }
+
         e.preventDefault();
-        socket.emit('action', { 'action' : action, 'condition' : condition});
+
+        socket.emit('action', {
+            'action': action,
+            'condition': condition
+        });
     });
 };
 
