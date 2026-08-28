@@ -22,7 +22,7 @@ var tutorial_instructions = () => [
     `
     <p>How it works: <b>Cooking together</b></p>
     <p>Some kitchens are quite small, making it difficult to cook together.</p>
-    <p>Fortunately, you can continuously walk into your partner to push them back and clear your way.</p>
+    <p>Fortunately, you can continuously walk into your partner to unstuck.</p>
     <br></br>
     `,
     `

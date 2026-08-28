@@ -60,9 +60,9 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["test01C","test02C","test03C","test04C","test05C","test06C","test07C","test08C","test09C","test10C","test11C","test12C"],
-            "1": ["test01_90C","test02_90C","test03_90C","test04_90C","test05_90C","test06_90C","test07_90C","test08_90C","test09_90C","test10_90C","test11_90C","test12_90C"],
-            "2": ["test01_180C","test02_180C","test03_180C","test04_180C","test05_180C","test06_180C","test07_180C","test08_180C","test09_180C","test10_180C","test11_180C","test12_180C"]
+            "0": ["test01C","test02C","test03C","test04C","test05C","test06C","test07C","test08C","test09C","test10C","test11C"],
+            "1": ["test01_90C","test02_90C","test03_90C","test04_90C","test05_90C","test06_90C","test07_90C","test08_90C","test09_90C","test10_90C","test11_90C"],
+            "2": ["test01_180C","test02_180C","test03_180C","test04_180C","test05_180C","test06_180C","test07_180C","test08_180C","test09_180C","test10_180C","test11_180C"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
@@ -151,9 +151,9 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html",
                                 "EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["test01C","test02C","test03C","test04C","test05C","test06C","test07C","test08C","test09C","test10C","test11C","test12C"],
-            "1": ["test01_90C","test02_90C","test03_90C","test04_90C","test05_90C","test06_90C","test07_90C","test08_90C","test09_90C","test10_90C","test11_90C","test12_90C"],
-            "2": ["test01_180C","test02_180C","test03_180C","test04_180C","test05_180C","test06_180C","test07_180C","test08_180C","test09_180C","test10_180C","test11_180C","test12_180C"]
+            "0": ["test01C","test02C","test03C","test04C","test05C","test06C","test07C","test08C","test09C","test10C","test11C"],
+            "1": ["test01_90C","test02_90C","test03_90C","test04_90C","test05_90C","test06_90C","test07_90C","test08_90C","test09_90C","test10_90C","test11_90C"],
+            "2": ["test01_180C","test02_180C","test03_180C","test04_180C","test05_180C","test06_180C","test07_180C","test08_180C","test09_180C","test10_180C","test11_180C"]
         },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
