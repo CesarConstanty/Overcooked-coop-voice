@@ -1566,7 +1566,120 @@ class GreedyAgent(PlanningAgent):
         self.intentions["agent_name"] = "greedy"
         self.ai_see_asset = ai_see_asset
         
-        
+    def action(self, state):
+        """Libère l'accès à la dernière soupe pour le joueur qui tient l'assiette."""
+        action, info = super().action(state)
+
+        # Type exact : TutorialCoopAI et GreedyCoopAgent restent inchangés.
+        if (type(self).__name__ not in ("GreedyAgent", "TutorialCoopAI") or action != Action.STAY):
+            return action, info
+
+        me = state.players[self.agent_index]
+        partner = state.players[1 - self.agent_index]
+
+        # Cas ciblé uniquement :
+        # - dernière recette ;
+        # - IA à mains vides ;
+        # - joueur avec une assiette.
+        if (
+            len(state.all_orders) != 1
+            or me.has_object()
+            or not partner.has_object()
+            or partner.get_object().name != "dish"
+        ):
+            return action, info
+
+        pot_states = self.mlam.mdp.get_pot_states(state)
+        active_pots = (
+            list(pot_states["cooking"])
+            + list(pot_states["ready"])
+        )
+
+        def distance(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        # L'IA ne bouge que si elle se trouve devant une marmite active.
+        if not any(distance(me.position, pot) == 1 for pot in active_pots):
+            return action, info
+
+        candidates = []
+
+        for move in Action.MOTION_ACTIONS:
+            if move == Action.STAY:
+                continue
+
+            next_position = self.mlam.mdp._move_if_direction(
+                me.position,
+                me.orientation,
+                move
+            )[0]
+
+            # Exclure les murs et la case du joueur.
+            if next_position in (me.position, partner.position):
+                continue
+
+            pot_distance = min(
+                distance(next_position, pot)
+                for pot in active_pots
+            )
+            partner_distance = distance(
+                next_position,
+                partner.position
+            )
+
+            candidates.append(
+                (pot_distance, partner_distance, move)
+            )
+
+        if candidates:
+            # S'éloigner de la marmite puis du joueur.
+            action = max(
+                candidates,
+                key=lambda candidate: candidate[:2]
+            )[2]
+
+            self.stuck_frames = 0
+            info["action_probs"] = self.a_probs_from_action(action)
+
+        return action, info
+
+    def _idle_move(self, state):
+        """Choisit un déplacement libre sans viser la case du partenaire."""
+        player = state.players[self.agent_index]
+        current_position, orientation = player.pos_and_or
+        partner_position = state.players[1 - self.agent_index].position
+
+        candidates = []
+
+        for action in Action.MOTION_ACTIONS:
+            if action == Action.STAY:
+                continue
+
+            next_position = self.mlam.mdp._move_if_direction(
+                current_position,
+                orientation,
+                action
+            )[0]
+
+            if next_position not in (current_position, partner_position):
+                candidates.append(action)
+
+        if not candidates:
+            return Action.STAY
+
+        # Continuer dans la même direction si possible.
+        if orientation in candidates:
+            return orientation
+
+        # Éviter le demi-tour si une autre sortie existe.
+        reverse = (-orientation[0], -orientation[1])
+
+        for action in candidates:
+            if action != reverse:
+                return action
+
+        return candidates[0]
+
     def hl_action(self, state):
         all_recipes = self.hl_info(state)
         if len(all_recipes) == 0:
