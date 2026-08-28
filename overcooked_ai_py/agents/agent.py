@@ -5,6 +5,7 @@ import numpy as np
 from operator import attrgetter
 from collections import defaultdict, Counter
 from overcooked_ai_py.mdp.actions import Action
+from time import monotonic
 from overcooked_ai_py.planning.planners import MediumLevelActionManager, MotionPlanner, NO_COUNTERS_PARAMS, COUNTERS_MLG_PARAMS
 from overcooked_ai_py.mdp.overcooked_mdp import Recipe
 
@@ -1543,9 +1544,21 @@ class PlanningAgent(Agent):
                 my_board_objs = [
                     obj
                     for obj in board_objs
-                    if self._reachable(
-                        player.pos_and_or,
-                        [obj.position]
+                    if (
+                        self._reachable(
+                            player.pos_and_or,
+                            [obj.position]
+                        )
+                        and (
+                            not hasattr(
+                                self,
+                                "_cut_candidate_is_valid"
+                            )
+                            or self._cut_candidate_is_valid(
+                                state,
+                                obj
+                            )
+                        )
                     )
                 ]
 
@@ -1945,11 +1958,199 @@ class RationalAgent(PlanningAgent):
         return cheapest_info
 
 class GreedyAgent(PlanningAgent):
+    EXTERNAL_CUT_INTENTION_DELAY = 1.5
     def __init__(self, hl_boltzmann_rational=False, ll_boltzmann_rational=False, hl_temp=1, ll_temp=1, auto_unstuck=True, ai_see_asset=True):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "greedy"
         self.ai_see_asset = ai_see_asset
         
+    def reset(self):
+        """
+        Réinitialise GreedyAgent et le suivi des objets présents
+        sur les planches à découper.
+        """
+        super().reset()
+
+        # position -> nom de l'ingrédient déposé par l'IA
+        self._ai_board_objects = {}
+
+        # position -> (nom de l'ingrédient, première détection)
+        self._human_board_seen_at = {}
+
+    def _board_object_was_placed_by_ai(
+        self,
+        state,
+        board_object
+    ):
+        """
+        Détermine si l'objet vient d'être déposé par l'IA.
+
+        Lors de la décision précédente :
+        - l'IA tenait l'ingrédient brut ;
+        - elle faisait face à cette planche ;
+        - la planche était vide.
+
+        Dans l'état actuel :
+        - l'objet est présent sur cette planche ;
+        - l'IA ne tient plus ce même ingrédient brut.
+        """
+        previous_state = self.prev_state
+
+        if previous_state is None:
+            return False
+
+        position = board_object.position
+
+        # L'objet n'est pas nouveau s'il était déjà présent dans
+        # l'état précédemment observé.
+        if previous_state.has_object(position):
+            return False
+
+        previous_player = previous_state.players[
+            self.agent_index
+        ]
+
+        if not previous_player.has_object():
+            return False
+
+        previous_held = previous_player.get_object()
+
+        if (
+            previous_held.name
+            not in ("onion", "tomato")
+            or bool(
+                getattr(previous_held, "chopped", False)
+            )
+            or previous_held.name != board_object.name
+        ):
+            return False
+
+        expected_board_position = (
+            previous_player.position[0]
+            + previous_player.orientation[0],
+            previous_player.position[1]
+            + previous_player.orientation[1]
+        )
+
+        if expected_board_position != position:
+            return False
+
+        current_player = state.players[self.agent_index]
+
+        # Si l'IA tient encore le même ingrédient brut, elle ne
+        # peut pas être à l'origine de l'objet apparu sur la planche.
+        if current_player.has_object():
+            current_held = current_player.get_object()
+
+            if (
+                current_held.name == previous_held.name
+                and not bool(
+                    getattr(current_held, "chopped", False)
+                )
+            ):
+                return False
+
+        return True
+
+    def _cut_candidate_is_valid(
+        self,
+        state,
+        board_object
+    ):
+        """
+        Indique si l'objet peut devenir la priorité de découpe.
+
+        Un objet déposé par l'IA est immédiatement valide.
+        Un objet déposé par l'humain est invalide pendant 1,5 s.
+        """
+        # Limiter strictement le changement au GreedyAgent classique.
+        # GreedyCoopAgent et TutorialCoopAI restent inchangés.
+        if type(self) is not GreedyAgent:
+            return True
+
+        position = board_object.position
+        ingredient_name = board_object.name
+        current_time = monotonic()
+
+        previous_object_is_same = False
+
+        if (
+            self.prev_state is not None
+            and self.prev_state.has_object(position)
+        ):
+            previous_board_object = (
+                self.prev_state.get_object(position)
+            )
+
+            previous_object_is_same = (
+                previous_board_object.name
+                == ingredient_name
+            )
+
+        # L'objet vient d'apparaître sur la planche.
+        if not previous_object_is_same:
+            if self._board_object_was_placed_by_ai(
+                state,
+                board_object
+            ):
+                self._ai_board_objects[
+                    position
+                ] = ingredient_name
+
+                self._human_board_seen_at.pop(
+                    position,
+                    None
+                )
+
+                return True
+
+            # L'objet n'a pas été déposé par l'IA :
+            # le délai humain commence maintenant.
+            self._ai_board_objects.pop(
+                position,
+                None
+            )
+
+            self._human_board_seen_at[
+                position
+            ] = (
+                ingredient_name,
+                current_time
+            )
+
+            return False
+
+        # L'objet a précédemment été identifié comme un dépôt IA.
+        if (
+            self._ai_board_objects.get(position)
+            == ingredient_name
+        ):
+            return True
+
+        first_detection = self._human_board_seen_at.get(
+            position
+        )
+
+        # Sécurité : si l'objet existait déjà mais qu'aucun délai
+        # n'est enregistré, commencer le délai maintenant.
+        if (
+            first_detection is None
+            or first_detection[0] != ingredient_name
+        ):
+            self._human_board_seen_at[
+                position
+            ] = (
+                ingredient_name,
+                current_time
+            )
+
+            return False
+
+        return (
+            current_time - first_detection[1]
+            >= self.EXTERNAL_CUT_INTENTION_DELAY
+        )
+       
     def action(self, state):
         """Libère l'accès à la dernière soupe pour le joueur qui tient l'assiette."""
         action, info = super().action(state)
