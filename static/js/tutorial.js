@@ -14,7 +14,7 @@ var tutorial_instructions = () => [
     `,
     `
     <p>How it works: <b>Cooking with an AI teammate</b></p>
-    <p>An <b>AI teammate</b> (the blue cook) now prepares recipes alongside you.</p>
+    <p>An <b>AI teammate</b> (the green cook) now prepares recipes alongside you.</p>
     <p>Work together to complete every order shown in <b>All Orders</b>: gather and chop the ingredients, cook the soups, plate them and deliver them.</p>
     <p>This step ends once all the displayed orders have been delivered.</p>
     <br></br>
