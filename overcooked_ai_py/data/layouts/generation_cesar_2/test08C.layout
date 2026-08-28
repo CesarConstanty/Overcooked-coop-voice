@@ -6,7 +6,7 @@
                 X XE  X
                 X 1   X
                 XXXXXTX""",
-    "start_all_orders": [{"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["tomato", "tomato"]}, {"ingredients": ["onion", "onion", "onion"]}, {"ingredients": ["onion", "tomato", "tomato"]}, {"ingredients": ["tomato", "tomato", "tomato"]}],
+    "start_all_orders": [{"ingredients": ["onion", "onion"]}, {"ingredients": ["onion", "tomato"]}, {"ingredients": ["tomato", "tomato"]}, {"ingredients": ["onion", "onion", "onion"]}, {"ingredients": ["onion", "tomato", "tomato"]}],
     "counter_goals":[],
     "onion_value" : 3,
     "tomato_value" : 2,

@@ -6,7 +6,7 @@
 				O 1XX X
 				X     X
 				XXDXSXX""",
-	"start_all_orders": [{'ingredients': ['tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}, {'ingredients': ['tomato', 'tomato', 'tomato']}],
+	"start_all_orders": [{'ingredients': ['tomato']}, {'ingredients': ['onion', 'tomato']}, {'ingredients': ['tomato', 'tomato']}, {'ingredients': ['onion', 'onion', 'tomato']}, {'ingredients': ['onion', 'tomato', 'tomato']}],
 	"rew_shaping_params": None,
 	"counter_goals": [],
 	"onion_value": 3,
