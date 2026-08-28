@@ -1330,6 +1330,19 @@ class PlanningAgent(Agent):
             ready_soups = pot_states_dict['ready']
             cooking_soups = pot_states_dict['cooking']
 
+            # Une soupe prête n'est prioritaire que si sa recette
+            # appartient encore aux commandes valides.
+            valid_ready_soups = [
+                pot_position
+                for pot_position in ready_soups
+                if (
+                    state.has_object(pot_position)
+                    and state.get_object(pot_position).name == 'soup'
+                    and state.get_object(pot_position).recipe
+                    in state.all_orders
+                )
+            ]
+
             soup_nearly_ready = (
                 len(ready_soups) > 0
                 or len(cooking_soups) > 0
@@ -1538,29 +1551,83 @@ class PlanningAgent(Agent):
                         )
                     )
 
-            # Si un ingrédient est présent sur une planche atteignable,
-            # finir sa découpe ou le récupérer en priorité.
-            if cutting_enabled and board_objs:
+            # Pour GreedyAgent, une soupe prête et encore présente dans
+            # all_orders conserve la priorité. On garde alors le couple
+            # intention D / déplacement vers une assiette calculé plus haut.
+            if (
+                type(self) is GreedyAgent
+                and valid_ready_soups
+                and not other_has_dish
+            ):
+                pass
+
+            # La planche ne devient prioritaire que si aucune soupe valide
+            # n'attend d'être récupérée.
+            elif cutting_enabled and board_objs:
                 my_board_objs = [
                     obj
                     for obj in board_objs
-                    if (
-                        self._reachable(
-                            player.pos_and_or,
-                            [obj.position]
+                    if self._reachable(
+                        player.pos_and_or,
+                        [obj.position]
+                    )
+                ]
+
+                if type(self) is GreedyAgent:
+                    missing_ingredients = Counter(
+                        self.next_order_info.get(
+                            "missing_ingredients_in_MA_pot",
+                            []
                         )
-                        and (
+                        if self.next_order_info
+                        else []
+                    )
+
+                    useful_board_objs = []
+
+                    for board_object in my_board_objs:
+                        ingredient_name = board_object.name
+
+                        # L'objet doit encore manquer dans la recette
+                        # actuellement ciblée par GreedyAgent.
+                        ingredient_is_useful = (
+                            ingredient_name
+                            in ('onion', 'tomato')
+                            and missing_ingredients[
+                                ingredient_name
+                            ] > 0
+                        )
+
+                        if not ingredient_is_useful:
+                            continue
+
+                        # Conserver ici le filtre temporel de 1,5 seconde
+                        # défini précédemment dans GreedyAgent.
+                        cut_delay_finished = (
                             not hasattr(
                                 self,
                                 "_cut_candidate_is_valid"
                             )
                             or self._cut_candidate_is_valid(
                                 state,
-                                obj
+                                board_object
                             )
                         )
-                    )
-                ]
+
+                        if not cut_delay_finished:
+                            continue
+
+                        useful_board_objs.append(
+                            board_object
+                        )
+
+                        # Ne pas sélectionner davantage d'exemplaires
+                        # que la quantité encore nécessaire.
+                        missing_ingredients[
+                            ingredient_name
+                        ] -= 1
+
+                    my_board_objs = useful_board_objs
 
                 if my_board_objs:
                     self._intentional_wait = False
@@ -1570,12 +1637,15 @@ class PlanningAgent(Agent):
                         for obj in my_board_objs
                         if getattr(obj, 'chopped', False)
                     ]
+
                     unchopped_objs = [
                         obj
                         for obj in my_board_objs
                         if not getattr(obj, 'chopped', False)
                     ]
 
+                    # Ces deux valeurs sont affectées ensemble uniquement
+                    # lorsque l'intention C a réellement été sélectionnée.
                     self.intentions['goal'] = 'C'
 
                     if chopped_objs:
@@ -1963,7 +2033,7 @@ class GreedyAgent(PlanningAgent):
         super().__init__(hl_boltzmann_rational, ll_boltzmann_rational, hl_temp, ll_temp, auto_unstuck)
         self.intentions["agent_name"] = "greedy"
         self.ai_see_asset = ai_see_asset
-        
+
     def reset(self):
         """
         Réinitialise GreedyAgent et le suivi des objets présents
