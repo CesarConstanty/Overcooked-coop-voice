@@ -711,6 +711,77 @@ class PlanningAgent(Agent):
             return am.wait_actions(player)
         return am.pickup_dish_actions(counter_objects, state=state, player_idx=self.agent_index)
 
+    def _partner_will_complete_target_pot(self, state, pot_pos, recipe):
+        """True si l'objet tenu par le partenaire complétera immédiatement
+        la recette ciblée dans la marmite ciblée.
+
+        Cette vérification exige :
+        - que l'IA soit autorisée à voir l'objet du partenaire ;
+        - que le partenaire tienne un ingrédient ;
+        - que cet ingrédient complète exactement la recette ;
+        - qu'il soit coupé lorsque la découpe est obligatoire ;
+        - que le partenaire puisse atteindre la marmite.
+        """
+        if not self.ai_see_asset or pot_pos is None:
+            return False
+
+        partner_idx = 1 - self.agent_index
+        partner = state.players[partner_idx]
+
+        if not partner.has_object():
+            return False
+
+        held_obj = partner.get_object()
+
+        if held_obj.name not in ('onion', 'tomato'):
+            return False
+
+        mdp = self.mlam.mdp
+
+        # Récupérer le contenu actuel de la marmite.
+        if state.has_object(pot_pos):
+            pot_obj = state.get_object(pot_pos)
+
+            # Une soupe déjà en cuisson ou prête est traitée par la priorité
+            # soup_nearly_ready de ml_action().
+            if (
+                pot_obj.name != 'soup'
+                or pot_obj.is_cooking
+                or pot_obj.is_ready
+            ):
+                return False
+
+            current_ingredients = Counter(pot_obj.ingredients)
+        else:
+            # Cas important des recettes à un seul ingrédient :
+            # la marmite est encore complètement vide.
+            current_ingredients = Counter()
+
+        # Vérifier que l'ajout de l'objet tenu produit exactement
+        # la recette ciblée, sans ingrédient manquant ou supplémentaire.
+        resulting_ingredients = current_ingredients.copy()
+        resulting_ingredients[held_obj.name] += 1
+
+        if resulting_ingredients != Counter(recipe.ingredients):
+            return False
+
+        # Déterminer si cet ingrédient doit obligatoirement être coupé.
+        chopping_required = (
+            getattr(mdp, 'cutting_enabled', False)
+            and (
+                mdp.is_forced_cutting_player(partner_idx)
+                or mdp.recipe_requires_chopping(recipe)
+            )
+        )
+
+        if chopping_required and not bool(
+            getattr(held_obj, 'chopped', False)
+        ):
+            return False
+
+        # Ne pas anticiper si le joueur ne peut pas atteindre cette marmite.
+        return self._partner_reach(state, [pot_pos])
+    
     def _can_obtain_ingredient(self, state, item):
         """[ÉCHANGE] True si l'agent peut obtenir `item` MAINTENANT : son dispenser est
         atteignable, OU un exemplaire qu'il peut faire avancer est posé sur un comptoir
@@ -1156,272 +1227,585 @@ class PlanningAgent(Agent):
         Motion goals can be thought of instructions of the form:
             [do X] at location [Y]
 
-        In this method, X (e.g. deliver the soup, pick up an onion, etc) is chosen based on
-        a simple set of greedy heuristics based on the current state.
-
-        Effectively, will return a list of all possible locations Y in which the selected
-        medium level action X can be performed.
+        In this method, X (e.g. deliver the soup, pick up an onion, etc)
+        is chosen based on a simple set of greedy heuristics.
         """
         player = state.players[self.agent_index]
         other_player = state.players[1 - self.agent_index]
         am = self.mlam
 
         counter_objects = self.mlam.mdp.get_counter_objects_dict(
-            state, list(self.mlam.mdp.terrain_pos_dict['X']))
+            state,
+            list(self.mlam.mdp.terrain_pos_dict['X'])
+        )
         pot_states_dict = self.mlam.mdp.get_pot_states(state)
 
-        # [CUTTING BOARD] Etat des planches à découper (no-op si la feature est désactivée)
-        cutting_enabled = getattr(self.mlam.mdp, 'cutting_enabled', False)
+        # État des planches à découper.
+        cutting_enabled = getattr(
+            self.mlam.mdp,
+            'cutting_enabled',
+            False
+        )
+
         if cutting_enabled:
-            board_locs = set(self.mlam.mdp.get_cutting_board_locations())
-            board_objs = [o for o in state.objects.values() if o.position in board_locs]
+            board_locs = set(
+                self.mlam.mdp.get_cutting_board_locations()
+            )
+            board_objs = [
+                obj
+                for obj in state.objects.values()
+                if obj.position in board_locs
+            ]
         else:
             board_objs = []
+
+        def partner_will_complete_target_pot(pot_pos, recipe):
+            """Vérifie si l'objet tenu par le partenaire complétera
+            immédiatement la recette ciblée dans la marmite ciblée.
+            """
+            if (
+                not self.ai_see_asset
+                or pot_pos is None
+                or not other_player.has_object()
+            ):
+                return False
+
+            partner_obj = other_player.get_object()
+
+            if partner_obj.name not in ('onion', 'tomato'):
+                return False
+
+            mdp = self.mlam.mdp
+
+            # Contenu actuel de la marmite.
+            if state.has_object(pot_pos):
+                pot_obj = state.get_object(pot_pos)
+
+                if (
+                    pot_obj.name != 'soup'
+                    or pot_obj.is_cooking
+                    or pot_obj.is_ready
+                ):
+                    return False
+
+                current_ingredients = Counter(
+                    pot_obj.ingredients
+                )
+            else:
+                # Cas d'une recette à un seul ingrédient :
+                # la marmite est encore totalement vide.
+                current_ingredients = Counter()
+
+            resulting_ingredients = current_ingredients.copy()
+            resulting_ingredients[partner_obj.name] += 1
+
+            # L'ingrédient doit produire exactement la recette ciblée.
+            if resulting_ingredients != Counter(recipe.ingredients):
+                return False
+
+            partner_idx = 1 - self.agent_index
+
+            chopping_required = (
+                cutting_enabled
+                and (
+                    mdp.is_forced_cutting_player(partner_idx)
+                    or mdp.recipe_requires_chopping(recipe)
+                )
+            )
+
+            # Ne pas anticiper si l'ingrédient doit encore être découpé.
+            if (
+                chopping_required
+                and not bool(
+                    getattr(partner_obj, 'chopped', False)
+                )
+            ):
+                return False
+
+            # Le partenaire doit pouvoir atteindre la marmite.
+            return self._partner_reach(state, [pot_pos])
 
         if not player.has_object():
             ready_soups = pot_states_dict['ready']
             cooking_soups = pot_states_dict['cooking']
 
-            soup_nearly_ready = len(ready_soups) > 0 or len(cooking_soups) > 0
-            other_has_dish = other_player.has_object(
-            ) and other_player.get_object().name == 'dish'
+            soup_nearly_ready = (
+                len(ready_soups) > 0
+                or len(cooking_soups) > 0
+            )
 
-            # [ÉCHANGE] Candidats de ramassage sur comptoir filtrés (règle du receveur) :
-            # ne pas reprendre d'un comptoir d'échange un objet qu'on ne peut pas faire
-            # avancer soi-même (anti-churn). No-op sur layout auto-suffisant.
-            pickup_counter_objects = self._filter_counter_pickups(state, counter_objects)
+            other_has_dish = (
+                other_player.has_object()
+                and other_player.get_object().name == 'dish'
+            )
+
+            # Ne pas reprendre un objet d'une zone d'échange si
+            # l'agent ne peut pas le faire avancer.
+            pickup_counter_objects = (
+                self._filter_counter_pickups(
+                    state,
+                    counter_objects
+                )
+            )
 
             if soup_nearly_ready and not other_has_dish:
                 self.intentions['goal'] = 'D'
-                motion_goals = self._fetch_dish_or_wait(state, player, pickup_counter_objects)
+                motion_goals = self._fetch_dish_or_wait(
+                    state,
+                    player,
+                    pickup_counter_objects
+                )
+
             else:
-                self.next_order_info = self._resolve_hl_action(state)
-                self.intentions["recipe"] = self.next_order_info["recipe"].ingredients
-                # [RECETTE COMPLÈTE] Priorité : une marmite formant une commande complète
-                # « maximale » (aucune commande ne l'étend, p.ex. [O,T]) ne peut plus rien
-                # devenir d'autre -> lancer sa cuisson MAINTENANT, quelle que soit la
-                # recette « préférée » (de plus haute valeur) ciblée par l'agent. Sans
-                # cela, un Greedy visant [O,O,O] laisserait indéfiniment une marmite [O,T]
-                # non cuite (et, après le filtrage de remplissage, tournerait en rond :
-                # prendre un oignon -> le jeter -> le reprendre...).
-                maximal_pots = self._maximal_complete_pots(state, pot_states_dict)
+                self.next_order_info = self._resolve_hl_action(
+                    state
+                )
+                self.intentions["recipe"] = (
+                    self.next_order_info["recipe"].ingredients
+                )
+
+                # Une marmite correspondant à une commande complète
+                # maximale doit être lancée en cuisson immédiatement.
+                maximal_pots = self._maximal_complete_pots(
+                    state,
+                    pot_states_dict
+                )
+
                 soups_ready_to_cook_key = '{}_items'.format(
-                    len(self.next_order_info["recipe"].ingredients))
-                soups_ready_to_cook = pot_states_dict[soups_ready_to_cook_key]
+                    len(
+                        self.next_order_info[
+                            "recipe"
+                        ].ingredients
+                    )
+                )
+
+                soups_ready_to_cook = pot_states_dict[
+                    soups_ready_to_cook_key
+                ]
+
                 if maximal_pots:
                     self.intentions['goal'] = 'P'
-                    motion_goals = am._get_ml_actions_for_positions(maximal_pots)
+                    motion_goals = (
+                        am._get_ml_actions_for_positions(
+                            maximal_pots
+                        )
+                    )
+
                 elif soups_ready_to_cook:
-                    only_pot_states_ready_to_cook = defaultdict(list)
-                    only_pot_states_ready_to_cook[soups_ready_to_cook_key] = soups_ready_to_cook
-                    # we want to cook only soups that has same len as order
+                    only_pot_states_ready_to_cook = (
+                        defaultdict(list)
+                    )
+                    only_pot_states_ready_to_cook[
+                        soups_ready_to_cook_key
+                    ] = soups_ready_to_cook
+
                     motion_goals = am.start_cooking_actions(
-                        only_pot_states_ready_to_cook)
+                        only_pot_states_ready_to_cook
+                    )
 
-                elif self.next_order_info["most_advanced_pot"]:
-                    # Prendre en compte l'objet que tient le joueur partenaire seulement si AI_see_asset est activé
-                    missing_ingredients = list(self.next_order_info["missing_ingredients_in_MA_pot"])
-                    
-                    # Si AI_see_asset est activé ET le partenaire tient un ingrédient, le considérer comme "apporté"
-                    if self.ai_see_asset and other_player.has_object():
+                elif self.next_order_info[
+                    "most_advanced_pot"
+                ]:
+                    missing_ingredients = list(
+                        self.next_order_info[
+                            "missing_ingredients_in_MA_pot"
+                        ]
+                    )
+
+                    # L'objet tenu par le partenaire est considéré
+                    # comme un ingrédient en cours d'acheminement.
+                    if (
+                        self.ai_see_asset
+                        and other_player.has_object()
+                    ):
                         partner_obj = other_player.get_object()
-                        if partner_obj.name in missing_ingredients:
-                            missing_ingredients.remove(partner_obj.name)
-                    
-                    # Décider de l'action en fonction des ingrédients restants
-                    if len(missing_ingredients) == 0:
-                        # Le pot le plus avancé n'a plus d'ingrédient manquant : prendre
-                        # une assiette pour emporter la soupe — MAIS seulement si ce pot
-                        # contient RÉELLEMENT une soupe à emporter et que le partenaire
-                        # n'en tient pas déjà une. Sinon l'information est PÉRIMÉE :
-                        # missing==[] alors que le pot est VIDE parce que la dernière
-                        # commande est déjà cuite/emportée/livrée par le partenaire (son
-                        # recette est filtrée de hl_info -> next_order_info reste figé).
-                        # Aller chercher une assiette dans ce cas = va-et-vient inutile
-                        # (poser/reprendre) qui, en INTERACT, est « protégé » par la couche
-                        # coop et bloque le partenaire venu livrer. On s'abstient donc.
-                        ma_pot = self.next_order_info["most_advanced_pot"]
-                        ma_has_soup = ma_pot is not None and state.has_object(ma_pot)
-                        # [ÉCHANGE] `missing_ingredients` a pu être vidé par ai_see_asset alors
-                        # que le pot n'est PAS réellement complet : le partenaire TIENT encore
-                        # l'ingrédient (sur un layout d'échange il est loin d'être potté — il doit
-                        # d'abord être découpé puis repassé). Aller chercher une assiette
-                        # (inatteignable) mènerait, via le repli go_to_closest_feature, à CUIRE le
-                        # pot INCOMPLET (ex. [O,O] au lieu de [O,O,T]). On ATTEND que le partenaire
-                        # dépose réellement l'ingrédient. Gardé sur counter_goals -> no-op strict
-                        # sur layout auto-suffisant (comportement historique inchangé).
-                        raw_missing = self.next_order_info["missing_ingredients_in_MA_pot"]
-                        if self.mlam.mdp.counter_goals and ma_has_soup and len(raw_missing) > 0:
-                            self._intentional_wait = True
-                            motion_goals = am.wait_actions(player)
-                        elif ma_has_soup and not other_has_dish:
-                            self.intentions['goal'] = 'D'
-                            motion_goals = self._fetch_dish_or_wait(state, player, pickup_counter_objects)
-                        else:
-                            # Assiette redondante (le partenaire tient déjà une assiette,
-                            # ou la soupe est déjà emportée/livrée -> pot vide) : ne rien
-                            # aller chercher. Attendre sur place (STAY) plutôt que d'aller
-                            # churner une assiette. En STAY l'agent devient un « yielder »
-                            # que la couche coop écarte du passage du partenaire (au lieu
-                            # de le figer par un INTERACT « protégé »).
-                            self._intentional_wait = True
-                            motion_goals = am.wait_actions(player)
-                    elif 'onion' in missing_ingredients or 'tomato' in missing_ingredients:
-                        # [ÉCHANGE] Viser en priorité l'ingrédient manquant qu'on peut RÉELLEMENT
-                        # obtenir maintenant (dispenser atteignable, ou exemplaire avançable passé
-                        # sur l'échange) : un découpeur à qui on passe une tomate ne doit pas rester
-                        # bloqué à attendre des oignons inaccessibles. Sur layout auto-suffisant
-                        # (counter_goals vide) l'ordre historique oignon>tomate est conservé (les
-                        # deux obtenables -> tri stable -> bit-identique).
-                        cand = [i for i in ('onion', 'tomato') if i in missing_ingredients]
-                        if self.mlam.mdp.counter_goals:
-                            cand.sort(key=lambda i: 0 if self._can_obtain_ingredient(state, i) else 1)
-                        motion_goals, self.intentions['goal'] = self._fetch_or_supply(
-                            state, cand[0], pickup_counter_objects)
-                    else:
-                        motion_goals = am.wait_actions(player)
-                        motion_goals
-                else:
-                    motion_goals = am.go_to_closest_feature_actions(player, state=state, player_idx=self.agent_index)
-                    motion_goals
 
-            # [CUTTING BOARD] Priorité: si un ingrédient est en cours de découpe / déjà coupé
-            # sur une planche ATTEIGNABLE par moi, finir la découpe ou le récupérer avant
-            # toute autre action. [ÉCHANGE] Ne considérer que les planches de MON côté :
-            # sinon un agent qui ne peut pas atteindre la planche du partenaire viserait un
-            # but inatteignable (-> jeté au repli). Réinitialise aussi _intentional_wait car
-            # on a désormais un objectif concret (couper/récupérer), pas une attente.
+                        if (
+                            partner_obj.name
+                            in missing_ingredients
+                        ):
+                            missing_ingredients.remove(
+                                partner_obj.name
+                            )
+
+                    if len(missing_ingredients) == 0:
+                        ma_pot = self.next_order_info[
+                            "most_advanced_pot"
+                        ]
+                        target_recipe = self.next_order_info[
+                            "recipe"
+                        ]
+
+                        # Vérifier si la marmite contient déjà
+                        # exactement la recette ciblée.
+                        pot_already_complete = False
+
+                        if (
+                            ma_pot is not None
+                            and state.has_object(ma_pot)
+                        ):
+                            pot_obj = state.get_object(ma_pot)
+
+                            pot_already_complete = (
+                                pot_obj.name == 'soup'
+                                and not pot_obj.is_cooking
+                                and not pot_obj.is_ready
+                                and Counter(
+                                    pot_obj.ingredients
+                                )
+                                == Counter(
+                                    target_recipe.ingredients
+                                )
+                            )
+
+                        # Vérifier si le joueur tient le dernier
+                        # ingrédient prêt à être mis dans le pot.
+                        partner_will_complete = (
+                            partner_will_complete_target_pot(
+                                ma_pot,
+                                target_recipe
+                            )
+                        )
+
+                        soup_is_imminent = (
+                            pot_already_complete
+                            or partner_will_complete
+                        )
+
+                        if (
+                            soup_is_imminent
+                            and not other_has_dish
+                        ):
+                            self.intentions['goal'] = 'D'
+                            motion_goals = (
+                                self._fetch_dish_or_wait(
+                                    state,
+                                    player,
+                                    pickup_counter_objects
+                                )
+                            )
+                        else:
+                            # La soupe n'est pas encore certaine,
+                            # ou le partenaire possède déjà une assiette.
+                            self._intentional_wait = True
+                            motion_goals = am.wait_actions(player)
+
+                    elif (
+                        'onion' in missing_ingredients
+                        or 'tomato' in missing_ingredients
+                    ):
+                        candidates = [
+                            ingredient
+                            for ingredient in (
+                                'onion',
+                                'tomato'
+                            )
+                            if ingredient in missing_ingredients
+                        ]
+
+                        if self.mlam.mdp.counter_goals:
+                            candidates.sort(
+                                key=lambda ingredient: (
+                                    0
+                                    if self._can_obtain_ingredient(
+                                        state,
+                                        ingredient
+                                    )
+                                    else 1
+                                )
+                            )
+
+                        (
+                            motion_goals,
+                            self.intentions['goal']
+                        ) = self._fetch_or_supply(
+                            state,
+                            candidates[0],
+                            pickup_counter_objects
+                        )
+
+                    else:
+                        self._intentional_wait = True
+                        motion_goals = am.wait_actions(player)
+
+                else:
+                    motion_goals = (
+                        am.go_to_closest_feature_actions(
+                            player,
+                            state=state,
+                            player_idx=self.agent_index
+                        )
+                    )
+
+            # Si un ingrédient est présent sur une planche atteignable,
+            # finir sa découpe ou le récupérer en priorité.
             if cutting_enabled and board_objs:
-                my_board_objs = [o for o in board_objs
-                                 if self._reachable(player.pos_and_or, [o.position])]
+                my_board_objs = [
+                    obj
+                    for obj in board_objs
+                    if self._reachable(
+                        player.pos_and_or,
+                        [obj.position]
+                    )
+                ]
+
                 if my_board_objs:
                     self._intentional_wait = False
-                    chopped_objs = [o for o in my_board_objs if getattr(o, 'chopped', False)]
-                    unchopped_objs = [o for o in my_board_objs if not getattr(o, 'chopped', False)]
+
+                    chopped_objs = [
+                        obj
+                        for obj in my_board_objs
+                        if getattr(obj, 'chopped', False)
+                    ]
+                    unchopped_objs = [
+                        obj
+                        for obj in my_board_objs
+                        if not getattr(obj, 'chopped', False)
+                    ]
+
                     self.intentions['goal'] = 'C'
+
                     if chopped_objs:
-                        motion_goals = am.pickup_chopped_actions(chopped_objs)
+                        motion_goals = (
+                            am.pickup_chopped_actions(
+                                chopped_objs
+                            )
+                        )
                     else:
-                        motion_goals = am.chop_actions(unchopped_objs)
+                        motion_goals = am.chop_actions(
+                            unchopped_objs
+                        )
 
         else:
             player_obj = player.get_object()
             all_recipes = self.hl_info(state)
-            # [ÉCHANGE] Si l'agent TIENT un ingrédient sur un layout d'échange, ré-évaluer la
-            # recette cible pour l'ADAPTER à cet ingrédient (une tomate reçue alors qu'il visait
-            # les oignons -> bascule vers la meilleure recette contenant une tomate, incrémente
-            # hl_switch, et la traite au lieu de la jeter). Gardé sur counter_goals -> no-op
-            # (branche historique) sur layout auto-suffisant.
-            if self.mlam.mdp.counter_goals and player_obj.name in ('onion', 'tomato') and all_recipes:
-                self.next_order_info = self._resolve_hl_action(state)
+
+            # Sur un layout d'échange, réévaluer la recette
+            # lorsqu'un ingrédient est tenu.
+            if (
+                self.mlam.mdp.counter_goals
+                and player_obj.name in ('onion', 'tomato')
+                and all_recipes
+            ):
+                self.next_order_info = (
+                    self._resolve_hl_action(state)
+                )
             else:
-                try :
-                    self.next_order_info["missing_ingredients_in_MA_pot"] = all_recipes[self.next_order_info["recipe"]]["missing_ingredients_in_MA_pot"]
+                try:
+                    self.next_order_info[
+                        "missing_ingredients_in_MA_pot"
+                    ] = all_recipes[
+                        self.next_order_info["recipe"]
+                    ][
+                        "missing_ingredients_in_MA_pot"
+                    ]
                 except KeyError:
-                    # Recipe triplet changed — the cached recipe is no longer valid; replan.
                     if all_recipes:
-                        self.next_order_info = self._resolve_hl_action(state)
+                        self.next_order_info = (
+                            self._resolve_hl_action(state)
+                        )
 
             if player_obj.name == 'onion':
-                # self.next_order_info["min_cost_to_complete"] == any([10000, 0]):
-                if 'onion' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
-                    # [POUBELLE] Oignon non requis : jeter (poubelle en priorité)
-                    motion_goals, self.intentions['goal'] = self._discard_actions(state)
-                # [CUTTING BOARD] découper l'oignon avant de le mettre au pot si la recette l'exige.
-                # Si la planche est occupée (partenaire en train de découper), l'oignon reste
-                # nécessaire : on attend qu'elle se libère plutôt que de le jeter.
-                elif cutting_enabled and self._held_needs_chopping(player_obj):
-                    # [ÉCHANGE] découpe / attente / passage au partenaire (intention posée dedans)
-                    motion_goals = self._chop_or_wait_actions(state, player)
+                if (
+                    'onion'
+                    not in self.next_order_info[
+                        "missing_ingredients_in_MA_pot"
+                    ]
+                ):
+                    (
+                        motion_goals,
+                        self.intentions['goal']
+                    ) = self._discard_actions(state)
+
+                elif (
+                    cutting_enabled
+                    and self._held_needs_chopping(player_obj)
+                ):
+                    motion_goals = (
+                        self._chop_or_wait_actions(
+                            state,
+                            player
+                        )
+                    )
+
                 else:
-                    # [RECETTE VALIDE] Ne viser que les marmites où ajouter l'oignon reste
-                    # compatible avec une commande (exclut p.ex. une marmite [O,T] complète
-                    # -> éviterait [O,O,T]). Si aucune : attendre/jeter (helper ci-dessous).
-                    fill = self._valid_fill_pots(state, pot_states_dict, 'onion')
-                    motion_goals, self.intentions['goal'] = self._put_in_pot_or_wait_actions(
-                        state, player, pot_states_dict, fill)
+                    fill = self._valid_fill_pots(
+                        state,
+                        pot_states_dict,
+                        'onion'
+                    )
+                    (
+                        motion_goals,
+                        self.intentions['goal']
+                    ) = self._put_in_pot_or_wait_actions(
+                        state,
+                        player,
+                        pot_states_dict,
+                        fill
+                    )
 
             elif player_obj.name == 'tomato':
-                # self.next_order.min_cost_to_complete == 10000 or self.next_order.min_cost_to_complete == 0 :
-                if 'tomato' not in self.next_order_info["missing_ingredients_in_MA_pot"]:
-                    # [POUBELLE] Tomate non requise : jeter (poubelle en priorité)
-                    motion_goals, self.intentions['goal'] = self._discard_actions(state)
-                # [CUTTING BOARD] découper la tomate avant de la mettre au pot si la recette l'exige.
-                # Si la planche est occupée, la tomate reste nécessaire : on attend au lieu de la jeter.
-                elif cutting_enabled and self._held_needs_chopping(player_obj):
-                    # [ÉCHANGE] découpe / attente / passage au partenaire (intention posée dedans)
-                    motion_goals = self._chop_or_wait_actions(state, player)
+                if (
+                    'tomato'
+                    not in self.next_order_info[
+                        "missing_ingredients_in_MA_pot"
+                    ]
+                ):
+                    (
+                        motion_goals,
+                        self.intentions['goal']
+                    ) = self._discard_actions(state)
+
+                elif (
+                    cutting_enabled
+                    and self._held_needs_chopping(player_obj)
+                ):
+                    motion_goals = (
+                        self._chop_or_wait_actions(
+                            state,
+                            player
+                        )
+                    )
+
                 else:
-                    # [RECETTE VALIDE] cf. branche oignon : ne viser que les marmites où
-                    # ajouter la tomate reste compatible avec une commande.
-                    fill = self._valid_fill_pots(state, pot_states_dict, 'tomato')
-                    motion_goals, self.intentions['goal'] = self._put_in_pot_or_wait_actions(
-                        state, player, pot_states_dict, fill)
+                    fill = self._valid_fill_pots(
+                        state,
+                        pot_states_dict,
+                        'tomato'
+                    )
+                    (
+                        motion_goals,
+                        self.intentions['goal']
+                    ) = self._put_in_pot_or_wait_actions(
+                        state,
+                        player,
+                        pot_states_dict,
+                        fill
+                    )
 
             elif player_obj.name == 'dish':
                 self.intentions['goal'] = 'P'
-                motion_goals = am.pickup_soup_with_dish_actions(
-                    pot_states_dict, only_nearly_ready=True)
-                # [ÉCHANGE] Ne garder que les marmites ATTEIGNABLES : si la seule soupe
-                # prête/en cuisson est du côté du partenaire, motion_goals se vide et
-                # _plate_or_wait_actions décide (passer l'assiette au partenaire / attendre).
-                motion_goals = [mg for mg in motion_goals
-                                if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+
+                motion_goals = (
+                    am.pickup_soup_with_dish_actions(
+                        pot_states_dict,
+                        only_nearly_ready=True
+                    )
+                )
+
+                motion_goals = [
+                    motion_goal
+                    for motion_goal in motion_goals
+                    if self.mlam.motion_planner
+                    .is_valid_motion_start_goal_pair(
+                        player.pos_and_or,
+                        motion_goal
+                    )
+                ]
+
                 if motion_goals == []:
-                   # [ASSIETTE] Aucune soupe prête/en cuisson à emporter. Si une soupe
-                   # est en cours d'assemblage, l'assiette reste nécessaire : attendre
-                   # (STAY) au lieu de la poser/reprendre en boucle sur un comptoir
-                   # (churn qui bloque le partenaire). Ne jeter que si rien n'arrive.
-                   motion_goals, self.intentions['goal'] = self._plate_or_wait_actions(
-                       state, player, pot_states_dict)
+                    (
+                        motion_goals,
+                        self.intentions['goal']
+                    ) = self._plate_or_wait_actions(
+                        state,
+                        player,
+                        pot_states_dict
+                    )
 
             elif player_obj.name == 'soup':
-                if player_obj.recipe not in state.all_orders :
-                    # [POUBELLE] Soupe non commandée : jeter (poubelle en priorité)
-                    motion_goals, self.intentions['goal'] = self._discard_actions(state)
-                else :
+                if player_obj.recipe not in state.all_orders:
+                    (
+                        motion_goals,
+                        self.intentions['goal']
+                    ) = self._discard_actions(state)
+
+                else:
                     self.intentions['goal'] = 'S'
                     deliver = am.deliver_soup_actions()
-                    reachable = [g for g in deliver
-                                 if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, g)]
+
+                    reachable = [
+                        goal
+                        for goal in deliver
+                        if self.mlam.motion_planner
+                        .is_valid_motion_start_goal_pair(
+                            player.pos_and_or,
+                            goal
+                        )
+                    ]
+
                     if reachable:
                         motion_goals = reachable
                     else:
-                        # [ÉCHANGE] Service inatteignable par moi mais le partenaire peut
-                        # livrer : lui passer la soupe (état le plus avancé) via l'échange.
-                        handoff = self._handoff_if_partner_only(state, self.mlam.mdp.get_serving_locations())
+                        handoff = (
+                            self._handoff_if_partner_only(
+                                state,
+                                self.mlam.mdp
+                                .get_serving_locations()
+                            )
+                        )
+
                         if handoff is not None:
-                            motion_goals, self.intentions['goal'] = handoff, 'X'
+                            motion_goals = handoff
+                            self.intentions['goal'] = 'X'
                         else:
-                            motion_goals = deliver   # repli : sera filtré -> jeté si vraiment bloqué
+                            motion_goals = deliver
 
             else:
                 raise ValueError()
 
-        motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-            player.pos_and_or, mg)]
+        motion_goals = [
+            motion_goal
+            for motion_goal in motion_goals
+            if self.mlam.motion_planner
+            .is_valid_motion_start_goal_pair(
+                player.pos_and_or,
+                motion_goal
+            )
+        ]
 
         if len(motion_goals) == 0:
             if self._intentional_wait:
-                # [CUTTING BOARD] Attente volontaire d'une planche : le goal « sur place »
-                # a pu être filtré (orientation courante ne faisant pas face à une feature).
-                # NE PAS jeter l'ingrédient (il reste nécessaire) et NE PAS écraser
-                # l'intention 'C'. Un goal factice suffit : action() court-circuitera en STAY.
                 motion_goals = am.wait_actions(player)
+
             elif player.has_object():
-                # [POUBELLE] Repli de rejet : poubelle en priorité, sinon comptoir/zone d'échange
-                motion_goals, self.intentions['goal'] = self._discard_actions(state)
+                (
+                    motion_goals,
+                    self.intentions['goal']
+                ) = self._discard_actions(state)
+
             else:
-                motion_goals = am.go_to_closest_feature_actions(player)
-            motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-                player.pos_and_or, mg)]
-            if len(motion_goals) ==0:
-                motion_goals = am.go_to_closest_feature_actions(player)
-                motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-                player.pos_and_or, mg)]          
-            
+                motion_goals = (
+                    am.go_to_closest_feature_actions(player)
+                )
+
+            motion_goals = [
+                motion_goal
+                for motion_goal in motion_goals
+                if self.mlam.motion_planner
+                .is_valid_motion_start_goal_pair(
+                    player.pos_and_or,
+                    motion_goal
+                )
+            ]
+
+            if len(motion_goals) == 0:
+                motion_goals = (
+                    am.go_to_closest_feature_actions(player)
+                )
+
+                motion_goals = [
+                    motion_goal
+                    for motion_goal in motion_goals
+                    if self.mlam.motion_planner
+                    .is_valid_motion_start_goal_pair(
+                        player.pos_and_or,
+                        motion_goal
+                    )
+                ]
+
             assert len(motion_goals) != 0
-        #breakpoint()
+
         return motion_goals
 
     def hl_info(self, state):
