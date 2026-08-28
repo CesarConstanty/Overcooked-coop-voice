@@ -960,34 +960,23 @@ class PlanningGame(OvercookedGame):
         if not self.ai_slowdown_enabled:
             self.ticks_per_ai_action = self.base_ticks_per_ai_action
             return
-        
-        old_speed = self.ticks_per_ai_action
+
+        # Priorité :
+        # début d'essai > changement d'asset > changement de recette > vitesse normale
         if self.trial_start_slow_remaining_ticks > 0:
-                    self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
-                    self.trial_start_slow_remaining_ticks -= 1
+            self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
+            self.trial_start_slow_remaining_ticks -= 1
+
+        elif self.asset_slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.asset_slow_ticks_per_ai_action
+            self.asset_slow_remaining_ticks -= 1
+
+        elif self.slow_remaining_ticks > 0:
+            self.ticks_per_ai_action = self.slow_ticks_per_ai_action
+            self.slow_remaining_ticks -= 1
+
         else:
             self.ticks_per_ai_action = self.base_ticks_per_ai_action
-        
-        # # Priority: trial start slowdown > asset change slowdown > recipe change slowdown > normal speed
-        # if self.trial_start_slow_remaining_ticks > 0:
-        #     self.ticks_per_ai_action = self.trial_start_ticks_per_ai_action
-        #     self.trial_start_slow_remaining_ticks -= 1
-        #     #if old_speed != self.ticks_per_ai_action:
-        #         #print(f"[AI_SLOWDOWN] Speed changed to TRIAL START SLOW: {self.ticks_per_ai_action} (remaining: {self.trial_start_slow_remaining_ticks})")
-        # elif self.asset_slow_remaining_ticks > 0:
-        #     self.ticks_per_ai_action = self.asset_slow_ticks_per_ai_action
-        #     self.asset_slow_remaining_ticks -= 1
-        #     #if old_speed != self.ticks_per_ai_action:
-        #         #print(f"[AI_SLOWDOWN] Speed changed to ASSET CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.asset_slow_remaining_ticks})")
-        # elif self.slow_remaining_ticks > 0:
-        #     self.ticks_per_ai_action = self.slow_ticks_per_ai_action
-        #     self.slow_remaining_ticks -= 1
-        #     #if old_speed != self.ticks_per_ai_action:
-        #         #print(f"[AI_SLOWDOWN] Speed changed to RECIPE CHANGE SLOW: {self.ticks_per_ai_action} (remaining: {self.slow_remaining_ticks})")
-        # else:
-        #     self.ticks_per_ai_action = self.base_ticks_per_ai_action
-        #     #if old_speed != self.ticks_per_ai_action:
-        #         #print(f"[AI_SLOWDOWN] Speed returned to NORMAL: {self.ticks_per_ai_action}")
 
     def _check_recipe_intention_change(self):
         """Check if AI recipe intention has changed and trigger slowdown (PlanningGame only)."""
@@ -1456,8 +1445,8 @@ class PlanningGame(OvercookedGame):
         else:
             self.debug_timer_count = 1
             
-        if self.debug_timer_count % 60 == 0:  # Log every 60 calls to avoid spam
-            print(f"[TIMER_DEBUG] Trial {self.curr_trial_in_game+1}: max_time={self.max_time}, elapsed={elapsed_time:.2f}, time_left={time_left}")
+        # if self.debug_timer_count % 60 == 0:  # Log every 60 calls to avoid spam
+        #     print(f"[TIMER_DEBUG] Trial {self.curr_trial_in_game+1}: max_time={self.max_time}, elapsed={elapsed_time:.2f}, time_left={time_left}")
         
         state_dict['time_left'] = time_left
         # Durée écoulée depuis le début de l'essai en cours (option show_time_in_trial)
