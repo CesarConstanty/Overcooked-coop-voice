@@ -21,7 +21,7 @@
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
-    "experiment2voco" : {
+    "experiment2voco2" : {
         "dev" : false,
         "mechanic" : "recipe",
         "fps" : 10,
