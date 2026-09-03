@@ -21,7 +21,7 @@
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
-    "experiment2voco3" : {
+    "experiment2voco7" : {
         "dev" : false,
         "mechanic" : "recipe",
         "fps" : 10,
@@ -51,7 +51,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"EAr", "1":"U", "2":"EAa"},
+        "conditions" : {"0":"EAa", "1":"U", "2":"EAr"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
@@ -233,7 +233,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"EAr", "1":"U", "2":"EAa"},
+        "conditions" : {"0":"EAa", "1":"U", "2":"EAr"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
