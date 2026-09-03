@@ -65,7 +65,7 @@
             "2": ["test01_180C","test02_180C","test03_180C","test05_180C","test06_180C","test07_180C","test08_180C","test09_180C","test10_180C","test11_180C"]
         },
         "shuffle_trials" : true,
-        "shuffle_blocs" : true,
+        "shuffle_blocs" : false,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
             "begin"      : ["QVG","PTTA","GAbstractionP"],
@@ -247,7 +247,7 @@
             "2": ["test07_180C"]
         },
         "shuffle_trials" : true,
-        "shuffle_blocs" : true,
+        "shuffle_blocs" : false,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
             "begin"      : ["QVG","PTTA","GAbstractionP"],
