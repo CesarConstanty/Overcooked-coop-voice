@@ -21,7 +21,7 @@
     "planning_design" : {
         "layouts" : ["trial0_0", "trial0_1", "trial0_2", "trial0_3", "trial0_4", "trial0_5", "trial0_6", "trial0_7", "trial0_8", "trial0_9", "trial1_0", "trial1_1", "trial1_2"] 
     },
-    "experiment2voco7" : {
+    "experiment2voco2" : {
         "dev" : false,
         "mechanic" : "recipe",
         "fps" : 10,
@@ -31,7 +31,7 @@
         "show_time_in_trial" : true,
         "show_score" : true,
         "bidirectionnelle" : false,
-        "completion_link" : "https://app.prolific.com/submissions/complete?cc=CO7WY3NL",
+        "completion_link" : "TO COMPLETE",
         "researcher" : {
             "name": "Constanty Cesar",
             "email": "cesar.constanty@onera.fr",
@@ -51,7 +51,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"EAa", "1":"U", "2":"EAr"},
+        "conditions" : {"0":"U", "1":"EAr", "2":"EAa"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
@@ -112,7 +112,7 @@
         "AI_forced_cutting" : true,
         "tutorial_steps" : 3
     },
-    "experiment2vico1" : {
+    "experiment2vico8" : {
         "dev" : false,
         "mechanic" : "recipe",
         "fps" : 10,
@@ -122,7 +122,7 @@
         "show_time_in_trial" : true,
         "show_score" : true,
         "bidirectionnelle" : false,
-        "completion_link" : "https://app.prolific.com/submissions/complete?cc=CO7WY3NL",
+        "completion_link" : "https://app.prolific.com/submissions/complete?cc=C51NA7AE",
         "researcher" : {
             "name": "Constanty Cesar",
             "email": "cesar.constanty@onera.fr",
@@ -142,7 +142,7 @@
         "timer_tuto_max": 600,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"U", "1":"VHa", "2":"VHr"},
+        "conditions" : {"0":"U", "1":"VHr", "2":"VHa"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
