@@ -1190,6 +1190,7 @@ class LayoutEditorApp(tk.Tk):
         self.layouts_dir = layouts_dir
         self.sprites = SpriteCache()
         self.model = LayoutModel()
+        self._saved_state = self._current_state()
         self.tile_size = 48
         self.current_symbol = "X"
         self.num_players = max(2, self.model.max_player())
@@ -1239,6 +1240,12 @@ class LayoutEditorApp(tk.Tk):
     def _build_layout(self):
         toolbar = ttk.Frame(self, padding=4)
         toolbar.pack(side="top", fill="x")
+        tk.Button(
+            toolbar, text="←", width=3, command=lambda: self.navigate_layout(-1)
+        ).pack(side="left", padx=2)
+        tk.Button(
+            toolbar, text="→", width=3, command=lambda: self.navigate_layout(1)
+        ).pack(side="left", padx=2)
         for text, cmd in (
             ("Nouveau", self.cmd_new), ("Ouvrir", self.cmd_open),
             ("Enregistrer", self.cmd_save), ("Enregistrer sous", self.cmd_save_as),
@@ -1282,8 +1289,44 @@ class LayoutEditorApp(tk.Tk):
         self.title("Éditeur de layout Overcooked — %s%s" % (name, star))
 
     def mark_dirty(self):
-        self.model.dirty = True
+        self.model.dirty = self._current_state() != self._saved_state
         self.update_title()
+
+    def _current_state(self):
+        return serialize_layout(self.model.grid, self.model.metadata)
+
+    @staticmethod
+    def _layout_file_state(path):
+        with open(path, "r", encoding="utf-8") as layout_file:
+            data = parse_layout_text(layout_file.read())
+        if not isinstance(data, dict) or "grid" not in data:
+            raise ValueError("Fichier invalide : clé 'grid' absente.")
+        rows = grid_string_to_rows(data["grid"])
+        metadata = {key: value for key, value in data.items() if key != "grid"}
+        materialize_counter_goals(rows, metadata)
+        return serialize_layout(rows, metadata)
+
+    def navigate_layout(self, direction):
+        folder = os.path.dirname(self.model.filepath) if self.model.filepath else self.layouts_dir
+        try:
+            paths = sorted(
+                os.path.join(folder, name)
+                for name in os.listdir(folder)
+                if name.lower().endswith(".layout")
+                and os.path.isfile(os.path.join(folder, name))
+            )
+        except OSError:
+            paths = []
+        if len(paths) < 2:
+            return
+        current = os.path.abspath(self.model.filepath) if self.model.filepath else None
+        normalized_paths = [os.path.abspath(path) for path in paths]
+        if current in normalized_paths:
+            index = normalized_paths.index(current)
+            target_index = (index + direction) % len(paths)
+        else:
+            target_index = 0 if direction > 0 else len(paths) - 1
+        self.load(paths[target_index])
 
     # --- actions outils / édition ----------------------------------------
     def select_tool(self, symbol):
@@ -1302,13 +1345,14 @@ class LayoutEditorApp(tk.Tk):
             self.grid_canvas.update_cell(x, y)
         self.meta_panel.refresh()
         self.refresh_validation()
+        self.mark_dirty()
         self.update_title()
 
     def set_num_players(self, n):
         n = max(1, min(9, int(n)))
         if n < self.model.max_player():
             self.model.remove_players_above(n)
-            self.mark_dirty()
+        self.mark_dirty()
         self.num_players = n
         self.palette.rebuild_players()
         self.grid_canvas.redraw()
@@ -1326,16 +1370,7 @@ class LayoutEditorApp(tk.Tk):
         self.grid_canvas.redraw()
 
     # --- commandes fichier ------------------------------------------------
-    def _confirm_discard(self):
-        if not self.model.dirty:
-            return True
-        return messagebox.askyesno(
-            "Modifications non enregistrées", "Abandonner les modifications en cours ?"
-        )
-
     def cmd_new(self):
-        if not self._confirm_discard():
-            return
         dlg = SizeDialog(self, "Nouvelle grille", 7, 7)
         if dlg.result is None:
             return
@@ -1345,8 +1380,6 @@ class LayoutEditorApp(tk.Tk):
         self.refresh_all()
 
     def cmd_open(self):
-        if not self._confirm_discard():
-            return
         path = filedialog.askopenfilename(
             initialdir=self.layouts_dir,
             title="Ouvrir un layout",
@@ -1372,6 +1405,9 @@ class LayoutEditorApp(tk.Tk):
         self.model.metadata = metadata
         self.model.filepath = path
         self.model.dirty = False
+        self._saved_state = self._current_state()
+        self._saved_file_state = self._saved_state
+        self._saved_path = os.path.abspath(path)
         self.num_players = max(2, self.model.max_player())
         self.refresh_all()
 
@@ -1427,6 +1463,9 @@ class LayoutEditorApp(tk.Tk):
 
         self.model.filepath = path
         self.model.dirty = False
+        self._saved_state = self._current_state()
+        self._saved_file_state = serialize_layout(save_grid, self.model.metadata)
+        self._saved_path = os.path.abspath(path)
         self.update_title()
 
         # Test de chargeabilité par le moteur (si disponible et grille valide).
@@ -1455,6 +1494,7 @@ class LayoutEditorApp(tk.Tk):
         self.grid_canvas.redraw()
         self.meta_panel.refresh()
         self.refresh_validation()
+        self.mark_dirty()
         self.update_title()
 
     def cmd_validate(self):
@@ -1479,8 +1519,7 @@ class LayoutEditorApp(tk.Tk):
         messagebox.showinfo("Légende", "\n".join(lines))
 
     def on_quit(self):
-        if self._confirm_discard():
-            self.destroy()
+        self.destroy()
 
 
 # ===========================================================================
