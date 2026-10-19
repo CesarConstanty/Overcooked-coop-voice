@@ -59,17 +59,17 @@
     <section class="card">
       <h3>Your Goal</h3>
       <p>For each game, you will have a list of recipes to make. The goal of the game is to complete all these recipes in the shortest time possible. Please note that you should complete the recipe list as quickly as possible, but in no specific sequence.</p>
-      
-      <p>The <strong>All Orders</strong> list shows which recipes you need to complete: any prepared or served soup which is not on this list will not be counted and it will make you lose time.</p>
-      
+
+      <p>the <strong>All Orders</strong> list shows which recipes you need to complete: any prepared or served soup which is not on this list will not be counted and it will make you lose time.</p>
+
       <p>When a soup is served at the serving counter, it is automatically validated, and disappears from the <strong>All Orders</strong> list of the recipes you have to realize during the game.</p>
-      
+
       <p><strong>Your goal</strong> is to make all the recipes in the All Orders lists <strong>AS FAST AS POSSIBLE</strong>.</p>
-      
+
       <figure>
         <img src="static/images/info-panel_recipe.png" alt="Recipe panel" style="max-width:400px;">
       </figure>
-      
+
       <p>In the example above, you have to complete 3 recipes:</p>
       <ul>
         <li>tomato + tomato + tomato</li>
@@ -85,7 +85,7 @@
         <figure>
           <img src="static/images/basic_map_exchange_V2_exp2.png" alt="Kitchen layout" style="max-width:500px;">
         </figure>
-        
+
         <p>Here you will interact with several objects:</p>
         <figure>
           <img src="static/images/basic_map_exchange_V2_legend_exp2.png" alt="Kitchen objects legend" style="max-width:800px;">
@@ -93,9 +93,27 @@
       </div>
     </section>
     <section class="card">
-      
+      <h3>Exchange zones</h3>
+      <p>Some kitchens are divided into separate work areas. The <strong>exchange zones</strong> are the shared counters that both cooks can reach from opposite sides.</p>
+
+      <figure>
+        <img src="static/images/onion_exchange.gif" alt="Passing an onion through an exchange zone" style="max-width:500px;">
+        <figcaption>An object is placed on an exchange counter, then collected from the other side.</figcaption>
+      </figure>
+
+      <ul>
+        <li>To pass an object, face an <strong>empty exchange counter</strong> while holding the object and press <strong>spacebar</strong>.</li>
+        <li>Your teammate can then collect it from the other side. The same action works in both directions.</li>
+        <li>Depending on the kitchen, raw ingredients may need to be passed toward the cutting board, while chopped ingredients or plates may need to be passed back toward the pot.</li>
+      </ul>
+
+      <p>You cannot walk through an exchange counter or hand an object directly to your teammate. Keep at least one exchange counter free so that the next object can be transferred.</p>
+    </section>
+
+    <section class="card">
+
       <h3>Gameplay Basics</h3>
-      
+
       <!-- First row: Movement and Cooking -->
       <div class="flex-container">
         <div class="flex-item">
@@ -110,18 +128,17 @@
             <li>If you are holding an ingredient and facing an empty counter, pressing <strong>spacebar</strong> puts the item down.</li>
             <li>Face a pot and press <strong>spacebar</strong> to add an ingredient (if it is not full).</li>
             <li>Face a non-empty pot while holding nothing and press <strong>spacebar</strong> to begin cooking.</li>
-            <li>Face the bin and press <strong>spacebar</strong> to discard an item</li>
           </ul>
           <p><u><strong>You cannot occupy the same location as the artificial agent.</strong></u></p>
         </div>
-        
+
         <div class="flex-item">
           <h4>Cooking</h4>
           <figure>
             <img src="static/images/soup_exp2.png" alt="Soup cooking" style="max-width:250px;">
           </figure>
-          <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to <strong>3 ingredients</strong>.</p>
-          <p>A red number appears over the pot to indicate the cooking time. It counts upwards until the soup is done. Each onion adds {{ onion_time }}s and each tomato adds {{ tomato_time }}s to the cooking time.</p>
+          <p>Once an ingredient is in the pot, press <strong>spacebar</strong> to start cooking. A pot can hold up to 3 ingredients.</p>
+          <p>A red number appears over the pot to indicate the cooking time. It counts upwards until the soup is done. Each onion adds {{ onion_time }}s and each tomato adds {{ tomato_time }}s to the cooking time. Remember that onions are worth more points than tomatoes, but take longer to cook!</p>
           <p>Once an ingredient is in the pot, you must cook it to remove it — whether or not it matches a valid order. Do not forget to hold a plate to collect the soup!</p>
         </div>
       </div>
@@ -148,13 +165,13 @@
     <section class="card">
       <h3>Course of the experiment</h3>
       <p>You will start by performing a tutorial to familiarize yourself with the interface.</p>
-      <p>During the experiment you will complete 3 blocks containing 10 games each.</p>
+      <p>You will start each block with two practice game to learn how to play with the agent. This game will look like other games but we will not use the data collected.</p>
+      <p>During the experiment you will complete 3 blocks containing 12 games each.</p>
       <p>You will be able to take a small break between each block on the instruction page.</p>
     </section>
 
     <section class="card warning">
       <h3>PLEASE READ THIS BEFORE STARTING THE EXPERIMENT</h3>
-      <p>You must remain on the experiment page throughout the entire session.</p>
       <p>It is possible that, for some reason, you have the impression that the page is loading incorrectly.</p>
       <p>1. RELOAD the page immediately — this usually solves the problem.</p>
       <p>2. REPORT the problem at the end of the experiment during the final questionnaire.</p>
