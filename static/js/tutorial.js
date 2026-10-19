@@ -3,19 +3,25 @@ var socket = io();
 
 var config;
 
-var tutorial_instructions = () => [
-    `
+var tutorial_instructions = (cuttingEnabled = true) => [
+    cuttingEnabled ? `
     <p>How it works: <b>The Cutting Board</b></p>
     <p>Every ingredient must be <b>chopped</b> before it can go into the pot &mdash; you will not be able to drop a raw ingredient into the pot.</p>
     <p>Grab an ingredient from a <b>dispenser</b>, drop it on the <b>cutting board</b>, then press <b>spacebar</b> several times to chop it. When it's done, pick it up and put it in the pot.</p>
     <p>Cook, plate and deliver a chopped soup to advance.</p>
     <p>Good luck!</p>
     <br></br>
+    ` : `
+    <p>How it works: <b>Cooking a soup</b></p>
+    <p>Grab the ingredients from the dispensers and put them directly into the pot.</p>
+    <p>When the soup is ready, pick it up with a plate and deliver it at the serving window.</p>
+    <p>Good luck!</p>
+    <br></br>
     `,
     `
     <p>How it works: <b>Cooking with an AI teammate</b></p>
     <p>An <b>AI teammate</b> (the green cook) now prepares recipes alongside you.</p>
-    <p>Work together to complete every order shown in <b>All Orders</b>: gather and chop the ingredients, cook the soups, plate them and deliver them.</p>
+    <p>Work together to complete every order shown in <b>All Orders</b>: gather the ingredients, cook the soups, plate them and deliver them.</p>
     <p>This step ends once all the displayed orders have been delivered.</p>
     <br></br>
     `,
@@ -237,7 +243,9 @@ $(function() {
     const tutorialStepCount =
         config.tutorialParams.layouts.length;
 
-    tutorial_instructions = tutorial_instructions().slice(
+    tutorial_instructions = tutorial_instructions(
+        config.tutorialParams.cutting_enabled !== false
+    ).slice(
         0,
         tutorialStepCount
     );

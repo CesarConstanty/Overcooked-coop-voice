@@ -386,7 +386,7 @@
         "tutorial_steps" : 3
     },
     "testvoc" : {
-        "dev" : false,
+        "dev" : true,
         "mechanic" : "recipe",
         "fps" : 10,
         "layouts_dir" : "./overcooked_ai_py/data/layouts/generation_cesar_2",
@@ -408,11 +408,11 @@
             "institution" : "ONERA, the French Aerospace Lab, DTIS department"
         },
         "gameTime" : 600,
-        "explications_generales_max": 600,
+        "explications_generales_max": 0,
         "explications_generales_min": 30,
-        "explications_block_max": 300,
+        "explications_block_max": 0,
         "explications_block_min": 5,
-        "timer_tuto_max": 600,
+        "timer_tuto_max": 0,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
         "conditions" : {"0":"U", "1":"EAr", "2":"EAa"},
@@ -426,7 +426,7 @@
         "blocs" : {
             "0": ["test01","test02","test03","test05","test06","test07","test08","test09","test10","test11"],
             "1": ["test01_90","test02_90","test03_90","test05_90","test06_90","test07_90","test08_90","test09_90","test10_90","test11_90"],
-            "2": ["test01_180","test02_180","test03_180","test05_180","test06_180","test07_180","test08_180","test09_180","test10_180","test11_180"]        },
+        "2": ["test01_180","test02_180","test03_180","test05_180","test06_180","test07_180","test08_180","test09_180","test10_180","test11_180"]        },
         "shuffle_trials" : true,
         "shuffle_blocs" : true,
         "randomize_accountability_labels" : true,
@@ -659,7 +659,12 @@
     },
     "tutorial" : {
         "tutorialParams" : {
-            "layouts" : ["tutorial_0", "tutorial_1", "tutorial_2","tutorial_3"],
+            "layouts" : ["tutorial_without_cutting_0", "tutorial_without_cutting_1", "tutorial_without_cutting_2"],
+            "layout_profiles" : {
+                "with_cutting" : ["tutorial_0", "tutorial_1", "tutorial_2"],
+                "without_cutting" : ["tutorial_without_cutting_0", "tutorial_without_cutting_1", "tutorial_without_cutting_2"]
+            },
+            "cutting_enabled" : false,
             "playerZero" : "human",
             "playerOne" : "TutorialAI",
             "phaseTwoScore" : 8

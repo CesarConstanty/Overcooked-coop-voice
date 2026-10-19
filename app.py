@@ -2226,6 +2226,21 @@ def goodbye():
 def cat():
     return render_template('cat.html')  
 
+def _tutorial_config_for_user(user_config):
+    tutorial_config = deepcopy(CONFIG["tutorial"])
+    tutorial_params = tutorial_config["tutorialParams"]
+    cutting_enabled = bool(tutorial_params.get("cutting_enabled", True))
+    tutorial_params["cutting_enabled"] = cutting_enabled
+
+    layout_profiles = tutorial_params.get("layout_profiles")
+    if layout_profiles:
+        profile_name = "with_cutting" if cutting_enabled else "without_cutting"
+        tutorial_params["layouts"] = layout_profiles[profile_name]
+
+    tutorial_steps = int(user_config.get("tutorial_steps", len(tutorial_params["layouts"])))
+    tutorial_params["layouts"] = tutorial_params["layouts"][:tutorial_steps]
+    return tutorial_config
+
 
 @app.route('/tutorial')
 def tutorial():
@@ -2244,12 +2259,7 @@ def tutorial():
     # Récupérer la valeur du timer depuis la configuration utilisateur
     timer_max = current_user.config.get('timer_tuto_max', 600)  # 600s par défaut si absent
 
-    # Nombre d'étapes demandé par la configuration expérimentale.
-    tutorial_steps = current_user.config.get("tutorial_steps", 4)
-
-    tutorial_config = deepcopy(CONFIG["tutorial"])
-    tutorial_config["tutorialParams"]["layouts"] = (
-    tutorial_config["tutorialParams"]["layouts"][:tutorial_steps])
+    tutorial_config = _tutorial_config_for_user(current_user.config)
     tutorial_config_json = json.dumps(tutorial_config)
 
     if is_test != "test" :
@@ -2494,9 +2504,27 @@ def on_join(data):
             db.session.commit()
         params = data.get('params', {})
         game_name = data.get('game_name', 'overcooked')
-        _create_game(user_id, game_name, {"player_uid": current_user.uid, "step": int(
-        current_user.step), "curr_trial_in_game" : int(current_user.trial)-1, "single_trial": True,
-        "is_first_trial_of_block": int(current_user.trial) == 0, "room" : current_user.uid,"config": current_user.config})
+        game_kwargs = {
+            "player_uid": current_user.uid,
+            "step": int(current_user.step),
+            "curr_trial_in_game": int(current_user.trial) - 1,
+            "single_trial": True,
+            "is_first_trial_of_block": int(current_user.trial) == 0,
+            "room": current_user.uid,
+            "config": current_user.config,
+        }
+        if game_name == "tutorial":
+            tutorial_params = _tutorial_config_for_user(
+                current_user.config
+            )["tutorialParams"]
+            game_config = dict(current_user.config)
+            game_config["cutting_enabled"] = tutorial_params["cutting_enabled"]
+            game_config["Human_forced_cutting"] = tutorial_params["cutting_enabled"]
+            game_config["AI_forced_cutting"] = tutorial_params["cutting_enabled"]
+            game_kwargs.update(tutorial_params)
+            game_kwargs["config"] = game_config
+
+        _create_game(user_id, game_name, game_kwargs)
         return
             # # Game was found so join it
             # with game.lock:

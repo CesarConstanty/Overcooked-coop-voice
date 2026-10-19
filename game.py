@@ -1712,14 +1712,7 @@ class OvercookedTutorial(OvercookedGame):
         super(OvercookedTutorial, self).reset()
 
     def _phase_mdp_config(self, phase, base):
-        """[TUTORIEL] Paramètres MDP propres à chaque phase pédagogique.
-
-        Le tutoriel ne doit pas hériter implicitement de tous les paramètres de la
-        configuration expérimentale. On reconstruit ici uniquement les overrides MDP
-        utiles, en gardant l'économie des ingrédients identique à l'expérience.
-        La découpe est active dès la phase 0, puisque l'ancienne leçon de découpe est
-        désormais la première étape du tutoriel.
-        """
+        """Build the MDP settings for the active tutorial cutting profile."""
         base = base or {}
         cfg = {
             "onion_value":  base.get("onion_value", 3),
@@ -1727,16 +1720,20 @@ class OvercookedTutorial(OvercookedGame):
             "onion_time":   base.get("onion_time", 9),
             "tomato_time":  base.get("tomato_time", 6),
         }
-        # La première leçon est désormais l'ancienne leçon de découpe.
-        # La découpe reste donc active dans toutes les phases.
-        cfg["cutting_enabled"] = True
+        cutting_enabled = bool(base.get("cutting_enabled", True))
+        cfg["cutting_enabled"] = cutting_enabled
         cfg["chop_time"] = base.get("chop_time", {"onion": 3, "tomato": 2})
-        cfg["recipes_requiring_chopping"] = base.get(
-            "recipes_requiring_chopping",
-            [["onion"], ["tomato"], ["onion", "tomato"],
-             ["onion", "tomato", "tomato"]])
-        cfg["Human_forced_cutting"] = True
-        cfg["AI_forced_cutting"] = True
+        cfg["recipes_requiring_chopping"] = (
+            base.get(
+                "recipes_requiring_chopping",
+                [["onion"], ["tomato"], ["onion", "tomato"],
+                 ["onion", "tomato", "tomato"]],
+            )
+            if cutting_enabled
+            else []
+        )
+        cfg["Human_forced_cutting"] = cutting_enabled
+        cfg["AI_forced_cutting"] = cutting_enabled
         return cfg
 
     def activate(self):
