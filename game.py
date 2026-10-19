@@ -1754,12 +1754,9 @@ class OvercookedTutorial(OvercookedGame):
             super(OvercookedTutorial, self).activate()
         finally:
             self.config = real_config
-        # Les layouts tutorial_1 à tutorial_3 attendent le clic du participant.
-        self.waiting_for_phase_start = self.curr_layout in (
-            "tutorial_1",
-            "tutorial_2",
-            "tutorial_3",
-        )
+        # Toutes les phases après la première attendent le clic, indépendamment
+        # du profil de layouts (avec ou sans découpe).
+        self.waiting_for_phase_start = self.curr_phase > 0
 
     def deactivate(self):
         super(OvercookedTutorial, self).deactivate()
