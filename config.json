@@ -106,10 +106,10 @@
         "dispenser_pool" : ["onion", "tomato", "dish"],
         "cutting_enabled" : true,
         "chop_time" : {"onion" : 5, "tomato" : 4},
-        "recipes_requiring_chopping" : [["onion"], ["tomato"], ["onion", "onion"], ["onion", "tomato"], ["tomato", "tomato"], ["onion", "onion", "onion"], ["onion", "onion", "tomato"], ["onion", "tomato", "tomato"], ["tomato", "tomato", "tomato"]],
+        "recipes_requiring_chopping" : [],
         "cutting_board_symbol" : "C",
-        "Human_forced_cutting" : true,
-        "AI_forced_cutting" : true,
+        "Human_forced_cutting" : false,
+        "AI_forced_cutting" : false,
         "tutorial_steps" : 3
     },
     "exp3grpvi" : {
@@ -197,10 +197,10 @@
         "dispenser_pool" : ["onion", "tomato", "dish"],
         "cutting_enabled" : true,
         "chop_time" : {"onion" : 5, "tomato" : 4},
-        "recipes_requiring_chopping" : [["onion"], ["tomato"], ["onion", "onion"], ["onion", "tomato"], ["tomato", "tomato"], ["onion", "onion", "onion"], ["onion", "onion", "tomato"], ["onion", "tomato", "tomato"], ["tomato", "tomato", "tomato"]],
+        "recipes_requiring_chopping" : [],
         "cutting_board_symbol" : "C",
-        "Human_forced_cutting" : true,
-        "AI_forced_cutting" : true,
+        "Human_forced_cutting" : false,
+        "AI_forced_cutting" : false,
         "tutorial_steps" : 3
     },
     "dev" : {
@@ -288,10 +288,10 @@
         "dispenser_pool" : ["onion", "tomato", "dish"],
         "cutting_enabled" : true,
         "chop_time" : {"onion" : 5, "tomato" : 4},
-        "recipes_requiring_chopping" : [["onion"], ["tomato"], ["onion", "onion"], ["onion", "tomato"], ["tomato", "tomato"], ["onion", "onion", "onion"], ["onion", "onion", "tomato"], ["onion", "tomato", "tomato"], ["tomato", "tomato", "tomato"]],
+        "recipes_requiring_chopping" : [],
         "cutting_board_symbol" : "C",
-        "Human_forced_cutting" : true,
-        "AI_forced_cutting" : true,
+        "Human_forced_cutting" : false,
+        "AI_forced_cutting" : false,
         "tutorial_steps" : 3
     },
     "tutorial" : {
