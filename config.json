@@ -233,7 +233,7 @@
         "timer_tuto_max": 0,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"U", "1":"VHa", "2":"VHr"},
+        "conditions" : {"0":"VHr", "1":"VHa", "2":"U"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
@@ -242,12 +242,12 @@
         "condition_tutorials" : {"E": "tutorial_EA.html","EA": "tutorial_EA.html", "U": "tutorial_U.html", "EV": "tutorial_EV.html", "EVH": "tutorial_EVH.html","VHa": "tutorial_EVa.html",
                                 "VHr": "tutorial_EVr.html","EAa": "tutorial_EAa.html", "EAr": "tutorial_EAr.html", "EVa": "tutorial_EVa.html", "EVr": "tutorial_EVr.html"},
         "blocs" : {
-            "0": ["test01","test02","test03","test05","test06","test07","test08","test09","test10","test11"],
+            "0": ["test01"],
             "1": ["test12_90"],
             "2": ["test07_180"]
         },
         "shuffle_trials" : true,
-        "shuffle_blocs" : true,
+        "shuffle_blocs" : false,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
             "begin"      : ["QVG","PTTA","GAbstractionP"],
