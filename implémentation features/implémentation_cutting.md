@@ -117,6 +117,15 @@ layouts + trials.json
 - Placer des tuiles 'C' dans les layouts visés (grille valide + accessibles aux deux
   joueurs). Marquer les recettes nécessitant la découpe.
 
+## Profils de découpe du tutoriel
+
+Le profil utilisé par le tutoriel se règle dans `config.json`, sous
+`tutorial.tutorialParams.cutting_enabled`. `false` sélectionne les trois layouts
+`tutorial_without_cutting_0` à `_2` (sans planche ni poubelle) et autorise les
+ingrédients crus dans les marmites. `true` sélectionne les trois layouts historiques
+`tutorial_0` à `_2` et impose la découpe. Le nombre d'étapes reste réglé par
+`tutorial_steps` dans la configuration de l'expérience.
+
 # POINTS DE VIGILANCE
 - L'attribut chopped doit faire l'aller-retour serveur<->client (sérialisation), sinon
   désync d'état et rendu incohérent.
