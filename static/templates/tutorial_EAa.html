@@ -145,20 +145,14 @@
         async function loadSprites() {
           try {
             // Load the atlases used by the displayed intentions
-            const [
-              objectsData,
-              terrainData,
-              objectsCutData
-            ] = await Promise.all([
+            const [objectsData, terrainData] = await Promise.all([
               fetch('static/assets/objects.json').then(response => response.json()),
-              fetch('static/assets/terrain.json').then(response => response.json()),
-              fetch('static/assets/objects_cut.json').then(response => response.json())
+              fetch('static/assets/terrain.json').then(response => response.json())
             ]);
 
             // Load atlas images
             const objectsImg = new Image();
             const terrainImg = new Image();
-            const objectsCutImg = new Image();
 
             await Promise.all([
               new Promise(resolve => {
@@ -169,11 +163,6 @@
               new Promise(resolve => {
                 terrainImg.onload = resolve;
                 terrainImg.src = 'static/assets/terrain.png';
-              }),
-
-              new Promise(resolve => {
-                objectsCutImg.onload = resolve;
-                objectsCutImg.src = 'static/assets/objects_cut.png';
               })
             ]);
 
@@ -207,15 +196,6 @@
                 buttonText: "plate"
               },
               {
-                id: "cutting",
-                label: "Cutting ingredient",
-                type: "Action",
-                audioFile: "illcut.mp3",
-                objectKey: "knife.png",
-                atlas: "objects_cut",
-                buttonText: "I'll cut"
-              },
-              {
                 id: "service",
                 label: "Serving",
                 type: "Action",
@@ -236,9 +216,6 @@
               if (asset.atlas === "terrain") {
                 objectFrame = terrainData.frames[asset.objectKey];
                 atlasImg = terrainImg;
-              } else if (asset.atlas === "objects_cut") {
-                objectFrame = objectsCutData.frames[asset.objectKey];
-                atlasImg = objectsCutImg;
               } else {
                 objectFrame = objectsData.frames[asset.objectKey];
                 atlasImg = objectsImg;
