@@ -233,7 +233,7 @@
         "timer_tuto_max": 0,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"VHr", "1":"VHa", "2":"U"},
+        "conditions" : {"0":"EAa", "1":"VHa", "2":"U"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
