@@ -51,7 +51,7 @@
         "timer_tuto_max": 0,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"U", "1":"EAa", "2":"EAr"},
+        "conditions" : {"0":"U", "1":"EVa", "2":"EVr"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
@@ -233,7 +233,7 @@
         "timer_tuto_max": 0,
         "playerZero" : "Planning",
         "agent" : "GreedyAgent",
-        "conditions" : {"0":"VHr", "1":"VHa", "2":"U"},
+        "conditions" : {"0":"VHr", "1":"VHa", "2":"EVa"},
         "visual_intention_recipe_duration": 2000,
         "visual_intention_asset_duration": 1500,
         "visual_intention_next_duration": 1000,
@@ -247,7 +247,7 @@
             "2": ["test07_180"]
         },
         "shuffle_trials" : true,
-        "shuffle_blocs" : false,
+        "shuffle_blocs" : true,
         "randomize_accountability_labels" : true,
         "questionnaires" : {
             "begin"      : ["QVG","PTTA","GAbstractionP"],
