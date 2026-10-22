@@ -29,6 +29,7 @@ var tutorial_instructions = (cuttingEnabled = true) => [
     <p>How it works: <b>Cooking together</b></p>
     <p>Some kitchens are quite small, making it difficult to cook together.</p>
     <p>Fortunately, you can continuously walk into your partner to unstuck.</p>
+    <p>It is also possible to drop items toward your partner using the exchange area</p>
     <br></br>
     `
 ];
@@ -361,6 +362,7 @@ socket.on('start_game', function(data) {
         container_id: "overcooked",
         start_info: data.start_info,
         mechanic: data.config.mechanic,
+        show_counter_drop: true,
         show_score: true,
         player_colors: {
             0: 'green',
@@ -443,6 +445,7 @@ socket.on('reset_game', function(data) {
         container_id: "overcooked",
         start_info: data.state,
         mechanic: data.config.mechanic,
+        show_counter_drop: true,
         show_score: true,
         player_colors: {
             0: 'green',
