@@ -30,13 +30,6 @@ var tutorial_instructions = (cuttingEnabled = true) => [
     <p>Some kitchens are quite small, making it difficult to cook together.</p>
     <p>Fortunately, you can continuously walk into your partner to unstuck.</p>
     <br></br>
-    `,
-    `
-    <p>How it works: <b>Exchange zones</b></p>
-    <p>This kitchen is divided into two separate work areas. The shared counters in the middle are <b>exchange zones</b>: neither cook can cross the barrier, but both can use these counters.</p>
-    <p>Your AI teammate has access to the ingredient dispensers, the pot and the serving window. You have access to the <b>cutting board</b> and the <b>plate dispenser</b>.</p>
-    <p>Pick up the raw onion placed by the AI on an exchange counter, chop it, then place the chopped onion back on an exchange counter. Also pass a plate to the AI when it is needed. Complete the onion soup to finish the tutorial.</p>
-    <br></br>
     `
 ];
 
