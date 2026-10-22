@@ -898,6 +898,11 @@ class PlanningGame(OvercookedGame):
         self.agent_action_count = 0
         self.human_interact_count = 0
         self.agent_interact_count = 0
+        self.human_blocked_by_agent_count = 0
+        self.agent_blocked_by_human_count = 0
+        self.players_blocked = 0
+        self._human_blocked_episode_active = False
+        self._agent_blocked_episode_active = False
         self.human_counter_share = 0
         self.infos = []
         
@@ -1235,6 +1240,11 @@ class PlanningGame(OvercookedGame):
         self.agent_action_count = 0
         self.human_interact_count = 0
         self.agent_interact_count = 0
+        self.human_blocked_by_agent_count = 0
+        self.agent_blocked_by_human_count = 0
+        self.players_blocked = 0
+        self._human_blocked_episode_active = False
+        self._agent_blocked_episode_active = False
         self.human_counter_share = 0
         self.infos = []
         
@@ -1322,6 +1332,7 @@ class PlanningGame(OvercookedGame):
         prev_state, joint_action, info = super(
             PlanningGame, self).apply_actions()
         self.infos.append(info['event_infos'])
+        self._record_partner_blockages(prev_state, joint_action)
 
         # Triplet system: if an order was served, advance triplet
         if self.order_triplets and before_triplet_count is not None:
@@ -1373,11 +1384,60 @@ class PlanningGame(OvercookedGame):
             "human_action_count": self.human_action_count,
             "agent_action_count": self.agent_action_count,
             "agent_stuck_loop": self.npc_policies[self.planning_agent_id].stuck_frames,
+            "human_blocked_by_agent_count": self.human_blocked_by_agent_count,
+            "agent_blocked_by_human_count": self.agent_blocked_by_human_count,
+            "players_blocked": self.players_blocked,
             "hl_switch": self.npc_policies[self.planning_agent_id].hl_objective_switch,
 
         }
         transition.update(prev_state.to_dict())
         self.trajectory.append(transition)
+
+    def _record_partner_blockages(self, prev_state, joint_action):
+        """Count the start of each continuous episode where one player blocks the other."""
+        agent_idx = self.players.index(self.planning_agent_id)
+        human_idx = next(
+            idx for idx, player_id in enumerate(self.players)
+            if player_id in self.human_players
+        )
+        positions_unchanged = (
+            prev_state.player_positions == self.state.player_positions
+        )
+        blockage_started = False
+
+        for actor_idx, partner_idx, counter_attr, active_attr in (
+            (human_idx, agent_idx, "human_blocked_by_agent_count",
+             "_human_blocked_episode_active"),
+            (agent_idx, human_idx, "agent_blocked_by_human_count",
+             "_agent_blocked_episode_active"),
+        ):
+            action = joint_action[actor_idx]
+            target = (
+                self.mdp._move_if_direction(
+                    prev_state.players[actor_idx].position,
+                    prev_state.players[actor_idx].orientation,
+                    action,
+                )[0]
+                if action in Direction.ALL_DIRECTIONS else None
+            )
+            was_blocked = (
+                target == prev_state.players[partner_idx].position
+                and self.state.players[actor_idx].position != target
+            )
+            episode_active = getattr(self, active_attr)
+            if was_blocked and not episode_active:
+                setattr(self, counter_attr, getattr(self, counter_attr) + 1)
+                blockage_started = True
+            setattr(
+                self,
+                active_attr,
+                was_blocked or (
+                    episode_active and positions_unchanged
+                    and action == Action.STAY
+                ),
+            )
+        if blockage_started:
+            self.players_blocked += 1
 
     def get_policy(self, npc_id,  idx):
         #self.mdp = OvercookedGridworld.from_layout_name(self.layouts[-1], self.layouts_dir, **self.mdp_params)
@@ -1531,6 +1591,9 @@ class PlanningGame(OvercookedGame):
                 "agent_action_count": self.trajectory[-1]["agent_action_count"],
                 "agent_interact_count": self.agent_interact_count,
                 "human_interact_count": self.human_interact_count,
+                "human_blocked_by_agent_count": self.human_blocked_by_agent_count,
+                "agent_blocked_by_human_count": self.agent_blocked_by_human_count,
+                "players_blocked": self.players_blocked,
                 "agent_stuck_loop": self.trajectory[-1]["agent_stuck_loop"],
                 "hl_switch": self.trajectory[-1]["hl_switch"],
                 "achieved_orders_len": self.trajectory[-1]["achieved_orders_len"],
