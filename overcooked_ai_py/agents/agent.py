@@ -2046,6 +2046,7 @@ class GreedyAgent(PlanningAgent):
 
         # position -> (nom de l'ingrédient, première détection)
         self._human_board_seen_at = {}
+        self._yielding_resource_access = False
 
     def _board_object_was_placed_by_ai(
         self,
@@ -2225,6 +2226,22 @@ class GreedyAgent(PlanningAgent):
         """Libère l'accès à la dernière soupe pour le joueur qui tient l'assiette."""
         action, info = super().action(state)
 
+        if type(self) is GreedyAgent:
+            if self._yielding_resource_access:
+                move = self._release_resource_access(state)
+                if move is not None:
+                    self.stuck_frames = 0
+                    info["action_probs"] = self.a_probs_from_action(move)
+                    return move, info
+                self._yielding_resource_access = False
+            if action == Action.STAY:
+                move = self._release_resource_access(state)
+                if move is not None:
+                    self._yielding_resource_access = True
+                    self.stuck_frames = 0
+                    info["action_probs"] = self.a_probs_from_action(move)
+                    return move, info
+
         # Type exact : TutorialCoopAI et GreedyCoopAgent restent inchangés.
         if (type(self).__name__ not in ("GreedyAgent", "TutorialCoopAI") or action != Action.STAY):
             return action, info
@@ -2297,6 +2314,61 @@ class GreedyAgent(PlanningAgent):
             info["action_probs"] = self.a_probs_from_action(action)
 
         return action, info
+
+    def _release_resource_access(self, state):
+        """Move to the nearest free tile that does not give access to a resource."""
+        mdp = self.mlam.mdp
+        player = state.players[self.agent_index]
+        partner_position = state.players[1 - self.agent_index].position
+        resource_positions = set(
+            mdp.get_onion_dispenser_locations()
+            + mdp.get_tomato_dispenser_locations()
+            + mdp.get_dish_dispenser_locations()
+            + mdp.get_serving_locations()
+            + mdp.get_pot_locations()
+        )
+        resource_positions.update(
+            obj.position
+            for obj in state.objects.values()
+            if obj.name in ("onion", "tomato", "dish")
+        )
+        valid_positions = set(mdp.get_valid_player_positions())
+        access_positions = {
+            Action.move_in_direction(position, direction)
+            for position in resource_positions
+            for direction in Action.MOTION_ACTIONS
+            if direction != Action.STAY
+            and Action.move_in_direction(position, direction) in valid_positions
+        }
+        if player.position not in access_positions:
+            return None
+
+        queue = [(player.position, None)]
+        visited = {player.position, partner_position}
+        for position, first_move in queue:
+            if position not in access_positions:
+                return first_move
+            for move in Action.MOTION_ACTIONS:
+                if move == Action.STAY:
+                    continue
+                next_position = mdp._move_if_direction(
+                    position, player.orientation, move
+                )[0]
+                if next_position in valid_positions and next_position not in visited:
+                    visited.add(next_position)
+                    queue.append((next_position, move if first_move is None else first_move))
+
+        return next(
+            (
+                move
+                for move in Action.MOTION_ACTIONS
+                if move != Action.STAY
+                and mdp._move_if_direction(
+                    player.position, player.orientation, move
+                )[0] not in (player.position, partner_position)
+            ),
+            None,
+        )
 
     def _idle_move(self, state):
         """Choisit un déplacement libre sans viser la case du partenaire."""
